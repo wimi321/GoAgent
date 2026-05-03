@@ -18,6 +18,11 @@ const requiredWorkflowFragments = [
   '--preserve-model-name',
   'GoMentor-*-win-x64-nvidia-portable.zip',
   'GoMentor-*-win-x64-nvidia.exe',
+  'GoMentor-*-mac-arm64.dmg',
+  'GoMentor-*-mac-x64.dmg',
+  '--platform=darwin-arm64',
+  '--platform=darwin-x64',
+  'hdiutil attach',
   'body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md'
 ]
 

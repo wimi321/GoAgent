@@ -127,7 +127,40 @@ jobs:
           GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
         run: |
           if [[ -n "${GOMENTOR_KATAGO_ASSET_DIR}" || ( -n "${GOMENTOR_KATAGO_BINARY}" && -n "${GOMENTOR_KATAGO_MODEL}" ) ]]; then
-            node scripts/prepare_katago_assets.mjs --flavor=standard --source-label="manual release asset source"
+            if [[ "${RUNNER_OS}" == "macOS" && -n "${GOMENTOR_KATAGO_ASSET_DIR}" ]]; then
+              node scripts/prepare_katago_assets.mjs --asset-dir="${GOMENTOR_KATAGO_ASSET_DIR}" --platform=darwin-arm64 --flavor=standard --source-label="manual release asset source"
+              node scripts/prepare_katago_assets.mjs --asset-dir="${GOMENTOR_KATAGO_ASSET_DIR}" --platform=darwin-x64 --flavor=standard --source-label="manual release asset source"
+            else
+              node scripts/prepare_katago_assets.mjs --flavor=standard --source-label="manual release asset source"
+            fi
+          elif [[ "${RUNNER_OS}" == "macOS" ]]; then
+            for target in darwin-arm64 darwin-x64; do
+              case "${target}" in
+                darwin-arm64) pattern="GoMentor-*-mac-arm64.dmg" ;;
+                darwin-x64) pattern="GoMentor-*-mac-x64.dmg" ;;
+              esac
+              source_dir=".katago-asset-source/${target}"
+              mount_point=".katago-asset-source/mounts/${target}"
+              mkdir -p "${source_dir}" "${mount_point}"
+              gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \
+                --repo "${{ github.repository }}" \
+                --pattern "${pattern}" \
+                --dir "${source_dir}"
+              asset_dmg="$(find "${source_dir}" -maxdepth 1 -name "${pattern}" | head -n 1)"
+              if [[ -z "${asset_dmg}" ]]; then
+                echo "No macOS KataGo asset matched ${pattern}" >&2
+                exit 1
+              fi
+              hdiutil attach -nobrowse -quiet "${asset_dmg}" -mountpoint "${mount_point}"
+              asset_dir="$(find "${mount_point}" -path '*/Contents/Resources/data/katago' -type d | head -n 1)"
+              if [[ -z "${asset_dir}" ]]; then
+                hdiutil detach "${mount_point}" -quiet || true
+                echo "Mounted ${asset_dmg} did not contain Contents/Resources/data/katago" >&2
+                exit 1
+              fi
+              node scripts/prepare_katago_assets.mjs --asset-dir="${asset_dir}" --platform="${target}" --flavor=standard --source-label="${{ github.repository }}@${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}:${pattern}"
+              hdiutil detach "${mount_point}" -quiet
+            done
           else
             mkdir -p .katago-asset-source/extracted
             gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \
@@ -144,7 +177,12 @@ jobs:
             fi
             node scripts/prepare_katago_assets.mjs --asset-dir=".katago-asset-source/extracted/resources/data/katago" --flavor=standard --source-label="${{ github.repository }}@${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}"
           fi
-          node scripts/check_katago_assets.mjs --mode=release
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            node scripts/check_katago_assets.mjs --mode=release --platform=darwin-arm64
+            node scripts/check_katago_assets.mjs --mode=release --platform=darwin-x64
+          else
+            node scripts/check_katago_assets.mjs --mode=release
+          fi
 
       - name: Package desktop app
         shell: bash
