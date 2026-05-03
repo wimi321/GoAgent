@@ -54,3 +54,14 @@ test('Electron app exposes native paste controls for editable settings fields', 
   assert.match(main, /label: 'Edit'/)
   assert.match(main, /role: 'pasteAndMatchStyle'/)
 })
+
+test('LLM model refresh replaces the picker with only provider-returned models', () => {
+  const app = read('src/renderer/src/App.tsx')
+  assert.match(app, /const \[llmModelsFetched, setLlmModelsFetched\]/)
+  assert.match(app, /const fallbackLlmModelOptions = uniqueModelOptions/)
+  assert.match(app, /const llmModelOptions = llmModelsFetched \? refreshedLlmModels : fallbackLlmModelOptions/)
+  assert.match(app, /setRefreshedLlmModels\(models\)/)
+  assert.match(app, /setLlmModelsFetched\(true\)/)
+  assert.match(app, /未返回模型/)
+  assert.doesNotMatch(app, /dashboard\.systemProfile\.proxyModels,[\s\S]*\.\.\.refreshedLlmModels,[\s\S]*'gpt-5\.5'/)
+})
