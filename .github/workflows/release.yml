@@ -299,7 +299,9 @@ jobs:
           fi
           case "${asset_archive}" in
             *.zip)
-              if command -v unzip >/dev/null 2>&1; then
+              if [[ "${RUNNER_OS}" == "Windows" ]] && command -v 7z >/dev/null 2>&1; then
+                7z x "${asset_archive}" -o.katago-nvidia-source/extracted
+              elif command -v unzip >/dev/null 2>&1; then
                 unzip -q "${asset_archive}" -d .katago-nvidia-source/extracted
               elif command -v 7z >/dev/null 2>&1; then
                 7z x "${asset_archive}" -o.katago-nvidia-source/extracted

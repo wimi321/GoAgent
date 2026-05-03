@@ -16,6 +16,7 @@ const requiredWorkflowFragments = [
   '*windows64.nvidia.portable.zip',
   '--copy-runtime-dir',
   '--preserve-model-name',
+  'RUNNER_OS',
   'GoMentor-*-win-x64-nvidia-portable.zip',
   'GoMentor-*-win-x64-nvidia.exe',
   'GoMentor-*-mac-arm64.dmg',
