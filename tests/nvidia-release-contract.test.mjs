@@ -37,4 +37,20 @@ test('KataGo asset preparation can scan and copy a runtime directory', () => {
   assert.match(prepareScript, /async function copyRuntimeDirectory/)
   assert.match(prepareScript, /preserve-model-name/)
   assert.match(prepareScript, /edition\.json/)
+  assert.match(prepareScript, /async function writePreparedManifest/)
+  assert.match(prepareScript, /modelPath: relative\(join\(root, 'data', 'katago'\), modelTarget\)/)
+  assert.match(prepareScript, /supportedPlatforms:[\s\S]*sha256: await sha256\(binaryTarget\)/)
+})
+
+test('runtime detection accepts prepared NVIDIA edition metadata and default model names', () => {
+  const runtime = readFileSync(join(root, 'src', 'main', 'services', 'katagoRuntime.ts'), 'utf8')
+  const assets = readFileSync(join(root, 'src', 'main', 'services', 'katago', 'katagoAssets.ts'), 'utf8')
+
+  assert.match(runtime, /function bundledMetadata/)
+  assert.match(runtime, /edition\.json/)
+  assert.match(runtime, /join\(directory, 'default\.bin\.gz'\)/)
+  assert.match(runtime, /globModelFiles\(directory, \/\^\.\*\\\.bin\\\.gz\$\/\)/)
+  assert.match(assets, /interface KataGoEditionMetadata/)
+  assert.match(assets, /readEditionMetadata/)
+  assert.match(assets, /KataGo NVIDIA bundled model/)
 })

@@ -4,6 +4,18 @@ All notable changes to GoMentor will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.3.8 - NVIDIA Edition Runtime Detection Hotfix
+
+### Fixed
+
+- Fixed first-launch runtime detection for the Windows NVIDIA edition when the bundled model is preserved as `models/default.bin.gz`.
+- Updated KataGo asset preparation so release packages rewrite `manifest.json` to the actual bundled model path and checksums.
+- Added runtime and settings-panel fallback detection for `edition.json` metadata and compatible bundled `.bin.gz` models.
+
+### Maintained
+
+- Keeps the v0.3.7 NVIDIA packaging, multilingual release page, grounded shape recognition engine, local pattern matcher, knowledge source-policy gates, optimized move-range review, and quality checks and eval gates.
+
 ## 0.3.7 - Windows NVIDIA Edition and Multilingual Release Page
 
 ### Added

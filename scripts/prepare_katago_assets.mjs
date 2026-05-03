@@ -146,6 +146,27 @@ async function writeEditionMetadata(metadata) {
   console.log(`[prepare-katago-assets] wrote edition metadata: ${relative(root, editionPath)}`)
 }
 
+async function writePreparedManifest(manifest, platform, modelTarget, binaryTarget, flavor) {
+  const nextManifest = {
+    ...manifest,
+    defaultModelFileName: basename(modelTarget),
+    defaultModelDisplayName: flavor === 'nvidia'
+      ? `KataGo NVIDIA bundled model (${basename(modelTarget)})`
+      : `KataGo bundled model (${basename(modelTarget)})`,
+    modelPath: relative(join(root, 'data', 'katago'), modelTarget).replaceAll('\\', '/'),
+    modelSha256: await sha256(modelTarget),
+    supportedPlatforms: {
+      ...manifest.supportedPlatforms,
+      [platform]: {
+        ...manifest.supportedPlatforms[platform],
+        sha256: await sha256(binaryTarget)
+      }
+    }
+  }
+  await writeFile(manifestPath, `${JSON.stringify(nextManifest, null, 2)}\n`, 'utf8')
+  console.log(`[prepare-katago-assets] updated manifest for ${platform}: ${nextManifest.modelPath}`)
+}
+
 async function main() {
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
   const key = platformKey()
@@ -187,6 +208,10 @@ async function main() {
       modelPath: relative(join(root, 'data', 'katago'), modelTarget).replaceAll('\\', '/'),
       preparedAt: new Date().toISOString()
     })
+  }
+
+  if (copiedBinary && copiedModel) {
+    await writePreparedManifest(manifest, key, modelTarget, binaryTarget, flavor)
   }
 
   if (!copiedBinary || !copiedModel) {

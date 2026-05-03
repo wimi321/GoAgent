@@ -38,6 +38,12 @@ export interface KataGoAssetStatus {
   detail: string
 }
 
+interface KataGoEditionMetadata {
+  modelPath?: string
+  binaryPath?: string
+  flavor?: string
+}
+
 function platformKey(): string {
   return `${process.platform}-${process.arch}`
 }
@@ -85,6 +91,18 @@ async function executable(path: string): Promise<boolean> {
 async function sha256(path: string): Promise<string> {
   const bytes = await readFile(path)
   return createHash('sha256').update(bytes).digest('hex')
+}
+
+async function readEditionMetadata(root: string): Promise<KataGoEditionMetadata | null> {
+  const path = join(root, 'edition.json')
+  if (!(await exists(path))) {
+    return null
+  }
+  try {
+    return JSON.parse(await readFile(path, 'utf8')) as KataGoEditionMetadata
+  } catch {
+    return null
+  }
 }
 
 function absoluteUrl(value: string): string {
@@ -253,8 +271,12 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
     }
   }
 
-  const binaryPath = join(root, platform.binaryPath)
-  const modelPath = join(root, manifest.modelPath)
+  const edition = await readEditionMetadata(root)
+  const binaryPath = join(root, edition?.binaryPath || platform.binaryPath)
+  const manifestModelPath = join(root, manifest.modelPath)
+  const editionModelPath = edition?.modelPath ? join(root, edition.modelPath) : ''
+  const editionModelFound = editionModelPath ? await exists(editionModelPath) : false
+  const modelPath = editionModelFound ? editionModelPath : manifestModelPath
   const binaryFound = await exists(binaryPath)
   const binaryExecutable = binaryFound ? await executable(binaryPath) : false
   const modelFound = await exists(modelPath)
@@ -275,11 +297,11 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
 
   const ready = binaryFound && binaryExecutable && modelFound && !checksumDetail
   const detail = ready
-    ? `已找到 ${basename(binaryPath)} 和 ${manifest.defaultModelDisplayName}。`
+    ? `已找到 ${basename(binaryPath)} 和 ${edition?.flavor === 'nvidia' ? 'NVIDIA bundled model' : manifest.defaultModelDisplayName}。`
     : [
-        binaryFound ? '' : `缺少引擎: ${platform.binaryPath}`,
-        binaryFound && !binaryExecutable ? `引擎不可执行: ${platform.binaryPath}` : '',
-        modelFound ? '' : `缺少模型: ${manifest.modelPath}`,
+        binaryFound ? '' : `缺少引擎: ${edition?.binaryPath || platform.binaryPath}`,
+        binaryFound && !binaryExecutable ? `引擎不可执行: ${edition?.binaryPath || platform.binaryPath}` : '',
+        modelFound ? '' : `缺少模型: ${edition?.modelPath || manifest.modelPath}`,
         checksumDetail
       ].filter(Boolean).join('；')
 
@@ -291,7 +313,7 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
     binaryExecutable,
     modelPath,
     modelFound,
-    modelDisplayName: manifest.defaultModelDisplayName,
+    modelDisplayName: edition?.flavor === 'nvidia' ? 'KataGo NVIDIA bundled model' : manifest.defaultModelDisplayName,
     ready,
     detail
   }

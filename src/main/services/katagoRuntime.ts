@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { appHome } from '@main/lib/store'
@@ -147,6 +147,11 @@ export interface KataGoRuntime {
   notes: string[]
 }
 
+interface BundledAssetMetadata {
+  modelPath?: string
+  binaryPath?: string
+}
+
 function platformBinaryName(): string {
   return process.platform === 'win32' ? 'katago.exe' : 'katago'
 }
@@ -175,6 +180,29 @@ function globModelFiles(directory: string, pattern: RegExp): string[] {
       .map((file) => join(directory, file))
   } catch {
     return []
+  }
+}
+
+function readJson(path: string): Record<string, unknown> | null {
+  if (!existsSync(path)) {
+    return null
+  }
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+function bundledMetadata(root: string): BundledAssetMetadata {
+  const manifest = readJson(join(root, 'manifest.json'))
+  const edition = readJson(join(root, 'edition.json'))
+  const manifestModel = typeof manifest?.modelPath === 'string' ? manifest.modelPath : ''
+  const editionModel = typeof edition?.modelPath === 'string' ? edition.modelPath : ''
+  const editionBinary = typeof edition?.binaryPath === 'string' ? edition.binaryPath : ''
+  return {
+    modelPath: editionModel || manifestModel || '',
+    binaryPath: editionBinary || ''
   }
 }
 
@@ -210,6 +238,10 @@ function binaryCandidates(): string[] {
   const roots = resourceRoots()
   return [
     process.env.GOMENTOR_KATAGO_BIN ?? '',
+    ...roots.map((root) => {
+      const metadata = bundledMetadata(root)
+      return metadata.binaryPath ? join(root, metadata.binaryPath) : ''
+    }),
     ...roots.flatMap((root) => [
       join(root, 'bin', platformKey(), file),
       join(root, 'bin', process.platform, file),
@@ -233,6 +265,10 @@ function modelDirectories(): string[] {
 
 function modelCandidates(preset: KataGoModelPreset, settings?: AppSettings): string[] {
   const directories = modelDirectories()
+  const bundledModels = resourceRoots().map((root) => {
+    const metadata = bundledMetadata(root)
+    return metadata.modelPath ? join(root, metadata.modelPath) : ''
+  })
   const blockToken = preset.blockSize || preset.networkName.match(/b\d+/)?.[0] || ''
   const presetPatterns = [
     new RegExp(`^${escapeRegExp(preset.networkName)}\\.bin\\.gz$`),
@@ -242,11 +278,14 @@ function modelCandidates(preset: KataGoModelPreset, settings?: AppSettings): str
   const matchingPresetFiles = directories.flatMap((directory) => presetPatterns.flatMap((pattern) => globModelFiles(directory, pattern)))
   const compatibilityFiles = [
     settings?.katagoModel ?? '',
+    ...bundledModels,
     ...directories.map((directory) => join(directory, 'latest-kata1.bin.gz')),
+    ...directories.map((directory) => join(directory, 'default.bin.gz')),
     ...directories.flatMap((directory) => globModelFiles(directory, /^kata1-.*b40.*\.bin\.gz$/)),
     ...directories.flatMap((directory) => globModelFiles(directory, /^kata1-.*b28.*\.bin\.gz$/)),
     ...directories.flatMap((directory) => globModelFiles(directory, /^kata1-.*b20.*\.bin\.gz$/)),
-    ...directories.flatMap((directory) => globModelFiles(directory, /^kata1-b18c384nbt.*\.bin\.gz$/))
+    ...directories.flatMap((directory) => globModelFiles(directory, /^kata1-b18c384nbt.*\.bin\.gz$/)),
+    ...directories.flatMap((directory) => globModelFiles(directory, /^.*\.bin\.gz$/))
   ]
   return [...selectedPresetFiles, ...matchingPresetFiles, ...compatibilityFiles]
 }
