@@ -28,7 +28,8 @@ git push origin v0.2.0-beta.1
 The workflow builds on native runners:
 
 - macOS: DMG and ZIP.
-- Windows: x64 NSIS installer and x64 portable ZIP for P0 beta.
+- Windows: x64 NSIS installer and x64 portable ZIP.
+- Windows NVIDIA: x64 NSIS installer and x64 portable ZIP with a dedicated NVIDIA KataGo runtime directory.
 - Linux: AppImage, DEB, and tar.gz.
 
 Windows ARM64 is not supported in `v0.2.0-beta.1`.
@@ -44,6 +45,23 @@ data/katago/
 ```
 
 The application also falls back to a locally installed `katago` binary and `~/.katago/models/latest-kata1.bin.gz` in development.
+
+## Windows NVIDIA Edition
+
+The release workflow has a separate `package-nvidia-windows` job. By default it restores the NVIDIA KataGo runtime from `wimi321/lizzieyzy-next` and downloads the asset matching:
+
+```text
+*windows64.nvidia.portable.zip
+```
+
+The job scans the extracted archive, finds `katago.exe`, copies the whole runtime directory into `data/katago/bin/win32-x64`, preserves the bundled model filename, and renames the final artifacts to:
+
+```text
+GoMentor-<version>-win-x64-nvidia.exe
+GoMentor-<version>-win-x64-nvidia-portable.zip
+```
+
+This keeps the NVIDIA package honest: it is not the standard Windows package with a new filename.
 
 ## Signing
 

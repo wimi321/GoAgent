@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { chmod, copyFile, mkdir, readFile, stat } from 'node:fs/promises'
+import { chmod, copyFile, cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import process from 'node:process'
 
 const root = resolve(process.cwd())
@@ -11,6 +11,10 @@ function arg(name, fallback = '') {
   const prefix = `--${name}=`
   const found = process.argv.find((item) => item.startsWith(prefix))
   return found ? found.slice(prefix.length) : fallback
+}
+
+function hasFlag(name) {
+  return process.argv.includes(`--${name}`)
 }
 
 function platformKey() {
@@ -31,6 +35,75 @@ async function sha256(path) {
   return createHash('sha256').update(data).digest('hex')
 }
 
+async function walkFiles(dir) {
+  const rootDir = resolve(dir)
+  if (!(await exists(rootDir))) return []
+  const files = []
+  async function visit(current) {
+    const entries = await readdir(current, { withFileTypes: true })
+    for (const entry of entries) {
+      const full = join(current, entry.name)
+      if (entry.isDirectory()) {
+        await visit(full)
+      } else if (entry.isFile()) {
+        files.push(full)
+      }
+    }
+  }
+  await visit(rootDir)
+  return files
+}
+
+function candidateScore(file, hints = []) {
+  const lower = file.toLowerCase()
+  let score = 0
+  for (const hint of hints) {
+    if (hint && lower.includes(hint)) score += 20
+  }
+  if (lower.includes('nvidia')) score += 80
+  if (lower.includes('cuda')) score += 70
+  if (lower.includes('cudnn')) score += 50
+  if (lower.includes('opencl')) score += 20
+  if (lower.includes('katago')) score += 10
+  if (lower.includes('resources')) score += 5
+  score -= lower.length / 10000
+  return score
+}
+
+async function findRuntimeBinary(assetDir, platform) {
+  const assetRoot = resolve(assetDir)
+  const exact = join(assetRoot, platform.binaryPath)
+  if (await exists(exact)) return exact
+
+  const expectedName = basename(platform.binaryPath).toLowerCase()
+  const candidates = (await walkFiles(assetRoot)).filter((file) => basename(file).toLowerCase() === expectedName)
+  candidates.sort((left, right) => candidateScore(right, ['win64', 'win32', 'x64']) - candidateScore(left, ['win64', 'win32', 'x64']))
+  return candidates[0] ?? ''
+}
+
+async function findModel(assetDir, manifest) {
+  const assetRoot = resolve(assetDir)
+  const exact = join(assetRoot, manifest.modelPath)
+  if (await exists(exact)) return exact
+
+  const expectedName = basename(manifest.modelPath).toLowerCase()
+  const candidates = (await walkFiles(assetRoot)).filter((file) => basename(file).toLowerCase().endsWith('.bin.gz'))
+  candidates.sort((left, right) => {
+    const leftName = basename(left).toLowerCase()
+    const rightName = basename(right).toLowerCase()
+    const leftScore = (leftName === expectedName ? 100 : 0) + candidateScore(left, ['b18', 'b28', 'kata1'])
+    const rightScore = (rightName === expectedName ? 100 : 0) + candidateScore(right, ['b18', 'b28', 'kata1'])
+    return rightScore - leftScore
+  })
+  return candidates[0] ?? ''
+}
+
+async function chmodBinary(path) {
+  if (process.platform !== 'win32' && !path.endsWith('.bin.gz')) {
+    await chmod(path, 0o755).catch(() => undefined)
+  }
+}
+
 async function copyIfProvided(source, target, label) {
   if (!source) {
     console.log(`[prepare-katago-assets] ${label}: no source provided, skip`)
@@ -42,12 +115,35 @@ async function copyIfProvided(source, target, label) {
   }
   await mkdir(dirname(target), { recursive: true })
   await copyFile(sourcePath, target)
-  if (process.platform !== 'win32' && !target.endsWith('.bin.gz')) {
-    await chmod(target, 0o755).catch(() => undefined)
-  }
+  await chmodBinary(target)
   console.log(`[prepare-katago-assets] copied ${label}: ${sourcePath} -> ${target}`)
   console.log(`[prepare-katago-assets] ${label} sha256=${await sha256(target)}`)
   return true
+}
+
+async function copyRuntimeDirectory(sourceBinary, targetBinary, label) {
+  if (!sourceBinary) return false
+  const sourceDir = dirname(resolve(sourceBinary))
+  const targetDir = dirname(resolve(targetBinary))
+  if (sourceDir === targetDir) {
+    console.log(`[prepare-katago-assets] ${label}: runtime directory already in place: ${targetDir}`)
+    await chmodBinary(targetBinary)
+    return true
+  }
+
+  await rm(targetDir, { recursive: true, force: true })
+  await mkdir(dirname(targetDir), { recursive: true })
+  await cp(sourceDir, targetDir, { recursive: true })
+  await chmodBinary(targetBinary)
+  console.log(`[prepare-katago-assets] copied ${label} runtime directory: ${sourceDir} -> ${targetDir}`)
+  console.log(`[prepare-katago-assets] ${label} binary sha256=${await sha256(targetBinary)}`)
+  return true
+}
+
+async function writeEditionMetadata(metadata) {
+  const editionPath = join(root, 'data', 'katago', 'edition.json')
+  await writeFile(editionPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8')
+  console.log(`[prepare-katago-assets] wrote edition metadata: ${relative(root, editionPath)}`)
 }
 
 async function main() {
@@ -61,15 +157,37 @@ async function main() {
   const binarySource = arg('binary', process.env.GOMENTOR_KATAGO_BINARY ?? '')
   const modelSource = arg('model', process.env.GOMENTOR_KATAGO_MODEL ?? '')
   const assetDir = arg('asset-dir', process.env.GOMENTOR_KATAGO_ASSET_DIR ?? '')
+  const scan = hasFlag('scan')
+  const copyRuntimeDir = hasFlag('copy-runtime-dir')
+  const preserveModelName = hasFlag('preserve-model-name')
+  const flavor = arg('flavor', process.env.GOMENTOR_KATAGO_FLAVOR ?? 'standard')
+  const sourceLabel = arg('source-label', process.env.GOMENTOR_KATAGO_SOURCE_LABEL ?? (assetDir || 'manual'))
 
-  const binaryFallback = assetDir ? join(resolve(assetDir), platform.binaryPath) : ''
-  const modelFallback = assetDir ? join(resolve(assetDir), manifest.modelPath) : ''
+  const binaryFallback = assetDir ? (scan ? await findRuntimeBinary(assetDir, platform) : join(resolve(assetDir), platform.binaryPath)) : ''
+  const modelFallback = assetDir ? (scan ? await findModel(assetDir, manifest) : join(resolve(assetDir), manifest.modelPath)) : ''
 
   const binaryTarget = join(root, 'data', 'katago', platform.binaryPath)
-  const modelTarget = join(root, 'data', 'katago', manifest.modelPath)
+  const resolvedModelSource = modelSource || modelFallback
+  const modelTarget = preserveModelName && resolvedModelSource
+    ? join(root, 'data', 'katago', 'models', basename(resolvedModelSource))
+    : join(root, 'data', 'katago', manifest.modelPath)
 
-  const copiedBinary = await copyIfProvided(binarySource || binaryFallback, binaryTarget, `binary ${key}`)
-  const copiedModel = await copyIfProvided(modelSource || modelFallback, modelTarget, 'default model')
+  const resolvedBinarySource = binarySource || binaryFallback
+  const copiedBinary = copyRuntimeDir
+    ? await copyRuntimeDirectory(resolvedBinarySource, binaryTarget, `binary ${key}`)
+    : await copyIfProvided(resolvedBinarySource, binaryTarget, `binary ${key}`)
+  const copiedModel = await copyIfProvided(resolvedModelSource, modelTarget, preserveModelName ? 'bundled model' : 'default model')
+
+  if (copiedBinary || copiedModel) {
+    await writeEditionMetadata({
+      flavor,
+      platform: key,
+      source: sourceLabel,
+      binaryPath: platform.binaryPath,
+      modelPath: relative(join(root, 'data', 'katago'), modelTarget).replaceAll('\\', '/'),
+      preparedAt: new Date().toISOString()
+    })
+  }
 
   if (!copiedBinary || !copiedModel) {
     console.log('[prepare-katago-assets] No complete asset pair copied. This is OK for local development but release packaging should provide both assets.')

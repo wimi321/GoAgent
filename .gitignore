@@ -22,4 +22,5 @@ release-evidence
 # See data/katago/README.md for the expected packaging layout.
 data/katago/bin/**
 data/katago/models/**
+data/katago/edition.json
 !data/katago/README.md

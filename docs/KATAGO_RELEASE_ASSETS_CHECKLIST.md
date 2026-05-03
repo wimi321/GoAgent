@@ -6,6 +6,7 @@
 - Release 时准备平台对应 binary 和默认 b18 model。
 - 安装包必须包含运行所需资源。
 - P0 beta 支持 macOS arm64/x64 和 Windows x64。Windows ARM64 暂不支持。
+- v0.3.7 起发布 Windows NVIDIA 专版，必须复制完整 CUDA/NVIDIA runtime 目录，不能只把普通 Windows 包改名。
 
 ## 资源布局
 
@@ -18,6 +19,13 @@ data/katago/
     win32-x64/katago.exe
   models/
     <default-b18-model>.bin.gz
+  edition.json        # packaging-time metadata, not committed
+```
+
+Windows NVIDIA 专版允许保留来源模型文件名，例如：
+
+```text
+data/katago/models/kata1-zhizi-b28c512nbt-muonfd2.bin.gz
 ```
 
 ## 检查命令
@@ -33,6 +41,8 @@ node scripts/check_katago_assets.mjs --mode=dev
 ```bash
 node scripts/check_katago_assets.mjs --mode=release
 node scripts/p0_release_candidate_check.mjs --mode=release
+node scripts/check_nvidia_release_assets.mjs
+node scripts/check_release_notes_i18n.mjs
 ```
 
 ## checksum
@@ -49,6 +59,9 @@ Release 前应记录：
 
 - manifest 指向不存在的文件
 - Windows 打包没有 `katago.exe`
+- NVIDIA 专版没有 `GoMentor-<version>-win-x64-nvidia.exe`
+- NVIDIA 专版没有 `GoMentor-<version>-win-x64-nvidia-portable.zip`
+- NVIDIA 专版没有复制 `katago.exe` 同目录 runtime 文件
 - 生成或上传了 `win-arm64` beta 产物
 - macOS 打包没有可执行权限
 - 默认模型缺失

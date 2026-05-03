@@ -4,6 +4,22 @@ All notable changes to GoMentor will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.3.7 - Windows NVIDIA Edition and Multilingual Release Page
+
+### Added
+
+- Dedicated Windows NVIDIA release pipeline that restores a real NVIDIA KataGo runtime directory and bundled model from `wimi321/lizzieyzy-next` assets.
+- NVIDIA-specific release artifacts: `GoMentor-0.3.7-win-x64-nvidia.exe` and `GoMentor-0.3.7-win-x64-nvidia-portable.zip`.
+- Multilingual release notes in Chinese, Traditional Chinese, English, Japanese, Korean, Thai, and Vietnamese.
+- Release checks for NVIDIA asset wiring and multilingual release-note completeness.
+- KataGo asset preparation can now scan extracted archives, copy a full runtime directory, preserve model names, and write package edition metadata.
+
+### Improved
+
+- Release workflow now uses a handwritten multilingual release body instead of relying only on generated GitHub notes.
+- KataGo release checks accept a compatible bundled model when a package flavor intentionally uses a model name different from the default manifest model.
+- The v0.3.6 grounded shape recognition engine, local pattern matcher, knowledge source-policy gates, optimized move-range review from PR #5, and quality checks and eval gates remain part of the release quality baseline.
+
 ## 0.3.6 - Grounded Shape Recognition and Move Range Review
 
 ### Added

@@ -17,3 +17,8 @@ The two model presets follow the official KataGo guidance:
 Large binaries and model files are intentionally ignored by Git. Keep this
 README in the repository, but place actual runtime files during local packaging,
 CI artifact preparation, or a dedicated model-download step.
+
+Windows NVIDIA packages copy the whole runtime directory that contains
+`katago.exe`, because CUDA builds may require neighboring DLL files. Packaging
+also writes `edition.json` with the package flavor and source asset metadata;
+that file is generated at build time and is not committed.

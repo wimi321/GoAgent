@@ -7,9 +7,24 @@ on:
   workflow_dispatch:
     inputs:
       katago_asset_release_tag:
-        description: "Release tag to reuse bundled KataGo assets from when secrets are not configured"
+        description: "GoMentor release tag to reuse standard bundled KataGo assets from"
         required: false
-        default: "v0.3.4"
+        default: "v0.3.6"
+        type: string
+      nvidia_katago_asset_repo:
+        description: "Repository that provides the Windows NVIDIA KataGo runtime asset"
+        required: false
+        default: "wimi321/lizzieyzy-next"
+        type: string
+      nvidia_katago_asset_release_tag:
+        description: "Release tag that provides the Windows NVIDIA KataGo runtime asset"
+        required: false
+        default: "1.0.0-next-2026-05-02.3"
+        type: string
+      nvidia_katago_asset_pattern:
+        description: "Asset pattern for the Windows NVIDIA runtime bundle"
+        required: false
+        default: "*windows64.nvidia.portable.zip"
         type: string
 
 permissions:
@@ -25,6 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       can-package: ${{ steps.katago-assets.outputs.can-package }}
+      can-package-nvidia: ${{ steps.katago-assets.outputs.can-package-nvidia }}
 
     steps:
       - name: Check KataGo asset sources
@@ -34,17 +50,28 @@ jobs:
           GOMENTOR_KATAGO_ASSET_DIR: ${{ secrets.GOMENTOR_KATAGO_ASSET_DIR }}
           GOMENTOR_KATAGO_BINARY: ${{ secrets.GOMENTOR_KATAGO_BINARY }}
           GOMENTOR_KATAGO_MODEL: ${{ secrets.GOMENTOR_KATAGO_MODEL }}
-          GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.4' }}
+          GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
+          GOMENTOR_NVIDIA_KATAGO_ASSET_REPO: ${{ inputs.nvidia_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.nvidia_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN: ${{ inputs.nvidia_katago_asset_pattern || '*windows64.nvidia.portable.zip' }}
         run: |
           if [[ -n "${GOMENTOR_KATAGO_ASSET_DIR}" || ( -n "${GOMENTOR_KATAGO_BINARY}" && -n "${GOMENTOR_KATAGO_MODEL}" ) ]]; then
             echo "can-package=true" >> "${GITHUB_OUTPUT}"
-            echo "KataGo release asset source is configured."
+            echo "KataGo standard release asset source is configured."
           elif [[ -n "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" ]]; then
             echo "can-package=true" >> "${GITHUB_OUTPUT}"
-            echo "KataGo release assets will be restored from ${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}."
+            echo "KataGo standard assets will be restored from GoMentor ${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}."
           else
             echo "can-package=false" >> "${GITHUB_OUTPUT}"
-            echo "::notice title=Release packaging skipped::KataGo release assets are not configured. Set GOMENTOR_KATAGO_ASSET_DIR, both GOMENTOR_KATAGO_BINARY and GOMENTOR_KATAGO_MODEL, or katago_asset_release_tag to enable automated packaging."
+            echo "::notice title=Release packaging skipped::KataGo standard assets are not configured. Set GOMENTOR_KATAGO_ASSET_DIR, both GOMENTOR_KATAGO_BINARY and GOMENTOR_KATAGO_MODEL, or katago_asset_release_tag to enable automated packaging."
+          fi
+
+          if [[ -n "${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}" && -n "${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}" ]]; then
+            echo "can-package-nvidia=true" >> "${GITHUB_OUTPUT}"
+            echo "KataGo NVIDIA assets will be restored from ${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}@${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}."
+          else
+            echo "can-package-nvidia=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice title=NVIDIA package skipped::Set nvidia_katago_asset_repo, nvidia_katago_asset_release_tag, and nvidia_katago_asset_pattern to publish the Windows NVIDIA edition."
           fi
 
   package:
@@ -97,10 +124,10 @@ jobs:
           GOMENTOR_KATAGO_ASSET_DIR: ${{ secrets.GOMENTOR_KATAGO_ASSET_DIR }}
           GOMENTOR_KATAGO_BINARY: ${{ secrets.GOMENTOR_KATAGO_BINARY }}
           GOMENTOR_KATAGO_MODEL: ${{ secrets.GOMENTOR_KATAGO_MODEL }}
-          GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.4' }}
+          GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
         run: |
           if [[ -n "${GOMENTOR_KATAGO_ASSET_DIR}" || ( -n "${GOMENTOR_KATAGO_BINARY}" && -n "${GOMENTOR_KATAGO_MODEL}" ) ]]; then
-            node scripts/prepare_katago_assets.mjs
+            node scripts/prepare_katago_assets.mjs --flavor=standard --source-label="manual release asset source"
           else
             mkdir -p .katago-asset-source/extracted
             gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \
@@ -115,7 +142,7 @@ jobs:
             else
               powershell -NoProfile -Command "Expand-Archive -LiteralPath '${asset_zip}' -DestinationPath '.katago-asset-source/extracted'"
             fi
-            node scripts/prepare_katago_assets.mjs --asset-dir=".katago-asset-source/extracted/resources/data/katago"
+            node scripts/prepare_katago_assets.mjs --asset-dir=".katago-asset-source/extracted/resources/data/katago" --flavor=standard --source-label="${{ github.repository }}@${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}"
           fi
           node scripts/check_katago_assets.mjs --mode=release
 
@@ -173,15 +200,131 @@ jobs:
             release/**/*.yml
           if-no-files-found: error
 
+  package-nvidia-windows:
+    name: Package Windows NVIDIA
+    needs: release-preflight
+    if: needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true'
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Prepare NVIDIA KataGo assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GOMENTOR_NVIDIA_KATAGO_ASSET_REPO: ${{ inputs.nvidia_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.nvidia_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN: ${{ inputs.nvidia_katago_asset_pattern || '*windows64.nvidia.portable.zip' }}
+        run: |
+          mkdir -p .katago-nvidia-source/extracted
+          gh release download "${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}" \
+            --repo "${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}" \
+            --pattern "${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}" \
+            --dir .katago-nvidia-source
+          asset_archive="$(find .katago-nvidia-source -maxdepth 1 -type f | head -n 1)"
+          if [[ -z "${asset_archive}" ]]; then
+            echo "No NVIDIA KataGo asset matched ${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}" >&2
+            exit 1
+          fi
+          case "${asset_archive}" in
+            *.zip)
+              if command -v unzip >/dev/null 2>&1; then
+                unzip -q "${asset_archive}" -d .katago-nvidia-source/extracted
+              elif command -v 7z >/dev/null 2>&1; then
+                7z x "${asset_archive}" -o.katago-nvidia-source/extracted
+              else
+                powershell -NoProfile -Command "Expand-Archive -LiteralPath '${asset_archive}' -DestinationPath '.katago-nvidia-source/extracted'"
+              fi
+              ;;
+            *.tar.gz|*.tgz)
+              tar -xzf "${asset_archive}" -C .katago-nvidia-source/extracted
+              ;;
+            *)
+              if command -v 7z >/dev/null 2>&1; then
+                7z x "${asset_archive}" -o.katago-nvidia-source/extracted
+              else
+                echo "Unsupported NVIDIA asset archive: ${asset_archive}" >&2
+                exit 1
+              fi
+              ;;
+          esac
+          node scripts/prepare_katago_assets.mjs \
+            --asset-dir=".katago-nvidia-source/extracted" \
+            --platform=win32-x64 \
+            --scan \
+            --copy-runtime-dir \
+            --preserve-model-name \
+            --flavor=nvidia \
+            --source-label="${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}@${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}:${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}"
+          node scripts/check_katago_assets.mjs --mode=release --platform=win32-x64
+
+      - name: Package NVIDIA desktop app
+        shell: bash
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          for name in WIN_CSC_LINK WIN_CSC_KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then
+              unset "${name}"
+            fi
+          done
+          pnpm dist:win
+
+      - name: Rename NVIDIA artifacts
+        shell: pwsh
+        run: |
+          $version = node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version"
+          $releaseDir = Join-Path "release" $version
+          $portable = Get-ChildItem -Path $releaseDir -Filter "GoMentor-$version-win-x64-portable.zip" -File | Select-Object -First 1
+          $installer = Get-ChildItem -Path $releaseDir -Filter "GoMentor-$version-win-x64.exe" -File | Select-Object -First 1
+          if (-not $portable) { throw "Missing NVIDIA portable ZIP before rename." }
+          if (-not $installer) { throw "Missing NVIDIA installer EXE before rename." }
+          Rename-Item -LiteralPath $portable.FullName -NewName "GoMentor-$version-win-x64-nvidia-portable.zip" -Force
+          Rename-Item -LiteralPath $installer.FullName -NewName "GoMentor-$version-win-x64-nvidia.exe" -Force
+
+      - name: Upload NVIDIA packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoMentor-Windows-NVIDIA
+          path: |
+            release/**/*nvidia*.exe
+            release/**/*nvidia*.zip
+          if-no-files-found: error
+
   github-release:
     name: Publish GitHub Release
     needs:
       - release-preflight
       - package
+      - package-nvidia-windows
     runs-on: ubuntu-latest
-    if: needs.release-preflight.outputs.can-package == 'true' && startsWith(github.ref, 'refs/tags/')
+    if: always() && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
 
     steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v4
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -197,6 +340,8 @@ jobs:
             artifacts/**/GoMentor-*-mac-x64.dmg
             artifacts/**/GoMentor-*-win-x64-portable.zip
             artifacts/**/GoMentor-*-win-x64.exe
+            artifacts/**/GoMentor-*-win-x64-nvidia-portable.zip
+            artifacts/**/GoMentor-*-win-x64-nvidia.exe
           )
           if [[ ${#files[@]} -eq 0 ]]; then
             echo "No release assets found for checksum generation." >&2
@@ -212,5 +357,7 @@ jobs:
             artifacts/**/GoMentor-*-mac-x64.dmg
             artifacts/**/GoMentor-*-win-x64-portable.zip
             artifacts/**/GoMentor-*-win-x64.exe
+            artifacts/**/GoMentor-*-win-x64-nvidia-portable.zip
+            artifacts/**/GoMentor-*-win-x64-nvidia.exe
             artifacts/SHA256SUMS.txt
-          generate_release_notes: true
+          body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md

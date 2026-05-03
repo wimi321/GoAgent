@@ -1,6 +1,6 @@
 {
   "name": "gomentor",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "KataGo + multimodal LLM desktop workbench for Go students and teachers.",
   "main": "out/main/index.js",
   "type": "module",
@@ -41,6 +41,9 @@
     "prepare:katago-assets": "node scripts/prepare_katago_assets.mjs",
     "check:katago-assets": "node scripts/check_katago_assets.mjs --mode=dev",
     "check:katago-assets:release": "node scripts/check_katago_assets.mjs --mode=release",
+    "check:nvidia-release-assets": "node scripts/check_nvidia_release_assets.mjs",
+    "check:release-notes-i18n": "node scripts/check_release_notes_i18n.mjs",
+    "check:release-quality": "pnpm check:teacher-quality && pnpm check:nvidia-release-assets && pnpm check:release-notes-i18n",
     "check:p0-beta": "node scripts/p0_beta_acceptance.mjs",
     "check:artifacts": "node scripts/package_artifact_smoke.mjs --mode=dev",
     "smoke:teacher-llm": "pnpm build && node scripts/teacher_llm_smoke.mjs",
