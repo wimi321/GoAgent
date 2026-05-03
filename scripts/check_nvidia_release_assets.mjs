@@ -20,6 +20,7 @@ const requiredWorkflowFragments = [
   'GoMentor-*-win-x64-nvidia.exe',
   'GoMentor-*-mac-arm64.dmg',
   'GoMentor-*-mac-x64.dmg',
+  '*mac-intel.with-katago.dmg',
   '--platform=darwin-arm64',
   '--platform=darwin-x64',
   'hdiutil attach',

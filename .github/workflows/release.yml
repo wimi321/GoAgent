@@ -134,33 +134,47 @@ jobs:
               node scripts/prepare_katago_assets.mjs --flavor=standard --source-label="manual release asset source"
             fi
           elif [[ "${RUNNER_OS}" == "macOS" ]]; then
-            for target in darwin-arm64 darwin-x64; do
-              case "${target}" in
-                darwin-arm64) pattern="GoMentor-*-mac-arm64.dmg" ;;
-                darwin-x64) pattern="GoMentor-*-mac-x64.dmg" ;;
-              esac
-              source_dir=".katago-asset-source/${target}"
-              mount_point=".katago-asset-source/mounts/${target}"
+            prepare_macos_asset() {
+              local target="$1"
+              local repo="$2"
+              local tag="$3"
+              local pattern="$4"
+              local mode="$5"
+              local source_dir=".katago-asset-source/${target}-${mode}"
+              local mount_point=".katago-asset-source/mounts/${target}-${mode}"
               mkdir -p "${source_dir}" "${mount_point}"
-              gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \
-                --repo "${{ github.repository }}" \
+              gh release download "${tag}" \
+                --repo "${repo}" \
                 --pattern "${pattern}" \
-                --dir "${source_dir}"
+                --dir "${source_dir}" || return 1
               asset_dmg="$(find "${source_dir}" -maxdepth 1 -name "${pattern}" | head -n 1)"
               if [[ -z "${asset_dmg}" ]]; then
                 echo "No macOS KataGo asset matched ${pattern}" >&2
-                exit 1
+                return 1
               fi
-              hdiutil attach -nobrowse -quiet "${asset_dmg}" -mountpoint "${mount_point}"
+              hdiutil attach -nobrowse -quiet "${asset_dmg}" -mountpoint "${mount_point}" || return 1
               asset_dir="$(find "${mount_point}" -path '*/Contents/Resources/data/katago' -type d | head -n 1)"
               if [[ -z "${asset_dir}" ]]; then
                 hdiutil detach "${mount_point}" -quiet || true
                 echo "Mounted ${asset_dmg} did not contain Contents/Resources/data/katago" >&2
-                exit 1
+                return 1
               fi
-              node scripts/prepare_katago_assets.mjs --asset-dir="${asset_dir}" --platform="${target}" --flavor=standard --source-label="${{ github.repository }}@${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}:${pattern}"
+              if [[ "${mode}" == "exact" && ! -f "${asset_dir}/bin/${target}/katago" ]]; then
+                hdiutil detach "${mount_point}" -quiet || true
+                echo "Mounted ${asset_dmg} does not contain bin/${target}/katago" >&2
+                return 2
+              fi
+              if [[ "${mode}" == "scan" ]]; then
+                node scripts/prepare_katago_assets.mjs --asset-dir="${mount_point}" --platform="${target}" --scan --copy-runtime-dir --preserve-model-name --flavor=standard --source-label="${repo}@${tag}:${pattern}"
+              else
+                node scripts/prepare_katago_assets.mjs --asset-dir="${asset_dir}" --platform="${target}" --flavor=standard --source-label="${repo}@${tag}:${pattern}"
+              fi
               hdiutil detach "${mount_point}" -quiet
-            done
+            }
+
+            prepare_macos_asset darwin-arm64 "${{ github.repository }}" "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" "GoMentor-*-mac-arm64.dmg" exact
+            echo "Restoring Intel macOS KataGo runtime from lizzieyzy-next."
+            prepare_macos_asset darwin-x64 "wimi321/lizzieyzy-next" "1.0.0-next-2026-05-02.3" "*mac-intel.with-katago.dmg" scan
           else
             mkdir -p .katago-asset-source/extracted
             gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \

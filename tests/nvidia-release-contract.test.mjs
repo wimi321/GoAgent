@@ -22,6 +22,7 @@ test('release workflow restores macOS KataGo assets from macOS packages', () => 
 
   assert.match(workflow, /GoMentor-\*-mac-arm64\.dmg/)
   assert.match(workflow, /GoMentor-\*-mac-x64\.dmg/)
+  assert.match(workflow, /\*mac-intel\.with-katago\.dmg/)
   assert.match(workflow, /hdiutil attach/)
   assert.match(workflow, /--platform=darwin-arm64/)
   assert.match(workflow, /--platform=darwin-x64/)
