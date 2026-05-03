@@ -153,20 +153,20 @@ jobs:
                 return 1
               fi
               hdiutil attach -nobrowse -quiet "${asset_dmg}" -mountpoint "${mount_point}" || return 1
-              asset_dir="$(find "${mount_point}" -path '*/Contents/Resources/data/katago' -type d | head -n 1)"
-              if [[ -z "${asset_dir}" ]]; then
-                hdiutil detach "${mount_point}" -quiet || true
-                echo "Mounted ${asset_dmg} did not contain Contents/Resources/data/katago" >&2
-                return 1
-              fi
-              if [[ "${mode}" == "exact" && ! -f "${asset_dir}/bin/${target}/katago" ]]; then
-                hdiutil detach "${mount_point}" -quiet || true
-                echo "Mounted ${asset_dmg} does not contain bin/${target}/katago" >&2
-                return 2
-              fi
               if [[ "${mode}" == "scan" ]]; then
                 node scripts/prepare_katago_assets.mjs --asset-dir="${mount_point}" --platform="${target}" --scan --copy-runtime-dir --preserve-model-name --flavor=standard --source-label="${repo}@${tag}:${pattern}"
               else
+                asset_dir="$(find "${mount_point}" -path '*/Contents/Resources/data/katago' -type d | head -n 1)"
+                if [[ -z "${asset_dir}" ]]; then
+                  hdiutil detach "${mount_point}" -quiet || true
+                  echo "Mounted ${asset_dmg} did not contain Contents/Resources/data/katago" >&2
+                  return 1
+                fi
+                if [[ ! -f "${asset_dir}/bin/${target}/katago" ]]; then
+                  hdiutil detach "${mount_point}" -quiet || true
+                  echo "Mounted ${asset_dmg} does not contain bin/${target}/katago" >&2
+                  return 2
+                fi
                 node scripts/prepare_katago_assets.mjs --asset-dir="${asset_dir}" --platform="${target}" --flavor=standard --source-label="${repo}@${tag}:${pattern}"
               fi
               hdiutil detach "${mount_point}" -quiet
