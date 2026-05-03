@@ -79,6 +79,19 @@ const emptyDashboard: DashboardData = {
   }
 }
 
+const fallbackLlmModels = [
+  'gpt-5.5',
+  'gpt-5.4-mini',
+  'gpt-5-codex-mini',
+  'gpt-5',
+  'gpt-4.1',
+  'claude-3-5-sonnet-latest'
+]
+
+function uniqueModelOptions(models: string[]): string[] {
+  return Array.from(new Set(models.map((model) => model.trim()).filter(Boolean)))
+}
+
 type ChatMessage = {
   id: string
   role: 'student' | 'teacher'
@@ -2537,6 +2550,7 @@ function SettingsDrawer({
   const [releaseReadiness, setReleaseReadiness] = useState<ReleaseReadinessResult | null>(null)
   const [releaseReadinessError, setReleaseReadinessError] = useState('')
   const [refreshedLlmModels, setRefreshedLlmModels] = useState<string[]>([])
+  const [llmModelsFetched, setLlmModelsFetched] = useState(false)
   const [llmModelsRefreshing, setLlmModelsRefreshing] = useState(false)
   const [llmModelRefreshMessage, setLlmModelRefreshMessage] = useState('')
   const [selectedLlmModel, setSelectedLlmModel] = useState(dashboard.settings.llmModel)
@@ -2548,18 +2562,13 @@ function SettingsDrawer({
   const selectedPreset = modelPresets.find((preset) => preset.id === selectedPresetId) ?? modelPresets[0]
   const t = useMemo(() => createUiTranslator(dashboard.settings.reviewLanguage), [dashboard.settings.reviewLanguage])
   const localeOptions = SUPPORTED_UI_LOCALES
-  const llmModelOptions = Array.from(new Set([
+  const fallbackLlmModelOptions = uniqueModelOptions([
     selectedLlmModel,
     dashboard.settings.llmModel,
     ...dashboard.systemProfile.proxyModels,
-    ...refreshedLlmModels,
-    'gpt-5.5',
-    'gpt-5.4-mini',
-    'gpt-5-codex-mini',
-    'gpt-5',
-    'gpt-4.1',
-    'claude-3-5-sonnet-latest'
-  ].map((model) => model.trim()).filter(Boolean)))
+    ...fallbackLlmModels
+  ])
+  const llmModelOptions = llmModelsFetched ? refreshedLlmModels : fallbackLlmModelOptions
   const groupedModelPresets = useMemo(() => {
     const groups = new Map<string, typeof modelPresets>()
     for (const preset of modelPresets) {
@@ -2638,12 +2647,19 @@ function SettingsDrawer({
         llmApiKey: String(formData.get('llmApiKey') ?? '')
       })
       if (result.ok) {
-        setRefreshedLlmModels(result.models)
-        if (
-          result.models.includes('gpt-5.5') &&
-          (!selectedLlmModel || selectedLlmModel === 'gpt-5-mini' || selectedLlmModel === 'gpt-5.4' || !result.models.includes(selectedLlmModel))
-        ) {
-          setSelectedLlmModel('gpt-5.5')
+        const models = uniqueModelOptions(result.models)
+        setRefreshedLlmModels(models)
+        setLlmModelsFetched(true)
+        if (!models.length) {
+          setSelectedLlmModel('')
+        } else if (!models.includes(selectedLlmModel)) {
+          setSelectedLlmModel(
+            models.includes('gpt-5.5')
+              ? 'gpt-5.5'
+              : models.includes(dashboard.settings.llmModel)
+                ? dashboard.settings.llmModel
+                : models[0]
+          )
         }
       }
       setLlmModelRefreshMessage(result.message)
@@ -2799,11 +2815,17 @@ function SettingsDrawer({
             onChange={(event) => setSelectedLlmModel(event.target.value)}
             aria-label="选择多模态模型"
           >
-            {llmModelOptions.map((model) => (
-              <option key={model} value={model}>
-                {model}
+            {llmModelOptions.length ? (
+              llmModelOptions.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                未返回模型
               </option>
-            ))}
+            )}
           </select>
           <button
             className="ghost-button"
