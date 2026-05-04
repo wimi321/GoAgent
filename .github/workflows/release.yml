@@ -11,6 +11,21 @@ on:
         required: false
         default: "v0.3.6"
         type: string
+      opencl_katago_asset_repo:
+        description: "Repository that provides the Windows OpenCL KataGo runtime asset"
+        required: false
+        default: "wimi321/lizzieyzy-next"
+        type: string
+      opencl_katago_asset_release_tag:
+        description: "Release tag that provides the Windows OpenCL KataGo runtime asset"
+        required: false
+        default: "1.0.0-next-2026-05-02.3"
+        type: string
+      opencl_katago_asset_pattern:
+        description: "Asset pattern for the Windows OpenCL runtime bundle"
+        required: false
+        default: "*windows64.opencl.portable.zip"
+        type: string
       nvidia_katago_asset_repo:
         description: "Repository that provides the Windows NVIDIA KataGo runtime asset"
         required: false
@@ -51,6 +66,9 @@ jobs:
           GOMENTOR_KATAGO_BINARY: ${{ secrets.GOMENTOR_KATAGO_BINARY }}
           GOMENTOR_KATAGO_MODEL: ${{ secrets.GOMENTOR_KATAGO_MODEL }}
           GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
+          GOMENTOR_OPENCL_KATAGO_ASSET_REPO: ${{ inputs.opencl_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.opencl_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN: ${{ inputs.opencl_katago_asset_pattern || '*windows64.opencl.portable.zip' }}
           GOMENTOR_NVIDIA_KATAGO_ASSET_REPO: ${{ inputs.nvidia_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
           GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.nvidia_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
           GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN: ${{ inputs.nvidia_katago_asset_pattern || '*windows64.nvidia.portable.zip' }}
@@ -61,6 +79,9 @@ jobs:
           elif [[ -n "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" ]]; then
             echo "can-package=true" >> "${GITHUB_OUTPUT}"
             echo "KataGo standard assets will be restored from GoMentor ${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}."
+            if [[ -n "${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" ]]; then
+              echo "Windows OpenCL KataGo assets will be restored from ${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}@${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}."
+            fi
           else
             echo "can-package=false" >> "${GITHUB_OUTPUT}"
             echo "::notice title=Release packaging skipped::KataGo standard assets are not configured. Set GOMENTOR_KATAGO_ASSET_DIR, both GOMENTOR_KATAGO_BINARY and GOMENTOR_KATAGO_MODEL, or katago_asset_release_tag to enable automated packaging."
@@ -125,6 +146,9 @@ jobs:
           GOMENTOR_KATAGO_BINARY: ${{ secrets.GOMENTOR_KATAGO_BINARY }}
           GOMENTOR_KATAGO_MODEL: ${{ secrets.GOMENTOR_KATAGO_MODEL }}
           GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
+          GOMENTOR_OPENCL_KATAGO_ASSET_REPO: ${{ inputs.opencl_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.opencl_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN: ${{ inputs.opencl_katago_asset_pattern || '*windows64.opencl.portable.zip' }}
         run: |
           if [[ -n "${GOMENTOR_KATAGO_ASSET_DIR}" || ( -n "${GOMENTOR_KATAGO_BINARY}" && -n "${GOMENTOR_KATAGO_MODEL}" ) ]]; then
             if [[ "${RUNNER_OS}" == "macOS" && -n "${GOMENTOR_KATAGO_ASSET_DIR}" ]]; then
@@ -176,20 +200,48 @@ jobs:
             echo "Restoring Intel macOS KataGo runtime from lizzieyzy-next."
             prepare_macos_asset darwin-x64 "wimi321/lizzieyzy-next" "1.0.0-next-2026-05-02.3" "*mac-intel.with-katago.dmg" scan
           else
-            mkdir -p .katago-asset-source/extracted
-            gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \
-              --repo "${{ github.repository }}" \
-              --pattern "GoMentor-*-win-x64-portable.zip" \
-              --dir .katago-asset-source
-            asset_zip="$(find .katago-asset-source -maxdepth 1 -name 'GoMentor-*-win-x64-portable.zip' | head -n 1)"
-            if command -v unzip >/dev/null 2>&1; then
-              unzip -q "${asset_zip}" -d .katago-asset-source/extracted
-            elif command -v 7z >/dev/null 2>&1; then
-              7z x "${asset_zip}" -o.katago-asset-source/extracted
+            if [[ -n "${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" ]]; then
+              mkdir -p .katago-opencl-source/extracted
+              gh release download "${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}" \
+                --repo "${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}" \
+                --pattern "${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" \
+                --dir .katago-opencl-source
+              asset_archive="$(find .katago-opencl-source -maxdepth 1 -type f | head -n 1)"
+              if [[ -z "${asset_archive}" ]]; then
+                echo "No Windows OpenCL KataGo asset matched ${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" >&2
+                exit 1
+              fi
+              if command -v unzip >/dev/null 2>&1; then
+                unzip -q "${asset_archive}" -d .katago-opencl-source/extracted
+              elif command -v 7z >/dev/null 2>&1; then
+                7z x "${asset_archive}" -o.katago-opencl-source/extracted
+              else
+                powershell -NoProfile -Command "Expand-Archive -LiteralPath '${asset_archive}' -DestinationPath '.katago-opencl-source/extracted'"
+              fi
+              node scripts/prepare_katago_assets.mjs \
+                --asset-dir=".katago-opencl-source/extracted" \
+                --platform=win32-x64 \
+                --scan \
+                --copy-runtime-dir \
+                --preserve-model-name \
+                --flavor=opencl \
+                --source-label="${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}@${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}:${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}"
             else
-              powershell -NoProfile -Command "Expand-Archive -LiteralPath '${asset_zip}' -DestinationPath '.katago-asset-source/extracted'"
+              mkdir -p .katago-asset-source/extracted
+              gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \
+                --repo "${{ github.repository }}" \
+                --pattern "GoMentor-*-win-x64-portable.zip" \
+                --dir .katago-asset-source
+              asset_zip="$(find .katago-asset-source -maxdepth 1 -name 'GoMentor-*-win-x64-portable.zip' | head -n 1)"
+              if command -v unzip >/dev/null 2>&1; then
+                unzip -q "${asset_zip}" -d .katago-asset-source/extracted
+              elif command -v 7z >/dev/null 2>&1; then
+                7z x "${asset_zip}" -o.katago-asset-source/extracted
+              else
+                powershell -NoProfile -Command "Expand-Archive -LiteralPath '${asset_zip}' -DestinationPath '.katago-asset-source/extracted'"
+              fi
+              node scripts/prepare_katago_assets.mjs --asset-dir=".katago-asset-source/extracted/resources/data/katago" --flavor=standard --source-label="${{ github.repository }}@${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}"
             fi
-            node scripts/prepare_katago_assets.mjs --asset-dir=".katago-asset-source/extracted/resources/data/katago" --flavor=standard --source-label="${{ github.repository }}@${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}"
           fi
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
             node scripts/check_katago_assets.mjs --mode=release --platform=darwin-arm64

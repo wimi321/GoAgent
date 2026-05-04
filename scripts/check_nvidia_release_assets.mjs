@@ -8,6 +8,12 @@ const prepareScript = readFileSync(join(root, 'scripts', 'prepare_katago_assets.
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
 const requiredWorkflowFragments = [
+  'opencl_katago_asset_repo',
+  'opencl_katago_asset_release_tag',
+  'opencl_katago_asset_pattern',
+  '*windows64.opencl.portable.zip',
+  '--flavor=opencl',
+  'Windows OpenCL KataGo assets will be restored',
   'nvidia_katago_asset_repo',
   'nvidia_katago_asset_release_tag',
   'nvidia_katago_asset_pattern',

@@ -5,6 +5,20 @@ import { join } from 'node:path'
 
 const root = process.cwd()
 
+test('release workflow publishes standard Windows as a full OpenCL runtime bundle', () => {
+  const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8')
+
+  assert.match(workflow, /opencl_katago_asset_repo/)
+  assert.match(workflow, /opencl_katago_asset_release_tag/)
+  assert.match(workflow, /opencl_katago_asset_pattern/)
+  assert.match(workflow, /\*windows64\.opencl\.portable\.zip/)
+  assert.match(workflow, /--copy-runtime-dir/)
+  assert.match(workflow, /--preserve-model-name/)
+  assert.match(workflow, /--flavor=opencl/)
+  assert.match(workflow, /GoMentor-\*-win-x64-portable\.zip/)
+  assert.match(workflow, /GoMentor-\*-win-x64\.exe/)
+})
+
 test('release workflow publishes a real Windows NVIDIA edition', () => {
   const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8')
 
