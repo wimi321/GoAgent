@@ -211,7 +211,9 @@ jobs:
                 echo "No Windows OpenCL KataGo asset matched ${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" >&2
                 exit 1
               fi
-              if command -v unzip >/dev/null 2>&1; then
+              if [[ "${RUNNER_OS}" == "Windows" ]] && command -v 7z >/dev/null 2>&1; then
+                7z x "${asset_archive}" -o.katago-opencl-source/extracted
+              elif command -v unzip >/dev/null 2>&1; then
                 unzip -q "${asset_archive}" -d .katago-opencl-source/extracted
               elif command -v 7z >/dev/null 2>&1; then
                 7z x "${asset_archive}" -o.katago-opencl-source/extracted

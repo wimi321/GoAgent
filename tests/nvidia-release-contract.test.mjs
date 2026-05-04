@@ -12,6 +12,7 @@ test('release workflow publishes standard Windows as a full OpenCL runtime bundl
   assert.match(workflow, /opencl_katago_asset_release_tag/)
   assert.match(workflow, /opencl_katago_asset_pattern/)
   assert.match(workflow, /\*windows64\.opencl\.portable\.zip/)
+  assert.match(workflow, /RUNNER_OS.*Windows[\s\S]*7z x "\$\{asset_archive\}" -o\.katago-opencl-source\/extracted/)
   assert.match(workflow, /--copy-runtime-dir/)
   assert.match(workflow, /--preserve-model-name/)
   assert.match(workflow, /--flavor=opencl/)
