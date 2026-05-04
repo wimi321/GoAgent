@@ -19,8 +19,13 @@ export interface AppSettings {
   reviewLanguage: 'zh-CN' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
   defaultPlayerName: string
   defaultCoachLevel: CoachUserLevel
+  defaultStudentRank: StudentRank
+  defaultStudentAge: number
   defaultStudentAgeRange: StudentAgeRange
   teacherStyle: TeacherPersonaStyle
+  teacherTerminologyDensity: TeacherTerminologyDensity
+  teacherExplanationPace: TeacherExplanationPace
+  teacherVariationDetail: TeacherVariationDetail
 }
 
 export type KataGoModelPresetId = string
@@ -234,8 +239,12 @@ export interface ReviewRequest {
 }
 
 export type CoachUserLevel = 'beginner' | 'intermediate' | 'advanced' | 'dan'
+export type StudentRank = '10k' | '1k' | '1d' | '3d' | '5d'
 export type StudentAgeRange = 'unknown' | 'child' | 'teen' | 'adult' | 'senior'
 export type TeacherPersonaStyle = 'balanced' | 'rigorous' | 'gentle' | 'strict' | 'humorous'
+export type TeacherTerminologyDensity = 'low' | 'medium' | 'high'
+export type TeacherExplanationPace = 'brief' | 'standard' | 'detailed'
+export type TeacherVariationDetail = 'few' | 'moderate' | 'many'
 export type TeacherRunMode = 'current-move' | 'freeform' | 'move-range'
 export type TeacherToolStatus = 'running' | 'done' | 'error' | 'skipped'
 

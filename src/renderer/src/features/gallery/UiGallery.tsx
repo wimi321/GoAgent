@@ -147,7 +147,6 @@ export function UiGallery(): ReactElement {
               busy={false}
               onChange={setComposerValue}
               onSubmit={noopForm}
-              onQuickPrompt={setComposerValue}
             />
           </div>
         </article>

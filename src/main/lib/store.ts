@@ -33,8 +33,13 @@ const defaults: AppSettings = {
   reviewLanguage: 'zh-CN',
   defaultPlayerName: '',
   defaultCoachLevel: 'intermediate',
+  defaultStudentRank: '1k',
+  defaultStudentAge: 0,
   defaultStudentAgeRange: 'unknown',
-  teacherStyle: 'balanced'
+  teacherStyle: 'balanced',
+  teacherTerminologyDensity: 'medium',
+  teacherExplanationPace: 'standard',
+  teacherVariationDetail: 'moderate'
 }
 
 export const settingsStore = new Store<AppSettings>({
