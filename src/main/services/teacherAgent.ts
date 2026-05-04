@@ -37,7 +37,17 @@ import { applyDetectedDefaults, detectSystemProfile } from './systemProfile'
 import { parseStructuredTeacherResult } from './teacher/structuredResultParser'
 import { classifyTeacherIntent, type TeacherIntent } from './teacher/intentClassifier'
 import { buildTeachingPacingAdvice } from './teacher/teachingEvidence'
-import { buildTeacherPersonaInstruction, normalizeCoachLevel, normalizeStudentAgeRange, normalizeTeacherStyle } from './teacher/teacherPersona'
+import {
+  buildTeacherPersonaInstruction,
+  normalizeCoachLevel,
+  normalizeExactStudentAge,
+  normalizeExplanationPace,
+  normalizeStudentAgeRange,
+  normalizeStudentRank,
+  normalizeTeacherStyle,
+  normalizeTerminologyDensity,
+  normalizeVariationDetail
+} from './teacher/teacherPersona'
 import { streamOpenAICompatibleToolTurn } from './llm/openaiCompatibleProvider'
 
 type TeacherProgressEmitter = (progress: TeacherRunProgress) => void
@@ -286,6 +296,7 @@ function themesFromProfile(profile: StudentProfile): string[] {
 }
 
 function systemPrompt(level: CoachUserLevel): string {
+  const settings = getSettings()
   return [
     '你是 GoMentor 的围棋老师。',
     '帮助学生理解棋局，并提升下一次判断。',
@@ -304,8 +315,13 @@ function systemPrompt(level: CoachUserLevel): string {
     `学生水平：${level}。`,
     buildTeacherPersonaInstruction({
       level,
-      ageRange: normalizeStudentAgeRange(getSettings().defaultStudentAgeRange),
-      style: normalizeTeacherStyle(getSettings().teacherStyle)
+      rank: normalizeStudentRank(settings.defaultStudentRank),
+      exactAge: normalizeExactStudentAge(settings.defaultStudentAge),
+      ageRange: normalizeStudentAgeRange(settings.defaultStudentAgeRange),
+      style: normalizeTeacherStyle(settings.teacherStyle),
+      terminologyDensity: normalizeTerminologyDensity(settings.teacherTerminologyDensity),
+      explanationPace: normalizeExplanationPace(settings.teacherExplanationPace),
+      variationDetail: normalizeVariationDetail(settings.teacherVariationDetail)
     })
   ].join('\n')
 }
@@ -528,6 +544,11 @@ function initialAgentUserMessage(state: TeacherAgentSessionState): ChatMessage {
     coachLevel: state.request.coachLevel ?? state.profile.userLevel,
     studentAgeRange: state.request.studentAgeRange ?? getSettings().defaultStudentAgeRange,
     teacherStyle: state.request.teacherStyle ?? getSettings().teacherStyle,
+    studentRank: getSettings().defaultStudentRank,
+    studentAge: getSettings().defaultStudentAge,
+    terminologyDensity: getSettings().teacherTerminologyDensity,
+    explanationPace: getSettings().teacherExplanationPace,
+    variationDetail: getSettings().teacherVariationDetail,
     boardImageAttached: Boolean(state.request.boardImageDataUrl) || (state.request.boardImageDataUrls?.length ?? 0) > 0,
     boardImagesAttached: state.request.boardImageDataUrls?.length ?? 0,
     moveRange: state.request.moveRange,

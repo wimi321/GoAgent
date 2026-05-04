@@ -2,6 +2,8 @@ import type { FormEvent, KeyboardEvent, PointerEvent, ReactElement, ReactNode } 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AnalyzeGameQuickProgress,
+  AppSettings,
+  CoachUserLevel,
   DashboardData,
   GameMove,
   GameRecord,
@@ -14,6 +16,8 @@ import type {
   LibraryGame,
   StoneColor,
   StudentBindingSuggestion,
+  StudentAgeRange,
+  StudentRank,
   StudentProfile,
   ReleaseReadinessResult,
   MoveRangeReviewSummary,
@@ -21,7 +25,11 @@ import type {
   TeacherRunProgress,
   TeacherRunResult,
   TeacherChatMessage,
-  TeacherSession
+  TeacherExplanationPace,
+  TeacherPersonaStyle,
+  TeacherSession,
+  TeacherTerminologyDensity,
+  TeacherVariationDetail
 } from '@main/lib/types'
 import { MOVE_RANGE_MAX_MOVES, describeMoveRange, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import lizzieBlackStoneUrl from './assets/lizzie/black.png'
@@ -64,8 +72,13 @@ const emptyDashboard: DashboardData = {
     reviewLanguage: 'zh-CN',
     defaultPlayerName: '',
     defaultCoachLevel: 'intermediate',
+    defaultStudentRank: '1k',
+    defaultStudentAge: 0,
     defaultStudentAgeRange: 'unknown',
-    teacherStyle: 'balanced'
+    teacherStyle: 'balanced',
+    teacherTerminologyDensity: 'medium',
+    teacherExplanationPace: 'standard',
+    teacherVariationDetail: 'moderate'
   },
   games: [],
   systemProfile: {
@@ -116,9 +129,138 @@ type BoardPngAssets = {
   whiteStone: HTMLImageElement | null
 }
 
+const PERSONA_RANK_OPTIONS: Array<{ value: StudentRank; label: string; coachLevel: CoachUserLevel }> = [
+  { value: '10k', label: '10级', coachLevel: 'beginner' },
+  { value: '1k', label: '1级', coachLevel: 'intermediate' },
+  { value: '1d', label: '初段', coachLevel: 'advanced' },
+  { value: '3d', label: '3段', coachLevel: 'dan' },
+  { value: '5d', label: '5段', coachLevel: 'dan' }
+]
+
+const PERSONA_STYLE_OPTIONS: Array<{ value: TeacherPersonaStyle; label: string }> = [
+  { value: 'gentle', label: '温和' },
+  { value: 'strict', label: '严格' },
+  { value: 'rigorous', label: '职业复盘' },
+  { value: 'balanced', label: '标准' },
+  { value: 'humorous', label: '风趣' }
+]
+
+const TERMINOLOGY_DENSITY_OPTIONS: Array<{ value: TeacherTerminologyDensity; label: string }> = [
+  { value: 'low', label: '少' },
+  { value: 'medium', label: '中' },
+  { value: 'high', label: '多' }
+]
+
+const EXPLANATION_PACE_OPTIONS: Array<{ value: TeacherExplanationPace; label: string }> = [
+  { value: 'brief', label: '简洁' },
+  { value: 'standard', label: '标准' },
+  { value: 'detailed', label: '细讲' }
+]
+
+const VARIATION_DETAIL_OPTIONS: Array<{ value: TeacherVariationDetail; label: string }> = [
+  { value: 'few', label: '少讲' },
+  { value: 'moderate', label: '适中' },
+  { value: 'many', label: '详细' }
+]
+
+const TEACHER_EMPTY_PROMPTS = [
+  '分析当前手情况',
+  '以白棋视角分析这盘棋',
+  '以黑棋视角分析这盘棋',
+  '这盘棋的有哪些妙手'
+]
+
+type TeacherPersonaUiSettings = Pick<
+  AppSettings,
+  | 'defaultCoachLevel'
+  | 'defaultStudentRank'
+  | 'defaultStudentAge'
+  | 'defaultStudentAgeRange'
+  | 'teacherStyle'
+  | 'teacherTerminologyDensity'
+  | 'teacherExplanationPace'
+  | 'teacherVariationDetail'
+>
+type TeacherHistoryFilter = 'all' | 'today' | 'archived'
+
 interface StatusPill {
   label: string
   tone: StatusTone
+}
+
+function readPersonaUiSettings(settings: AppSettings): TeacherPersonaUiSettings {
+  return {
+    defaultCoachLevel: settings.defaultCoachLevel ?? 'intermediate',
+    defaultStudentRank: settings.defaultStudentRank ?? '1k',
+    defaultStudentAge: typeof settings.defaultStudentAge === 'number' ? settings.defaultStudentAge : 0,
+    defaultStudentAgeRange: settings.defaultStudentAgeRange ?? 'unknown',
+    teacherStyle: settings.teacherStyle ?? 'balanced',
+    teacherTerminologyDensity: settings.teacherTerminologyDensity ?? 'medium',
+    teacherExplanationPace: settings.teacherExplanationPace ?? 'standard',
+    teacherVariationDetail: settings.teacherVariationDetail ?? 'moderate'
+  }
+}
+
+function defaultPersonaUiSettings(): TeacherPersonaUiSettings {
+  return {
+    defaultCoachLevel: 'intermediate',
+    defaultStudentRank: '1k',
+    defaultStudentAge: 0,
+    defaultStudentAgeRange: 'unknown',
+    teacherStyle: 'balanced',
+    teacherTerminologyDensity: 'medium',
+    teacherExplanationPace: 'standard',
+    teacherVariationDetail: 'moderate'
+  }
+}
+
+function coachLevelFromRank(rank: StudentRank): CoachUserLevel {
+  return PERSONA_RANK_OPTIONS.find((option) => option.value === rank)?.coachLevel ?? 'intermediate'
+}
+
+function ageRangeFromExactAge(age: number): StudentAgeRange {
+  if (!age || age < 1) return 'unknown'
+  if (age <= 12) return 'child'
+  if (age <= 18) return 'teen'
+  if (age >= 60) return 'senior'
+  return 'adult'
+}
+
+function formatTeacherSessionTime(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+}
+
+function teacherSessionContext(session: TeacherSession): string {
+  const moveLabel = session.moveRange ? `手数 ${session.moveRange.start}-${session.moveRange.end}` : session.moveNumber ? `手数 ${session.moveNumber}` : ''
+  const evidenceLabel = session.messages.length > 0 ? `消息 ${session.messages.length}` : ''
+  return [moveLabel, evidenceLabel].filter(Boolean).join(' · ')
+}
+
+function teacherSessionPreview(session: TeacherSession): string {
+  return session.messages.find((message) => message.content.trim())?.content.trim() || '恢复这个老师会话'
+}
+
+function hasVisibleTeacherSessionContent(session: TeacherSession): boolean {
+  return session.messages.some((message) =>
+    message.content.trim().length > 0 ||
+    Boolean(message.result) ||
+    (message.toolLogs?.length ?? 0) > 0
+  )
+}
+
+function isTodayDate(value: string): boolean {
+  const date = new Date(value)
+  const now = new Date()
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
+}
+
+function isYesterdayDate(value: string): boolean {
+  const date = new Date(value)
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  return date.getFullYear() === yesterday.getFullYear() && date.getMonth() === yesterday.getMonth() && date.getDate() === yesterday.getDate()
 }
 
 interface StudentBindingState {
@@ -629,6 +771,20 @@ export function App(): ReactElement {
     await refreshTeacherSessions()
   }
 
+  async function restoreTeacherSession(session: TeacherSession): Promise<void> {
+    await persistCurrentTeacherSession()
+    setTeacherSessionId(session.id)
+    restoreTeacherSessionMessages(session)
+    await refreshTeacherSessions()
+  }
+
+  async function restoreTeacherSessionById(sessionId: string): Promise<void> {
+    const sessions = teacherSessions.length ? teacherSessions : await window.gomentor.listTeacherSessions().catch(() => [])
+    const session = sessions.find((candidate) => candidate.id === sessionId)
+    if (!session) return
+    await restoreTeacherSession(session)
+  }
+
   async function restoreTeacherSessionFromHistory(): Promise<void> {
     const sessions = teacherSessions.length ? teacherSessions : await window.gomentor.listTeacherSessions().catch(() => [])
     if (sessions.length === 0) return
@@ -637,9 +793,7 @@ export function App(): ReactElement {
     const index = picked ? Number(picked) - 1 : -1
     const session = sessions[index]
     if (!session) return
-    await persistCurrentTeacherSession()
-    setTeacherSessionId(session.id)
-    restoreTeacherSessionMessages(session)
+    await restoreTeacherSession(session)
   }
 
   useEffect(() => {
@@ -1343,7 +1497,9 @@ export function App(): ReactElement {
     const cachedAnalysis = cachedAnalysisForGameMove(gameId, targetMove) ?? (selectedGameIdRef.current === gameId ? analysisForMove(targetMove) : null)
     const cachedVisits = candidateVisitsTotal(cachedAnalysis)
     const cachedBestVisits = candidateBestVisits(cachedAnalysis)
+    const canReuseStrongCache = options.manual === false
     if (
+      canReuseStrongCache &&
       cachedAnalysis &&
       (cachedBestVisits >= LIVE_ANALYSIS_BEST_VISIT_LIMIT || cachedVisits >= LIVE_ANALYSIS_TOTAL_VISIT_LIMIT)
     ) {
@@ -1832,6 +1988,7 @@ export function App(): ReactElement {
       tone: dashboard.systemProfile.hasLlmApiKey ? 'good' : 'warn'
     }
   ]
+  const liveAnalysisDisabled = busy === 'katago-install' || busy === 'katago-benchmark'
 
   return (
     <DiagnosticsGate>
@@ -1875,7 +2032,7 @@ export function App(): ReactElement {
                 moveNumber={moveNumber}
                 analysis={currentAnalysis}
                 liveAnalysis={liveAnalysis}
-                disabled={busy !== ''}
+                disabled={liveAnalysisDisabled}
                 onStart={() => void startLiveAnalysis()}
                 onPause={() => pauseLiveAnalysis('已暂停精读', true)}
               />
@@ -1947,8 +2104,9 @@ export function App(): ReactElement {
             prompt={prompt}
             busy={busy}
             dashboard={dashboard}
-            katagoAssets={katagoAssets}
             error={error}
+            teacherSessions={teacherSessions}
+            teacherSessionId={teacherSessionId}
             onPrompt={setPrompt}
             onSubmit={(event) => void sendTeacherPrompt(event)}
             onAnalyze={() => void runCurrentMoveAnalysis()}
@@ -1956,6 +2114,8 @@ export function App(): ReactElement {
             onAnalyzeRecent={() => void runTeacherQuickTask('分析当前棋手最近10局围棋，找出常见问题、薄弱环节，并更新棋手画像。')}
             onJumpToMove={jumpToMove}
             onAnalyzeMove={(targetMove) => void runMoveAnalysisAt(targetMove)}
+            onNewTeacherSession={() => void startNewTeacherSession()}
+            onRestoreTeacherSession={(sessionId) => void restoreTeacherSessionById(sessionId)}
           />
         </aside>
       </div>
@@ -2513,22 +2673,26 @@ function TeacherPanel({
   prompt,
   busy,
   dashboard,
-  katagoAssets,
   error,
+  teacherSessions,
+  teacherSessionId,
   onPrompt,
   onSubmit,
   onAnalyze,
   onAnalyzeGame,
   onAnalyzeRecent,
   onJumpToMove,
-  onAnalyzeMove
+  onAnalyzeMove,
+  onNewTeacherSession,
+  onRestoreTeacherSession
 }: {
   messages: ChatMessage[]
   prompt: string
   busy: string
   dashboard: DashboardData
-  katagoAssets: KataGoAssetStatus | null
   error: string
+  teacherSessions: TeacherSession[]
+  teacherSessionId: string
   onPrompt: (value: string) => void
   onSubmit: (event: FormEvent) => void
   onAnalyze: () => void
@@ -2536,49 +2700,408 @@ function TeacherPanel({
   onAnalyzeRecent: () => void
   onJumpToMove: (moveNumber: number) => void
   onAnalyzeMove: (moveNumber: number) => void
+  onNewTeacherSession: () => void
+  onRestoreTeacherSession: (sessionId: string) => void
 }): ReactElement {
-  const modelName = dashboard.settings.llmModel || '未选择模型'
-  const katagoLabel = katagoAssets?.ready || dashboard.systemProfile.katagoReady ? 'KataGo ready' : 'KataGo missing'
-  const llmLabel = dashboard.systemProfile.hasLlmApiKey ? 'Vision LLM ready' : 'LLM setup needed'
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [studentSettingsOpen, setStudentSettingsOpen] = useState(true)
+  const [teacherSettingsOpen, setTeacherSettingsOpen] = useState(true)
+  const [historyQuery, setHistoryQuery] = useState('')
+  const [historyFilter, setHistoryFilter] = useState<TeacherHistoryFilter>('all')
+  const [personaSettings, setPersonaSettings] = useState<TeacherPersonaUiSettings>(() => readPersonaUiSettings(dashboard.settings))
+  const [draftPersonaSettings, setDraftPersonaSettings] = useState<TeacherPersonaUiSettings>(() => readPersonaUiSettings(dashboard.settings))
   const hasRunningTask = busy === 'teacher'
   const hasRunningMessage = messages.some((message) => message.role === 'teacher' && message.status === 'running')
+  const visibleSessions = useMemo(() => {
+    const query = historyQuery.trim().toLowerCase()
+    return teacherSessions
+      .filter((session) => {
+        if (!hasVisibleTeacherSessionContent(session)) return false
+        if (historyFilter === 'today' && !isTodayDate(session.updatedAt)) return false
+        if (historyFilter === 'archived' && !session.archivedAt) return false
+        if (!query) return true
+        return `${session.title} ${teacherSessionContext(session)} ${teacherSessionPreview(session)}`.toLowerCase().includes(query)
+      })
+      .slice(0, 24)
+  }, [historyFilter, historyQuery, teacherSessions])
+  const todaySessions = visibleSessions.filter((session) => isTodayDate(session.updatedAt))
+  const yesterdaySessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && isYesterdayDate(session.updatedAt))
+  const earlierSessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && !isYesterdayDate(session.updatedAt))
   const threadBottomRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const next = readPersonaUiSettings(dashboard.settings)
+    setPersonaSettings(next)
+    if (!settingsOpen) setDraftPersonaSettings(next)
+  }, [
+    dashboard.settings.defaultCoachLevel,
+    dashboard.settings.defaultStudentRank,
+    dashboard.settings.defaultStudentAge,
+    dashboard.settings.defaultStudentAgeRange,
+    dashboard.settings.teacherStyle,
+    dashboard.settings.teacherTerminologyDensity,
+    dashboard.settings.teacherExplanationPace,
+    dashboard.settings.teacherVariationDetail,
+    settingsOpen
+  ])
+
   useEffect(() => {
     threadBottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, busy, error])
+
+  useEffect(() => {
+    if (!historyOpen && !settingsOpen) return undefined
+    const handler = (event: globalThis.KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        closeOverlays()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [historyOpen, settingsOpen, personaSettings])
+
+  function patchDraftPersona(next: Partial<TeacherPersonaUiSettings>): void {
+    setDraftPersonaSettings((current) => ({ ...current, ...next }))
+  }
+
+  function patchDraftRank(rank: StudentRank): void {
+    patchDraftPersona({
+      defaultStudentRank: rank,
+      defaultCoachLevel: coachLevelFromRank(rank)
+    })
+  }
+
+  function patchDraftAge(value: string): void {
+    const age = value.trim() ? Math.max(0, Math.min(120, Number(value))) : 0
+    const safeAge = Number.isFinite(age) ? Math.round(age) : 0
+    patchDraftPersona({
+      defaultStudentAge: safeAge,
+      defaultStudentAgeRange: ageRangeFromExactAge(safeAge)
+    })
+  }
+
+  async function saveTeacherPersona(): Promise<void> {
+    const updated = await window.gomentor.updateSettings(draftPersonaSettings)
+    setPersonaSettings(readPersonaUiSettings(updated.settings))
+    setDraftPersonaSettings(readPersonaUiSettings(updated.settings))
+    setSettingsOpen(false)
+  }
+
+  function closeOverlays(): void {
+    setHistoryOpen(false)
+    setSettingsOpen(false)
+    setDraftPersonaSettings(personaSettings)
+  }
+
+  function toggleSettings(): void {
+    setHistoryOpen(false)
+    setSettingsOpen((open) => {
+      if (open) {
+        setDraftPersonaSettings(personaSettings)
+        return false
+      }
+      setDraftPersonaSettings(personaSettings)
+      return true
+    })
+  }
+
+  function renderHistorySection(label: string, sessions: TeacherSession[]): ReactElement | null {
+    if (sessions.length === 0) return null
+    return (
+      <section className="teacher-history-section">
+        <h4>{label}</h4>
+        <div className="teacher-history-list">
+          {sessions.map((session) => (
+            <button
+              key={session.id}
+              type="button"
+              className={session.id === teacherSessionId ? 'is-active' : ''}
+              onClick={() => {
+                onRestoreTeacherSession(session.id)
+                setHistoryOpen(false)
+              }}
+            >
+              <span className="teacher-history-item__main">
+                <strong>{session.title}</strong>
+                <small>{formatTeacherSessionTime(session.updatedAt)} · {teacherSessionContext(session) || '自由问答'}</small>
+                <em>{teacherSessionPreview(session)}</em>
+              </span>
+              <span className="teacher-history-item__icon">↺</span>
+              {session.archivedAt ? <span className="teacher-history-item__archived">已归档</span> : null}
+            </button>
+          ))}
+        </div>
+      </section>
+    )
+  }
   return (
     <div className="teacher-panel teacher-agent-editor">
       <header className="teacher-editor-head">
         <div className="teacher-editor-title">
-          <span>Agent thread</span>
-          <strong>GoMentor</strong>
-          <div className="teacher-editor-meta">
-            <em>{modelName}</em>
-            <em>{katagoLabel}</em>
-            <em>{llmLabel}</em>
-          </div>
+          <span className="teacher-contract-copy">Agent thread</span>
+          <strong>AI 老师</strong>
         </div>
         <div className="teacher-editor-actions">
-          <span className={`teacher-status ${hasRunningTask ? 'is-running' : ''}`}>{hasRunningTask ? 'Running' : 'Ready'}</span>
+          <button
+            type="button"
+            title="新会话"
+            aria-label="新会话"
+            onClick={() => {
+              closeOverlays()
+              onNewTeacherSession()
+            }}
+            disabled={busy !== ''}
+          >
+            <span>＋</span>
+          </button>
+          <button
+            type="button"
+            className={historyOpen ? 'is-active' : ''}
+            title="历史会话"
+            aria-label="历史会话"
+            aria-pressed={historyOpen}
+            onClick={() => {
+              setHistoryOpen((open) => !open)
+              setSettingsOpen(false)
+              setDraftPersonaSettings(personaSettings)
+            }}
+          >
+            <span>◷</span>
+          </button>
+          <button
+            type="button"
+            className={settingsOpen ? 'is-active' : ''}
+            title="教学设定"
+            aria-label="教学设定"
+            aria-pressed={settingsOpen}
+            onClick={toggleSettings}
+          >
+            <span>☷</span>
+          </button>
         </div>
       </header>
 
-      <div className="message-list agent-thread">
-        {messages.map((message) => (
-          <article key={message.id} className={`message message--${message.role} agent-turn agent-turn--${message.role}`}>
-            <div className="agent-turn__body">
-              <header className="agent-turn__head">
-                <strong>{message.role === 'teacher' ? 'GoMentor' : 'User'}</strong>
-                <small>{message.status ?? (message.result ? 'completed' : message.role === 'teacher' ? 'assistant' : 'prompt')}</small>
-              </header>
-              <TeacherInlineResponse
-                message={message}
-                onJumpToMove={onJumpToMove}
-                onAnalyzeMove={onAnalyzeMove}
-              />
+      {settingsOpen ? (
+        <aside className="teacher-persona-popover" aria-label="教学设定">
+          <div className="teacher-popover-head">
+            <strong>教学设定</strong>
+            <span>只调整表达，不改变 KataGo 证据</span>
+            <button
+              type="button"
+              aria-label="关闭教学设定"
+              onClick={() => {
+                setDraftPersonaSettings(personaSettings)
+                setSettingsOpen(false)
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <section className="teacher-setting-block">
+            <button type="button" className="teacher-setting-block__title" onClick={() => setStudentSettingsOpen((open) => !open)}>
+              <span>♙</span>
+              <strong>学生设定</strong>
+              <em>{studentSettingsOpen ? '⌃' : '⌄'}</em>
+            </button>
+            {studentSettingsOpen ? (
+              <div className="teacher-setting-fields">
+                <label className="teacher-field-row">
+                  <span>段位</span>
+                  <select
+                    value={draftPersonaSettings.defaultStudentRank}
+                    onChange={(event) => patchDraftRank(event.target.value as StudentRank)}
+                    disabled={busy !== ''}
+                  >
+                    {PERSONA_RANK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                <div className="teacher-segmented teacher-segmented--rank" aria-label="段位快捷选择">
+                  {PERSONA_RANK_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={option.value === draftPersonaSettings.defaultStudentRank ? 'is-active' : ''}
+                      onClick={() => patchDraftRank(option.value)}
+                      disabled={busy !== ''}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="teacher-field-row">
+                  <span>年龄</span>
+                  <div className="teacher-age-stepper">
+                    <input
+                      type="number"
+                      min="0"
+                      max="120"
+                      value={draftPersonaSettings.defaultStudentAge || ''}
+                      onChange={(event) => patchDraftAge(event.target.value)}
+                      placeholder="未填写"
+                      disabled={busy !== ''}
+                    />
+                    <span>岁</span>
+                    <button type="button" aria-label="增加年龄" onClick={() => patchDraftAge(String((draftPersonaSettings.defaultStudentAge || 0) + 1))} disabled={busy !== ''}>⌃</button>
+                    <button type="button" aria-label="减少年龄" onClick={() => patchDraftAge(String(Math.max(0, (draftPersonaSettings.defaultStudentAge || 0) - 1)))} disabled={busy !== ''}>⌄</button>
+                  </div>
+                </label>
+              </div>
+            ) : null}
+          </section>
+          <section className="teacher-setting-block">
+            <button type="button" className="teacher-setting-block__title" onClick={() => setTeacherSettingsOpen((open) => !open)}>
+              <span>♙</span>
+              <strong>老师设定</strong>
+              <em>{teacherSettingsOpen ? '⌃' : '⌄'}</em>
+            </button>
+            {teacherSettingsOpen ? (
+              <div className="teacher-setting-fields">
+                <label className="teacher-field-label">老师风格</label>
+                <div className="teacher-segmented teacher-segmented--wrap" aria-label="老师风格">
+                  {PERSONA_STYLE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={option.value === draftPersonaSettings.teacherStyle ? 'is-active' : ''}
+                      onClick={() => patchDraftPersona({ teacherStyle: option.value })}
+                      disabled={busy !== ''}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="teacher-field-label">术语密度</label>
+                <div className="teacher-density-slider">
+                  <span>少</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="2"
+                    value={TERMINOLOGY_DENSITY_OPTIONS.findIndex((option) => option.value === draftPersonaSettings.teacherTerminologyDensity)}
+                    onChange={(event) => patchDraftPersona({ teacherTerminologyDensity: TERMINOLOGY_DENSITY_OPTIONS[Number(event.target.value)]?.value ?? 'medium' })}
+                    disabled={busy !== ''}
+                  />
+                  <span>多</span>
+                  <b>{TERMINOLOGY_DENSITY_OPTIONS.find((option) => option.value === draftPersonaSettings.teacherTerminologyDensity)?.label ?? '中'}</b>
+                </div>
+                <label className="teacher-field-label">讲解节奏</label>
+                <div className="teacher-segmented teacher-segmented--three" aria-label="讲解节奏">
+                  {EXPLANATION_PACE_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={option.value === draftPersonaSettings.teacherExplanationPace ? 'is-active' : ''}
+                      onClick={() => patchDraftPersona({ teacherExplanationPace: option.value })}
+                      disabled={busy !== ''}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="teacher-field-label">参考变化</label>
+                <div className="teacher-segmented teacher-segmented--three" aria-label="参考变化">
+                  {VARIATION_DETAIL_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={option.value === draftPersonaSettings.teacherVariationDetail ? 'is-active' : ''}
+                      onClick={() => patchDraftPersona({ teacherVariationDetail: option.value })}
+                      disabled={busy !== ''}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
+          <footer className="teacher-popover-foot">
+            <button type="button" onClick={() => setDraftPersonaSettings(defaultPersonaUiSettings())}>重置</button>
+            <button type="button" className="is-primary" onClick={() => void saveTeacherPersona()}>完成</button>
+          </footer>
+        </aside>
+      ) : null}
+
+      {historyOpen ? (
+        <aside className="teacher-history-drawer" aria-label="历史会话">
+          <div className="teacher-history-head">
+            <strong>历史会话</strong>
+            <button type="button" aria-label="关闭历史会话" onClick={() => setHistoryOpen(false)}>×</button>
+          </div>
+          <label className="teacher-history-search">
+            <span>⌕</span>
+            <input value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索会话标题或内容..." />
+          </label>
+          <div className="teacher-history-tabs" aria-label="历史筛选">
+            {[
+              { value: 'all', label: '全部' },
+              { value: 'today', label: '今日' },
+              { value: 'archived', label: '已归档' }
+            ].map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                className={historyFilter === tab.value ? 'is-active' : ''}
+                onClick={() => setHistoryFilter(tab.value as TeacherHistoryFilter)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="teacher-history-scroll">
+            {visibleSessions.length === 0 ? (
+              <p className="teacher-history-empty">没有匹配的会话。</p>
+            ) : (
+              <>
+                {renderHistorySection('今天', todaySessions)}
+                {renderHistorySection('昨天', yesterdaySessions)}
+                {renderHistorySection('更早', earlierSessions)}
+              </>
+            )}
+          </div>
+          <footer className="teacher-history-foot">
+            <span>仅保留最近 90 天的会话</span>
+            <button type="button" aria-label="历史设置">⚙</button>
+          </footer>
+        </aside>
+      ) : null}
+
+      <div className={`message-list agent-thread ${messages.length === 0 && !hasRunningTask ? 'agent-thread--empty' : ''}`}>
+        {messages.length === 0 && !hasRunningTask ? (
+          <section className="teacher-empty-state" aria-label="AI 老师默认引导">
+            <div className="teacher-empty-state__bubble" aria-hidden="true">
+              <span />
+              <span />
+              <span />
             </div>
-          </article>
-        ))}
+            <strong>随时提问，AI 老师为你解答</strong>
+            <p>你可以问这盘棋的胜率判断、关键手分析、布局思路和形势判断。</p>
+            <div className="teacher-empty-state__prompts" aria-label="示例问题">
+              {TEACHER_EMPTY_PROMPTS.map((item) => (
+                <button key={item} type="button" onClick={() => onPrompt(item)} disabled={busy !== ''}>
+                  {item}
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : (
+          messages.map((message) => (
+            <article key={message.id} className={`message message--${message.role} agent-turn agent-turn--${message.role}`}>
+              <div className="agent-turn__body">
+                <header className="agent-turn__head">
+                  <strong>{message.role === 'teacher' ? 'GoMentor' : 'User'}</strong>
+                  <small>{message.status ?? (message.result ? 'completed' : message.role === 'teacher' ? 'assistant' : 'prompt')}</small>
+                </header>
+                <TeacherInlineResponse
+                  message={message}
+                  onJumpToMove={onJumpToMove}
+                  onAnalyzeMove={onAnalyzeMove}
+                />
+              </div>
+            </article>
+          ))
+        )}
         {hasRunningTask && !hasRunningMessage ? (
           <div className="message message--teacher message--running agent-turn agent-turn--teacher agent-turn--running">
             <div className="agent-turn__body">
@@ -2600,16 +3123,8 @@ function TeacherPanel({
       <TeacherComposerPro
         value={prompt}
         busy={busy !== ''}
-        actions={[
-          { label: '分析当前手', onClick: onAnalyze, primary: true },
-          { label: '分析整盘', onClick: onAnalyzeGame },
-          { label: '分析近 10 局', onClick: onAnalyzeRecent }
-        ]}
         onChange={onPrompt}
         onSubmit={onSubmit}
-        onQuickPrompt={(text) => {
-          onPrompt(text)
-        }}
       />
     </div>
   )

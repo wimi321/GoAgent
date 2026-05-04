@@ -319,7 +319,6 @@
 }
 
 .ks-tool-log-pro button,
-.ks-composer-pro__quick button,
 .ks-composer-pro__box button {
   border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
   border-radius: 10px;
@@ -391,76 +390,303 @@
 
 .ks-composer-pro {
   display: grid;
-  gap: 9px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px 12px 12px;
   border-top: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 34%),
-    rgb(7 10 14 / 0.9);
+    linear-gradient(180deg, rgb(255 255 255 / 0.04), transparent 42%),
+    rgb(7 10 14 / 0.94);
 }
 
-.ks-composer-pro__chrome {
+.ks-composer-pro button,
+.ks-composer-pro select,
+.ks-composer-pro textarea {
+  font: inherit;
+}
+
+.ks-composer-pro button {
+  cursor: pointer;
+}
+
+.ks-composer-pro button:disabled,
+.ks-composer-pro select:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.ks-composer-pro__topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.ks-composer-pro__identity {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 9px;
+}
+
+.ks-composer-pro__mark {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border: 1px solid rgb(95 212 207 / 0.34);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgb(95 212 207 / 0.18), rgb(216 181 103 / 0.12));
+  color: var(--ks-teal, #5fd4cf);
+  font-size: 11px;
+  font-weight: 950;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+.ks-composer-pro__identity div {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.ks-composer-pro__identity strong {
+  overflow: hidden;
+  color: var(--ks-text-main, #f4efe7);
+  font-size: 12.5px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-composer-pro__identity small,
+.ks-composer-pro__panel-head small,
+.ks-composer-pro__history-list small,
+.ks-composer-pro__history-list time,
+.ks-composer-pro__section-toggle small {
+  overflow: hidden;
   color: var(--ks-text-faint, #737f89);
   font-size: 11px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-composer-pro__session-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.ks-composer-pro__session-actions button,
+.ks-composer-pro__actions button {
+  min-height: 28px;
+  border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.045);
+  color: var(--ks-text-muted, #a9b2bb);
+  font-size: 11.5px;
   font-weight: 850;
+  transition:
+    border-color var(--ks-motion-fast, 120ms ease),
+    background var(--ks-motion-fast, 120ms ease),
+    color var(--ks-motion-fast, 120ms ease);
 }
 
-.ks-composer-pro__chrome span {
-  color: var(--ks-teal, #5fd4cf);
-  font-weight: 950;
+.ks-composer-pro__session-actions button {
+  min-width: 30px;
+  padding: 0 8px;
 }
 
-.ks-composer-pro__chrome small {
+.ks-composer-pro__session-actions button:hover,
+.ks-composer-pro__session-actions button.is-active,
+.ks-composer-pro__actions button:hover {
+  border-color: rgb(95 212 207 / 0.32);
+  background: rgb(95 212 207 / 0.09);
+  color: var(--ks-text-main, #f4efe7);
+}
+
+.ks-composer-pro__context {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ks-composer-pro__context span {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 28px;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid rgb(255 255 255 / 0.06);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.032);
+  color: var(--ks-text-muted, #a9b2bb);
+  font-size: 11.5px;
+  font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ks-composer-pro__quick {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.ks-composer-pro__sessions,
-.ks-composer-pro__persona {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.ks-composer-pro__sessions button {
-  min-height: 27px;
-  padding: 0 9px;
-  border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.04);
-  color: var(--ks-text-muted, #a9b2bb);
-  font-size: 11.5px;
+.ks-composer-pro__context b {
+  flex: 0 0 auto;
+  color: var(--ks-text-faint, #737f89);
+  font-size: 10.5px;
   font-weight: 850;
 }
 
-.ks-composer-pro__persona label {
-  display: inline-flex;
+.ks-composer-pro__panel {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--ks-border-strong, rgba(255,255,255,.14));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.045), transparent 62%),
+    rgba(10, 15, 20, 0.96);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 14px 26px rgb(0 0 0 / 0.22);
+}
+
+.ks-composer-pro__panel-head {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 10px;
+}
+
+.ks-composer-pro__panel-head strong {
+  color: var(--ks-text-main, #f4efe7);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.ks-composer-pro__history-list,
+.ks-composer-pro__setting-groups {
+  display: grid;
+  gap: 7px;
+}
+
+.ks-composer-pro__history-list {
+  max-height: 210px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.ks-composer-pro__history-list button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  gap: 9px;
+  padding: 8px 9px;
+  border: 1px solid rgb(255 255 255 / 0.06);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.035);
+  color: var(--ks-text-main, #f4efe7);
+  text-align: left;
+}
+
+.ks-composer-pro__history-list button:hover,
+.ks-composer-pro__history-list button.is-active {
+  border-color: rgb(216 181 103 / 0.38);
+  background: rgb(216 181 103 / 0.09);
+}
+
+.ks-composer-pro__history-list span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.ks-composer-pro__history-list strong {
+  overflow: hidden;
+  color: var(--ks-text-main, #f4efe7);
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-composer-pro__history-list time {
+  color: var(--ks-text-faint, #737f89);
+}
+
+.ks-composer-pro__setting-section {
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.06);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.032);
+}
+
+.ks-composer-pro__section-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  min-height: 36px;
+  gap: 9px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ks-text-main, #f4efe7);
+  text-align: left;
+}
+
+.ks-composer-pro__section-toggle span {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ks-composer-pro__setting-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.ks-composer-pro__setting-grid label {
+  display: grid;
+  min-width: 0;
   gap: 5px;
-  color: var(--ks-text-muted, #a9b2bb);
-  font-size: 11.5px;
+}
+
+.ks-composer-pro__setting-grid label span {
+  color: var(--ks-text-faint, #737f89);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.ks-composer-pro__setting-grid select {
+  width: 100%;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
+  border-radius: 8px;
+  background: rgba(12, 17, 23, 0.94);
+  color: var(--ks-text-main, #f4efe7);
+  font-size: 12px;
   font-weight: 800;
 }
 
-.ks-composer-pro__persona select {
-  min-height: 26px;
-  border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
-  border-radius: 8px;
-  background: rgba(12, 17, 23, 0.92);
-  color: var(--ks-text-main, #f4efe7);
+.ks-composer-pro__setting-grid select:focus,
+.ks-composer-pro__box textarea:focus {
+  outline: 0;
+  border-color: rgb(95 212 207 / 0.46);
+  box-shadow: 0 0 0 3px rgb(95 212 207 / 0.10);
+}
+
+.ks-composer-pro__loading {
+  margin: 0;
+  color: var(--ks-text-muted, #a9b2bb);
   font-size: 12px;
+  font-weight: 800;
 }
 
 .ks-composer-pro__actions {
@@ -470,60 +696,159 @@
 }
 
 .ks-composer-pro__actions button {
-  min-height: 28px;
+  min-height: 29px;
   padding: 0 9px;
-  border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
-  border-radius: 8px;
-  background: rgb(255 255 255 / 0.035);
-  color: var(--ks-text-muted, #a9b2bb);
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .ks-composer-pro__actions button.is-primary {
-  color: #11151a;
+  border-color: rgb(235 207 134 / 0.46);
+  color: #101419;
   background: linear-gradient(180deg, var(--ks-gold-strong, #ebcf86), #b99145);
-}
-
-.ks-composer-pro__quick button {
-  min-height: 26px;
-  padding: 0 8px;
-  border-radius: 999px;
-  color: var(--ks-text-muted, #a9b2bb);
-  font-size: 11.5px;
-  background: rgb(255 255 255 / 0.035);
 }
 
 .ks-composer-pro__box {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
   gap: 8px;
   padding: 8px;
   border: 1px solid var(--ks-border-strong, rgba(255,255,255,.14));
-  border-radius: 13px;
-  background: rgba(8, 12, 16, 0.82);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03), 0 12px 28px rgb(0 0 0 / 0.18);
+  border-radius: 8px;
+  background: rgba(8, 12, 16, 0.88);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 12px 28px rgb(0 0 0 / 0.18);
 }
 
 .ks-composer-pro__box textarea {
+  grid-column: 1 / -1;
   min-height: 74px;
-  border: 0;
+  padding: 4px;
+  border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--ks-text-main, #f4efe7);
+  font-size: 13px;
+  line-height: 1.45;
   resize: none;
-  box-shadow: none;
-  transition: border-color var(--ks-motion-fast, 120ms ease), box-shadow var(--ks-motion-fast, 120ms ease);
-}
-
-.ks-composer-pro__box textarea:focus {
-  box-shadow: none;
+  transition:
+    border-color var(--ks-motion-fast, 120ms ease),
+    box-shadow var(--ks-motion-fast, 120ms ease);
 }
 
 .ks-composer-pro__box button {
+  grid-column: 2;
   justify-self: end;
   min-width: 78px;
-  min-height: 30px;
+  min-height: 32px;
+  border-color: rgb(235 207 134 / 0.46);
+  border-radius: 8px;
   color: #11151a;
   background: linear-gradient(180deg, var(--ks-gold-strong, #ebcf86), #b99145);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+/* Reference AI teacher composer */
+.ks-composer-pro {
+  display: grid;
+  gap: 0;
+  padding: 0 20px 18px;
+  border-top: 0;
+  background: transparent;
+}
+
+.ks-composer-pro__chrome {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.ks-composer-pro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.ks-composer-pro__actions button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgb(198 212 225 / 0.72);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.48);
+  color: #34506e;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.ks-composer-pro__actions button.is-primary {
+  border-color: #94cfd3;
+  color: #007f8c;
+  background: linear-gradient(180deg, #ffffff, #eaf8f9);
+}
+
+.ks-composer-pro__box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 82px;
+  align-items: center;
+  gap: 10px;
+  min-height: 76px;
+  padding: 10px 10px 10px 16px;
+  border: 1px solid rgb(198 212 225 / 0.56);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.78), rgb(248 252 254 / 0.58)),
+    rgb(255 255 255 / 0.60);
+  box-shadow:
+    0 16px 40px rgb(24 48 74 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.88);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+}
+
+.ks-composer-pro__box textarea {
+  grid-column: 1;
+  width: 100%;
+  min-height: 42px;
+  max-height: 110px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #14233a;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: none;
+  outline: 0;
+}
+
+.ks-composer-pro__box textarea::placeholder {
+  color: #7c8fa7;
+}
+
+.ks-composer-pro__box .ks-composer-pro__send {
+  grid-column: 2;
+  justify-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  width: 100%;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  background: linear-gradient(180deg, #009ca8, #007c8d);
+  box-shadow: 0 10px 22px rgb(0 123 141 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.26);
+}
+
+.ks-composer-pro__box .ks-composer-pro__send:hover:not(:disabled) {
+  background: linear-gradient(180deg, #00aab6, #008797);
 }
