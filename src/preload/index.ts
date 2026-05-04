@@ -28,6 +28,8 @@ import type {
   StudentBindingSuggestion,
   StudentProfile,
   ReleaseReadinessResult,
+  TeacherChatMessage,
+  TeacherSession,
   TeacherRunRequest,
   TeacherRunProgress,
   TeacherRunResult
@@ -86,6 +88,11 @@ const api = {
   attachGameToStudent: (payload: { gameId: string; studentId: string }): Promise<StudentProfile> => ipcRenderer.invoke('students:attach-game', payload),
   addStudentAlias: (payload: { studentId: string; alias: string }): Promise<StudentProfile> => ipcRenderer.invoke('students:alias', payload),
   searchKnowledge: (payload: KnowledgeSearchQuery): Promise<KnowledgeSearchResult[]> => ipcRenderer.invoke('knowledge:search', payload),
+  listTeacherSessions: (): Promise<TeacherSession[]> => ipcRenderer.invoke('teacher-sessions:list'),
+  getActiveTeacherSession: (): Promise<TeacherSession> => ipcRenderer.invoke('teacher-sessions:active'),
+  createTeacherSession: (payload?: Partial<TeacherSession>): Promise<TeacherSession> => ipcRenderer.invoke('teacher-sessions:create', payload ?? {}),
+  updateTeacherSessionMessages: (payload: { sessionId: string; messages: TeacherChatMessage[] }): Promise<TeacherSession> => ipcRenderer.invoke('teacher-sessions:update-messages', payload),
+  archiveTeacherSession: (sessionId: string): Promise<TeacherSession | null> => ipcRenderer.invoke('teacher-sessions:archive', sessionId),
   runTeacherTask: (payload: TeacherRunRequest): Promise<TeacherRunResult> => ipcRenderer.invoke('teacher:run', payload),
   onTeacherRunProgress: (handler: (payload: TeacherRunProgress) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: TeacherRunProgress): void => handler(payload)

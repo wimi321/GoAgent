@@ -426,6 +426,43 @@
   gap: 6px;
 }
 
+.ks-composer-pro__sessions,
+.ks-composer-pro__persona {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ks-composer-pro__sessions button {
+  min-height: 27px;
+  padding: 0 9px;
+  border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.04);
+  color: var(--ks-text-muted, #a9b2bb);
+  font-size: 11.5px;
+  font-weight: 850;
+}
+
+.ks-composer-pro__persona label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ks-text-muted, #a9b2bb);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.ks-composer-pro__persona select {
+  min-height: 26px;
+  border: 1px solid var(--ks-border-soft, rgba(255,255,255,.08));
+  border-radius: 8px;
+  background: rgba(12, 17, 23, 0.92);
+  color: var(--ks-text-main, #f4efe7);
+  font-size: 12px;
+}
+
 .ks-composer-pro__actions {
   display: flex;
   flex-wrap: wrap;

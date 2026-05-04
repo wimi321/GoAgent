@@ -37,6 +37,14 @@ const requiredTopics = [
   'knowledge source-policy gates',
   'optimized move-range review',
   'quality checks and eval gates',
+  'Real Eval / engine silver fixture gate',
+  'KataGo engine pool telemetry',
+  'Release artifact smoke',
+  'student level',
+  'student age',
+  'teacher persona style settings with evidence boundary',
+  'teacher sessions',
+  'selective PR #6 integration',
   'layiku',
   'wimi321'
 ]

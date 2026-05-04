@@ -1,0 +1,19 @@
+{
+  "id": "cut-point-silver-001",
+  "category": "current-move",
+  "sgf": "(;GM[1]FF[4]SZ[19];B[pd];W[dd];B[qp];W[dp];B[fc];W[cf])",
+  "moveNumber": 6,
+  "studentLevel": "intermediate",
+  "engine": {
+    "visits": 5000,
+    "note": "Silver fixtures use high-visit KataGo as the objective oracle when assets are available."
+  },
+  "expected": {
+    "allowedBestMoves": [],
+    "forbiddenMoves": [],
+    "expectedShapes": ["cut-point", "connection"],
+    "forbiddenShapes": ["joseki"],
+    "mustMention": ["证据", "棋形"],
+    "mustNotMention": ["唯一", "必杀"]
+  }
+}

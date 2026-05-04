@@ -5,6 +5,7 @@ import type { AnalysisQuality, GameMove, KataGoAnalysisGroup, KataGoCandidate, K
 import { readGameRecord } from './sgf'
 import { resolveKataGoRuntime } from './katagoRuntime'
 import { ensureFoxGameDownloaded } from './fox'
+import { beginKataGoEngineTask } from './katagoEnginePool'
 
 interface KataGoResponse {
   id?: string
@@ -323,6 +324,10 @@ async function queryKataGoBatch(
   if (options.replaceGroup && options.group) {
     cancelKataGoAnalysis({ group: options.group })
   }
+  const engineLease = beginKataGoEngineTask({
+    group: options.group,
+    queryCount: queries.length
+  })
 
   const child = spawn(runtime.katagoBin, [
     'analysis',
@@ -365,6 +370,7 @@ async function queryKataGoBatch(
       settled = true
       child.kill()
       cleanup()
+      engineLease.finish('error')
       reject(new Error('KataGo 分析超时'))
     }, Math.max(120_000, queries.length * 2500))
 
@@ -394,6 +400,7 @@ async function queryKataGoBatch(
           clearTimeout(timer)
           child.kill()
           cleanup()
+          engineLease.finish('error')
           reject(new Error(`无法解析 KataGo 输出: ${String(error)}\n${line.slice(0, 500)}`))
           return
         }
@@ -402,6 +409,7 @@ async function queryKataGoBatch(
           clearTimeout(timer)
           child.kill()
           cleanup()
+          engineLease.finish('done')
           resolve(results)
           return
         }
@@ -415,6 +423,7 @@ async function queryKataGoBatch(
       settled = true
       clearTimeout(timer)
       cleanup()
+      engineLease.finish('error')
       reject(error)
     })
 
@@ -426,13 +435,16 @@ async function queryKataGoBatch(
       clearTimeout(timer)
       cleanup()
       if (activeEntry.cancelled) {
+        engineLease.finish('cancelled')
         reject(new Error('KataGo 分析已取消'))
         return
       }
       if (code !== 0 && code !== null) {
+        engineLease.finish('error')
         reject(new Error(stderr.trim() || `KataGo exited with ${code}`))
         return
       }
+      engineLease.finish('error')
       reject(new Error(stderr.trim() || `KataGo 没有返回完整分析结果，已收到 ${results.size}/${queries.length} 个局面`))
     })
 

@@ -37,6 +37,7 @@ import { applyDetectedDefaults, detectSystemProfile } from './systemProfile'
 import { parseStructuredTeacherResult } from './teacher/structuredResultParser'
 import { classifyTeacherIntent, type TeacherIntent } from './teacher/intentClassifier'
 import { buildTeachingPacingAdvice } from './teacher/teachingEvidence'
+import { buildTeacherPersonaInstruction, normalizeCoachLevel, normalizeStudentAgeRange, normalizeTeacherStyle } from './teacher/teacherPersona'
 import { streamOpenAICompatibleToolTurn } from './llm/openaiCompatibleProvider'
 
 type TeacherProgressEmitter = (progress: TeacherRunProgress) => void
@@ -300,7 +301,12 @@ function systemPrompt(level: CoachUserLevel): string {
     '像老师讲棋：先帮学生看懂棋形和判断方法，再自然引用必要证据；不要按固定栏目或机器报告口吻堆字段。',
     '区间复盘要先讲区间走势，再聚焦 3-5 个关键手；不要逐手流水账；每个关键手必须引用 KataGo、analysisQuality、棋形识别或战术信号。',
     '区间过长或证据不足时要建议缩小范围或只做抽样总结，不能把低 visits 区间分析说成最终结论。',
-    `学生水平：${level}。`
+    `学生水平：${level}。`,
+    buildTeacherPersonaInstruction({
+      level,
+      ageRange: normalizeStudentAgeRange(getSettings().defaultStudentAgeRange),
+      style: normalizeTeacherStyle(getSettings().teacherStyle)
+    })
   ].join('\n')
 }
 
@@ -519,6 +525,9 @@ function initialAgentUserMessage(state: TeacherAgentSessionState): ChatMessage {
     gameId: state.request.gameId,
     moveNumber: state.request.moveNumber,
     playerName: state.request.playerName || state.studentName,
+    coachLevel: state.request.coachLevel ?? state.profile.userLevel,
+    studentAgeRange: state.request.studentAgeRange ?? getSettings().defaultStudentAgeRange,
+    teacherStyle: state.request.teacherStyle ?? getSettings().teacherStyle,
     boardImageAttached: Boolean(state.request.boardImageDataUrl) || (state.request.boardImageDataUrls?.length ?? 0) > 0,
     boardImagesAttached: state.request.boardImageDataUrls?.length ?? 0,
     moveRange: state.request.moveRange,
@@ -1236,9 +1245,13 @@ async function runTeacherAgentSession(
 export async function runTeacherTask(request: TeacherRunRequest, onProgress?: TeacherProgressEmitter): Promise<TeacherRunResult> {
   const id = request.runId || randomUUID()
   const parsedRange = request.moveRange ?? parseMoveRangeFromPrompt(request.prompt ?? '') ?? undefined
+  const appSettings = getSettings()
   const normalizedRequest: TeacherRunRequest = {
     ...request,
-    moveRange: parsedRange
+    moveRange: parsedRange,
+    coachLevel: normalizeCoachLevel(request.coachLevel ?? appSettings.defaultCoachLevel),
+    studentAgeRange: normalizeStudentAgeRange(request.studentAgeRange ?? appSettings.defaultStudentAgeRange),
+    teacherStyle: normalizeTeacherStyle(request.teacherStyle ?? appSettings.teacherStyle)
   }
   if (normalizedRequest.moveRange) {
     const validation = validateMoveRange(normalizedRequest.moveRange.start, normalizedRequest.moveRange.end, undefined, MOVE_RANGE_MAX_MOVES)

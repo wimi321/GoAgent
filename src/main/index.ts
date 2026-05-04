@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type ContextMenuParams, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getSettings, hasLlmApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
-import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherRunRequest } from './lib/types'
+import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherChatMessage, TeacherRunRequest } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
 import { runReview } from './services/review'
@@ -10,6 +10,7 @@ import { runTeacherTask } from './services/teacherAgent'
 import { listLlmModels, testLlmSettings } from './services/llm'
 import { analyzeGameQuick, analyzePosition, analyzePositionWithProgress, cancelKataGoAnalysis } from './services/katago'
 import { benchmarkKataGo } from './services/katagoBenchmark'
+import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
 import { collectDiagnostics } from './services/diagnostics'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
 import { inspectKataGoAssets, installOfficialKataGoModel } from './services/katago/katagoAssets'
@@ -23,6 +24,7 @@ import {
   resolveStudentByName,
   upsertStudentAlias
 } from './services/studentProfile'
+import { archiveTeacherSession, createTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 
 let mainWindow: BrowserWindow | null = null
 type DesktopCommand =
@@ -321,6 +323,11 @@ app.whenReady().then(() => {
   ipcMain.handle('students:attach-game', async (_event, payload: { gameId: string; studentId: string }) => attachGameToStudent(payload.gameId, payload.studentId))
   ipcMain.handle('students:alias', async (_event, payload: { studentId: string; alias: string }) => upsertStudentAlias(payload.studentId, payload.alias))
   ipcMain.handle('knowledge:search', async (_event, payload) => searchKnowledgeCards(payload))
+  ipcMain.handle('teacher-sessions:list', async () => listTeacherSessions(true))
+  ipcMain.handle('teacher-sessions:active', async () => getActiveTeacherSession())
+  ipcMain.handle('teacher-sessions:create', async (_event, payload) => createTeacherSession(payload ?? {}))
+  ipcMain.handle('teacher-sessions:update-messages', async (_event, payload: { sessionId: string; messages: TeacherChatMessage[] }) => updateTeacherSessionMessages(payload.sessionId, payload.messages))
+  ipcMain.handle('teacher-sessions:archive', async (_event, sessionId: string) => archiveTeacherSession(sessionId))
   ipcMain.handle('review:start', async (_event, payload: ReviewRequest) => runReview(payload))
   ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) =>
     analyzePosition(payload.gameId, payload.moveNumber, payload.maxVisits ?? 500)
@@ -363,6 +370,7 @@ app.whenReady().then(() => {
   ipcMain.handle('katago:cancel-analysis', async (_event, payload: KataGoCancelAnalysisRequest) =>
     cancelKataGoAnalysis(payload)
   )
+  ipcMain.handle('katago:engine-pool-stats', async () => getKataGoEnginePoolStats())
   ipcMain.handle('katago:benchmark', async (_event, payload: KataGoBenchmarkRequest | undefined) => benchmarkKataGo(payload ?? {}))
   ipcMain.handle('teacher:run', async (event, payload: TeacherRunRequest) =>
     runTeacherTask(payload, (progress) => {

@@ -27,6 +27,8 @@ import type {
   StudentBindingSuggestion,
   StudentProfile,
   ReleaseReadinessResult,
+  TeacherChatMessage,
+  TeacherSession,
   TeacherRunRequest,
   TeacherRunProgress,
   TeacherRunResult
@@ -75,6 +77,11 @@ declare global {
       attachGameToStudent: (payload: { gameId: string; studentId: string }) => Promise<StudentProfile>
       addStudentAlias: (payload: { studentId: string; alias: string }) => Promise<StudentProfile>
       searchKnowledge: (payload: KnowledgeSearchQuery) => Promise<KnowledgeSearchResult[]>
+      listTeacherSessions: () => Promise<TeacherSession[]>
+      getActiveTeacherSession: () => Promise<TeacherSession>
+      createTeacherSession: (payload?: Partial<TeacherSession>) => Promise<TeacherSession>
+      updateTeacherSessionMessages: (payload: { sessionId: string; messages: TeacherChatMessage[] }) => Promise<TeacherSession>
+      archiveTeacherSession: (sessionId: string) => Promise<TeacherSession | null>
       runTeacherTask: (payload: TeacherRunRequest) => Promise<TeacherRunResult>
       onTeacherRunProgress: (handler: (payload: TeacherRunProgress) => void) => () => void
       testLlmSettings: (payload: LlmSettingsTestRequest) => Promise<LlmSettingsTestResult>

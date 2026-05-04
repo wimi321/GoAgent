@@ -4,6 +4,27 @@ All notable changes to GoMentor will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.3.9 - Real Eval Gates and Teacher Sessions
+
+### Added
+
+- Added Real Eval / Engine Silver fixture coverage with a high-visits KataGo silver-oracle schema gate.
+- Added KataGo engine pool telemetry for task wait, run, success, error, and timeout timing, preparing the codebase for a persistent engine queue.
+- Added release artifact smoke checks and wired them into the release quality gate.
+- Added default student level, student age range, and teacher style settings, with an explicit evidence boundary so persona controls only change expression and pacing.
+- Added right-side teacher sessions with new, close/archive, list, restore, and history support instead of only clearing the chat.
+
+### Improved
+
+- Selectively absorbed layiku's PR #6 by keeping move-range progression analysis and board text rendering while preserving the shared move-range parser boundary.
+- Move-range review remains key-move-only for long ranges and avoids reintroducing repeated renderer runtime imports from main-only moveRange paths.
+- Release quality now carries forward grounded shape recognition engine, local pattern matcher, knowledge source-policy gates, optimized move-range review, and eval gates.
+
+### Thanks
+
+- Thanks to layiku for PR #6's move-range progression and board text rendering ideas, now aligned with GoMentor's evidence and quality-gate system.
+- Thanks to layiku for PR #5, PR #4, and PR #3, and thanks to wimi321 for PR #1 / PR #2.
+
 ## 0.3.8 - NVIDIA Edition Runtime Detection Hotfix
 
 ### Fixed

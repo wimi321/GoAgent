@@ -19,7 +19,9 @@ import type {
   MoveRangeReviewSummary,
   TeacherRunRequest,
   TeacherRunProgress,
-  TeacherRunResult
+  TeacherRunResult,
+  TeacherChatMessage,
+  TeacherSession
 } from '@main/lib/types'
 import { MOVE_RANGE_MAX_MOVES, describeMoveRange, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import lizzieBlackStoneUrl from './assets/lizzie/black.png'
@@ -60,7 +62,10 @@ const emptyDashboard: DashboardData = {
     llmApiKey: '',
     llmModel: 'gpt-5-mini',
     reviewLanguage: 'zh-CN',
-    defaultPlayerName: ''
+    defaultPlayerName: '',
+    defaultCoachLevel: 'intermediate',
+    defaultStudentAgeRange: 'unknown',
+    teacherStyle: 'balanced'
   },
   games: [],
   systemProfile: {
@@ -491,6 +496,8 @@ export function App(): ReactElement {
   const evaluationCacheRef = useRef<Record<string, EvaluationByMove>>({})
   const evaluationPersistTimersRef = useRef<Record<string, number>>({})
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [teacherSessionId, setTeacherSessionId] = useState('')
+  const [teacherSessions, setTeacherSessions] = useState<TeacherSession[]>([])
   const t = useMemo(() => createUiTranslator(dashboard.settings.reviewLanguage), [dashboard.settings.reviewLanguage])
   const uiError = (cause: unknown, context?: string): string => humanizeUiError(cause, dashboard.settings.reviewLanguage, context)
 
@@ -575,6 +582,95 @@ export function App(): ReactElement {
     },
     [dashboard.games, selectedId]
   )
+
+  function storedTeacherMessages(): TeacherChatMessage[] {
+    const timestamp = new Date().toISOString()
+    return messages.map((message) => ({ ...message, createdAt: timestamp }))
+  }
+
+  function restoreTeacherSessionMessages(session: TeacherSession): void {
+    setMessages(session.messages.map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      status: message.status,
+      result: message.result,
+      toolLogs: message.toolLogs
+    })))
+  }
+
+  async function refreshTeacherSessions(): Promise<void> {
+    const sessions = await window.gomentor.listTeacherSessions().catch(() => [])
+    setTeacherSessions(sessions)
+  }
+
+  async function persistCurrentTeacherSession(): Promise<void> {
+    if (!teacherSessionId || messages.length === 0) return
+    await window.gomentor.updateTeacherSessionMessages({ sessionId: teacherSessionId, messages: storedTeacherMessages() }).catch(() => undefined)
+    await refreshTeacherSessions()
+  }
+
+  async function startNewTeacherSession(): Promise<void> {
+    await persistCurrentTeacherSession()
+    const session = await window.gomentor.createTeacherSession({ gameId: selectedGame?.id, moveNumber, moveRange: moveRange ?? undefined })
+    setTeacherSessionId(session.id)
+    setMessages([])
+    setPrompt('')
+    await refreshTeacherSessions()
+  }
+
+  async function closeCurrentTeacherSession(): Promise<void> {
+    await persistCurrentTeacherSession()
+    if (teacherSessionId) await window.gomentor.archiveTeacherSession(teacherSessionId).catch(() => undefined)
+    const session = await window.gomentor.createTeacherSession({ gameId: selectedGame?.id, moveNumber })
+    setTeacherSessionId(session.id)
+    setMessages([])
+    setPrompt('')
+    await refreshTeacherSessions()
+  }
+
+  async function restoreTeacherSessionFromHistory(): Promise<void> {
+    const sessions = teacherSessions.length ? teacherSessions : await window.gomentor.listTeacherSessions().catch(() => [])
+    if (sessions.length === 0) return
+    const menu = sessions.slice(0, 12).map((session, index) => `${index + 1}. ${session.title} · ${new Date(session.updatedAt).toLocaleString()}`).join('\n')
+    const picked = window.prompt(`选择要恢复的老师会话：\n${menu}`)
+    const index = picked ? Number(picked) - 1 : -1
+    const session = sessions[index]
+    if (!session) return
+    await persistCurrentTeacherSession()
+    setTeacherSessionId(session.id)
+    restoreTeacherSessionMessages(session)
+  }
+
+  useEffect(() => {
+    void window.gomentor.getActiveTeacherSession().then((session) => {
+      setTeacherSessionId(session.id)
+      restoreTeacherSessionMessages(session)
+    }).catch(() => undefined)
+    void refreshTeacherSessions()
+  }, [])
+
+  useEffect(() => {
+    const handler = (event: Event): void => {
+      const action = (event as CustomEvent<'new' | 'close' | 'history'>).detail
+      if (action === 'new') void startNewTeacherSession()
+      else if (action === 'close') void closeCurrentTeacherSession()
+      else if (action === 'history') void restoreTeacherSessionFromHistory()
+    }
+    window.addEventListener('gomentor:teacher-session-action', handler)
+    return () => window.removeEventListener('gomentor:teacher-session-action', handler)
+  }, [messages, teacherSessionId, selectedGame?.id, moveNumber, moveRange, teacherSessions])
+
+  useEffect(() => {
+    if (!teacherSessionId || messages.length === 0) return
+    const timer = window.setTimeout(() => {
+      void window.gomentor.updateTeacherSessionMessages({ sessionId: teacherSessionId, messages: storedTeacherMessages() })
+        .then(() => refreshTeacherSessions())
+        .catch(() => undefined)
+    }, 700)
+    return () => window.clearTimeout(timer)
+  }, [messages, teacherSessionId])
+
   const keyMoveSummaries = useMemo(() => keyMoveSummariesFromEvaluations(evaluations), [evaluations])
   const timelineIssues = useMemo(
     () => timelineIssuesFromEvaluations(evaluations, record, timelineIssueColor),
@@ -1062,6 +1158,7 @@ export function App(): ReactElement {
     try {
       const result = await window.gomentor.runTeacherTask({
         ...request,
+        teacherSessionId: teacherSessionId || undefined,
         runId
       })
       updateMessage(assistantMessageId, (message) => ({

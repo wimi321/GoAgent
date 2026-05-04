@@ -31,7 +31,10 @@ const defaults: AppSettings = {
   llmApiKey: '',
   llmModel: 'gpt-5-mini',
   reviewLanguage: 'zh-CN',
-  defaultPlayerName: ''
+  defaultPlayerName: '',
+  defaultCoachLevel: 'intermediate',
+  defaultStudentAgeRange: 'unknown',
+  teacherStyle: 'balanced'
 }
 
 export const settingsStore = new Store<AppSettings>({

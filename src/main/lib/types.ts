@@ -18,6 +18,9 @@ export interface AppSettings {
   llmModel: string
   reviewLanguage: 'zh-CN' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
   defaultPlayerName: string
+  defaultCoachLevel: CoachUserLevel
+  defaultStudentAgeRange: StudentAgeRange
+  teacherStyle: TeacherPersonaStyle
 }
 
 export type KataGoModelPresetId = string
@@ -231,6 +234,8 @@ export interface ReviewRequest {
 }
 
 export type CoachUserLevel = 'beginner' | 'intermediate' | 'advanced' | 'dan'
+export type StudentAgeRange = 'unknown' | 'child' | 'teen' | 'adult' | 'senior'
+export type TeacherPersonaStyle = 'balanced' | 'rigorous' | 'gentle' | 'strict' | 'humorous'
 export type TeacherRunMode = 'current-move' | 'freeform' | 'move-range'
 export type TeacherToolStatus = 'running' | 'done' | 'error' | 'skipped'
 
@@ -414,6 +419,7 @@ export interface StudentProfile {
   aliases: string[]
   createdFrom: 'fox' | 'sgf' | 'manual' | 'legacy'
   userLevel: CoachUserLevel
+  ageRange?: StudentAgeRange
   gamesReviewed: number
   weaknessStats: Record<string, number>
   recentPatterns: string[]
@@ -441,6 +447,29 @@ export interface StudentBindingSuggestion {
   confidence: 'high' | 'medium' | 'low'
   reason: string
   color?: StoneColor
+}
+
+export interface TeacherChatMessage {
+  id: string
+  role: 'student' | 'teacher'
+  content: string
+  status?: 'running' | 'completed' | 'error'
+  result?: TeacherRunResult
+  toolLogs?: TeacherRunResult['toolLogs']
+  createdAt: string
+}
+
+export interface TeacherSession {
+  id: string
+  title: string
+  gameId?: string
+  moveNumber?: number
+  moveRange?: { start: number; end: number }
+  studentId?: string
+  archivedAt?: string
+  createdAt: string
+  updatedAt: string
+  messages: TeacherChatMessage[]
 }
 
 export interface TeacherKeyMistake {
@@ -499,6 +528,10 @@ export interface TeacherRunRequest {
   gameId?: string
   moveNumber?: number
   playerName?: string
+  coachLevel?: CoachUserLevel
+  studentAgeRange?: StudentAgeRange
+  teacherStyle?: TeacherPersonaStyle
+  teacherSessionId?: string
   boardImageDataUrl?: string
   boardImageDataUrls?: string[]
   moveRange?: { start: number; end: number }
