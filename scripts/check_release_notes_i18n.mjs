@@ -45,6 +45,9 @@ const requiredTopics = [
   'teacher persona style settings with evidence boundary',
   'teacher sessions',
   'selective PR #6 integration',
+  'Windows OpenCL runtime bundle',
+  'KataGo OpenCL adjacent runtime files',
+  'GPU vendor OpenCL drivers',
   'layiku',
   'wimi321'
 ]

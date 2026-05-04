@@ -4,6 +4,18 @@ All notable changes to GoMentor will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.3.10 - Windows OpenCL Runtime Bundle Hotfix
+
+### Fixed
+
+- Fixed the standard Windows release package so it restores the full official KataGo OpenCL runtime directory from `wimi321/lizzieyzy-next` instead of packaging only a bare `katago.exe`.
+- The standard Windows installer and portable ZIP now keep the KataGo OpenCL adjacent runtime files, including `*.dll` files such as compression, OpenSSL, and OpenCL loader dependencies supplied by the upstream bundle.
+- Release checks now guard the OpenCL asset source and runtime-directory packaging path.
+
+### Notes
+
+- GPU vendor OpenCL drivers still come from the user's graphics driver. GoMentor bundles the KataGo OpenCL runtime files, not a replacement for NVIDIA/AMD/Intel display drivers.
+
 ## 0.3.9 - Real Eval Gates and Teacher Sessions
 
 ### Added
