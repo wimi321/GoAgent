@@ -47,6 +47,7 @@ interface AnalysisQuery {
   maxVisits: number
   reportDuringSearchEvery?: number
   initialStones?: Array<[GameMove['color'], string]>
+  initialPlayer?: GameMove['color']
   overrideSettings?: Record<string, number | boolean | string>
   includeOwnership?: boolean
   includeMovesOwnership?: boolean
@@ -83,6 +84,8 @@ const QUICK_ANALYSIS_REFINE_VISITS = 120
 const QUICK_ANALYSIS_REFINE_TOP_N = 18
 const QUICK_ANALYSIS_REFINE_MIN_LOSS = 4
 const QUICK_ANALYSIS_WIDE_ROOT_NOISE = 0.04
+const FORCED_ACTUAL_EVIDENCE_MIN_VISITS = 1200
+const QUICK_FORCED_ACTUAL_REFINE_MIN_VISITS = 240
 const activeKataGoProcesses = new Map<string, ActiveKataGoProcess>()
 
 export function cancelKataGoAnalysis(filter: { runId?: string; group?: KataGoAnalysisGroup }): { cancelled: number } {
@@ -101,7 +104,7 @@ export function cancelKataGoAnalysis(filter: { runId?: string; group?: KataGoAna
 }
 
 function moveHistory(moves: GameMove[]): Array<[string, string]> {
-  return moves.filter((move) => !move.pass).map((move) => [move.color, move.gtp])
+  return moves.map((move) => [move.color, move.pass ? 'pass' : move.gtp])
 }
 
 function normalizeKomi(raw: string): number {
@@ -114,6 +117,10 @@ function normalizeKomi(raw: string): number {
 
 function initialStonesFromRecord(record: ReturnType<typeof readGameRecord>): Array<[GameMove['color'], string]> {
   return (record.initialStones ?? []).map((stone) => [stone.color, stone.point])
+}
+
+function initialPlayerFromRecord(record: ReturnType<typeof readGameRecord>): GameMove['color'] {
+  return sideToMoveAt(record.moves, 0)
 }
 
 function inferPhase(moveNumber: number): AnalysisQuality['phase'] {
@@ -148,21 +155,46 @@ function buildAnalysisQuality(
   return { phase, totalVisits, bestVisits: best?.visits ?? 0, actualVisits, candidateSpreadWinrate, candidateSpreadScore, pvStable, confidence, reason, deepenRecommended }
 }
 
-function root(response: KataGoResponse): { winrate: number; scoreLead: number } {
+function oppositeColor(color: GameMove['color']): GameMove['color'] {
+  return color === 'B' ? 'W' : 'B'
+}
+
+function sideToMoveAt(moves: GameMove[], positionMoveNumber: number): GameMove['color'] {
+  const nextMove = moves[positionMoveNumber]
+  if (nextMove) {
+    return nextMove.color
+  }
+  const previousMove = moves[positionMoveNumber - 1]
+  return previousMove ? oppositeColor(previousMove.color) : 'B'
+}
+
+function blackWinrateFromSideToMove(rawWinrate: number, sideToMove: GameMove['color']): number {
+  const percent = rawWinrate <= 1.00001 ? rawWinrate * 100 : rawWinrate
+  const blackPercent = sideToMove === 'B' ? percent : 100 - percent
+  return Math.max(0, Math.min(100, blackPercent))
+}
+
+function blackScoreLeadFromSideToMove(rawScoreLead: number, sideToMove: GameMove['color']): number {
+  return sideToMove === 'B' ? rawScoreLead : -rawScoreLead
+}
+
+function root(response: KataGoResponse, sideToMove: GameMove['color']): { winrate: number; scoreLead: number } {
   if (!response.rootInfo) {
     throw new Error(`KataGo 没有返回 rootInfo${response.error ? `: ${response.error}` : ''}`)
   }
+  const rawWinrate = Number(response.rootInfo.winrate ?? 0.5)
+  const rawScoreLead = Number(response.rootInfo.scoreLead ?? response.rootInfo.scoreMean ?? 0)
   return {
-    winrate: Number(response.rootInfo.winrate ?? 0.5) * 100,
-    scoreLead: Number(response.rootInfo.scoreLead ?? response.rootInfo.scoreMean ?? 0)
+    winrate: blackWinrateFromSideToMove(rawWinrate, sideToMove),
+    scoreLead: blackScoreLeadFromSideToMove(rawScoreLead, sideToMove)
   }
 }
 
-function candidates(response: KataGoResponse): KataGoCandidate[] {
+function candidates(response: KataGoResponse, sideToMove: GameMove['color']): KataGoCandidate[] {
   return (response.moveInfos ?? []).map((move, index) => ({
     move: move.move ?? '',
-    winrate: Number(move.winrate ?? 0.5) * 100,
-    scoreLead: Number(move.scoreLead ?? move.scoreMean ?? 0),
+    winrate: blackWinrateFromSideToMove(Number(move.winrate ?? 0.5), sideToMove),
+    scoreLead: blackScoreLeadFromSideToMove(Number(move.scoreLead ?? move.scoreMean ?? 0), sideToMove),
     visits: Number(move.visits ?? 0),
     order: Number(move.order ?? index),
     edgeVisits: typeof move.edgeVisits === 'number' ? move.edgeVisits : undefined,
@@ -179,6 +211,27 @@ function candidates(response: KataGoResponse): KataGoCandidate[] {
   }))
 }
 
+function candidateEvidenceVisits(candidate: KataGoCandidate | undefined): number {
+  return Math.max(0, Number(candidate?.visits ?? 0) || 0, Number(candidate?.edgeVisits ?? 0) || 0)
+}
+
+function preferStrongerActualCandidate(
+  candidate: KataGoCandidate | undefined,
+  forcedCandidate: KataGoCandidate | undefined
+): KataGoCandidate | undefined {
+  if (!candidate) {
+    return forcedCandidate
+  }
+  if (!forcedCandidate) {
+    return candidate
+  }
+  return candidateEvidenceVisits(forcedCandidate) > candidateEvidenceVisits(candidate) ? forcedCandidate : candidate
+}
+
+function forcedActualVisits(maxVisits: number, minVisits: number): number {
+  return Math.max(Math.round(maxVisits), minVisits)
+}
+
 function mergePlayedCandidateIntoTopMoves(
   topMoves: KataGoCandidate[],
   currentMove?: GameMove,
@@ -188,14 +241,33 @@ function mergePlayedCandidateIntoTopMoves(
     return topMoves
   }
   const playedKey = moveKey(currentMove.gtp)
-  if (!playedKey || topMoves.some((candidate) => moveKey(candidate.move) === playedKey)) {
+  if (!playedKey) {
     return topMoves
+  }
+  const existingIndex = topMoves.findIndex((candidate) => moveKey(candidate.move) === playedKey)
+  if (existingIndex >= 0) {
+    const currentCandidate = topMoves[existingIndex]
+    const preferred = preferStrongerActualCandidate(currentCandidate, forcedCandidate)
+    if (!preferred || preferred === currentCandidate) {
+      return topMoves
+    }
+    const next = [...topMoves]
+    next[existingIndex] = {
+      ...preferred,
+      order: currentCandidate.order
+    }
+    return next
   }
   return [...topMoves, forcedCandidate]
 }
 
-function displayCandidates(response: KataGoResponse, currentMove?: GameMove, forcedCandidate?: KataGoCandidate): KataGoCandidate[] {
-  return mergePlayedCandidateIntoTopMoves(candidates(response).slice(0, 8), currentMove, forcedCandidate)
+function displayCandidates(
+  response: KataGoResponse,
+  sideToMove: GameMove['color'],
+  currentMove?: GameMove,
+  forcedCandidate?: KataGoCandidate
+): KataGoCandidate[] {
+  return mergePlayedCandidateIntoTopMoves(candidates(response, sideToMove).slice(0, 8), currentMove, forcedCandidate)
 }
 
 function judgement(winrateLoss: number, _scoreLoss: number): KataGoMoveAnalysis['judgement'] {
@@ -241,7 +313,7 @@ function playedMoveValue(
   forcedCandidate?: KataGoCandidate
 ): { winrate: number; scoreLead: number; playerWinrate?: number; playerScoreLead?: number; visits?: number; rank?: number; source: 'candidate' | 'forced' | 'after-root' } {
   const { candidate, rank } = findPlayedCandidate(currentMove, topMoves)
-  const actual = candidate ?? forcedCandidate
+  const actual = preferStrongerActualCandidate(candidate, forcedCandidate)
   const winrate = actual?.winrate ?? afterRoot.winrate
   const scoreLead = actual?.scoreLead ?? afterRoot.scoreLead
   return {
@@ -251,7 +323,7 @@ function playedMoveValue(
     playerScoreLead: currentMove ? playerScoreLead(scoreLead, currentMove.color) : undefined,
     visits: actual?.visits,
     rank,
-    source: candidate ? 'candidate' : forcedCandidate ? 'forced' : 'after-root'
+    source: actual === forcedCandidate ? 'forced' : candidate ? 'candidate' : 'after-root'
   }
 }
 
@@ -264,7 +336,8 @@ function forcePlayedMoveQuery(
   maxVisits: number,
   reportDuringSearchEvery?: number,
   overrideSettings?: AnalysisQuery['overrideSettings'],
-  initialStones?: Array<[GameMove['color'], string]>
+  initialStones?: Array<[GameMove['color'], string]>,
+  initialPlayer?: GameMove['color']
 ): AnalysisQuery | undefined {
   if (!currentMove || currentMove.pass || !moveKey(currentMove.gtp)) {
     return undefined
@@ -274,6 +347,7 @@ function forcePlayedMoveQuery(
     moves: moveHistory(moves),
     boardSize,
     initialStones,
+    initialPlayer,
     komi,
     maxVisits,
     reportDuringSearchEvery,
@@ -291,7 +365,8 @@ function forcedPlayedCandidate(response: KataGoResponse | undefined, currentMove
     return undefined
   }
   const playedKey = moveKey(currentMove.gtp)
-  return candidates(response).find((candidate) => moveKey(candidate.move) === playedKey) ?? candidates(response)[0]
+  const sideCandidates = candidates(response, currentMove.color)
+  return sideCandidates.find((candidate) => moveKey(candidate.move) === playedKey) ?? sideCandidates[0]
 }
 
 function playedLoss(
@@ -453,11 +528,15 @@ async function queryKataGoBatch(
         id: query.id,
         moves: query.moves,
         initialStones: query.initialStones ?? [],
+        initialPlayer: query.initialPlayer,
         rules: 'Chinese',
         komi: query.komi,
         boardXSize: query.boardSize,
         boardYSize: query.boardSize,
         maxVisits: query.maxVisits
+      }
+      if (!query.initialPlayer) {
+        delete payload.initialPlayer
       }
       if (query.reportDuringSearchEvery !== undefined) {
         payload.reportDuringSearchEvery = query.reportDuringSearchEvery
@@ -478,7 +557,9 @@ async function queryKataGoBatch(
         payload.includePVVisits = true
       }
       if (query.overrideSettings) {
-        payload.overrideSettings = query.overrideSettings
+        payload.overrideSettings = { reportAnalysisWinratesAs: 'SIDETOMOVE', ...query.overrideSettings }
+      } else {
+        payload.overrideSettings = { reportAnalysisWinratesAs: 'SIDETOMOVE' }
       }
       if (query.allowMoves) {
         payload.allowMoves = query.allowMoves
@@ -507,7 +588,11 @@ async function queryKataGo(
 export async function analyzePosition(
   gameId: string,
   moveNumber: number,
-  maxVisits = 500
+  maxVisits = 500,
+  options: {
+    runId?: string
+    group?: KataGoAnalysisGroup
+  } = {}
 ): Promise<KataGoMoveAnalysis> {
   const indexedGame = findGame(gameId)
   if (!indexedGame) {
@@ -520,6 +605,7 @@ export async function analyzePosition(
   const afterMoves = record.moves.slice(0, Math.max(0, moveNumber))
   const komi = normalizeKomi(record.komi)
   const rootInitialStones = initialStonesFromRecord(record)
+  const rootInitialPlayer = initialPlayerFromRecord(record)
   const deepEvidence = maxVisits >= 500
 
   const afterVisits = Math.max(24, Math.floor(maxVisits * 0.55))
@@ -532,6 +618,7 @@ export async function analyzePosition(
       moves: moveHistory(beforeMoves),
       boardSize: record.boardSize,
       initialStones: rootInitialStones,
+      initialPlayer: rootInitialPlayer,
       includeOwnership: deepEvidence,
       includeMovesOwnership: deepEvidence,
       includePVVisits: true,
@@ -543,24 +630,49 @@ export async function analyzePosition(
       moves: moveHistory(afterMoves),
       boardSize: record.boardSize,
       initialStones: rootInitialStones,
+      initialPlayer: rootInitialPlayer,
       includeOwnership: deepEvidence,
       includePVVisits: true,
       komi,
       maxVisits: afterVisits
     }
   ]
-  const actualQuery = forcePlayedMoveQuery(actualId, beforeMoves, currentMove, record.boardSize, komi, maxVisits, undefined, undefined, rootInitialStones)
+  const actualQuery = forcePlayedMoveQuery(
+    actualId,
+    beforeMoves,
+    currentMove,
+    record.boardSize,
+    komi,
+    forcedActualVisits(maxVisits, FORCED_ACTUAL_EVIDENCE_MIN_VISITS),
+    undefined,
+    undefined,
+    rootInitialStones,
+    rootInitialPlayer
+  )
   if (actualQuery) {
     actualQuery.includePVVisits = true
     queries.push(actualQuery)
   }
-  const responses = await queryKataGoBatch(queries)
+  const responses = await queryKataGoBatch(queries, undefined, {
+    runId: options.runId,
+    group: options.group ?? 'single'
+  })
   const beforeResponse = responses.get(beforeId)
   const afterResponse = responses.get(afterId)
   if (!beforeResponse || !afterResponse) {
     throw new Error(`KataGo 没有返回完整局面分析: before=${Boolean(beforeResponse)} after=${Boolean(afterResponse)}`)
   }
-  return buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeResponse, afterResponse, responses.get(actualId))
+  return buildMoveAnalysis(
+    gameId,
+    moveNumber,
+    record.boardSize,
+    currentMove,
+    sideToMoveAt(record.moves, moveNumber - 1),
+    sideToMoveAt(record.moves, moveNumber),
+    beforeResponse,
+    afterResponse,
+    responses.get(actualId)
+  )
 }
 
 function buildMoveAnalysis(
@@ -568,16 +680,18 @@ function buildMoveAnalysis(
   moveNumber: number,
   boardSize: number,
   currentMove: GameMove | undefined,
+  beforeSideToMove: GameMove['color'],
+  afterSideToMove: GameMove['color'],
   beforeResponse: KataGoResponse,
   afterResponse: KataGoResponse,
   actualResponse?: KataGoResponse
 ): KataGoMoveAnalysis {
-  const beforeRoot = root(beforeResponse)
-  const afterRoot = root(afterResponse)
-  const searchMoves = candidates(beforeResponse)
+  const beforeRoot = root(beforeResponse, beforeSideToMove)
+  const afterRoot = root(afterResponse, afterSideToMove)
+  const searchMoves = candidates(beforeResponse, beforeSideToMove)
   const forcedActual = forcedPlayedCandidate(actualResponse, currentMove)
-  const topMoves = displayCandidates(beforeResponse, currentMove, forcedActual)
-  const afterTopMoves = candidates(afterResponse).slice(0, 8)
+  const topMoves = displayCandidates(beforeResponse, beforeSideToMove, currentMove, forcedActual)
+  const afterTopMoves = candidates(afterResponse, afterSideToMove).slice(0, 8)
   const best = searchMoves[0] ?? topMoves[0]
   const actual = playedMoveValue(currentMove, searchMoves, afterRoot, forcedActual)
   const { winrateLoss, scoreLoss } = playedLoss(currentMove, best, actual)
@@ -632,11 +746,14 @@ export async function analyzePositionWithProgress(
   const afterMoves = record.moves.slice(0, Math.max(0, moveNumber))
   const komi = normalizeKomi(record.komi)
   const rootInitialStones = initialStonesFromRecord(record)
+  const rootInitialPlayer = initialPlayerFromRecord(record)
   const deepEvidence = maxVisits >= 500
   const afterVisits = Math.max(24, Math.floor(maxVisits * 0.55))
   const beforeId = `${gameId}-before-${moveNumber}-stream`
   const afterId = `${gameId}-after-${moveNumber}-stream`
   const actualId = `${gameId}-actual-${moveNumber}-stream`
+  const beforeSideToMove = sideToMoveAt(record.moves, moveNumber - 1)
+  const afterSideToMove = sideToMoveAt(record.moves, moveNumber)
   let latestBefore: KataGoResponse | undefined
   let latestAfter: KataGoResponse | undefined
   let latestActual: KataGoResponse | undefined
@@ -649,6 +766,7 @@ export async function analyzePositionWithProgress(
         moves: moveHistory(beforeMoves),
         boardSize: record.boardSize,
         initialStones: rootInitialStones,
+        initialPlayer: rootInitialPlayer,
         includeOwnership: deepEvidence,
         includeMovesOwnership: deepEvidence,
         includePVVisits: true,
@@ -661,6 +779,7 @@ export async function analyzePositionWithProgress(
         moves: moveHistory(afterMoves),
         boardSize: record.boardSize,
         initialStones: rootInitialStones,
+        initialPlayer: rootInitialPlayer,
         includeOwnership: deepEvidence,
         includePVVisits: true,
         komi,
@@ -668,7 +787,18 @@ export async function analyzePositionWithProgress(
         reportDuringSearchEvery
       }
     ]
-    const actualQuery = forcePlayedMoveQuery(actualId, beforeMoves, currentMove, record.boardSize, komi, maxVisits, reportDuringSearchEvery, undefined, rootInitialStones)
+    const actualQuery = forcePlayedMoveQuery(
+      actualId,
+      beforeMoves,
+      currentMove,
+      record.boardSize,
+      komi,
+      forcedActualVisits(maxVisits, FORCED_ACTUAL_EVIDENCE_MIN_VISITS),
+      reportDuringSearchEvery,
+      undefined,
+      rootInitialStones,
+      rootInitialPlayer
+    )
     if (actualQuery) {
       actualQuery.includePVVisits = true
       queries.push(actualQuery)
@@ -684,7 +814,7 @@ export async function analyzePositionWithProgress(
         latestActual = response
       }
       if (latestBefore?.rootInfo && latestAfter?.rootInfo && (!actualQuery || latestActual?.rootInfo)) {
-        const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, latestBefore, latestAfter, latestActual)
+        const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, latestBefore, latestAfter, latestActual)
         onProgress?.(partial, !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && !latestActual?.isDuringSearch)
       }
     }, {
@@ -695,14 +825,14 @@ export async function analyzePositionWithProgress(
   } catch (error) {
     if (String(error).includes('已取消')) {
       if (latestBefore?.rootInfo && latestAfter?.rootInfo) {
-        const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, latestBefore, latestAfter, latestActual)
+        const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, latestBefore, latestAfter, latestActual)
         onProgress?.(partial, true)
         return partial
       }
       throw error
     }
     if (String(error).includes('KataGo 分析超时') && latestBefore?.rootInfo && latestAfter?.rootInfo) {
-      const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, latestBefore, latestAfter, latestActual)
+      const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, latestBefore, latestAfter, latestActual)
       onProgress?.(partial, true)
       return partial
     }
@@ -714,7 +844,7 @@ export async function analyzePositionWithProgress(
   if (!beforeResponse || !afterResponse) {
     throw new Error(`KataGo 没有返回完整局面分析: before=${Boolean(beforeResponse)} after=${Boolean(afterResponse)}`)
   }
-  const final = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeResponse, afterResponse, responses.get(actualId))
+  const final = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, beforeResponse, afterResponse, responses.get(actualId))
   onProgress?.(final, true)
   return final
 }
@@ -727,6 +857,7 @@ export async function analyzeGameQuick(
     refineVisits?: number
     refineTopN?: number
     runId?: string
+    group?: KataGoAnalysisGroup
   } = {}
 ): Promise<KataGoMoveAnalysis[]> {
   const indexedGame = findGame(gameId)
@@ -739,6 +870,7 @@ export async function analyzeGameQuick(
   const normalizedKomi = normalizeKomi(record.komi)
   const moves = record.moves
   const rootInitialStones = initialStonesFromRecord(record)
+  const rootInitialPlayer = initialPlayerFromRecord(record)
   const queries: AnalysisQuery[] = []
   const quickVisits = Math.max(QUICK_ANALYSIS_FAST_VISITS, Math.round(maxVisits))
   const quickOverrideSettings = { wideRootNoise: QUICK_ANALYSIS_WIDE_ROOT_NOISE }
@@ -752,6 +884,7 @@ export async function analyzeGameQuick(
       moves: moveHistory(moves.slice(0, moveNumber)),
       boardSize: record.boardSize,
       initialStones: rootInitialStones,
+      initialPlayer: rootInitialPlayer,
       komi: normalizedKomi,
       maxVisits: quickVisits,
       overrideSettings: quickOverrideSettings
@@ -768,7 +901,9 @@ export async function analyzeGameQuick(
       normalizedKomi,
       quickVisits,
       undefined,
-      quickOverrideSettings
+      quickOverrideSettings,
+      rootInitialStones,
+      rootInitialPlayer
     )
     if (actualQuery) {
       queries.push(actualQuery)
@@ -855,6 +990,7 @@ export async function analyzeGameQuick(
   }
 
   const runId = options.runId || `${gameId}-quick-${Date.now()}`
+  const group = options.group ?? 'quick'
   const responses = await queryKataGoBatch(queries, (response) => {
     if (response.id?.startsWith(actualIdPrefix)) {
       const moveNumber = Number.parseInt(response.id.slice(actualIdPrefix.length), 10)
@@ -875,8 +1011,9 @@ export async function analyzeGameQuick(
       return
     }
     try {
-      roots.set(position, root(response))
-      topMovesByPosition.set(position, candidates(response).slice(0, 8))
+      const sideToMove = sideToMoveAt(moves, position)
+      roots.set(position, root(response, sideToMove))
+      topMovesByPosition.set(position, candidates(response, sideToMove).slice(0, 8))
       emitIfReady(position)
       emitIfReady(position + 1)
     } catch {
@@ -884,18 +1021,18 @@ export async function analyzeGameQuick(
     }
   }, {
     runId: `${runId}-root`,
-    group: 'quick',
-    replaceGroup: true
+    group,
+    replaceGroup: group === 'quick'
   })
 
   for (let moveNumber = 0; moveNumber <= moves.length; moveNumber += 1) {
     const response = responses.get(`${gameId}-quick-${moveNumber}`)
     if (response && !topMovesByPosition.has(moveNumber)) {
-      topMovesByPosition.set(moveNumber, candidates(response).slice(0, 8))
+      topMovesByPosition.set(moveNumber, candidates(response, sideToMoveAt(moves, moveNumber)).slice(0, 8))
     }
     if (response && !roots.has(moveNumber)) {
       try {
-        roots.set(moveNumber, root(response))
+        roots.set(moveNumber, root(response, sideToMoveAt(moves, moveNumber)))
       } catch {
         // Keep the quick graph resilient: one invalid branch point should not block the rest.
       }
@@ -952,6 +1089,8 @@ export async function analyzeGameQuick(
       id: `${gameId}-quick-refine-before-${moveNumber}`,
       moves: moveHistory(beforeMoves),
       boardSize: record.boardSize,
+      initialStones: rootInitialStones,
+      initialPlayer: rootInitialPlayer,
       komi: normalizedKomi,
       maxVisits: refineVisits,
       overrideSettings: quickOverrideSettings
@@ -960,6 +1099,8 @@ export async function analyzeGameQuick(
       id: `${gameId}-quick-refine-after-${moveNumber}`,
       moves: moveHistory(afterMoves),
       boardSize: record.boardSize,
+      initialStones: rootInitialStones,
+      initialPlayer: rootInitialPlayer,
       komi: normalizedKomi,
       maxVisits: Math.max(quickVisits, Math.floor(refineVisits * 0.6)),
       overrideSettings: quickOverrideSettings
@@ -970,9 +1111,11 @@ export async function analyzeGameQuick(
       currentMove,
       record.boardSize,
       normalizedKomi,
-      refineVisits,
+      forcedActualVisits(refineVisits, QUICK_FORCED_ACTUAL_REFINE_MIN_VISITS),
       undefined,
-      quickOverrideSettings
+      quickOverrideSettings,
+      rootInitialStones,
+      rootInitialPlayer
     )
     if (actualQuery) {
       refineQueries.push(actualQuery)
@@ -981,7 +1124,7 @@ export async function analyzeGameQuick(
 
   const refinedResponses = await queryKataGoBatch(refineQueries, undefined, {
     runId: `${runId}-refine`,
-    group: 'quick'
+    group
   })
   const byMove = new Map(evaluations.map((item) => [item.moveNumber, item]))
   let refinedCount = 0
@@ -996,6 +1139,8 @@ export async function analyzeGameQuick(
       moveNumber,
       record.boardSize,
       moves[moveNumber - 1],
+      sideToMoveAt(moves, moveNumber - 1),
+      sideToMoveAt(moves, moveNumber),
       beforeResponse,
       afterResponse,
       refinedResponses.get(`${gameId}-quick-refine-actual-${moveNumber}`)

@@ -318,7 +318,7 @@ function ensureAnalysisConfig(settings?: AppSettings): string {
       'logAllRequests = false',
       'logSearchInfo = false',
       'analysisPVLen = 12',
-      'reportAnalysisWinratesAs = BLACK',
+      'reportAnalysisWinratesAs = SIDETOMOVE',
       `numAnalysisThreads = ${analysisThreads}`,
       `numSearchThreadsPerAnalysisThread = ${searchThreadsPerAnalysisThread}`,
       `nnMaxBatchSize = ${maxBatchSize}`,

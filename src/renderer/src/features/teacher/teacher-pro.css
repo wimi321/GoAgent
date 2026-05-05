@@ -902,3 +902,12 @@
 .ks-composer-pro__box .ks-composer-pro__send:hover:not(:disabled) {
   background: linear-gradient(180deg, #00aab6, #008797);
 }
+
+.ks-composer-pro__box .ks-composer-pro__send.is-stopping {
+  background: linear-gradient(180deg, #f06a5f, #cc3f36);
+  box-shadow: 0 10px 22px rgb(204 63 54 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.28);
+}
+
+.ks-composer-pro__box .ks-composer-pro__send.is-stopping:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ff776a, #d9483e);
+}

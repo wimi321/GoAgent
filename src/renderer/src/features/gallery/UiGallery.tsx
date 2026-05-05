@@ -79,7 +79,7 @@ export function UiGallery(): ReactElement {
               candidate={{
                 order: 1,
                 move: 'Q10',
-                winrate: 0.6,
+                winrate: 60,
                 scoreLead: 4.4,
                 visits: 2410,
                 prior: 0.19,

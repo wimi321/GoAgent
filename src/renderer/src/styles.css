@@ -4269,6 +4269,10 @@ label small {
   background: linear-gradient(180deg, #009ca8, #007c8d);
 }
 
+.teacher-agent-editor .ks-composer-pro__box button.is-stopping {
+  background: linear-gradient(180deg, #f06a5f, #cc3f36);
+}
+
 @media (max-width: 1180px) {
   .teacher-persona-popover {
     right: 12px;

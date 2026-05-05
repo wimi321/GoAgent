@@ -13,9 +13,10 @@ interface TeacherComposerProProps {
   }>
   onChange: (value: string) => void
   onSubmit: (event: FormEvent) => void
+  onStop?: () => void
 }
 
-export function TeacherComposerPro({ value, busy = false, actions = [], onChange, onSubmit }: TeacherComposerProProps): ReactElement {
+export function TeacherComposerPro({ value, busy = false, actions = [], onChange, onSubmit, onStop }: TeacherComposerProProps): ReactElement {
   const formRef = useRef<HTMLFormElement | null>(null)
 
   function handleTextareaKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
@@ -60,8 +61,14 @@ export function TeacherComposerPro({ value, busy = false, actions = [], onChange
           onKeyDown={handleTextareaKeyDown}
           placeholder="问这盘棋的问题..."
         />
-        <button type="submit" className="ks-composer-pro__send" disabled={busy || !value.trim()} aria-label="发送">
-          {busy ? '发送中' : '发送'}
+        <button
+          type={busy ? 'button' : 'submit'}
+          className={`ks-composer-pro__send${busy ? ' is-stopping' : ''}`}
+          disabled={!busy && !value.trim()}
+          aria-label={busy ? '停止生成' : '发送'}
+          onClick={busy ? onStop : undefined}
+        >
+          {busy ? '停止' : '发送'}
         </button>
       </div>
     </form>

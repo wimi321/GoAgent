@@ -77,29 +77,29 @@ export const galleryAnalysis: KataGoMoveAnalysis = {
   boardSize: 19,
   currentMove: galleryRecord.moves[23],
   before: {
-    winrate: 0.56,
+    winrate: 56,
     scoreLead: 3.1,
     topMoves: [
-      { move: 'Q10', winrate: 0.61, scoreLead: 4.8, visits: 1824, order: 1, prior: 0.21, pv: ['Q10', 'Q8', 'O10', 'O8', 'R12', 'R11', 'P12', 'Q12', 'R9', 'P9', 'Q7', 'N10'] },
-      { move: 'K16', winrate: 0.57, scoreLead: 3.6, visits: 1096, order: 2, prior: 0.16, pv: ['K16', 'N17', 'J14', 'Q10', 'Q8', 'O10', 'P11', 'N11', 'R9', 'R10'] },
-      { move: 'C10', winrate: 0.53, scoreLead: 1.5, visits: 684, order: 3, prior: 0.11, pv: ['C10', 'D8', 'Q10', 'Q8', 'O10', 'O8', 'F10', 'G10'] },
-      { move: 'R9', winrate: 0.49, scoreLead: -0.5, visits: 276, order: 4, prior: 0.08, pv: ['R9', 'Q8', 'Q10', 'O10', 'R12', 'P12'] },
-      { move: 'H3', winrate: 0.47, scoreLead: -1.1, visits: 164, order: 5, prior: 0.05, pv: ['H3', 'J3', 'C10', 'D8', 'Q10', 'Q8'] }
+      { move: 'Q10', winrate: 61, scoreLead: 4.8, visits: 1824, order: 1, prior: 0.21, pv: ['Q10', 'Q8', 'O10', 'O8', 'R12', 'R11', 'P12', 'Q12', 'R9', 'P9', 'Q7', 'N10'] },
+      { move: 'K16', winrate: 57, scoreLead: 3.6, visits: 1096, order: 2, prior: 0.16, pv: ['K16', 'N17', 'J14', 'Q10', 'Q8', 'O10', 'P11', 'N11', 'R9', 'R10'] },
+      { move: 'C10', winrate: 53, scoreLead: 1.5, visits: 684, order: 3, prior: 0.11, pv: ['C10', 'D8', 'Q10', 'Q8', 'O10', 'O8', 'F10', 'G10'] },
+      { move: 'R9', winrate: 49, scoreLead: -0.5, visits: 276, order: 4, prior: 0.08, pv: ['R9', 'Q8', 'Q10', 'O10', 'R12', 'P12'] },
+      { move: 'H3', winrate: 47, scoreLead: -1.1, visits: 164, order: 5, prior: 0.05, pv: ['H3', 'J3', 'C10', 'D8', 'Q10', 'Q8'] }
     ]
   },
   after: {
-    winrate: 0.43,
+    winrate: 43,
     scoreLead: -1.8,
     topMoves: [
-      { move: 'Q10', winrate: 0.60, scoreLead: 4.4, visits: 2410, order: 1, prior: 0.19, pv: ['Q10', 'Q8', 'O10'] },
-      { move: 'K16', winrate: 0.55, scoreLead: 2.7, visits: 1488, order: 2, prior: 0.14, pv: ['K16', 'N17'] },
-      { move: 'R9', winrate: 0.51, scoreLead: 0.2, visits: 744, order: 3, prior: 0.1, pv: ['R9', 'Q8'] },
-      { move: 'C10', winrate: 0.48, scoreLead: -0.7, visits: 386, order: 4, prior: 0.07, pv: ['C10', 'D8'] }
+      { move: 'Q10', winrate: 60, scoreLead: 4.4, visits: 2410, order: 1, prior: 0.19, pv: ['Q10', 'Q8', 'O10'] },
+      { move: 'K16', winrate: 55, scoreLead: 2.7, visits: 1488, order: 2, prior: 0.14, pv: ['K16', 'N17'] },
+      { move: 'R9', winrate: 51, scoreLead: 0.2, visits: 744, order: 3, prior: 0.1, pv: ['R9', 'Q8'] },
+      { move: 'C10', winrate: 48, scoreLead: -0.7, visits: 386, order: 4, prior: 0.07, pv: ['C10', 'D8'] }
     ]
   },
   playedMove: {
     move: 'J17',
-    winrate: 0.43,
+    winrate: 43,
     scoreLead: -1.8,
     winrateLoss: 13,
     scoreLoss: 4.9
@@ -109,32 +109,32 @@ export const galleryAnalysis: KataGoMoveAnalysis = {
 
 export const galleryEvaluations: KataGoMoveAnalysis[] = Array.from({ length: 72 }, (_, index) => {
   const moveNumber = index + 1
-  const drift = Math.sin(moveNumber / 6) * 0.09 + Math.cos(moveNumber / 13) * 0.05
-  const mistake = moveNumber === 24 ? -0.13 : moveNumber === 45 ? 0.11 : moveNumber === 61 ? -0.18 : 0
-  const winrate = Math.max(0.08, Math.min(0.92, 0.52 + drift + mistake))
-  const loss = moveNumber === 24 ? 0.13 : moveNumber === 45 ? 0.09 : moveNumber === 61 ? 0.18 : Math.max(0, Math.sin(moveNumber) * 0.018)
+  const drift = Math.sin(moveNumber / 6) * 9 + Math.cos(moveNumber / 13) * 5
+  const mistake = moveNumber === 24 ? -13 : moveNumber === 45 ? 11 : moveNumber === 61 ? -18 : 0
+  const winrate = Math.max(8, Math.min(92, 52 + drift + mistake))
+  const loss = moveNumber === 24 ? 13 : moveNumber === 45 ? 9 : moveNumber === 61 ? 18 : Math.max(0, Math.sin(moveNumber) * 1.8)
   return {
     ...galleryAnalysis,
     moveNumber,
     currentMove: galleryRecord.moves[(moveNumber - 1) % galleryRecord.moves.length],
     before: {
       ...galleryAnalysis.before,
-      winrate: Math.max(0.08, Math.min(0.92, winrate + loss)),
-      scoreLead: (winrate - 0.5) * 18
+      winrate: Math.max(8, Math.min(92, winrate + loss)),
+      scoreLead: ((winrate - 50) / 100) * 18
     },
     after: {
       ...galleryAnalysis.after,
       winrate,
-      scoreLead: (winrate - 0.5) * 18
+      scoreLead: ((winrate - 50) / 100) * 18
     },
     playedMove: {
       move: galleryRecord.moves[(moveNumber - 1) % galleryRecord.moves.length]?.gtp ?? 'D4',
       winrate,
-      scoreLead: (winrate - 0.5) * 18,
-      winrateLoss: loss * 100,
-      scoreLoss: loss * 22
+      scoreLead: ((winrate - 50) / 100) * 18,
+      winrateLoss: loss,
+      scoreLoss: (loss / 100) * 22
     },
-    judgement: loss >= 0.16 ? 'blunder' : loss >= 0.08 ? 'mistake' : loss >= 0.04 ? 'inaccuracy' : 'good_move'
+    judgement: loss >= 16 ? 'blunder' : loss >= 8 ? 'mistake' : loss >= 4 ? 'inaccuracy' : 'good_move'
   }
 })
 

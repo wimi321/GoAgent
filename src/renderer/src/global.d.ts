@@ -31,6 +31,8 @@ import type {
   ReleaseReadinessResult,
   TeacherChatMessage,
   TeacherSession,
+  TeacherRunCancelRequest,
+  TeacherRunCancelResult,
   TeacherRunRequest,
   TeacherRunProgress,
   TeacherRunResult
@@ -87,6 +89,7 @@ declare global {
       archiveTeacherSession: (sessionId: string) => Promise<TeacherSession | null>
       deleteTeacherSession: (sessionId: string) => Promise<boolean>
       runTeacherTask: (payload: TeacherRunRequest) => Promise<TeacherRunResult>
+      cancelTeacherRun: (payload?: TeacherRunCancelRequest) => Promise<TeacherRunCancelResult>
       onTeacherRunProgress: (handler: (payload: TeacherRunProgress) => void) => () => void
       testLlmSettings: (payload: LlmSettingsTestRequest) => Promise<LlmSettingsTestResult>
       listLlmModels: (payload: LlmModelsListRequest) => Promise<LlmModelsListResult>

@@ -68,15 +68,12 @@ export function normalizeWinrate(value: unknown): number | null {
   if (typeof value !== 'number' || Number.isNaN(value)) {
     return null
   }
-  if (value <= 1.00001) {
-    return Math.max(0, Math.min(1, value))
-  }
-  return Math.max(0, Math.min(1, value / 100))
+  return Math.max(0, Math.min(100, value)) / 100
 }
 
 export function formatWinrate(value: unknown): string | undefined {
-  const normalized = normalizeWinrate(value)
-  return normalized === null ? undefined : `${Math.round(normalized * 100)}%`
+  const percent = winratePercent(value)
+  return percent === undefined ? undefined : `${Math.round(percent)}%`
 }
 
 export function formatScore(value: unknown): string | undefined {
@@ -92,8 +89,10 @@ function numericValue(value: unknown): number | undefined {
 }
 
 function winratePercent(value: unknown): number | undefined {
-  const normalized = normalizeWinrate(value)
-  return normalized === null ? undefined : normalized * 100
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined
+  }
+  return Math.max(0, Math.min(100, value))
 }
 
 function playerWinrateValue(value: unknown, color: StoneColor): number | undefined {
@@ -201,16 +200,132 @@ export function getCandidateVisits(candidate: unknown): unknown {
   return valueOf(candidate, 'visits') ?? valueOf(candidate, 'visitCount')
 }
 
+type RenderBoard = Map<string, RenderStone>
+
+function pointKey(point: BoardPoint): string {
+  return `${point.x},${point.y}`
+}
+
+function renderPointFromMove(move: GameMove, boardSize: number): BoardPoint | null {
+  if (move.pass) {
+    return null
+  }
+  if (typeof move.row === 'number' && typeof move.col === 'number') {
+    return clampBoardPoint({ x: move.col, y: move.row }, boardSize)
+  }
+  return moveToPoint(move, boardSize)
+}
+
+function renderPointFromSetupStone(stone: unknown, boardSize: number): BoardPoint | null {
+  const row = valueOf(stone, 'row')
+  const col = valueOf(stone, 'col')
+  if (typeof row === 'number' && typeof col === 'number') {
+    return clampBoardPoint({ x: col, y: row }, boardSize)
+  }
+  return parseBoardPoint(stone, boardSize)
+}
+
+function boardNeighbors(point: BoardPoint, boardSize: number): BoardPoint[] {
+  return [
+    { x: point.x, y: point.y - 1 },
+    { x: point.x, y: point.y + 1 },
+    { x: point.x - 1, y: point.y },
+    { x: point.x + 1, y: point.y }
+  ].flatMap((next) => {
+    const clamped = clampBoardPoint(next, boardSize)
+    return clamped ? [clamped] : []
+  })
+}
+
+function collectRenderGroup(board: RenderBoard, start: BoardPoint, boardSize: number): RenderStone[] {
+  const startStone = board.get(pointKey(start))
+  if (!startStone) {
+    return []
+  }
+  const seen = new Set<string>()
+  const group: RenderStone[] = []
+  const stack = [start]
+  while (stack.length > 0) {
+    const point = stack.pop()!
+    const key = pointKey(point)
+    if (seen.has(key)) {
+      continue
+    }
+    const stone = board.get(key)
+    if (!stone || stone.color !== startStone.color) {
+      continue
+    }
+    seen.add(key)
+    group.push(stone)
+    for (const next of boardNeighbors(point, boardSize)) {
+      const nextStone = board.get(pointKey(next))
+      if (nextStone?.color === startStone.color) {
+        stack.push(next)
+      }
+    }
+  }
+  return group
+}
+
+function groupLiberties(board: RenderBoard, group: RenderStone[], boardSize: number): number {
+  const liberties = new Set<string>()
+  for (const stone of group) {
+    for (const next of boardNeighbors(stone, boardSize)) {
+      const key = pointKey(next)
+      if (!board.has(key)) {
+        liberties.add(key)
+      }
+    }
+  }
+  return liberties.size
+}
+
+function removeRenderGroup(board: RenderBoard, group: RenderStone[]): void {
+  for (const stone of group) {
+    board.delete(pointKey(stone))
+  }
+}
+
+function playRenderMove(board: RenderBoard, move: GameMove, moveIndex: number, boardSize: number): void {
+  const point = renderPointFromMove(move, boardSize)
+  if (!point) {
+    return
+  }
+  const color = moveToColor(move)
+  const opponent = oppositeColor(color)
+  const key = pointKey(point)
+  board.set(key, { ...point, moveNumber: move.moveNumber || moveIndex + 1, color, raw: move })
+
+  for (const next of boardNeighbors(point, boardSize)) {
+    const neighbor = board.get(pointKey(next))
+    if (neighbor?.color !== opponent) {
+      continue
+    }
+    const group = collectRenderGroup(board, next, boardSize)
+    if (group.length > 0 && groupLiberties(board, group, boardSize) === 0) {
+      removeRenderGroup(board, group)
+    }
+  }
+
+  const ownGroup = collectRenderGroup(board, point, boardSize)
+  if (ownGroup.length > 0 && groupLiberties(board, ownGroup, boardSize) === 0) {
+    removeRenderGroup(board, ownGroup)
+  }
+}
+
 export function renderStones(record: GameRecord, moveNumber: number): RenderStone[] {
   const boardSize = getBoardSize(record)
   const moves = Array.isArray(record.moves) ? record.moves : []
-  return moves.slice(0, Math.max(0, moveNumber)).flatMap((move, index) => {
-    const point = moveToPoint(move, boardSize)
-    if (!point) {
-      return []
+  const board: RenderBoard = new Map()
+  for (const setupStone of record.initialStones ?? []) {
+    const point = renderPointFromSetupStone(setupStone, boardSize)
+    const color = valueOf(setupStone, 'color') === 'W' ? 'W' : 'B'
+    if (point) {
+      board.set(pointKey(point), { ...point, moveNumber: 0, color, raw: setupStone })
     }
-    return [{ ...point, moveNumber: index + 1, color: moveToColor(move), raw: move } satisfies RenderStone]
-  })
+  }
+  moves.slice(0, Math.max(0, moveNumber)).forEach((move, index) => playRenderMove(board, move, index, boardSize))
+  return [...board.values()].sort((left, right) => left.y - right.y || left.x - right.x)
 }
 
 export function renderCandidates(analysis: KataGoMoveAnalysis | null | undefined, boardSize = 19): RenderCandidate[] {

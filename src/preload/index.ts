@@ -32,6 +32,8 @@ import type {
   ReleaseReadinessResult,
   TeacherChatMessage,
   TeacherSession,
+  TeacherRunCancelRequest,
+  TeacherRunCancelResult,
   TeacherRunRequest,
   TeacherRunProgress,
   TeacherRunResult
@@ -98,6 +100,7 @@ const api = {
   archiveTeacherSession: (sessionId: string): Promise<TeacherSession | null> => ipcRenderer.invoke('teacher-sessions:archive', sessionId),
   deleteTeacherSession: (sessionId: string): Promise<boolean> => ipcRenderer.invoke('teacher-sessions:delete', sessionId),
   runTeacherTask: (payload: TeacherRunRequest): Promise<TeacherRunResult> => ipcRenderer.invoke('teacher:run', payload),
+  cancelTeacherRun: (payload?: TeacherRunCancelRequest): Promise<TeacherRunCancelResult> => ipcRenderer.invoke('teacher:cancel-run', payload ?? {}),
   onTeacherRunProgress: (handler: (payload: TeacherRunProgress) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: TeacherRunProgress): void => handler(payload)
     ipcRenderer.on('teacher:run-progress', listener)
