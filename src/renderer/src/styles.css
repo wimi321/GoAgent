@@ -2104,6 +2104,59 @@ label,
   margin: 0;
 }
 
+.codex-working div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.codex-working small {
+  color: color-mix(in srgb, var(--ks-text-muted) 76%, var(--ks-gold));
+  font-size: 11.5px;
+  font-weight: 780;
+  line-height: 1.5;
+}
+
+.codex-working--active {
+  position: relative;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid rgb(214 182 110 / 0.24);
+  border-radius: 11px;
+  background:
+    linear-gradient(90deg, rgb(214 182 110 / 0.11), rgb(95 212 207 / 0.08), rgb(214 182 110 / 0.08)),
+    rgb(255 252 245 / 0.045);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 0 0 0 rgb(214 182 110 / 0);
+  animation: teacher-working-surface-breathe 1.7s ease-in-out infinite;
+}
+
+.codex-working--active::before {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.20), transparent);
+  animation: teacher-working-sheen 1.85s ease-in-out infinite;
+  content: '';
+  pointer-events: none;
+}
+
+.codex-working--active > * {
+  position: relative;
+  z-index: 1;
+}
+
+.codex-working--active p {
+  color: var(--ks-text-main);
+  font-weight: 850;
+}
+
+.codex-working--active p,
+.codex-working--active small {
+  animation: teacher-working-text-breathe 1.35s ease-in-out infinite;
+}
+
 .streaming-cursor {
   display: inline-block;
   width: 7px;
@@ -2132,6 +2185,41 @@ label,
   50% {
     box-shadow: 0 0 0 7px rgb(214 182 110 / 0);
     opacity: 1;
+  }
+}
+
+@keyframes teacher-working-surface-breathe {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 0 0 rgb(214 182 110 / 0);
+    filter: brightness(1) saturate(108%);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 0 24px rgb(214 182 110 / 0.22);
+    filter: brightness(1.08) saturate(145%);
+  }
+}
+
+@keyframes teacher-working-text-breathe {
+  0%, 100% {
+    opacity: 0.58;
+    text-shadow: 0 0 0 rgb(214 182 110 / 0);
+  }
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 14px rgb(214 182 110 / 0.34);
+  }
+}
+
+@keyframes teacher-working-sheen {
+  0% {
+    transform: translateX(-100%);
+  }
+  52%, 100% {
+    transform: translateX(100%);
   }
 }
 
@@ -2221,8 +2309,9 @@ label,
 }
 
 .codex-tool-trace__row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
   gap: 9px;
   margin: 0;
   padding: 9px 10px;
@@ -2238,6 +2327,7 @@ label,
   background:
     linear-gradient(90deg, rgb(185 150 81 / 0.13), transparent 64%),
     rgb(255 252 245 / 0.04);
+  animation: teacher-tool-row-breathe 2.1s ease-in-out infinite;
 }
 
 .codex-tool-trace__row strong {
@@ -2246,26 +2336,53 @@ label,
   font-weight: 850;
 }
 
-.codex-tool-trace__row span {
+.codex-tool-trace__copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.codex-tool-trace__copy small {
+  overflow: hidden;
+  color: var(--ks-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.3px;
+  font-weight: 700;
+}
+
+.codex-tool-trace__row em {
+  align-self: start;
+  padding: 2px 7px;
+  border: 1px solid rgb(198 212 225 / 0.18);
+  border-radius: 999px;
+  color: var(--ks-text-muted);
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 850;
+}
+
+.codex-tool-trace__dot {
   flex: 0 0 auto;
   width: 7px;
   height: 7px;
+  margin-top: 6px;
   border-radius: 999px;
   background: rgb(79 155 145 / 0.92);
   box-shadow: 0 0 0 3px rgb(79 155 145 / 0.12);
 }
 
-.codex-tool-trace__row--error span {
+.codex-tool-trace__row--error .codex-tool-trace__dot {
   background: var(--ks-red);
   box-shadow: 0 0 0 3px rgb(210 91 82 / 0.12);
 }
 
-.codex-tool-trace__row--skipped span {
+.codex-tool-trace__row--skipped .codex-tool-trace__dot {
   background: var(--ks-text-faint);
   box-shadow: 0 0 0 3px rgb(107 114 122 / 0.1);
 }
 
-.codex-tool-trace__row--running span {
+.codex-tool-trace__row--running .codex-tool-trace__dot {
   background: var(--ks-gold);
   box-shadow: 0 0 0 0 rgb(185 150 81 / 0.34);
   animation: codex-tool-dot-pulse 1.35s ease-in-out infinite;
@@ -2277,7 +2394,9 @@ label,
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: codex-tool-title-shimmer 1.8s ease-in-out infinite;
+  animation:
+    codex-tool-title-shimmer 1.8s ease-in-out infinite,
+    teacher-working-text-breathe 1.95s ease-in-out infinite;
 }
 
 @keyframes codex-tool-dot-pulse {
@@ -2297,6 +2416,19 @@ label,
   }
   100% {
     background-position: 220% 50%;
+  }
+}
+
+@keyframes teacher-tool-row-breathe {
+  0%, 100% {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      0 0 0 rgb(185 150 81 / 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 0 18px rgb(185 150 81 / 0.11);
   }
 }
 
@@ -3293,6 +3425,15 @@ label small {
   z-index: 1;
 }
 
+.teacher-panel.teacher-agent-editor > .teacher-editor-head {
+  z-index: 90;
+  overflow: visible;
+}
+
+.teacher-panel.teacher-agent-editor > .message-list.agent-thread {
+  z-index: 1;
+}
+
 .teacher-contract-copy {
   position: absolute;
   overflow: hidden;
@@ -3304,6 +3445,8 @@ label small {
 
 .teacher-editor-head {
   display: flex;
+  position: relative;
+  z-index: 60;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
@@ -3334,6 +3477,8 @@ label small {
 
 .teacher-editor-actions {
   display: grid;
+  position: relative;
+  z-index: 70;
   flex: 0 0 auto;
   grid-template-columns: repeat(3, 38px);
   align-items: center;
@@ -3352,6 +3497,13 @@ label small {
   background: transparent;
   color: #233653;
   cursor: pointer;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.teacher-editor-actions button:hover,
+.teacher-editor-actions button:focus-visible {
+  z-index: 5;
 }
 
 .teacher-editor-actions button span {
@@ -3382,9 +3534,9 @@ label small {
 .teacher-editor-actions button:hover::after,
 .teacher-editor-actions button:focus-visible::after {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 10px);
   left: 50%;
-  z-index: 40;
+  z-index: 1000;
   padding: 5px 8px;
   border: 1px solid rgb(160 180 198 / 0.42);
   border-radius: 7px;
@@ -3850,34 +4002,54 @@ label small {
   box-shadow: 0 10px 22px rgb(0 128 140 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.18);
 }
 
+.teacher-popover-error {
+  margin: 0 20px 12px;
+  padding: 10px 12px;
+  border: 1px solid rgb(217 99 105 / 0.32);
+  border-radius: 8px;
+  background: rgb(255 245 246 / 0.72);
+  color: #9d2731;
+  font-size: 12px;
+  font-weight: 780;
+}
+
 .teacher-history-drawer {
-  top: 0;
+  top: 58px;
   right: 0;
   bottom: 0;
   display: grid;
   width: 100%;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
-  border-top: 0;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  border-top: 1px solid rgb(203 216 229 / 0.56);
   border-right: 0;
   border-bottom: 0;
   border-radius: 0;
 }
 
 .teacher-history-search {
-  display: flex;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  height: 42px;
-  margin: 0 20px 14px;
-  padding: 0 12px;
-  border: 1px solid rgb(198 212 225 / 0.82);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 0.58);
+  gap: 8px;
+  min-height: 42px;
+  margin: 0 20px 12px;
+  padding: 0 8px 0 12px;
+  border: 1px solid rgb(183 202 220 / 0.78);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.78), rgb(246 251 254 / 0.62)),
+    rgb(255 255 255 / 0.54);
   color: #5b718c;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.78),
+    0 8px 18px rgb(38 72 105 / 0.06);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
 }
 
 .teacher-history-search span {
-  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
   line-height: 1;
 }
 
@@ -3888,31 +4060,34 @@ label small {
   outline: 0;
   background: transparent;
   color: #13223a;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 740;
 }
 
-.teacher-history-tabs {
+.teacher-history-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.teacher-history-search input::placeholder {
+  color: #7d8fa4;
+}
+
+.teacher-history-search button {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0 20px 12px;
-}
-
-.teacher-history-tabs button {
-  min-height: 36px;
-  border: 1px solid transparent;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
   border-radius: 8px;
-  background: transparent;
+  background: rgb(228 239 246 / 0.66);
   color: #314a68;
-  font-size: 13px;
-  font-weight: 820;
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
 }
 
-.teacher-history-tabs button.is-active {
-  border-color: rgb(198 212 225 / 0.82);
-  background: rgb(255 255 255 / 0.62);
-  color: #007f8c;
+.teacher-history-search button:hover {
+  background: rgb(211 230 240 / 0.82);
 }
 
 .teacher-history-scroll {
@@ -3932,7 +4107,7 @@ label small {
   gap: 8px;
 }
 
-.teacher-history-list button {
+.teacher-history-item {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -3948,9 +4123,49 @@ label small {
   cursor: pointer;
 }
 
-.teacher-history-list button.is-active {
+.teacher-history-item.is-active {
   border-color: #9fd5d8;
   background: linear-gradient(180deg, rgb(237 250 250 / 0.74), rgb(237 247 251 / 0.66));
+}
+
+.teacher-history-item__restore {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.teacher-history-item__delete {
+  align-self: start;
+  min-width: 42px;
+  height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgb(199 213 225 / 0.82);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.5);
+  color: #60738a;
+  font-size: 12px;
+  font-weight: 820;
+  cursor: pointer;
+}
+
+.teacher-history-item__delete:hover,
+.teacher-history-item__delete:focus-visible {
+  border-color: rgb(217 99 105 / 0.45);
+  background: rgb(255 245 246 / 0.72);
+  color: #a32a35;
+}
+
+.teacher-history-item__delete:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .teacher-history-item__main {

@@ -85,6 +85,7 @@ declare global {
       createTeacherSession: (payload?: Partial<TeacherSession>) => Promise<TeacherSession>
       updateTeacherSessionMessages: (payload: { sessionId: string; messages: TeacherChatMessage[] }) => Promise<TeacherSession>
       archiveTeacherSession: (sessionId: string) => Promise<TeacherSession | null>
+      deleteTeacherSession: (sessionId: string) => Promise<boolean>
       runTeacherTask: (payload: TeacherRunRequest) => Promise<TeacherRunResult>
       onTeacherRunProgress: (handler: (payload: TeacherRunProgress) => void) => () => void
       testLlmSettings: (payload: LlmSettingsTestRequest) => Promise<LlmSettingsTestResult>

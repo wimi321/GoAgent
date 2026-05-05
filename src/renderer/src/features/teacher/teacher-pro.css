@@ -81,9 +81,29 @@
   line-height: 1.58;
 }
 
+.ks-teacher-pro-summary small {
+  color: color-mix(in srgb, var(--ks-text-muted, #9aa3ad) 78%, var(--ks-gold, #d8b567));
+  font-size: 11.5px;
+  font-weight: 780;
+  line-height: 1.45;
+}
+
 .ks-teacher-pro-summary--loading {
   position: relative;
   overflow: hidden;
+  border-color: rgb(216 181 103 / 0.32);
+  background:
+    linear-gradient(90deg, rgb(216 181 103 / 0.14), rgb(99 209 140 / 0.08), rgb(216 181 103 / 0.10)),
+    rgba(255, 255, 255, 0.025);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 0 22px rgb(216 181 103 / 0.14);
+  animation: teacher-working-surface-breathe 1.7s ease-in-out infinite;
+}
+
+.ks-teacher-pro-summary--loading p,
+.ks-teacher-pro-summary--loading small {
+  animation: teacher-working-text-breathe 1.35s ease-in-out infinite;
 }
 
 .ks-teacher-pro-summary--loading::after {
@@ -342,7 +362,7 @@
 
 .ks-tool-log-pro__row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 9px;
   padding: 8px 9px;
   border-left: 3px solid var(--ks-green, #63d18c);
@@ -358,6 +378,7 @@
 .ks-tool-log-pro__row--running {
   border-left-color: var(--ks-gold, #d8b567);
   background: linear-gradient(90deg, rgb(216 181 103 / 0.13), rgb(0 0 0 / 0.12));
+  animation: teacher-tool-row-breathe 2.1s ease-in-out infinite;
 }
 
 .ks-tool-log-pro__row strong {
@@ -365,10 +386,37 @@
   font-size: 12px;
 }
 
+.ks-tool-log-pro__row div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.ks-tool-log-pro__row small {
+  overflow: hidden;
+  color: var(--ks-text-muted, #a9b2bb);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ks-tool-log-pro__row em {
+  margin-left: auto;
+  padding: 2px 7px;
+  border: 1px solid rgb(255 255 255 / 0.10);
+  border-radius: 999px;
+  color: var(--ks-text-muted, #a9b2bb);
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 850;
+}
+
 .ks-tool-log-pro__row span {
   flex: 0 0 auto;
   width: 7px;
   height: 7px;
+  margin-top: 6px;
   border-radius: 999px;
   background: var(--ks-green, #63d18c);
   box-shadow: 0 0 0 3px rgb(99 209 140 / 0.12);
@@ -385,7 +433,9 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: codex-tool-title-shimmer 1.8s ease-in-out infinite;
+  animation:
+    codex-tool-title-shimmer 1.8s ease-in-out infinite,
+    teacher-working-text-breathe 1.95s ease-in-out infinite;
 }
 
 .ks-composer-pro {

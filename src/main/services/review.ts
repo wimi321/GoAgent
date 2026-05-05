@@ -25,7 +25,7 @@ export async function runReview(request: ReviewRequest): Promise<ReviewResult> {
   if (!runtime.ready) {
     throw new Error(`${runtime.status}: ${runtime.notes.join('；')}`)
   }
-  const pythonBin = await ensurePythonRuntime(process.cwd())
+  const pythonBin = await ensurePythonRuntime(process.cwd(), settings.pythonBin)
   const reviewRoot = join(reviewsDir, game.id)
   mkdirSync(reviewRoot, { recursive: true })
 
@@ -58,7 +58,7 @@ export async function runReview(request: ReviewRequest): Promise<ReviewResult> {
   }
 
   const output = await new Promise<PythonReviewOutput>((resolve, reject) => {
-    const child = spawn(pythonBin || settings.pythonBin || 'python3', args, {
+    const child = spawn(pythonBin, args, {
       cwd: process.cwd(),
       env: { ...process.env }
     })

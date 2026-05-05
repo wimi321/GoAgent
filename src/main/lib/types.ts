@@ -249,7 +249,7 @@ export interface ReviewRequest {
 }
 
 export type CoachUserLevel = 'beginner' | 'intermediate' | 'advanced' | 'dan'
-export type StudentRank = '10k' | '1k' | '1d' | '3d' | '5d'
+export type StudentRank = 'sub1d' | '1d' | '2d' | '3d' | '4d' | '5d' | '6d' | '7d' | '8d' | '9d'
 export type StudentAgeRange = 'unknown' | 'child' | 'teen' | 'adult' | 'senior'
 export type TeacherPersonaStyle = 'balanced' | 'rigorous' | 'gentle' | 'strict' | 'humorous'
 export type TeacherTerminologyDensity = 'low' | 'medium' | 'high'

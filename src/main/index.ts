@@ -25,7 +25,7 @@ import {
   resolveStudentByName,
   upsertStudentAlias
 } from './services/studentProfile'
-import { archiveTeacherSession, createTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
+import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 
 let mainWindow: BrowserWindow | null = null
 type DesktopCommand =
@@ -334,6 +334,7 @@ app.whenReady().then(() => {
   ipcMain.handle('teacher-sessions:create', async (_event, payload) => createTeacherSession(payload ?? {}))
   ipcMain.handle('teacher-sessions:update-messages', async (_event, payload: { sessionId: string; messages: TeacherChatMessage[] }) => updateTeacherSessionMessages(payload.sessionId, payload.messages))
   ipcMain.handle('teacher-sessions:archive', async (_event, sessionId: string) => archiveTeacherSession(sessionId))
+  ipcMain.handle('teacher-sessions:delete', async (_event, sessionId: string) => deleteTeacherSession(sessionId))
   ipcMain.handle('review:start', async (_event, payload: ReviewRequest) => runReview(payload))
   ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) =>
     analyzePosition(payload.gameId, payload.moveNumber, payload.maxVisits ?? 500)

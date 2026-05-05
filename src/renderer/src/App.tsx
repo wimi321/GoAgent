@@ -65,14 +65,14 @@ const emptyDashboard: DashboardData = {
     katagoBenchmarkThreads: 0,
     katagoBenchmarkVisitsPerSecond: 0,
     katagoBenchmarkUpdatedAt: '',
-    pythonBin: 'python3',
+    pythonBin: 'python',
     llmBaseUrl: 'https://api.openai.com/v1',
     llmApiKey: '',
     llmModel: 'gpt-5-mini',
     reviewLanguage: 'zh-CN',
     defaultPlayerName: '',
     defaultCoachLevel: 'intermediate',
-    defaultStudentRank: '1k',
+    defaultStudentRank: 'sub1d',
     defaultStudentAge: 0,
     defaultStudentAgeRange: 'unknown',
     teacherStyle: 'balanced',
@@ -120,6 +120,11 @@ type ChatMessage = {
 }
 
 type TeacherTraceLog = NonNullable<TeacherRunResult['toolLogs']>[number]
+type TeacherTraceDisplay = {
+  title: string
+  detail: string
+  status: string
+}
 type EvaluationByMove = Record<number, KataGoMoveAnalysis>
 type StatusTone = 'good' | 'warn' | 'neutral'
 type TimelineIssueColor = 'B' | 'W'
@@ -130,11 +135,16 @@ type BoardPngAssets = {
 }
 
 const PERSONA_RANK_OPTIONS: Array<{ value: StudentRank; label: string; coachLevel: CoachUserLevel }> = [
-  { value: '10k', label: '10级', coachLevel: 'beginner' },
-  { value: '1k', label: '1级', coachLevel: 'intermediate' },
-  { value: '1d', label: '初段', coachLevel: 'advanced' },
+  { value: 'sub1d', label: '1段以下', coachLevel: 'beginner' },
+  { value: '1d', label: '1段', coachLevel: 'advanced' },
+  { value: '2d', label: '2段', coachLevel: 'advanced' },
   { value: '3d', label: '3段', coachLevel: 'dan' },
-  { value: '5d', label: '5段', coachLevel: 'dan' }
+  { value: '4d', label: '4段', coachLevel: 'dan' },
+  { value: '5d', label: '5段', coachLevel: 'dan' },
+  { value: '6d', label: '6段', coachLevel: 'dan' },
+  { value: '7d', label: '7段', coachLevel: 'dan' },
+  { value: '8d', label: '8段', coachLevel: 'dan' },
+  { value: '9d', label: '9段', coachLevel: 'dan' }
 ]
 
 const PERSONA_STYLE_OPTIONS: Array<{ value: TeacherPersonaStyle; label: string }> = [
@@ -181,7 +191,6 @@ type TeacherPersonaUiSettings = Pick<
   | 'teacherExplanationPace'
   | 'teacherVariationDetail'
 >
-type TeacherHistoryFilter = 'all' | 'today' | 'archived'
 
 interface StatusPill {
   label: string
@@ -191,7 +200,7 @@ interface StatusPill {
 function readPersonaUiSettings(settings: AppSettings): TeacherPersonaUiSettings {
   return {
     defaultCoachLevel: settings.defaultCoachLevel ?? 'intermediate',
-    defaultStudentRank: settings.defaultStudentRank ?? '1k',
+    defaultStudentRank: normalizeUiStudentRank(settings.defaultStudentRank),
     defaultStudentAge: typeof settings.defaultStudentAge === 'number' ? settings.defaultStudentAge : 0,
     defaultStudentAgeRange: settings.defaultStudentAgeRange ?? 'unknown',
     teacherStyle: settings.teacherStyle ?? 'balanced',
@@ -204,7 +213,7 @@ function readPersonaUiSettings(settings: AppSettings): TeacherPersonaUiSettings 
 function defaultPersonaUiSettings(): TeacherPersonaUiSettings {
   return {
     defaultCoachLevel: 'intermediate',
-    defaultStudentRank: '1k',
+    defaultStudentRank: 'sub1d',
     defaultStudentAge: 0,
     defaultStudentAgeRange: 'unknown',
     teacherStyle: 'balanced',
@@ -216,6 +225,13 @@ function defaultPersonaUiSettings(): TeacherPersonaUiSettings {
 
 function coachLevelFromRank(rank: StudentRank): CoachUserLevel {
   return PERSONA_RANK_OPTIONS.find((option) => option.value === rank)?.coachLevel ?? 'intermediate'
+}
+
+function normalizeUiStudentRank(rank: unknown): StudentRank {
+  if (rank === '10k' || rank === '1k') {
+    return 'sub1d'
+  }
+  return PERSONA_RANK_OPTIONS.some((option) => option.value === rank) ? rank as StudentRank : 'sub1d'
 }
 
 function ageRangeFromExactAge(age: number): StudentAgeRange {
@@ -792,6 +808,26 @@ export function App(): ReactElement {
     const session = sessions.find((candidate) => candidate.id === sessionId)
     if (!session) return
     await restoreTeacherSession(session)
+  }
+
+  async function deleteTeacherSessionById(sessionId: string): Promise<void> {
+    if (busy !== '') return
+    const sessions = teacherSessions.length ? teacherSessions : await window.gomentor.listTeacherSessions().catch(() => [])
+    const session = sessions.find((candidate) => candidate.id === sessionId)
+    const title = session?.title?.trim() || '这条历史会话'
+    if (!window.confirm(`删除「${title}」？删除后无法恢复。`)) return
+    await persistCurrentTeacherSession()
+    const deleted = await window.gomentor.deleteTeacherSession(sessionId).catch((cause) => {
+      setError(`删除历史会话失败：${String(cause)}`)
+      return false
+    })
+    if (!deleted) return
+    if (sessionId === teacherSessionId) {
+      const activeSession = await window.gomentor.getActiveTeacherSession()
+      setTeacherSessionId(activeSession.id)
+      restoreTeacherSessionMessages(activeSession)
+    }
+    await refreshTeacherSessions()
   }
 
   async function restoreTeacherSessionFromHistory(): Promise<void> {
@@ -1878,6 +1914,7 @@ export function App(): ReactElement {
     if (busy !== '') {
       return
     }
+    setPrompt('')
     setBusy('teacher')
     setError('')
     appendMessage({ role: 'student', content: text })
@@ -1936,10 +1973,9 @@ export function App(): ReactElement {
     }
   }
 
-  async function sendTeacherPrompt(event: FormEvent): Promise<void> {
-    event.preventDefault()
-    const text = prompt.trim()
-    if (!text) {
+  async function submitTeacherPromptText(rawText: string): Promise<void> {
+    const text = rawText.trim()
+    if (!text || busy !== '') {
       return
     }
     setPrompt('')
@@ -2037,6 +2073,11 @@ export function App(): ReactElement {
       setMoveRange(null)
       setBusy('')
     }
+  }
+
+  async function sendTeacherPrompt(event: FormEvent): Promise<void> {
+    event.preventDefault()
+    await submitTeacherPromptText(prompt)
   }
 
   const statusItems: StatusPill[] = [
@@ -2170,7 +2211,9 @@ export function App(): ReactElement {
             teacherSessions={teacherSessions}
             teacherSessionId={teacherSessionId}
             onPrompt={setPrompt}
+            onQuickPrompt={(value) => void submitTeacherPromptText(value)}
             onSubmit={(event) => void sendTeacherPrompt(event)}
+            onPersonaSettingsSaved={setDashboard}
             onAnalyze={() => void runCurrentMoveAnalysis()}
             onAnalyzeGame={() => void runTeacherQuickTask('分析这盘整盘围棋，找出关键问题手、胜负转折点和复盘重点。')}
             onAnalyzeRecent={() => void runTeacherQuickTask('分析当前棋手最近10局围棋，找出常见问题、薄弱环节，并更新棋手画像。')}
@@ -2178,6 +2221,7 @@ export function App(): ReactElement {
             onAnalyzeMove={(targetMove) => void runMoveAnalysisAt(targetMove)}
             onNewTeacherSession={() => void startNewTeacherSession()}
             onRestoreTeacherSession={(sessionId) => void restoreTeacherSessionById(sessionId)}
+            onDeleteTeacherSession={(sessionId) => void deleteTeacherSessionById(sessionId)}
           />
         </aside>
       </div>
@@ -2617,11 +2661,18 @@ function ChatMarkdown({ text }: { text: string }): ReactElement {
   return <div className="chat-markdown">{nodes}</div>
 }
 
-function teacherToolTitle(log: TeacherTraceLog): string {
+function teacherToolTitle(log: TeacherTraceLog, logs: TeacherTraceLog[] = [], index = 0): string {
+  const sameToolCount = logs.filter((item) => item.name === log.name).length
+  const occurrence = logs.slice(0, index + 1).filter((item) => item.name === log.name).length
+  if (log.name === 'katago.analyzePosition') {
+    if (sameToolCount <= 1) return 'KataGo 读取当前局面'
+    if (occurrence === 1) return 'KataGo 读取当前局面'
+    if (occurrence === 2) return 'KataGo 复核候选点'
+    return `KataGo 补充验证 ${occurrence}`
+  }
   const byName: Record<string, string> = {
     'library.findGames': '筛选棋谱',
     'sgf.readGameRecord': '读取棋谱',
-    'katago.analyzePosition': 'KataGo 当前局面',
     'katago.analyzeGameBatch': 'KataGo 整盘分析',
     'board.captureTeachingImage': '读取棋盘图',
     'knowledge.searchLocal': '检索知识库',
@@ -2637,6 +2688,49 @@ function teacherToolTitle(log: TeacherTraceLog): string {
     'report.saveAnalysis': '保存报告'
   }
   return byName[log.name] ?? log.label ?? '调用工具'
+}
+
+function teacherToolStatusText(status: TeacherTraceLog['status']): string {
+  if (status === 'running') return '进行中'
+  if (status === 'done') return '完成'
+  if (status === 'error') return '异常'
+  return '跳过'
+}
+
+function teacherToolDetail(log: TeacherTraceLog, logs: TeacherTraceLog[], index: number): string {
+  const sameToolCount = logs.filter((item) => item.name === log.name).length
+  const occurrence = logs.slice(0, index + 1).filter((item) => item.name === log.name).length
+  if (log.status === 'error') {
+    return log.detail.replace(/\s+/g, ' ').slice(0, 96)
+  }
+  if (log.name === 'katago.analyzePosition') {
+    if (occurrence === 1) return '获取候选点、胜率、目差和 PV，作为讲解的主证据。'
+    if (sameToolCount > 1 && occurrence === 2) return '再次核对候选点和胜率差，避免只凭一次引擎结果下结论。'
+    return `第 ${occurrence} 次补充验证，用来确认局部细节或回答追问。`
+  }
+  if (log.name === 'knowledge.searchLocal') return '匹配棋形、定式、死活、手筋和常见错误类型。'
+  if (log.name === 'board.captureTeachingImage') return '读取当前棋盘图，保证讲解对得上画面。'
+  if (log.name === 'sgf.readGameRecord') return '读取棋谱手顺和当前手上下文。'
+  if (log.name === 'katago.analyzeGameBatch') return '扫描整盘胜率走势和问题手分布。'
+  if (log.status === 'running') return '正在处理，完成后会继续组织老师回复。'
+  return log.detail && log.detail.length < 120 ? log.detail.replace(/\s+/g, ' ') : '已完成，结果会进入最终讲解。'
+}
+
+function teacherToolDisplay(log: TeacherTraceLog, logs: TeacherTraceLog[], index: number): TeacherTraceDisplay {
+  return {
+    title: teacherToolTitle(log, logs, index),
+    detail: teacherToolDetail(log, logs, index),
+    status: teacherToolStatusText(log.status)
+  }
+}
+
+function teacherToolTraceSummary(logs: TeacherTraceLog[]): string {
+  const runningIndex = logs.findIndex((log) => log.status === 'running')
+  if (runningIndex >= 0) {
+    return `工具调用 · ${logs.length} 步 · 正在${teacherToolTitle(logs[runningIndex], logs, runningIndex)}`
+  }
+  const katagoChecks = logs.filter((log) => log.name === 'katago.analyzePosition').length
+  return katagoChecks > 1 ? `工具调用 · ${logs.length} 步 · KataGo 复核 ${katagoChecks} 次` : `工具调用 · ${logs.length} 步`
 }
 
 async function copyTextToClipboard(text: string): Promise<void> {
@@ -2695,22 +2789,32 @@ function TeacherInlineResponse({
     <>
       {isTeacher && toolLogs.length > 0 ? (
         <details className="codex-tool-trace" open={isRunning || undefined}>
-          <summary>工具调用 · {toolLogs.length}</summary>
+          <summary>{teacherToolTraceSummary(toolLogs)}</summary>
           <div>
-            {toolLogs.map((log) => (
-              <p key={log.id} className={`codex-tool-trace__row codex-tool-trace__row--${log.status}`} aria-label={`${teacherToolTitle(log)} · ${log.status}`}>
-                <span aria-hidden="true" />
-                <strong>{teacherToolTitle(log)}</strong>
-              </p>
-            ))}
+            {toolLogs.map((log, index) => {
+              const display = teacherToolDisplay(log, toolLogs, index)
+              return (
+                <p key={log.id} className={`codex-tool-trace__row codex-tool-trace__row--${log.status}`} aria-label={`${display.title} · ${display.status} · ${display.detail}`}>
+                  <span className="codex-tool-trace__dot" aria-hidden="true" />
+                  <span className="codex-tool-trace__copy">
+                    <strong>{display.title}</strong>
+                    <small>{display.detail}</small>
+                  </span>
+                  <em>{display.status}</em>
+                </p>
+              )
+            })}
           </div>
         </details>
       ) : null}
       <div className={`message-copy ${message.role === 'teacher' ? 'message-copy--assistant' : 'message-copy--user'}`}>
         {isTeacher && !message.content && isRunning ? (
-          <div className="codex-working">
+          <div className="codex-working codex-working--active">
             <span />
-            <p>正在读取棋盘、KataGo 候选点和你的问题。</p>
+            <div>
+              <p>正在读取棋盘、KataGo数据，正在开始分析。</p>
+              <small>准备局面快照 · 获取候选点 · 检索证据链 · 组织老师讲解</small>
+            </div>
           </div>
         ) : isTeacher ? (
           <>
@@ -2753,14 +2857,17 @@ function TeacherPanel({
   teacherSessions,
   teacherSessionId,
   onPrompt,
+  onQuickPrompt,
   onSubmit,
+  onPersonaSettingsSaved,
   onAnalyze,
   onAnalyzeGame,
   onAnalyzeRecent,
   onJumpToMove,
   onAnalyzeMove,
   onNewTeacherSession,
-  onRestoreTeacherSession
+  onRestoreTeacherSession,
+  onDeleteTeacherSession
 }: {
   messages: ChatMessage[]
   prompt: string
@@ -2770,7 +2877,9 @@ function TeacherPanel({
   teacherSessions: TeacherSession[]
   teacherSessionId: string
   onPrompt: (value: string) => void
+  onQuickPrompt: (value: string) => void
   onSubmit: (event: FormEvent) => void
+  onPersonaSettingsSaved: (dashboard: DashboardData) => void
   onAnalyze: () => void
   onAnalyzeGame: () => void
   onAnalyzeRecent: () => void
@@ -2778,15 +2887,16 @@ function TeacherPanel({
   onAnalyzeMove: (moveNumber: number) => void
   onNewTeacherSession: () => void
   onRestoreTeacherSession: (sessionId: string) => void
+  onDeleteTeacherSession: (sessionId: string) => void
 }): ReactElement {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [studentSettingsOpen, setStudentSettingsOpen] = useState(true)
   const [teacherSettingsOpen, setTeacherSettingsOpen] = useState(true)
   const [historyQuery, setHistoryQuery] = useState('')
-  const [historyFilter, setHistoryFilter] = useState<TeacherHistoryFilter>('all')
   const [personaSettings, setPersonaSettings] = useState<TeacherPersonaUiSettings>(() => readPersonaUiSettings(dashboard.settings))
   const [draftPersonaSettings, setDraftPersonaSettings] = useState<TeacherPersonaUiSettings>(() => readPersonaUiSettings(dashboard.settings))
+  const [personaSaveError, setPersonaSaveError] = useState('')
   const hasRunningTask = busy === 'teacher'
   const hasRunningMessage = messages.some((message) => message.role === 'teacher' && message.status === 'running')
   const visibleSessions = useMemo(() => {
@@ -2794,13 +2904,11 @@ function TeacherPanel({
     return teacherSessions
       .filter((session) => {
         if (!hasVisibleTeacherSessionContent(session)) return false
-        if (historyFilter === 'today' && !isTodayDate(session.updatedAt)) return false
-        if (historyFilter === 'archived' && !session.archivedAt) return false
         if (!query) return true
         return `${session.title} ${teacherSessionContext(session)} ${teacherSessionPreview(session)}`.toLowerCase().includes(query)
       })
       .slice(0, 24)
-  }, [historyFilter, historyQuery, teacherSessions])
+  }, [historyQuery, teacherSessions])
   const todaySessions = visibleSessions.filter((session) => isTodayDate(session.updatedAt))
   const yesterdaySessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && isYesterdayDate(session.updatedAt))
   const earlierSessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && !isYesterdayDate(session.updatedAt))
@@ -2838,6 +2946,7 @@ function TeacherPanel({
   }, [historyOpen, settingsOpen, personaSettings])
 
   function patchDraftPersona(next: Partial<TeacherPersonaUiSettings>): void {
+    setPersonaSaveError('')
     setDraftPersonaSettings((current) => ({ ...current, ...next }))
   }
 
@@ -2858,15 +2967,24 @@ function TeacherPanel({
   }
 
   async function saveTeacherPersona(): Promise<void> {
-    const updated = await window.gomentor.updateSettings(draftPersonaSettings)
-    setPersonaSettings(readPersonaUiSettings(updated.settings))
-    setDraftPersonaSettings(readPersonaUiSettings(updated.settings))
-    setSettingsOpen(false)
+    setPersonaSaveError('')
+    try {
+      const updated = await window.gomentor.updateSettings(draftPersonaSettings)
+      const nextSettings = readPersonaUiSettings(updated.settings)
+      onPersonaSettingsSaved(updated)
+      setPersonaSettings(nextSettings)
+      setDraftPersonaSettings(nextSettings)
+      setSettingsOpen(false)
+    } catch (cause) {
+      const message = cause instanceof Error && cause.message ? cause.message : String(cause)
+      setPersonaSaveError(`保存失败：${message}`)
+    }
   }
 
   function closeOverlays(): void {
     setHistoryOpen(false)
     setSettingsOpen(false)
+    setPersonaSaveError('')
     setDraftPersonaSettings(personaSettings)
   }
 
@@ -2875,9 +2993,11 @@ function TeacherPanel({
     setSettingsOpen((open) => {
       if (open) {
         setDraftPersonaSettings(personaSettings)
+        setPersonaSaveError('')
         return false
       }
       setDraftPersonaSettings(personaSettings)
+      setPersonaSaveError('')
       return true
     })
   }
@@ -2889,23 +3009,37 @@ function TeacherPanel({
         <h4>{label}</h4>
         <div className="teacher-history-list">
           {sessions.map((session) => (
-            <button
+            <div
               key={session.id}
-              type="button"
-              className={session.id === teacherSessionId ? 'is-active' : ''}
-              onClick={() => {
-                onRestoreTeacherSession(session.id)
-                setHistoryOpen(false)
-              }}
+              className={`teacher-history-item${session.id === teacherSessionId ? ' is-active' : ''}`}
             >
-              <span className="teacher-history-item__main">
-                <strong>{session.title}</strong>
-                <small>{formatTeacherSessionTime(session.updatedAt)} · {teacherSessionContext(session) || '自由问答'}</small>
-                <em>{teacherSessionPreview(session)}</em>
-              </span>
-              <span className="teacher-history-item__icon">↺</span>
+              <button
+                type="button"
+                className="teacher-history-item__restore"
+                onClick={() => {
+                  onRestoreTeacherSession(session.id)
+                  setHistoryOpen(false)
+                }}
+              >
+                <span className="teacher-history-item__main">
+                  <strong>{session.title}</strong>
+                  <small>{formatTeacherSessionTime(session.updatedAt)} · {teacherSessionContext(session) || '自由问答'}</small>
+                  <em>{teacherSessionPreview(session)}</em>
+                </span>
+                <span className="teacher-history-item__icon">↺</span>
+              </button>
+              <button
+                type="button"
+                className="teacher-history-item__delete"
+                aria-label={`删除会话 ${session.title}`}
+                title="删除会话"
+                onClick={() => onDeleteTeacherSession(session.id)}
+                disabled={busy !== ''}
+              >
+                删除
+              </button>
               {session.archivedAt ? <span className="teacher-history-item__archived">已归档</span> : null}
-            </button>
+            </div>
           ))}
         </div>
       </section>
@@ -2968,6 +3102,7 @@ function TeacherPanel({
               aria-label="关闭教学设定"
               onClick={() => {
                 setDraftPersonaSettings(personaSettings)
+                setPersonaSaveError('')
                 setSettingsOpen(false)
               }}
             >
@@ -3092,6 +3227,7 @@ function TeacherPanel({
               </div>
             ) : null}
           </section>
+          {personaSaveError ? <p className="teacher-popover-error" role="alert">{personaSaveError}</p> : null}
           <footer className="teacher-popover-foot">
             <button type="button" onClick={() => setDraftPersonaSettings(defaultPersonaUiSettings())}>重置</button>
             <button type="button" className="is-primary" onClick={() => void saveTeacherPersona()}>完成</button>
@@ -3105,25 +3241,18 @@ function TeacherPanel({
             <strong>历史会话</strong>
             <button type="button" aria-label="关闭历史会话" onClick={() => setHistoryOpen(false)}>×</button>
           </div>
-          <label className="teacher-history-search">
-            <span>⌕</span>
-            <input value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)} placeholder="搜索会话标题或内容..." />
-          </label>
-          <div className="teacher-history-tabs" aria-label="历史筛选">
-            {[
-              { value: 'all', label: '全部' },
-              { value: 'today', label: '今日' },
-              { value: 'archived', label: '已归档' }
-            ].map((tab) => (
-              <button
-                key={tab.value}
-                type="button"
-                className={historyFilter === tab.value ? 'is-active' : ''}
-                onClick={() => setHistoryFilter(tab.value as TeacherHistoryFilter)}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="teacher-history-search" role="search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              aria-label="搜索历史会话"
+              value={historyQuery}
+              onChange={(event) => setHistoryQuery(event.target.value)}
+              placeholder="搜索历史会话"
+            />
+            {historyQuery ? (
+              <button type="button" aria-label="清除搜索" onClick={() => setHistoryQuery('')}>×</button>
+            ) : null}
           </div>
           <div className="teacher-history-scroll">
             {visibleSessions.length === 0 ? (
@@ -3155,7 +3284,7 @@ function TeacherPanel({
             <p>你可以问这盘棋的胜率判断、关键手分析、布局思路和形势判断。</p>
             <div className="teacher-empty-state__prompts" aria-label="示例问题">
               {TEACHER_EMPTY_PROMPTS.map((item) => (
-                <button key={item} type="button" onClick={() => onPrompt(item)} disabled={busy !== ''}>
+                <button key={item} type="button" onClick={() => onQuickPrompt(item)} disabled={busy !== ''}>
                   {item}
                 </button>
               ))}

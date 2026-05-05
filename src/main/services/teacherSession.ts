@@ -102,3 +102,15 @@ export function archiveTeacherSession(sessionId: string): TeacherSession | null 
   saveSessions([next, ...sessions.filter((session) => session.id !== sessionId)], remainingActive)
   return next
 }
+
+export function deleteTeacherSession(sessionId: string): boolean {
+  const sessions = readSessions()
+  if (!sessions.some((session) => session.id === sessionId)) return false
+  const activeSessionId = teacherSessionStore.get('activeSessionId', '')
+  const remainingSessions = sessions.filter((session) => session.id !== sessionId)
+  const nextActiveSessionId = activeSessionId === sessionId
+    ? remainingSessions.find((session) => !session.archivedAt && hasVisibleTeacherMessages(session))?.id ?? ''
+    : activeSessionId
+  saveSessions(remainingSessions, nextActiveSessionId)
+  return true
+}

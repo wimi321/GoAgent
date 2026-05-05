@@ -11,7 +11,6 @@ import type {
   KnowledgePacket,
   LibraryGame,
   RecommendedProblem,
-  ReviewArtifact,
   StructuredTeacherResult,
   MoveRangeReviewSummary,
   StudentProfile,
@@ -22,7 +21,7 @@ import type {
   TeacherToolLog
 } from '@main/lib/types'
 import type { ChatMessage, ChatTool, ChatToolCall, ProviderSettings } from './llm/provider'
-import { analyzePosition } from './katago'
+import { analyzeGameQuick, analyzePosition } from './katago'
 import { MOVE_RANGE_KEY_MOVE_LIMIT, MOVE_RANGE_MAX_MOVES, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import { formatMoveRangeSummaryForPrompt, selectMoveNumbersForRangeRefine } from './teacher/moveRangeReview'
 import { searchKnowledge, searchKnowledgeMatches } from './knowledge'
@@ -32,7 +31,6 @@ import { detectTacticalSignals } from './knowledge/tacticalDetectors'
 import { readGameRecord } from './sgf'
 import { ensureFoxGameDownloaded } from './fox'
 import { getStudentProfile, readStudentForGame, updateStudentProfile } from './studentProfile'
-import { runReview } from './review'
 import { applyDetectedDefaults, detectSystemProfile } from './systemProfile'
 import { parseStructuredTeacherResult } from './teacher/structuredResultParser'
 import { classifyTeacherIntent, type TeacherIntent } from './teacher/intentClassifier'
@@ -360,16 +358,22 @@ function structuredFromTeacherText(
   }
 }
 
-function extractIssues(artifact: ReviewArtifact | undefined, game: LibraryGame): BatchIssue[] {
-  const summary = artifact?.summary as { issues?: Array<Record<string, unknown>> } | undefined
-  return (summary?.issues ?? []).slice(0, 6).map((issue) => ({
+function extractIssuesFromAnalyses(analyses: KataGoMoveAnalysis[], game: LibraryGame, minWinrateDrop: number): BatchIssue[] {
+  return analyses
+    .filter((analysis) => (analysis.playedMove?.winrateLoss ?? 0) >= minWinrateDrop)
+    .sort((left, right) =>
+      (right.playedMove?.winrateLoss ?? 0) - (left.playedMove?.winrateLoss ?? 0) ||
+      left.moveNumber - right.moveNumber
+    )
+    .slice(0, 6)
+    .map((analysis) => ({
     game,
-    moveNumber: Number(issue.move_number ?? 0),
-    playedMove: String(issue.played_move ?? ''),
-    bestMove: String(issue.best_move ?? ''),
-    loss: Number(issue.loss ?? 0),
-    scoreLead: Number(issue.score_lead ?? 0),
-    pv: Array.isArray(issue.pv) ? issue.pv.map(String).slice(0, 10) : []
+    moveNumber: analysis.moveNumber,
+    playedMove: analysis.currentMove?.gtp ?? analysis.playedMove?.move ?? '',
+    bestMove: analysis.before.topMoves[0]?.move ?? '',
+    loss: analysis.playedMove?.winrateLoss ?? 0,
+    scoreLead: analysis.playedMove?.scoreLoss ?? 0,
+    pv: analysis.before.topMoves[0]?.pv?.slice(0, 10) ?? []
   }))
 }
 
@@ -825,7 +829,7 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
     {
       apiName: 'katago_analyzePosition',
       canonicalName: 'katago.analyzePosition',
-      label: 'KataGo 当前局面',
+      label: 'KataGo 局面分析',
       description: '分析单个局面，返回胜率、目差、候选点、搜索数、PV 和实战手损失。',
       parameters: schema({
         gameId: { type: 'string' },
@@ -866,15 +870,15 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
           ? getGames().filter((game) => game.id === gameId)
           : findGamesForStudent(studentName, count)
         const issues: BatchIssue[] = []
+        const maxVisits = numberInput(input, 'maxVisits', 220, 40, 2000)
+        const minWinrateDrop = numberInput(input, 'minWinrateDrop', 6, 1, 40)
         for (const game of games) {
-          const result = await runReview({
-            gameId: game.id,
-            playerName: studentName,
-            maxVisits: numberInput(input, 'maxVisits', 420, 40, 2000),
-            minWinrateDrop: numberInput(input, 'minWinrateDrop', 6, 1, 40),
-            useLlm: false
+          const analyses = await analyzeGameQuick(game.id, maxVisits, undefined, {
+            refineVisits: Math.max(maxVisits, 420),
+            refineTopN: 8,
+            runId: `${state.id}-batch-${game.id}`
           })
-          issues.push(...extractIssues(result.artifact, game))
+          issues.push(...extractIssuesFromAnalyses(analyses, game, minWinrateDrop))
         }
         return {
           studentName,
@@ -1182,8 +1186,7 @@ async function runTeacherAgentSession(
   emitProgress(context, { stage: 'assistant-start', message: 'GoMentor agent 开始推理。', toolLogs: cloneToolLogs(logs) })
   let finalText = ''
   let emittedText = ''
-  const maxTurns = 10
-  for (let turn = 0; turn < maxTurns; turn += 1) {
+  for (;;) {
     let streamedThisTurn = ''
     const result = await streamOpenAICompatibleToolTurn(settings, messages, tools, 4096, (delta) => {
       streamedThisTurn += delta
@@ -1218,7 +1221,7 @@ async function runTeacherAgentSession(
   }
 
   if (!finalText) {
-    throw new Error(`Agent 达到最大工具轮数 ${maxTurns}，仍未生成最终回答。`)
+    throw new Error('LLM 未生成最终回答。')
   }
   state.finalMarkdown = finalText
   const taskType = taskTypeForIntent(intent)
