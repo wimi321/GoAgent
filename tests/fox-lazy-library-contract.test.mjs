@@ -95,6 +95,7 @@ test('library delete removes managed SGF files and cleans local app state', () =
   const deleteService = read('src/main/services/library/deleteGame.ts')
   assert.match(deleteService, /isManagedAppFile/)
   assert.match(deleteService, /removeManagedGameFile/)
+  assert.match(deleteService, /catch/)
   assert.match(deleteService, /detachGameFromStudents/)
   assert.match(deleteService, /deleteLibraryGame/)
   assert.doesNotMatch(deleteService, /rmSync/)

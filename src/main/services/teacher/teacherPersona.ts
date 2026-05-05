@@ -43,11 +43,16 @@ function levelInstruction(level: CoachUserLevel): string {
 }
 
 function rankInstruction(rank: StudentRank | undefined): string {
-  if (rank === '10k') return '学生段位：10级。优先讲可执行的下一手判断，避免堆变化。'
-  if (rank === '1k') return '学生段位：1级。可以讲关键变化和形势取舍，但仍要给清晰判断顺序。'
-  if (rank === '1d') return '学生段位：初段。可以比较候选点、方向和厚薄转换。'
+  if (rank === 'sub1d') return '学生段位：1段以下。优先讲可执行的下一手判断、方向和基本形状，避免堆变化。'
+  if (rank === '1d') return '学生段位：1段。可以比较候选点、方向和厚薄转换。'
+  if (rank === '2d') return '学生段位：2段。可以讲关键变化、方向选择和攻防先后。'
   if (rank === '3d') return '学生段位：3段。可以讲更细的目差、PV 分歧和中盘攻防节奏。'
+  if (rank === '4d') return '学生段位：4段。可以讲转换价值、局部收益与全局厚薄的权衡。'
   if (rank === '5d') return '学生段位：5段。可以讲高阶次序、交换价值、全局转换和局部读秒级判断。'
+  if (rank === '6d') return '学生段位：6段。可以更直接比较复杂变化、劫材价值和战略转换。'
+  if (rank === '7d') return '学生段位：7段。可以讲深层次序、细微目差和胜率风险控制。'
+  if (rank === '8d') return '学生段位：8段。可以讲接近职业训练的候选点取舍和高精度转换。'
+  if (rank === '9d') return '学生段位：9段。可以使用高密度术语、复杂 PV 对照和职业级证据链复盘。'
   return ''
 }
 
@@ -119,7 +124,19 @@ export function normalizeTeacherStyle(value: unknown): TeacherPersonaStyle {
 }
 
 export function normalizeStudentRank(value: unknown): StudentRank {
-  return value === '10k' || value === '1k' || value === '1d' || value === '3d' || value === '5d' ? value : '1k'
+  if (value === '10k' || value === '1k') return 'sub1d'
+  return value === 'sub1d' ||
+    value === '1d' ||
+    value === '2d' ||
+    value === '3d' ||
+    value === '4d' ||
+    value === '5d' ||
+    value === '6d' ||
+    value === '7d' ||
+    value === '8d' ||
+    value === '9d'
+    ? value
+    : 'sub1d'
 }
 
 export function normalizeExactStudentAge(value: unknown): number {

@@ -14,6 +14,10 @@ for (const dir of [appHome, libraryDir, reviewsDir, cacheDir, reportsDir]) {
   mkdirSync(dir, { recursive: true })
 }
 
+function defaultPythonBin(): string {
+  return process.platform === 'win32' ? 'python' : 'python3'
+}
+
 const defaults: AppSettings = {
   katagoBin: '',
   katagoConfig: '',
@@ -26,14 +30,14 @@ const defaults: AppSettings = {
   katagoBenchmarkThreads: 0,
   katagoBenchmarkVisitsPerSecond: 0,
   katagoBenchmarkUpdatedAt: '',
-  pythonBin: 'python3',
+  pythonBin: defaultPythonBin(),
   llmBaseUrl: 'https://api.openai.com/v1',
   llmApiKey: '',
   llmModel: 'gpt-5-mini',
   reviewLanguage: 'zh-CN',
   defaultPlayerName: '',
   defaultCoachLevel: 'intermediate',
-  defaultStudentRank: '1k',
+  defaultStudentRank: 'sub1d',
   defaultStudentAge: 0,
   defaultStudentAgeRange: 'unknown',
   teacherStyle: 'balanced',

@@ -96,6 +96,7 @@ const api = {
   createTeacherSession: (payload?: Partial<TeacherSession>): Promise<TeacherSession> => ipcRenderer.invoke('teacher-sessions:create', payload ?? {}),
   updateTeacherSessionMessages: (payload: { sessionId: string; messages: TeacherChatMessage[] }): Promise<TeacherSession> => ipcRenderer.invoke('teacher-sessions:update-messages', payload),
   archiveTeacherSession: (sessionId: string): Promise<TeacherSession | null> => ipcRenderer.invoke('teacher-sessions:archive', sessionId),
+  deleteTeacherSession: (sessionId: string): Promise<boolean> => ipcRenderer.invoke('teacher-sessions:delete', sessionId),
   runTeacherTask: (payload: TeacherRunRequest): Promise<TeacherRunResult> => ipcRenderer.invoke('teacher:run', payload),
   onTeacherRunProgress: (handler: (payload: TeacherRunProgress) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: TeacherRunProgress): void => handler(payload)

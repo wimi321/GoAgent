@@ -15,8 +15,12 @@ function removeManagedGameFile(game: LibraryGame): boolean {
   if (!game.filePath || !isManagedAppFile(game.filePath) || !existsSync(game.filePath)) {
     return false
   }
-  unlinkSync(game.filePath)
-  return true
+  try {
+    unlinkSync(game.filePath)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function deleteLibraryGame(gameId: string): { deleted: LibraryGame; removedFile: boolean } {
