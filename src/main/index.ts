@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type ContextMenuParams, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getSettings, hasLlmApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
-import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherChatMessage, TeacherRunRequest } from './lib/types'
+import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherChatMessage, TeacherRunRequest } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
 import { runReview } from './services/review'
@@ -15,6 +15,7 @@ import { collectDiagnostics } from './services/diagnostics'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
 import { inspectKataGoAssets, installOfficialKataGoModel } from './services/katago/katagoAssets'
 import { bindFoxGamesToStudent, bindSgfGameToStudent, suggestStudentBindings } from './services/library/studentBinding'
+import { deleteLibraryGame } from './services/library/deleteGame'
 import { inspectReleaseReadiness } from './services/release/readiness'
 import {
   attachGameToStudent,
@@ -293,6 +294,11 @@ app.whenReady().then(() => {
     }
     const readyGame = await ensureFoxGameDownloaded(game)
     return readGameRecord(readyGame)
+  })
+
+  ipcMain.handle('library:delete', async (_event, payload: LibraryDeleteRequest) => {
+    const result = deleteLibraryGame(payload.gameId)
+    return { dashboard: await dashboard(), ...result }
   })
 
   ipcMain.handle('fox:sync', async (_event, payload: FoxSyncRequest) => {

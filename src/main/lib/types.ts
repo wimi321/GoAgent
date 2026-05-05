@@ -79,6 +79,16 @@ export interface LibraryGame {
   moveCount?: number
 }
 
+export interface LibraryDeleteRequest {
+  gameId: string
+}
+
+export interface LibraryDeleteResult {
+  dashboard: DashboardData
+  deleted: LibraryGame
+  removedFile: boolean
+}
+
 export type StoneColor = 'B' | 'W'
 
 export interface GameMove {

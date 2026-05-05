@@ -496,6 +496,15 @@ function persistStoredEvaluations(cacheKey: string, evaluations: EvaluationByMov
   }
 }
 
+function removeStoredEvaluations(cacheKey: string): void {
+  try {
+    localStorage.removeItem(`${ANALYSIS_CACHE_PREFIX}${cacheKey}`)
+    writeAnalysisCacheIndex(readAnalysisCacheIndex().filter((item) => item !== cacheKey))
+  } catch {
+    // Best-effort cache cleanup only.
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -1070,6 +1079,58 @@ export function App(): ReactElement {
       }
     } catch (cause) {
       setError(String(cause))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  async function deleteLibraryGameFromLibrary(game: LibraryGame): Promise<void> {
+    if (busy !== '') {
+      return
+    }
+    const label = gameDisplayName(game)
+    const confirmed = window.confirm(`确定删除棋谱“${label}”？\n\n这会从 GoMentor 棋谱库移除该棋谱，并删除 GoMentor 管理目录中的缓存 SGF。此操作不可撤销。`)
+    if (!confirmed) {
+      return
+    }
+
+    const deletingSelected = selectedGame?.id === game.id || selectedId === game.id
+    const cacheKey = analysisCacheKeyForGame(game.id)
+    setBusy('delete-game')
+    setError('')
+    try {
+      const pendingTimer = evaluationPersistTimersRef.current[cacheKey]
+      if (pendingTimer) {
+        window.clearTimeout(pendingTimer)
+        delete evaluationPersistTimersRef.current[cacheKey]
+      }
+      removeStoredEvaluations(cacheKey)
+      delete evaluationCacheRef.current[cacheKey]
+
+      if (deletingSelected) {
+        pauseLiveAnalysis('棋谱已删除，停止精读', true)
+        graphRunId.current = crypto.randomUUID()
+        setGraphBusy(false)
+        setGraphProgress('')
+      }
+
+      const { dashboard: next } = await window.gomentor.deleteLibraryGame({ gameId: game.id })
+      setDashboard(next)
+      if (deletingSelected) {
+        const nextGame = next.games.find((candidate) => candidate.source !== 'fox' || candidate.downloadStatus === 'downloaded') ?? next.games[0]
+        setSelectedId(nextGame?.id ?? '')
+        setRecord(null)
+        setMoveNumber(0)
+        setAnalysis(null)
+        setEvaluations({})
+        setMoveRange(null)
+        setCurrentStudent(null)
+        if (!nextGame) {
+          setPlayerName('')
+        }
+      }
+    } catch (cause) {
+      setError(`删除棋谱失败：${uiError(cause, 'library-delete')}`)
     } finally {
       setBusy('')
     }
@@ -2017,6 +2078,7 @@ export function App(): ReactElement {
               onSelect={setSelectedId}
               onSync={() => void syncFox()}
               onImport={() => void importSgf()}
+              onDeleteGame={(game) => void deleteLibraryGameFromLibrary(game)}
               onFoxKeyword={setFoxKeyword}
               onChangePlayerBinding={() => selectedGame && void openStudentBinding(selectedGame)}
             />
@@ -2178,6 +2240,7 @@ function LibraryPanel({
   onSelect,
   onSync,
   onImport,
+  onDeleteGame,
   onFoxKeyword,
   onChangePlayerBinding
 }: {
@@ -2189,6 +2252,7 @@ function LibraryPanel({
   onSelect: (id: string) => void
   onSync: () => void
   onImport: () => void
+  onDeleteGame: (game: LibraryGame) => void
   onFoxKeyword: (value: string) => void
   onChangePlayerBinding: () => void
 }): ReactElement {
@@ -2249,21 +2313,33 @@ function LibraryPanel({
       </div>
       <div className="game-list">
         {pageGames.map((game) => (
-          <button key={game.id} className={`game-row ${selectedGame?.id === game.id ? 'is-active' : ''}`} onClick={() => onSelect(game.id)}>
-            <div className="game-row__title">
-              <span>{gameDisplayName(game)}</span>
-              {game.source === 'fox' ? (
-                <em className={`game-row__badge ${game.downloadStatus === 'downloaded' ? 'game-row__badge--downloaded' : 'game-row__badge--remote'}`}>
-                  {game.downloadStatus === 'downloaded' ? '已缓存' : '仅列表'}
-                </em>
-              ) : (
-                <em className="game-row__badge">本地</em>
-              )}
-            </div>
-            <small className="game-row__meta">
-              {game.date || '未知日期'} · {game.moveCount ? `${game.moveCount}手 · ` : ''}{game.result || '未知结果'}
-            </small>
-          </button>
+          <article key={game.id} className={`game-row ${selectedGame?.id === game.id ? 'is-active' : ''}`}>
+            <button type="button" className="game-row__select" onClick={() => onSelect(game.id)}>
+              <div className="game-row__title">
+                <span>{gameDisplayName(game)}</span>
+                {game.source === 'fox' ? (
+                  <em className={`game-row__badge ${game.downloadStatus === 'downloaded' ? 'game-row__badge--downloaded' : 'game-row__badge--remote'}`}>
+                    {game.downloadStatus === 'downloaded' ? '已缓存' : '仅列表'}
+                  </em>
+                ) : (
+                  <em className="game-row__badge">本地</em>
+                )}
+              </div>
+              <small className="game-row__meta">
+                {game.date || '未知日期'} · {game.moveCount ? `${game.moveCount}手 · ` : ''}{game.result || '未知结果'}
+              </small>
+            </button>
+            <button
+              type="button"
+              className="game-row__delete"
+              onClick={() => onDeleteGame(game)}
+              disabled={busy !== ''}
+              title="删除棋谱"
+              aria-label={`删除棋谱 ${gameDisplayName(game)}`}
+            >
+              删除
+            </button>
+          </article>
         ))}
         {pageGames.length === 0 ? <div className="empty-list">没有匹配的棋谱</div> : null}
       </div>

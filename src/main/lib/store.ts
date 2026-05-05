@@ -153,3 +153,13 @@ export function upsertGames(games: LibraryGame[]): LibraryGame[] {
 export function findGame(gameId: string): LibraryGame | undefined {
   return getGames().find((game) => game.id === gameId)
 }
+
+export function removeGame(gameId: string): LibraryGame | null {
+  const games = getGames()
+  const deleted = games.find((game) => game.id === gameId)
+  if (!deleted) {
+    return null
+  }
+  libraryStore.set('games', games.filter((game) => game.id !== gameId))
+  return deleted
+}

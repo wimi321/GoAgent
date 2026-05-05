@@ -61,12 +61,15 @@ test('library panel communicates remote list state and keeps pagination compact'
   assert.doesNotMatch(app, /label: `\$\{dashboard\.games\.length\} 棋谱`/)
   assert.match(app, /仅列表/)
   assert.match(app, /已缓存/)
+  assert.match(app, /game-row__delete/)
+  assert.match(app, /删除棋谱/)
   assert.match(app, /setDashboard\(\(current\) => \(\{[\s\S]*next\.game/s)
   assert.match(app, /game\.source !== 'fox' \|\| game\.downloadStatus === 'downloaded'/)
   assert.doesNotMatch(app, /setSelectedId\(result\.saved\[0\]\.id\)/)
 
   const styles = read('src/renderer/src/styles.css')
   assert.match(styles, /\.game-row__title/)
+  assert.match(styles, /\.game-row__delete/)
   assert.match(styles, /\.game-row__badge--remote/)
   assert.match(styles, /\.game-row__badge--downloaded/)
   assert.match(styles, /\.library-rail\s*\{[^}]*display:\s*flex/s)
@@ -79,4 +82,48 @@ test('library panel communicates remote list state and keeps pagination compact'
   const studentDialog = read('src/renderer/src/features/student/StudentBindingDialog.tsx')
   assert.match(studentDialog, /studentOptionLabel/)
   assert.match(studentDialog, /suggestedColor/)
+})
+
+test('library delete removes managed SGF files and cleans local app state', () => {
+  const types = read('src/main/lib/types.ts')
+  assert.match(types, /interface LibraryDeleteRequest/)
+  assert.match(types, /interface LibraryDeleteResult/)
+
+  const store = read('src/main/lib/store.ts')
+  assert.match(store, /export function removeGame/)
+
+  const deleteService = read('src/main/services/library/deleteGame.ts')
+  assert.match(deleteService, /isManagedAppFile/)
+  assert.match(deleteService, /removeManagedGameFile/)
+  assert.match(deleteService, /detachGameFromStudents/)
+  assert.match(deleteService, /deleteLibraryGame/)
+  assert.doesNotMatch(deleteService, /rmSync/)
+
+  const main = read('src/main/index.ts')
+  assert.match(main, /library:delete/)
+  assert.match(main, /deleteLibraryGame\(payload\.gameId\)/)
+
+  const preload = read('src/preload/index.ts')
+  assert.match(preload, /deleteLibraryGame/)
+  assert.match(preload, /LibraryDeleteResult/)
+
+  const globalTypes = read('src/renderer/src/global.d.ts')
+  assert.match(globalTypes, /deleteLibraryGame/)
+  assert.match(globalTypes, /LibraryDeleteRequest/)
+
+  const studentProfile = read('src/main/services/studentProfile.ts')
+  assert.match(studentProfile, /detachGameFromStudents/)
+  assert.match(studentProfile, /delete index\.gameStudentMap\[gameId\]/)
+  assert.match(studentProfile, /recentGameIds\.filter/)
+
+  const app = read('src/renderer/src/App.tsx')
+  assert.match(app, /deleteLibraryGameFromLibrary/)
+  assert.match(app, /window\.confirm/)
+  assert.match(app, /removeStoredEvaluations/)
+  assert.match(app, /setSelectedId\(nextGame\?\.id \?\? ''\)/)
+  assert.match(app, /game-row__select/)
+
+  const styles = read('src/renderer/src/styles.css')
+  assert.match(styles, /\.game-row__select/)
+  assert.match(styles, /\.game-row__delete/)
 })
