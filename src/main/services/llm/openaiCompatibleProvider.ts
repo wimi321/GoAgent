@@ -39,6 +39,31 @@ function headers(settings: ProviderSettings): Record<string, string> {
   }
 }
 
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  externalSignal?: AbortSignal
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(new Error('LLM 请求超时')), timeoutMs)
+  const abortFromExternal = (): void => controller.abort(externalSignal?.reason ?? new Error('LLM 请求已取消'))
+  if (externalSignal?.aborted) {
+    abortFromExternal()
+  } else {
+    externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
+  }
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal
+    })
+  } finally {
+    clearTimeout(timer)
+    externalSignal?.removeEventListener('abort', abortFromExternal)
+  }
+}
+
 function modelHeaders(settings: Pick<ProviderSettings, 'llmApiKey'>): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json'
@@ -243,7 +268,8 @@ async function attemptOpenAICompatibleToolTurn(
   settings: ProviderSettings,
   messages: ChatMessage[],
   tools: ChatTool[],
-  maxTokens = 4096
+  maxTokens = 4096,
+  signal?: AbortSignal
 ): Promise<ChatTurnResult> {
   let lastError = ''
   let lastEmptyResponse: ChatResponse | null = null
@@ -251,12 +277,11 @@ async function attemptOpenAICompatibleToolTurn(
   for (const budget of budgets) {
     const bodies = requestBodies(settings.llmModel, messages, budget, tools, tools.length ? 'auto' : 'none')
     for (const body of bodies) {
-      const response = await fetch(endpoint(settings), {
+      const response = await fetchWithTimeout(endpoint(settings), {
         method: 'POST',
         headers: headers(settings),
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(180_000)
-      })
+        body: JSON.stringify(body)
+      }, 180_000, signal)
       if (!response.ok) {
         const text = await response.text().catch(() => '')
         if (retryableParameterError(response.status, text)) {
@@ -485,17 +510,17 @@ async function attemptOpenAICompatibleToolStream(
   messages: ChatMessage[],
   tools: ChatTool[],
   maxTokens = 4096,
-  onDelta?: (delta: string) => void
+  onDelta?: (delta: string) => void,
+  signal?: AbortSignal
 ): Promise<ChatTurnResult | null> {
   let lastError = ''
   const bodies = requestBodies(settings.llmModel, messages, maxTokens, tools, tools.length ? 'auto' : 'none')
   for (const body of bodies) {
-    const response = await fetch(endpoint(settings), {
+    const response = await fetchWithTimeout(endpoint(settings), {
       method: 'POST',
       headers: headers(settings),
-      body: JSON.stringify({ ...body, stream: true }),
-      signal: AbortSignal.timeout(180_000)
-    })
+      body: JSON.stringify({ ...body, stream: true })
+    }, 180_000, signal)
     if (!response.ok) {
       const text = await response.text().catch(() => '')
       if (retryableParameterError(response.status, text)) {
@@ -603,9 +628,10 @@ export async function postOpenAICompatibleToolTurn(
   settings: ProviderSettings,
   messages: ChatMessage[],
   tools: ChatTool[],
-  maxTokens = 4096
+  maxTokens = 4096,
+  signal?: AbortSignal
 ): Promise<ChatTurnResult> {
-  return attemptOpenAICompatibleToolTurn(settings, messages, tools, maxTokens)
+  return attemptOpenAICompatibleToolTurn(settings, messages, tools, maxTokens, signal)
 }
 
 export async function streamOpenAICompatibleToolTurn(
@@ -613,13 +639,14 @@ export async function streamOpenAICompatibleToolTurn(
   messages: ChatMessage[],
   tools: ChatTool[],
   maxTokens = 4096,
-  onDelta?: (delta: string) => void
+  onDelta?: (delta: string) => void,
+  signal?: AbortSignal
 ): Promise<ChatTurnResult> {
-  const streamed = await attemptOpenAICompatibleToolStream(settings, messages, tools, maxTokens, onDelta)
+  const streamed = await attemptOpenAICompatibleToolStream(settings, messages, tools, maxTokens, onDelta, signal)
   if (streamed && (streamed.text || streamed.toolCalls.length > 0)) {
     return streamed
   }
-  return postOpenAICompatibleToolTurn(settings, messages, tools, maxTokens)
+  return postOpenAICompatibleToolTurn(settings, messages, tools, maxTokens, signal)
 }
 
 export async function probeOpenAICompatibleProvider(settings: ProviderSettings): Promise<ProviderProbeResult> {

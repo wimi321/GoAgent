@@ -21,7 +21,7 @@ import type {
   TeacherToolLog
 } from '@main/lib/types'
 import type { ChatMessage, ChatTool, ChatToolCall, ProviderSettings } from './llm/provider'
-import { analyzeGameQuick, analyzePosition } from './katago'
+import { analyzeGameQuick, analyzePosition, cancelKataGoAnalysis } from './katago'
 import { MOVE_RANGE_KEY_MOVE_LIMIT, MOVE_RANGE_MAX_MOVES, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import { formatMoveRangeSummaryForPrompt, selectMoveNumbersForRangeRefine } from './teacher/moveRangeReview'
 import { searchKnowledge, searchKnowledgeMatches } from './knowledge'
@@ -53,6 +53,7 @@ type TeacherProgressEmitter = (progress: TeacherRunProgress) => void
 interface TeacherRunContext {
   runId: string
   emit?: TeacherProgressEmitter
+  signal?: AbortSignal
 }
 
 interface BatchIssue {
@@ -415,8 +416,55 @@ interface ShellTask {
 }
 
 const SHELL_TASKS = new Map<string, ShellTask>()
+const ACTIVE_TEACHER_RUNS = new Map<string, { abortController: AbortController; cancelled: boolean }>()
 const MAX_TOOL_RESULT_CHARS = 18_000
 const MAX_SHELL_OUTPUT_CHARS = 24_000
+
+class TeacherRunCancelledError extends Error {
+  constructor() {
+    super('老师任务已停止')
+    this.name = 'TeacherRunCancelledError'
+  }
+}
+
+function isTeacherRunCancelled(context: TeacherRunContext | undefined): boolean {
+  if (!context) return false
+  return Boolean(context.signal?.aborted || ACTIVE_TEACHER_RUNS.get(context.runId)?.cancelled)
+}
+
+function assertTeacherRunActive(context: TeacherRunContext | undefined): void {
+  if (isTeacherRunCancelled(context)) {
+    throw new TeacherRunCancelledError()
+  }
+}
+
+function isCancellationError(error: unknown): boolean {
+  return error instanceof TeacherRunCancelledError || /老师任务已停止|KataGo 分析已取消|AbortError|LLM 请求已取消/i.test(String(error))
+}
+
+export function cancelTeacherRun(payload: { runId?: string } = {}): { cancelled: number } {
+  let cancelled = 0
+  for (const [runId, active] of ACTIVE_TEACHER_RUNS.entries()) {
+    if (payload.runId && payload.runId !== runId) {
+      continue
+    }
+    if (!active.cancelled) {
+      active.cancelled = true
+      active.abortController.abort(new TeacherRunCancelledError())
+      cancelled += 1
+    }
+  }
+  const katago = payload.runId
+    ? cancelKataGoAnalysis({ runId: payload.runId })
+    : cancelKataGoAnalysis({ group: 'teacher' })
+  if (payload.runId) {
+    const teacherGroup = cancelKataGoAnalysis({ group: 'teacher' })
+    cancelled += katago.cancelled + teacherGroup.cancelled
+  } else {
+    cancelled += katago.cancelled
+  }
+  return { cancelled }
+}
 
 function agentSystemPrompt(level: CoachUserLevel): string {
   return systemPrompt(level)
@@ -608,25 +656,93 @@ function summarizeGames(games: LibraryGame[]): Array<Pick<LibraryGame, 'id' | 't
   }))
 }
 
+type StoneColor = GameMove['color']
+
+function oppositeColor(color: StoneColor): StoneColor {
+  return color === 'B' ? 'W' : 'B'
+}
+
+function displayWinrateForColor(blackWinrate: number | undefined, color: StoneColor): number {
+  const value = typeof blackWinrate === 'number' && Number.isFinite(blackWinrate) ? blackWinrate : 0
+  return color === 'B' ? value : 100 - value
+}
+
+function displayScoreLeadForColor(blackScoreLead: number | undefined, color: StoneColor): number {
+  const value = typeof blackScoreLead === 'number' && Number.isFinite(blackScoreLead) ? blackScoreLead : 0
+  return color === 'B' ? value : -value
+}
+
+function roundMetric(value: number | undefined, digits = 2): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0
+  const factor = 10 ** digits
+  return Math.round(value * factor) / factor
+}
+
+function compactCandidateForColor(candidate: KataGoMoveAnalysis['before']['topMoves'][number], color: StoneColor, rank: number): JsonObject {
+  return {
+    ...candidate,
+    rank,
+    perspectiveColor: color,
+    winrate: roundMetric(displayWinrateForColor(candidate.winrate, color), 2),
+    scoreLead: roundMetric(displayScoreLeadForColor(candidate.scoreLead, color), 2),
+    blackWinrate: roundMetric(candidate.winrate, 2),
+    blackScoreLead: roundMetric(candidate.scoreLead, 2)
+  }
+}
+
+function compactPlayedMoveForColor(
+  playedMove: KataGoMoveAnalysis['playedMove'],
+  color: StoneColor
+): JsonObject | undefined {
+  if (!playedMove) return undefined
+  return {
+    ...playedMove,
+    perspectiveColor: color,
+    winrate: roundMetric(playedMove.playerWinrate ?? displayWinrateForColor(playedMove.winrate, color), 2),
+    scoreLead: roundMetric(playedMove.playerScoreLead ?? displayScoreLeadForColor(playedMove.scoreLead, color), 2),
+    blackWinrate: roundMetric(playedMove.winrate, 2),
+    blackScoreLead: roundMetric(playedMove.scoreLead, 2),
+    playerWinrate: roundMetric(playedMove.playerWinrate ?? displayWinrateForColor(playedMove.winrate, color), 2),
+    playerScoreLead: roundMetric(playedMove.playerScoreLead ?? displayScoreLeadForColor(playedMove.scoreLead, color), 2)
+  }
+}
+
 function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
   const teachingPacing = buildTeachingPacingAdvice(analysis)
+  const playerColor = analysis.currentMove?.color ?? 'B'
+  const afterSideToMoveColor = analysis.currentMove ? oppositeColor(analysis.currentMove.color) : playerColor
   return {
     gameId: analysis.gameId,
     moveNumber: analysis.moveNumber,
     boardSize: analysis.boardSize,
     currentMove: analysis.currentMove,
     judgement: analysis.judgement,
+    winratePerspective: {
+      primaryFields: 'board-display/player perspective',
+      rawFields: 'blackWinrate/blackScoreLead',
+      beforePerspectiveColor: playerColor,
+      afterActualPerspectiveColor: playerColor,
+      afterTopMovesPerspectiveColor: afterSideToMoveColor,
+      note: 'Use winrate/scoreLead for teacher-visible claims; they match the board display. Use blackWinrate/blackScoreLead only when explicitly discussing black perspective.'
+    },
     before: {
-      winrate: analysis.before.winrate,
-      scoreLead: analysis.before.scoreLead,
-      topMoves: analysis.before.topMoves.slice(0, 8)
+      perspectiveColor: playerColor,
+      winrate: roundMetric(displayWinrateForColor(analysis.before.winrate, playerColor), 2),
+      scoreLead: roundMetric(displayScoreLeadForColor(analysis.before.scoreLead, playerColor), 2),
+      blackWinrate: roundMetric(analysis.before.winrate, 2),
+      blackScoreLead: roundMetric(analysis.before.scoreLead, 2),
+      topMoves: analysis.before.topMoves.slice(0, 8).map((candidate, index) => compactCandidateForColor(candidate, playerColor, index + 1))
     },
     after: {
-      winrate: analysis.after.winrate,
-      scoreLead: analysis.after.scoreLead,
-      topMoves: analysis.after.topMoves.slice(0, 5)
+      perspectiveColor: playerColor,
+      topMovesPerspectiveColor: afterSideToMoveColor,
+      winrate: roundMetric(displayWinrateForColor(analysis.after.winrate, playerColor), 2),
+      scoreLead: roundMetric(displayScoreLeadForColor(analysis.after.scoreLead, playerColor), 2),
+      blackWinrate: roundMetric(analysis.after.winrate, 2),
+      blackScoreLead: roundMetric(analysis.after.scoreLead, 2),
+      topMoves: analysis.after.topMoves.slice(0, 5).map((candidate, index) => compactCandidateForColor(candidate, afterSideToMoveColor, index + 1))
     },
-    playedMove: analysis.playedMove,
+    playedMove: compactPlayedMoveForColor(analysis.playedMove, playerColor),
     analysisQuality: analysis.analysisQuality,
     humanCalibration: analysis.humanCalibration,
     ownershipSummary: analysis.ownershipSummary,
@@ -837,6 +953,7 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         maxVisits: { type: 'number' }
       }),
       execute: async (input) => {
+        assertTeacherRunActive(state.context)
         const gameId = stringInput(input, 'gameId', state.request.gameId)
         if (!gameId) throw new Error('katago.analyzePosition 需要 gameId。')
         const record = await ensureSessionRecord(state, gameId)
@@ -844,7 +961,11 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         const prefetched = state.request.prefetchedAnalysis
         const analysis = prefetched?.gameId === gameId && prefetched.moveNumber === moveNumber
           ? prefetched
-          : await analyzePosition(gameId, moveNumber, numberInput(input, 'maxVisits', 520, 40, 3000))
+          : await analyzePosition(gameId, moveNumber, numberInput(input, 'maxVisits', 520, 40, 3000), {
+              runId: state.id,
+              group: 'teacher'
+            })
+        assertTeacherRunActive(state.context)
         state.lastAnalysis = analysis
         state.teachingPacing = buildTeachingPacingAdvice(analysis)
         return compactAnalysis(analysis)
@@ -873,11 +994,14 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         const maxVisits = numberInput(input, 'maxVisits', 220, 40, 2000)
         const minWinrateDrop = numberInput(input, 'minWinrateDrop', 6, 1, 40)
         for (const game of games) {
+          assertTeacherRunActive(state.context)
           const analyses = await analyzeGameQuick(game.id, maxVisits, undefined, {
             refineVisits: Math.max(maxVisits, 420),
             refineTopN: 8,
-            runId: `${state.id}-batch-${game.id}`
+            runId: `${state.id}-batch-${game.id}`,
+            group: 'teacher'
           })
+          assertTeacherRunActive(state.context)
           issues.push(...extractIssuesFromAnalyses(analyses, game, minWinrateDrop))
         }
         return {
@@ -913,7 +1037,11 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         }
         const analyses = []
         for (const moveNumber of selected) {
-          analyses.push(await analyzePosition(gameId, moveNumber, 500))
+          assertTeacherRunActive(state.context)
+          analyses.push(await analyzePosition(gameId, moveNumber, 500, {
+            runId: state.id,
+            group: 'teacher'
+          }))
         }
         return {
           moveRange: state.request.moveRange,
@@ -1031,10 +1159,14 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         moveNumber: { type: 'number' }
       }),
       execute: async (input) => {
+        assertTeacherRunActive(state.context)
         const gameId = stringInput(input, 'gameId', state.request.gameId)
         if (!gameId) throw new Error('katago.verifyAnalysis 需要 gameId。')
         const record = await ensureSessionRecord(state, gameId)
-        const analysis = await analyzePosition(gameId, numberInput(input, 'moveNumber', state.request.moveNumber ?? record?.moves.length ?? 0), 80)
+        const analysis = await analyzePosition(gameId, numberInput(input, 'moveNumber', state.request.moveNumber ?? record?.moves.length ?? 0), 80, {
+          runId: state.id,
+          group: 'teacher'
+        })
         return compactAnalysis(analysis)
       }
     },
@@ -1126,6 +1258,7 @@ async function executeAgentToolCall(
   tools: Map<string, TeacherAgentToolDefinition>,
   state: TeacherAgentSessionState
 ): Promise<string> {
+  assertTeacherRunActive(state.context)
   const tool = tools.get(call.function.name)
   if (!tool) {
     return compactToolResult({ ok: false, error: `Unknown tool: ${call.function.name}` })
@@ -1134,10 +1267,16 @@ async function executeAgentToolCall(
   emitToolState(state.context, state.logs, `正在执行 ${tool.canonicalName}`)
   try {
     const result = await tool.execute(parseToolArguments(call), state)
+    assertTeacherRunActive(state.context)
     finishTool(log, 'done', toolLogDetailFromResult(result))
     emitToolState(state.context, state.logs, `${tool.canonicalName} 已完成`)
     return compactToolResult({ ok: true, tool: tool.canonicalName, result })
   } catch (error) {
+    if (isCancellationError(error)) {
+      finishTool(log, 'skipped', '用户已停止本次分析。')
+      emitToolState(state.context, state.logs, '用户已停止本次分析。')
+      throw new TeacherRunCancelledError()
+    }
     const detail = `工具失败: ${String(error)}`
     finishTool(log, 'error', detail)
     emitToolState(state.context, state.logs, detail)
@@ -1187,12 +1326,14 @@ async function runTeacherAgentSession(
   let finalText = ''
   let emittedText = ''
   for (;;) {
+    assertTeacherRunActive(context)
     let streamedThisTurn = ''
     const result = await streamOpenAICompatibleToolTurn(settings, messages, tools, 4096, (delta) => {
       streamedThisTurn += delta
       emittedText += delta
       emitAssistantDelta(context, delta)
-    })
+    }, context?.signal)
+    assertTeacherRunActive(context)
     if (result.toolCalls.length > 0) {
       messages.push({
         role: 'assistant',
@@ -1268,6 +1409,11 @@ async function runTeacherAgentSession(
 
 export async function runTeacherTask(request: TeacherRunRequest, onProgress?: TeacherProgressEmitter): Promise<TeacherRunResult> {
   const id = request.runId || randomUUID()
+  const activeRun = {
+    abortController: new AbortController(),
+    cancelled: false
+  }
+  ACTIVE_TEACHER_RUNS.set(id, activeRun)
   const parsedRange = request.moveRange ?? parseMoveRangeFromPrompt(request.prompt ?? '') ?? undefined
   const appSettings = getSettings()
   const normalizedRequest: TeacherRunRequest = {
@@ -1292,10 +1438,12 @@ export async function runTeacherTask(request: TeacherRunRequest, onProgress?: Te
   const intent = intentClassification.intent
   const context: TeacherRunContext = {
     runId: id,
-    emit: onProgress
+    emit: onProgress,
+    signal: activeRun.abortController.signal
   }
 
-  emitProgress(context, {
+  try {
+    emitProgress(context, {
       stage: 'queued',
       message: intent === 'current-move'
         ? '收到当前手分析任务。'
@@ -1317,10 +1465,10 @@ export async function runTeacherTask(request: TeacherRunRequest, onProgress?: Te
         startedAt: new Date().toISOString(),
         endedAt: new Date().toISOString()
       }]
-  })
-
-  try {
+    })
+    assertTeacherRunActive(context)
     const result = await runTeacherAgentSession(normalizedRequest, logs, id, intent, context)
+    assertTeacherRunActive(context)
     emitProgress(context, {
       stage: 'done',
       markdown: result.markdown,
@@ -1335,5 +1483,10 @@ export async function runTeacherTask(request: TeacherRunRequest, onProgress?: Te
       toolLogs: cloneToolLogs(logs)
     })
     throw error
+  } finally {
+    const current = ACTIVE_TEACHER_RUNS.get(id)
+    if (current === activeRun) {
+      ACTIVE_TEACHER_RUNS.delete(id)
+    }
   }
 }

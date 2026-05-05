@@ -558,6 +558,14 @@ export interface TeacherRunRequest {
   prefetchedAnalysis?: KataGoMoveAnalysis
 }
 
+export interface TeacherRunCancelRequest {
+  runId?: string
+}
+
+export interface TeacherRunCancelResult {
+  cancelled: number
+}
+
 export type TeacherRunProgressStage = 'queued' | 'tool' | 'assistant-start' | 'assistant-delta' | 'done' | 'error'
 
 export interface TeacherRunProgress {
@@ -603,7 +611,7 @@ export interface AnalyzeGameQuickProgress {
   totalPositions: number
 }
 
-export type KataGoAnalysisGroup = 'quick' | 'live' | 'single' | 'batch'
+export type KataGoAnalysisGroup = 'quick' | 'live' | 'single' | 'batch' | 'teacher'
 
 export interface KataGoCancelAnalysisRequest {
   runId?: string

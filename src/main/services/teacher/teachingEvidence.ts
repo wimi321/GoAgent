@@ -22,6 +22,9 @@ export type TeachingMode = 'clear-mistake' | 'candidate-choice' | 'style-choice'
 export interface TeachingEvidenceCandidate extends Pick<KataGoCandidate, 'move' | 'winrate' | 'scoreLead' | 'visits' | 'order' | 'pv'> {
   rank: number
   humanLabel: 'best' | 'playable' | 'variation'
+  perspectiveColor?: StoneColor
+  blackWinrate?: number
+  blackScoreLead?: number
 }
 
 export interface TeachingEvidence {
@@ -36,15 +39,24 @@ export interface TeachingEvidence {
   before: {
     winrate: number
     scoreLead: number
+    perspectiveColor?: StoneColor
+    blackWinrate?: number
+    blackScoreLead?: number
   }
   afterActual: {
     winrate: number
     scoreLead: number
+    perspectiveColor?: StoneColor
+    blackWinrate?: number
+    blackScoreLead?: number
   }
   playedMove?: {
     move: string
     winrate?: number
     scoreLead?: number
+    perspectiveColor?: StoneColor
+    blackWinrate?: number
+    blackScoreLead?: number
     visits?: number
     rank?: number
     source?: string
@@ -114,6 +126,16 @@ function round(value: number | undefined, digits = 2): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 0
   const factor = 10 ** digits
   return Math.round(value * factor) / factor
+}
+
+function displayWinrateForColor(blackWinrate: number | undefined, color: StoneColor): number {
+  const value = typeof blackWinrate === 'number' && Number.isFinite(blackWinrate) ? blackWinrate : 0
+  return color === 'B' ? value : 100 - value
+}
+
+function displayScoreLeadForColor(blackScoreLead: number | undefined, color: StoneColor): number {
+  const value = typeof blackScoreLead === 'number' && Number.isFinite(blackScoreLead) ? blackScoreLead : 0
+  return color === 'B' ? value : -value
 }
 
 function inferPhase(moveNumber: number): TeachingPhase {
@@ -247,10 +269,15 @@ function hintPurpose(label: TeachingEvidenceCandidate['humanLabel'], focus: Teac
 }
 
 function uniqueHintCandidates(analysis: KataGoMoveAnalysis): TeachingEvidenceCandidate[] {
+  const rawPlayerColor = playerColor(analysis)
+  const perspectiveColor: StoneColor = rawPlayerColor === 'unknown' ? 'B' : rawPlayerColor
   const candidates = (analysis.before.topMoves ?? []).slice(0, 3).map((move, index) => ({
     move: move.move,
-    winrate: round(move.winrate, 2),
-    scoreLead: round(move.scoreLead, 2),
+    winrate: round(displayWinrateForColor(move.winrate, perspectiveColor), 2),
+    scoreLead: round(displayScoreLeadForColor(move.scoreLead, perspectiveColor), 2),
+    perspectiveColor,
+    blackWinrate: round(move.winrate, 2),
+    blackScoreLead: round(move.scoreLead, 2),
     visits: move.visits ?? 0,
     order: move.order,
     pv: (move.pv ?? []).slice(0, 8),
@@ -356,11 +383,16 @@ export function buildTeachingEvidence(
   const severity = inferSeverity(winrateLoss, scoreLoss, analysis.judgement)
   const confidence = inferConfidence(analysis, severity)
   const teachingPacing = buildTeachingPacingAdvice(analysis, knowledgeMatches, recognizedMotifs)
+  const rawPlayerColor = playerColor(analysis)
+  const perspectiveColor: StoneColor = rawPlayerColor === 'unknown' ? 'B' : rawPlayerColor
 
   const bestCandidates = (analysis.before.topMoves ?? []).slice(0, 5).map((move, index) => ({
     move: move.move,
-    winrate: round(move.winrate, 2),
-    scoreLead: round(move.scoreLead, 2),
+    winrate: round(displayWinrateForColor(move.winrate, perspectiveColor), 2),
+    scoreLead: round(displayScoreLeadForColor(move.scoreLead, perspectiveColor), 2),
+    perspectiveColor,
+    blackWinrate: round(move.winrate, 2),
+    blackScoreLead: round(move.scoreLead, 2),
     visits: move.visits ?? 0,
     order: move.order,
     pv: (move.pv ?? []).slice(0, 8),
@@ -378,18 +410,27 @@ export function buildTeachingEvidence(
     playerColor: playerColor(analysis),
     actualMove: analysis.playedMove?.move ?? analysis.currentMove?.gtp,
     before: {
-      winrate: round(analysis.before.winrate, 2),
-      scoreLead: round(analysis.before.scoreLead, 2)
+      winrate: round(displayWinrateForColor(analysis.before.winrate, perspectiveColor), 2),
+      scoreLead: round(displayScoreLeadForColor(analysis.before.scoreLead, perspectiveColor), 2),
+      perspectiveColor,
+      blackWinrate: round(analysis.before.winrate, 2),
+      blackScoreLead: round(analysis.before.scoreLead, 2)
     },
     afterActual: {
-      winrate: round(analysis.after.winrate, 2),
-      scoreLead: round(analysis.after.scoreLead, 2)
+      winrate: round(displayWinrateForColor(analysis.after.winrate, perspectiveColor), 2),
+      scoreLead: round(displayScoreLeadForColor(analysis.after.scoreLead, perspectiveColor), 2),
+      perspectiveColor,
+      blackWinrate: round(analysis.after.winrate, 2),
+      blackScoreLead: round(analysis.after.scoreLead, 2)
     },
     playedMove: analysis.playedMove
       ? {
           move: analysis.playedMove.move,
-          winrate: round(analysis.playedMove.winrate, 2),
-          scoreLead: round(analysis.playedMove.scoreLead, 2),
+          winrate: round(analysis.playedMove.playerWinrate ?? displayWinrateForColor(analysis.playedMove.winrate, perspectiveColor), 2),
+          scoreLead: round(analysis.playedMove.playerScoreLead ?? displayScoreLeadForColor(analysis.playedMove.scoreLead, perspectiveColor), 2),
+          perspectiveColor,
+          blackWinrate: round(analysis.playedMove.winrate, 2),
+          blackScoreLead: round(analysis.playedMove.scoreLead, 2),
           visits: analysis.playedMove.visits,
           rank: analysis.playedMove.rank,
           source: analysis.playedMove.source

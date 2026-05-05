@@ -45,7 +45,7 @@ export function formatWinrate(value: number | null | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return '—'
   }
-  const normalized = value <= 1 ? value * 100 : value
+  const normalized = clampNumber(value, 0, 100)
   return `${normalized.toFixed(1)}%`
 }
 

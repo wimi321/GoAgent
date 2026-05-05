@@ -1,12 +1,12 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type ContextMenuParams, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getSettings, hasLlmApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
-import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherChatMessage, TeacherRunRequest } from './lib/types'
+import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
 import { runReview } from './services/review'
 import { applyDetectedDefaults, detectSystemProfile } from './services/systemProfile'
-import { runTeacherTask } from './services/teacherAgent'
+import { cancelTeacherRun, runTeacherTask } from './services/teacherAgent'
 import { listLlmModels, testLlmSettings } from './services/llm'
 import { analyzeGameQuick, analyzePosition, analyzePositionWithProgress, cancelKataGoAnalysis } from './services/katago'
 import { benchmarkKataGo } from './services/katagoBenchmark'
@@ -337,7 +337,10 @@ app.whenReady().then(() => {
   ipcMain.handle('teacher-sessions:delete', async (_event, sessionId: string) => deleteTeacherSession(sessionId))
   ipcMain.handle('review:start', async (_event, payload: ReviewRequest) => runReview(payload))
   ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) =>
-    analyzePosition(payload.gameId, payload.moveNumber, payload.maxVisits ?? 500)
+    analyzePosition(payload.gameId, payload.moveNumber, payload.maxVisits ?? 500, {
+      runId: payload.runId,
+      group: payload.runId ? 'teacher' : 'single'
+    })
   )
   ipcMain.handle('katago:analyze-position-stream', async (event, payload: AnalyzePositionRequest) => {
     try {
@@ -383,6 +386,9 @@ app.whenReady().then(() => {
     runTeacherTask(payload, (progress) => {
       safeSendToRenderer(event, 'teacher:run-progress', progress)
     })
+  )
+  ipcMain.handle('teacher:cancel-run', async (_event, payload: TeacherRunCancelRequest | undefined) =>
+    cancelTeacherRun(payload ?? {})
   )
   ipcMain.handle('llm:test', async (_event, payload: LlmSettingsTestRequest) => testLlmSettings(payload))
   ipcMain.handle('llm:list-models', async (_event, payload: LlmModelsListRequest) => listLlmModels(payload))

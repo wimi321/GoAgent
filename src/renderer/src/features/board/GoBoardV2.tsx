@@ -454,7 +454,7 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
             const p = xy(stone, boardSize)
             const isPreviousMove = stone.moveNumber === previousMoveNumber
             return (
-              <g key={stone.moveNumber} className={`ks-stone ks-stone--${stone.color} ${isPreviousMove ? 'ks-stone--previous' : ''}`} transform={`translate(${p.x} ${p.y})`}>
+              <g key={`${stone.x}-${stone.y}-${stone.moveNumber}`} className={`ks-stone ks-stone--${stone.color} ${isPreviousMove ? 'ks-stone--previous' : ''}`} transform={`translate(${p.x} ${p.y})`}>
                 <circle className="ks-stone-shadow" r="24" />
                 <circle className="ks-stone-body" r="22.2" />
                 <ellipse className="ks-stone-highlight" cx="-6.5" cy="-8.2" rx="8.6" ry="5.2" />

@@ -2,11 +2,25 @@ import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
+import ts from 'typescript'
 
 const root = process.cwd()
 
 function read(relativePath) {
   return readFileSync(join(root, relativePath), 'utf8')
+}
+
+async function importRendererModule(relativePath) {
+  const source = read(relativePath)
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+      importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove
+    }
+  }).outputText
+  return import(`data:text/javascript;base64,${Buffer.from(compiled, 'utf8').toString('base64')}`)
 }
 
 test('Sprint 7 UI Gallery route and mock data are present', () => {
@@ -62,6 +76,50 @@ test('GoBoardV2 renders polished stone and candidate layers', () => {
   assert.match(geometry, /RenderVariationMove/)
   assert.match(geometry, /candidateVariationMoves/)
   assert.match(geometry, /valueOf\(valueOf\(analysis, 'before'\), 'topMoves'\)/)
+  assert.match(geometry, /type RenderBoard = Map<string, RenderStone>/)
+  assert.match(geometry, /function collectRenderGroup/)
+  assert.match(geometry, /function groupLiberties/)
+  assert.match(geometry, /function removeRenderGroup/)
+  assert.match(geometry, /function playRenderMove/)
+  assert.match(geometry, /record\.initialStones/)
+  assert.match(geometry, /groupLiberties\(board, group, boardSize\) === 0/)
+  assert.doesNotMatch(geometry, /moves\.slice\(0, Math\.max\(0, moveNumber\)\)\.flatMap/)
+})
+
+test('GoBoardV2 stone rendering reconstructs captures before drawing stones', async () => {
+  const { renderStones } = await importRendererModule('src/renderer/src/features/board/boardGeometry.ts')
+  const moves = [
+    ['B', 0, 1],
+    ['W', 1, 1],
+    ['B', 0, 2],
+    ['W', 1, 2],
+    ['B', 1, 0],
+    ['W', 4, 4],
+    ['B', 1, 3],
+    ['W', 4, 3],
+    ['B', 2, 1],
+    ['W', 3, 3],
+    ['B', 2, 2],
+    ['W', 1, 1]
+  ].map(([color, row, col], index) => ({
+    moveNumber: index + 1,
+    color,
+    point: `${row}${col}`,
+    row,
+    col,
+    gtp: `${row}-${col}`,
+    pass: false
+  }))
+  const record = { boardSize: 5, moves, komi: '0', handicap: '0', game: { id: 'capture-fixture' } }
+  const afterCapture = renderStones(record, 11)
+  assert.equal(afterCapture.some((stone) => stone.x === 1 && stone.y === 1), false)
+  assert.equal(afterCapture.some((stone) => stone.x === 2 && stone.y === 1), false)
+
+  const afterReoccupy = renderStones(record, 12)
+  const reoccupied = afterReoccupy.find((stone) => stone.x === 1 && stone.y === 1)
+  assert.equal(reoccupied?.color, 'W')
+  assert.equal(reoccupied?.moveNumber, 12)
+  assert.equal(afterReoccupy.some((stone) => stone.x === 2 && stone.y === 1), false)
 })
 
 test('Current-move teacher screenshot has procedural asset fallback', () => {
@@ -236,10 +294,20 @@ test('TeacherRunCardPro behaves like an AI editor response instead of a fixed re
   assert.match(composer, /Ask GoMentor/)
   assert.match(composer, /ks-composer-pro__actions/)
   assert.match(composer, /ks-composer-pro__chrome/)
+  assert.match(composer, /onStop/)
+  assert.match(composer, /aria-label=\{busy \? '停止生成' : '发送'\}/)
+  assert.match(composer, /\{busy \? '停止' : '发送'\}/)
   assert.doesNotMatch(composer, /问任何复盘问题/)
+  const preload = read('src/preload/index.ts')
+  const main = read('src/main/index.ts')
+  assert.match(preload, /cancelTeacherRun/)
+  assert.match(main, /teacher:cancel-run/)
   const agent = read('src/main/services/teacherAgent.ts')
   assert.match(agent, /runTeacherAgentSession/)
   assert.match(agent, /streamOpenAICompatibleToolTurn/)
+  assert.match(agent, /cancelTeacherRun/)
+  assert.match(agent, /AbortController/)
+  assert.match(agent, /老师任务已停止/)
   assert.match(agent, /shell_exec/)
   assert.match(agent, /emitAssistantDelta/)
   assert.match(agent, /assistant-start/)
