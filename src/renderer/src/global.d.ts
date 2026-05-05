@@ -16,6 +16,8 @@ import type {
   KataGoBenchmarkResult,
   KataGoCancelAnalysisRequest,
   KataGoCancelAnalysisResult,
+  LibraryDeleteRequest,
+  LibraryDeleteResult,
   LibraryImportResult,
   LlmModelsListRequest,
   LlmModelsListResult,
@@ -52,6 +54,7 @@ declare global {
       getDashboard: () => Promise<DashboardData>
       getGameRecord: (gameId: string) => Promise<GameRecord>
       importLibrary: () => Promise<LibraryImportResult>
+      deleteLibraryGame: (payload: LibraryDeleteRequest) => Promise<LibraryDeleteResult>
       updateSettings: (payload: Partial<AppSettings>) => Promise<DashboardData>
       autoDetectSettings: () => Promise<DashboardData>
       syncFox: (payload: FoxSyncRequest) => Promise<FoxSyncResponse>

@@ -229,6 +229,22 @@ export function readStudentForGame(gameId: string): StudentProfile | null {
   return studentId ? hydrateProfile(profileStore.get(studentId)) : null
 }
 
+export function detachGameFromStudents(gameId: string): void {
+  const index = getIndex()
+  delete index.gameStudentMap[gameId]
+  saveIndex(index)
+
+  for (const profile of allProfiles()) {
+    if (!profile.recentGameIds.includes(gameId)) {
+      continue
+    }
+    saveStudentProfileInternal({
+      ...profile,
+      recentGameIds: profile.recentGameIds.filter((id) => id !== gameId)
+    })
+  }
+}
+
 export function getStudentProfile(name: string): StudentProfile {
   return resolveStudentByName(name || '默认学生')
 }

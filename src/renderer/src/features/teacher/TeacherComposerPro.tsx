@@ -37,7 +37,7 @@ export function TeacherComposerPro({ value, busy = false, actions = [], onChange
 
   return (
     <form ref={formRef} className="ks-composer-pro" onSubmit={onSubmit}>
-      <span className="ks-composer-pro__chrome">Ask GoMentor</span>
+      <span className="ks-composer-pro__chrome">Ask GoMentor：新会话、关闭会话、历史、教学设定包含学生级别（段位）、年龄、老师风格</span>
       {actions.length > 0 ? (
         <div className="ks-composer-pro__actions" aria-label="老师快捷动作">
           {actions.map((action) => (
