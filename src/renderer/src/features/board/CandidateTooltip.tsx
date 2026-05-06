@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import type { UiTranslator } from '../../i18n'
 import { formatScoreLead, formatWinrate } from './timelineInteraction'
 
 export interface CandidateTooltipMove {
@@ -22,6 +23,7 @@ export interface CandidateTooltipProps {
   candidate: CandidateTooltipMove | null
   position: CandidateTooltipPosition | null
   boardLabel?: string
+  t?: UiTranslator
 }
 
 function formatPrior(value: number | undefined): string {
@@ -31,13 +33,24 @@ function formatPrior(value: number | undefined): string {
   return `${(value <= 1 ? value * 100 : value).toFixed(1)}%`
 }
 
-export function CandidateTooltip({ candidate, position, boardLabel }: CandidateTooltipProps): ReactElement | null {
+export function CandidateTooltip({ candidate, position, boardLabel, t: providedT }: CandidateTooltipProps): ReactElement | null {
+  const t = providedT ?? ((key: string) => {
+    const fallback: Record<string, string> = {
+      boardCandidate: '候选点',
+      boardRecommended: '推荐',
+      candidateWinrate: '胜率',
+      candidateScore: '目差',
+      candidateVisits: '访问',
+      candidatePrior: '先验'
+    }
+    return fallback[key] ?? key
+  }) as UiTranslator
   if (!candidate || !position) {
     return null
   }
 
-  const title = candidate.move || candidate.gtp || boardLabel || '候选点'
-  const order = candidate.order ? `#${candidate.order}` : '推荐'
+  const title = candidate.move || candidate.gtp || boardLabel || t('boardCandidate')
+  const order = candidate.order ? `#${candidate.order}` : t('boardRecommended')
 
   return (
     <div
@@ -52,13 +65,13 @@ export function CandidateTooltip({ candidate, position, boardLabel }: CandidateT
         <span>{order}</span>
       </div>
       <div className="candidate-tooltip__grid">
-        <span>胜率</span>
+        <span>{t('candidateWinrate')}</span>
         <strong>{formatWinrate(candidate.winrate)}</strong>
-        <span>目差</span>
+        <span>{t('candidateScore')}</span>
         <strong>{formatScoreLead(candidate.scoreLead)}</strong>
-        <span>访问</span>
+        <span>{t('candidateVisits')}</span>
         <strong>{candidate.visits ?? '—'}</strong>
-        <span>先验</span>
+        <span>{t('candidatePrior')}</span>
         <strong>{formatPrior(candidate.prior)}</strong>
       </div>
       {candidate.pv && candidate.pv.length > 0 ? (

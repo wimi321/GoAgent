@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import type { KataGoAssetInstallProgress, KataGoModelPreset } from '@main/lib/types'
+import { translateKataGoPreset, type UiTranslator } from '../../i18n'
 
 export interface KataGoAssetStatusView {
   platformKey: string
@@ -27,18 +28,18 @@ function formatBytes(value: number | undefined): string {
   return `${Math.round(value / 1024)} KB`
 }
 
-function speedTierLabel(tier: KataGoModelPreset['speedTier'] | undefined): string {
+function speedTierLabel(tier: KataGoModelPreset['speedTier'] | undefined, t: UiTranslator): string {
   switch (tier) {
     case 'fast':
-      return '速度优先'
+      return t('speedFast')
     case 'balanced':
-      return '教学平衡'
+      return t('speedBalanced')
     case 'strong':
-      return '精读强度'
+      return t('speedStrong')
     case 'maximum':
-      return '旗舰强度'
+      return t('speedMaximum')
     default:
-      return '官方权重'
+      return t('officialWeights')
   }
 }
 
@@ -49,7 +50,8 @@ export function KataGoAssetsPanel({
   installProgress,
   installMessage,
   onInstall,
-  onRefresh
+  onRefresh,
+  t: providedT
 }: {
   status?: KataGoAssetStatusView | null
   selectedPreset?: KataGoModelPreset
@@ -58,32 +60,58 @@ export function KataGoAssetsPanel({
   installMessage?: string
   onInstall?: () => void
   onRefresh?: () => void
+  t?: UiTranslator
 }): ReactElement {
+  const t = providedT ?? ((key: string, vars?: Record<string, string | number | undefined>) => {
+    const fallback: Record<string, string> = {
+      speedFast: '速度优先',
+      speedBalanced: '教学平衡',
+      speedStrong: '精读强度',
+      speedMaximum: '旗舰强度',
+      officialWeights: '官方权重',
+      weightReady: '已就绪',
+      weightInstalled: '权重已安装',
+      weightPending: '待应用',
+      weightInstall: '权重安装',
+      chooseWeightToApply: '选择权重后应用。',
+      selectedWeight: '当前选择',
+      recommendedScene: '推荐场景',
+      currentModel: `当前模型：${vars?.model ?? ''}`,
+      selectedWeightNotInstalled: '当前选择的权重尚未安装。',
+      engineNeedPrepare: ' KataGo 引擎还需要准备。',
+      assetStatusMissing: '尚未读取资源状态。',
+      applying: '应用中',
+      applySelectedWeight: '应用选择的权重',
+      recheck: '重新检查'
+    }
+    return fallback[key] ?? key
+  }) as UiTranslator
   const percent = installProgress?.percent
   const bytesLabel = installProgress?.receivedBytes
     ? `${formatBytes(installProgress.receivedBytes)}${installProgress.totalBytes ? ` / ${formatBytes(installProgress.totalBytes)}` : ''}`
     : ''
   const modelReady = Boolean(status?.modelFound)
   const binaryReady = Boolean(status?.binaryFound && status.binaryExecutable)
-  const statusLabel = status?.ready ? '已就绪' : modelReady ? '权重已安装' : '待应用'
+  const statusLabel = status?.ready ? t('weightReady') : modelReady ? t('weightInstalled') : t('weightPending')
+  const selectedPresetCopy = selectedPreset ? translateKataGoPreset(selectedPreset, t) : null
   return (
     <section className="runtime-card katago-assets-card">
       <header>
         <div>
-          <strong>权重安装</strong>
-          <p>{selectedPreset ? `${selectedPreset.blockSize} · ${speedTierLabel(selectedPreset.speedTier)} · ${selectedPreset.badge}` : '选择权重后应用。'}</p>
+          <strong>{t('weightInstall')}</strong>
+          <p>{selectedPresetCopy ? `${selectedPresetCopy.blockSize} · ${speedTierLabel(selectedPresetCopy.speedTier, t)} · ${selectedPresetCopy.badge}` : t('chooseWeightToApply')}</p>
         </div>
         <span className={status?.ready ? 'runtime-pill runtime-pill--ready' : 'runtime-pill runtime-pill--warn'}>{statusLabel}</span>
       </header>
       {selectedPreset ? (
         <div className="katago-preset-card">
           <div>
-            <span>当前选择</span>
-            <strong>{selectedPreset.group}</strong>
+            <span>{t('selectedWeight')}</span>
+            <strong>{selectedPresetCopy?.group ?? selectedPreset.group}</strong>
           </div>
           <div>
-            <span>推荐场景</span>
-            <strong>{selectedPreset.blockSize} · {speedTierLabel(selectedPreset.speedTier)}</strong>
+            <span>{t('recommendedScene')}</span>
+            <strong>{selectedPresetCopy?.blockSize ?? selectedPreset.blockSize} · {speedTierLabel(selectedPresetCopy?.speedTier ?? selectedPreset.speedTier, t)}</strong>
           </div>
         </div>
       ) : null}
@@ -91,11 +119,11 @@ export function KataGoAssetsPanel({
         <div className="katago-resource-summary">
           <span className={modelReady ? 'runtime-dot runtime-dot--ready' : 'runtime-dot runtime-dot--warn'} />
           <p>
-            {modelReady ? `当前模型：${status.modelDisplayName}` : '当前选择的权重尚未安装。'}
-            {!binaryReady ? ' KataGo 引擎还需要准备。' : ''}
+            {modelReady ? t('currentModel', { model: status.modelDisplayName }) : t('selectedWeightNotInstalled')}
+            {!binaryReady ? t('engineNeedPrepare') : ''}
           </p>
         </div>
-      ) : <p>尚未读取资源状态。</p>}
+      ) : <p>{t('assetStatusMissing')}</p>}
       {installProgress ? (
         <div className="katago-install-progress" aria-live="polite">
           <div>
@@ -111,9 +139,9 @@ export function KataGoAssetsPanel({
       {installMessage && !installProgress ? <p className="test-message">{installMessage}</p> : null}
       <div className="katago-assets-card__actions">
         <button className="primary-button" type="button" onClick={onInstall} disabled={!onInstall || busy}>
-          {busy ? '应用中' : '应用选择的权重'}
+          {busy ? t('applying') : t('applySelectedWeight')}
         </button>
-        <button className="ghost-button" type="button" onClick={onRefresh}>重新检查</button>
+        <button className="ghost-button" type="button" onClick={onRefresh}>{t('recheck')}</button>
       </div>
     </section>
   )

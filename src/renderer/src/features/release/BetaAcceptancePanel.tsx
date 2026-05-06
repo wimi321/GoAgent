@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import type { ReleaseReadinessFlags } from '@main/lib/types'
+import type { UiTranslator } from '../../i18n'
 
 export interface BetaAcceptanceItem {
   id: string
@@ -12,16 +13,35 @@ export interface BetaAcceptancePanelProps {
   items: BetaAcceptanceItem[]
   flags?: ReleaseReadinessFlags
   onRunChecks?: () => void
+  t?: UiTranslator
 }
 
-const statusLabel: Record<BetaAcceptanceItem['status'], string> = {
-  pass: '通过',
-  warn: '警告',
-  fail: '失败',
-  unknown: '未检查'
+function labelForStatus(status: BetaAcceptanceItem['status'], t: UiTranslator): string {
+  if (status === 'pass') return t('pass')
+  if (status === 'warn') return t('warning')
+  if (status === 'fail') return t('fail')
+  return t('unknown')
 }
 
-export function BetaAcceptancePanel({ items, flags, onRunChecks }: BetaAcceptancePanelProps): ReactElement {
+export function BetaAcceptancePanel({ items, flags, onRunChecks, t: providedT }: BetaAcceptancePanelProps): ReactElement {
+  const t = providedT ?? ((key: string) => {
+    const fallback: Record<string, string> = {
+      betaAcceptance: 'P0 Beta 验收',
+      publicBetaReady: 'Public Beta Ready',
+      publicBetaNotReady: 'Public Beta 未就绪',
+      pass: '通过',
+      warning: '警告',
+      fail: '失败',
+      unknown: '未检查',
+      recheck: '重新检查',
+      automation: '自动化',
+      assets: '资源',
+      installers: '安装包',
+      signing: '签名',
+      visualQa: '视觉 QA'
+    }
+    return fallback[key] ?? key
+  }) as UiTranslator
   const failCount = items.filter((item) => item.status === 'fail').length
   const warnCount = items.filter((item) => item.status === 'warn').length
   const passCount = items.filter((item) => item.status === 'pass').length
@@ -31,27 +51,27 @@ export function BetaAcceptancePanel({ items, flags, onRunChecks }: BetaAcceptanc
     <section className="beta-acceptance-panel">
       <div className="beta-acceptance-panel__head">
         <div>
-          <strong>P0 Beta 验收</strong>
+          <strong>{t('betaAcceptance')}</strong>
           <small>
-            {publicBetaReady ? 'Public Beta Ready' : 'Public Beta 未就绪'} · {passCount} 通过 · {warnCount} 警告 · {failCount} 失败
+            {publicBetaReady ? t('publicBetaReady') : t('publicBetaNotReady')} · {passCount} {t('pass')} · {warnCount} {t('warning')} · {failCount} {t('fail')}
           </small>
         </div>
-        {onRunChecks ? <button type="button" onClick={onRunChecks}>重新检查</button> : null}
+        {onRunChecks ? <button type="button" onClick={onRunChecks}>{t('recheck')}</button> : null}
       </div>
       {flags ? (
         <div className="beta-acceptance-panel__flags">
-          <span data-ready={flags.automationReady}>自动化</span>
-          <span data-ready={flags.assetsReady}>资源</span>
-          <span data-ready={flags.installersReady}>安装包</span>
-          <span data-ready={flags.signingReady}>签名</span>
+          <span data-ready={flags.automationReady}>{t('automation')}</span>
+          <span data-ready={flags.assetsReady}>{t('assets')}</span>
+          <span data-ready={flags.installersReady}>{t('installers')}</span>
+          <span data-ready={flags.signingReady}>{t('signing')}</span>
           <span data-ready={flags.windowsSmokeReady}>Windows smoke</span>
-          <span data-ready={flags.visualQaReady}>视觉 QA</span>
+          <span data-ready={flags.visualQaReady}>{t('visualQa')}</span>
         </div>
       ) : null}
       <div className="beta-acceptance-panel__list">
         {items.map((item) => (
           <article key={item.id} className={`beta-check beta-check--${item.status}`}>
-            <span>{statusLabel[item.status]}</span>
+            <span>{labelForStatus(item.status, t)}</span>
             <div>
               <strong>{item.label}</strong>
               {item.detail ? <small>{item.detail}</small> : null}

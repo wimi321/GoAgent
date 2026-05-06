@@ -47,7 +47,16 @@ import { StudentBindingDialog } from './features/student/StudentBindingDialog'
 import { StudentRailCard } from './features/student/StudentRailCard'
 import { KataGoAssetsPanel } from './features/settings/KataGoAssetsPanel'
 import { TeacherComposerPro } from './features/teacher/TeacherComposerPro'
-import { createUiTranslator, humanizeUiError, normalizeUiLocale, SUPPORTED_UI_LOCALES } from './i18n'
+import {
+  createUiTranslator,
+  humanizeUiError,
+  localizeKataGoStatus,
+  normalizeUiLocale,
+  SUPPORTED_UI_LOCALES,
+  translateKataGoPreset,
+  translateKataGoPresetGroup,
+  type UiTranslator
+} from './i18n'
 import './features/diagnostics/diagnostics.css'
 import './features/student/student.css'
 import './features/teacher/teacher-run-card.css'
@@ -177,12 +186,14 @@ const VARIATION_DETAIL_OPTIONS: Array<{ value: TeacherVariationDetail; label: st
   { value: 'many', label: '详细' }
 ]
 
-const TEACHER_EMPTY_PROMPTS = [
-  '分析当前手情况',
-  '以白棋视角分析这盘棋',
-  '以黑棋视角分析这盘棋',
-  '这盘棋的有哪些妙手'
-]
+function teacherEmptyPrompts(t: UiTranslator): string[] {
+  return [
+    t('emptyPromptCurrent'),
+    t('emptyPromptWhite'),
+    t('emptyPromptBlack'),
+    t('emptyPromptGoodMoves')
+  ]
+}
 
 type TeacherPersonaUiSettings = Pick<
   AppSettings,
@@ -231,6 +242,51 @@ function coachLevelFromRank(rank: StudentRank): CoachUserLevel {
   return PERSONA_RANK_OPTIONS.find((option) => option.value === rank)?.coachLevel ?? 'intermediate'
 }
 
+function rankLabel(t: UiTranslator, rank: StudentRank): string {
+  const keyByRank: Record<StudentRank, Parameters<UiTranslator>[0]> = {
+    sub1d: 'rankSub1d',
+    '1d': 'rank1d',
+    '2d': 'rank2d',
+    '3d': 'rank3d',
+    '4d': 'rank4d',
+    '5d': 'rank5d',
+    '6d': 'rank6d',
+    '7d': 'rank7d',
+    '8d': 'rank8d',
+    '9d': 'rank9d'
+  }
+  return t(keyByRank[rank])
+}
+
+function teacherStyleLabel(t: UiTranslator, style: TeacherPersonaStyle): string {
+  const keyByStyle: Record<TeacherPersonaStyle, Parameters<UiTranslator>[0]> = {
+    gentle: 'styleGentle',
+    strict: 'styleStrict',
+    rigorous: 'styleRigorous',
+    balanced: 'styleBalanced',
+    humorous: 'styleHumorous'
+  }
+  return t(keyByStyle[style])
+}
+
+function terminologyDensityLabel(t: UiTranslator, density: TeacherTerminologyDensity): string {
+  if (density === 'low') return t('low')
+  if (density === 'high') return t('high')
+  return t('medium')
+}
+
+function explanationPaceLabel(t: UiTranslator, pace: TeacherExplanationPace): string {
+  if (pace === 'brief') return t('paceBrief')
+  if (pace === 'detailed') return t('paceDetailed')
+  return t('paceStandard')
+}
+
+function variationDetailLabel(t: UiTranslator, detail: TeacherVariationDetail): string {
+  if (detail === 'few') return t('variationFew')
+  if (detail === 'many') return t('variationMany')
+  return t('variationModerate')
+}
+
 function normalizeUiStudentRank(rank: unknown): StudentRank {
   if (rank === '10k' || rank === '1k') {
     return 'sub1d'
@@ -252,9 +308,11 @@ function formatTeacherSessionTime(value: string): string {
   return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
-function teacherSessionContext(session: TeacherSession): string {
-  const moveLabel = session.moveRange ? `手数 ${session.moveRange.start}-${session.moveRange.end}` : session.moveNumber ? `手数 ${session.moveNumber}` : ''
-  const evidenceLabel = session.messages.length > 0 ? `消息 ${session.messages.length}` : ''
+function teacherSessionContext(session: TeacherSession, t: UiTranslator): string {
+  const moveLabel = session.moveRange
+    ? t('moveRangeLabel', { start: session.moveRange.start, end: session.moveRange.end })
+    : session.moveNumber ? t('moveNumberLabel', { move: session.moveNumber }) : ''
+  const evidenceLabel = session.messages.length > 0 ? t('messagesCount', { count: session.messages.length }) : ''
   return [moveLabel, evidenceLabel].filter(Boolean).join(' · ')
 }
 
@@ -1128,7 +1186,7 @@ export function App(): ReactElement {
       setAnalysis((current) => preferAnalysis(current, preferred))
     } catch (cause) {
       if (graphRunId.current === runId) {
-        setError(`胜率图生成失败: ${String(cause)}`)
+        setError(t('graphFailed', { error: String(cause) }))
       }
     } finally {
       disposeProgress()
@@ -1163,7 +1221,7 @@ export function App(): ReactElement {
       return
     }
     const label = gameDisplayName(game)
-    const confirmed = window.confirm(`确定删除棋谱“${label}”？\n\n这会从 GoMentor 棋谱库移除该棋谱，并删除 GoMentor 管理目录中的缓存 SGF。此操作不可撤销。`)
+    const confirmed = window.confirm(t('deleteGameConfirm', { label }))
     if (!confirmed) {
       return
     }
@@ -1182,7 +1240,7 @@ export function App(): ReactElement {
       delete evaluationCacheRef.current[cacheKey]
 
       if (deletingSelected) {
-        pauseLiveAnalysis('棋谱已删除，停止精读', true)
+        pauseLiveAnalysis(t('gameDeletedPaused'), true)
         graphRunId.current = crypto.randomUUID()
         setGraphBusy(false)
         setGraphProgress('')
@@ -1204,7 +1262,7 @@ export function App(): ReactElement {
         }
       }
     } catch (cause) {
-      setError(`删除棋谱失败：${uiError(cause, 'library-delete')}`)
+      setError(`${t('deleteGameFailed')}：${uiError(cause, 'library-delete')}`)
     } finally {
       setBusy('')
     }
@@ -1240,7 +1298,7 @@ export function App(): ReactElement {
       })
       setStudentBinding({ game, suggestions })
     } catch (cause) {
-      setError(`棋手绑定建议生成失败: ${String(cause)}`)
+      setError(`${t('playerBindingSuggestionFailed')}: ${String(cause)}`)
     }
   }
 
@@ -1257,7 +1315,7 @@ export function App(): ReactElement {
       setCurrentStudent(student)
       setStudentBinding(null)
     } catch (cause) {
-      setError(`绑定棋手失败: ${String(cause)}`)
+      setError(`${t('bindPlayerFailed')}: ${String(cause)}`)
     }
   }
 
@@ -1280,7 +1338,7 @@ export function App(): ReactElement {
       setCurrentStudent(student)
       setStudentBinding(null)
     } catch (cause) {
-      setError(`创建棋手画像失败: ${String(cause)}`)
+      setError(`${t('createPlayerProfileFailed')}: ${String(cause)}`)
     }
   }
 
@@ -2040,7 +2098,7 @@ export function App(): ReactElement {
       updateMessage(assistantMessageId, (message) => ({
         ...message,
         status: 'error',
-        content: message.content || `任务失败：${String(cause)}`
+        content: message.content || `${t('taskFailed')}：${String(cause)}`
       }))
     } finally {
       setBusy('')
@@ -2063,10 +2121,10 @@ export function App(): ReactElement {
         void runCurrentMoveAnalysis()
         break
       case 'analyze-game':
-        void runTeacherQuickTask('分析这盘整盘围棋，找出关键问题手、胜负转折点和复盘重点。')
+        void runTeacherQuickTask(t('quickAnalyzeGamePrompt'))
         break
       case 'analyze-recent':
-        void runTeacherQuickTask('分析当前棋手最近10局围棋，找出常见问题、薄弱环节，并更新棋手画像。')
+        void runTeacherQuickTask(t('quickAnalyzeRecentPrompt'))
         break
       case 'toggle-library':
         setLibraryCollapsed((value) => !value)
@@ -2090,7 +2148,7 @@ export function App(): ReactElement {
     activeTeacherRunRef.current = { runId, messageId: assistantMessageId }
     setBusy('teacher')
     try {
-      const wantsCurrentMove = /当前手|这手|这一手|本手/.test(text)
+      const wantsCurrentMove = /当前手|這手|目前這手|这一手|這一手|本手|current move|this move|この手|현재 수|น้ำนี้|nước này/i.test(text)
       const parsedRange = parseMoveRangeFromPrompt(text, record?.moves.length)
       const selectedRangeText = moveRange ? `分析${describeMoveRange(moveRange)}` : ''
       const range = parsedRange ?? (text === selectedRangeText ? moveRange : null)
@@ -2130,7 +2188,7 @@ export function App(): ReactElement {
         } else {
           const validation = validateMoveRange(range.start, range.end, record.moves.length, MOVE_RANGE_MAX_MOVES)
           if (!validation.ok || !validation.range) {
-            throw new Error(validation.reason ?? '区间复盘范围无效')
+            throw new Error(validation.reason ?? t('moveRangeInvalid'))
           }
           const { start: rangeStart, end: rangeEnd } = validation.range
           const merged = new Map<number, KataGoMoveAnalysis>()
@@ -2152,7 +2210,7 @@ export function App(): ReactElement {
           }
           const rangeSlice = [...merged.values()].filter((a) => a.moveNumber >= rangeStart && a.moveNumber <= rangeEnd)
           if (rangeSlice.length === 0) {
-            throw new Error('区间内还没有可用的 KataGo 评估，请先生成胜率图或缩小区间。')
+            throw new Error(t('moveRangeNoEvaluations'))
           }
           const moveRangeSummary = buildMoveRangeSummary(rangeSlice, rangeStart, rangeEnd)
           const boardImageDataUrls = await renderRangeBoardPngs(record, moveRangeSummary, rangeSlice)
@@ -2205,11 +2263,18 @@ export function App(): ReactElement {
 
   const statusItems: StatusPill[] = [
     {
-      label: dashboard.systemProfile.katagoReady ? dashboard.systemProfile.katagoStatus : 'KataGo 缺失',
+      label: dashboard.systemProfile.katagoReady
+        ? localizeKataGoStatus(
+          dashboard.systemProfile.katagoStatus,
+          dashboard.systemProfile.katagoModelPresets,
+          dashboard.systemProfile.katagoModelPreset,
+          t
+        )
+        : t('katagoMissing'),
       tone: dashboard.systemProfile.katagoReady ? 'good' : 'warn'
     },
     {
-      label: dashboard.systemProfile.hasLlmApiKey ? 'LLM 就绪' : 'LLM 未配置',
+      label: dashboard.systemProfile.hasLlmApiKey ? t('llmReady') : t('llmMissing'),
       tone: dashboard.systemProfile.hasLlmApiKey ? 'good' : 'warn'
     }
   ]
@@ -2218,23 +2283,24 @@ export function App(): ReactElement {
   return (
     <DiagnosticsGate>
       <div className="desktop-shell">
-        <DesktopTitleBar statusItems={statusItems} onCommand={runDesktopCommand} />
+        <DesktopTitleBar statusItems={statusItems} onCommand={runDesktopCommand} t={t} />
         <div className={`studio ${libraryCollapsed ? 'studio--collapsed' : ''}`}>
         <aside className="library-rail">
           <div className={`rail-head library-rail-head ${libraryCollapsed ? 'is-collapsed' : ''}`}>
             {!libraryCollapsed ? (
               <div className="library-rail-heading">
-                <strong>棋谱库</strong>
+                <strong>{t('library')}</strong>
                 <span>Fox & SGF</span>
               </div>
             ) : null}
-            <button className="icon-button library-collapse-button" onClick={() => setLibraryCollapsed((value) => !value)} title="切换棋谱栏" aria-label="切换棋谱栏">
+            <button className="icon-button library-collapse-button" onClick={() => setLibraryCollapsed((value) => !value)} title={t('toggleLibrary')} aria-label={t('toggleLibrary')}>
               {libraryCollapsed ? '›' : '‹'}
             </button>
           </div>
           {!libraryCollapsed ? (
             <LibraryPanel
               dashboard={dashboard}
+              t={t}
               selectedGame={selectedGame}
               foxKeyword={foxKeyword}
               busy={busy}
@@ -2253,20 +2319,21 @@ export function App(): ReactElement {
           <header className="topbar">
             {record ? (
               <BoardContextBar
-                title={selectedGame ? boardGameTitle(selectedGame) : '未选择棋谱'}
+                title={selectedGame ? boardGameTitle(selectedGame) : t('noGameSelected')}
                 record={record}
                 moveNumber={moveNumber}
                 analysis={currentAnalysis}
                 liveAnalysis={liveAnalysis}
                 disabled={liveAnalysisDisabled}
                 onStart={() => void startLiveAnalysis()}
-                onPause={() => pauseLiveAnalysis('已暂停精读', true)}
+                onPause={() => pauseLiveAnalysis(t('pausedFineReview'), true)}
+                t={t}
               />
             ) : (
               <div className="board-contextbar board-contextbar--empty">
                 <div className="board-contextbar__identity">
-                  <h1>未选择棋谱</h1>
-                  <span>选择左侧棋谱，或导入新的 SGF</span>
+                  <h1>{t('noGameSelected')}</h1>
+                  <span>{t('chooseGameHint')}</span>
                 </div>
               </div>
             )}
@@ -2276,13 +2343,13 @@ export function App(): ReactElement {
             {record ? (
               <div className="board-table board-table--v2">
                 {record.boardSize >= 2 ? (
-                  <GoBoardV2 record={record} moveNumber={moveNumber} analysis={currentAnalysis} keyMoves={currentBoardKeyMoveMarks} />
+                  <GoBoardV2 record={record} moveNumber={moveNumber} analysis={currentAnalysis} keyMoves={currentBoardKeyMoveMarks} t={t} />
                 ) : (
                   <GoBoard record={record} moveNumber={moveNumber} analysis={currentAnalysis} />
                 )}
               </div>
             ) : (
-              <div className="empty-board">选择左侧棋谱开始复盘</div>
+              <div className="empty-board">{t('emptyBoard')}</div>
             )}
           </section>
 
@@ -2296,6 +2363,7 @@ export function App(): ReactElement {
                   loading={graphBusy}
                   onColorChange={setTimelineIssueColor}
                   onJump={jumpToMove}
+                  t={t}
                 />
                 <WinrateTimelineV2
                   evaluations={Object.values(evaluations)}
@@ -2308,6 +2376,7 @@ export function App(): ReactElement {
                   onRangeClear={handleTimelineRangeClear}
                   rangeStart={moveRange?.start ?? null}
                   rangeEnd={moveRange?.end ?? null}
+                  t={t}
                 />
               </>
             ) : (
@@ -2330,6 +2399,7 @@ export function App(): ReactElement {
             prompt={prompt}
             busy={busy}
             dashboard={dashboard}
+            t={t}
             error={error}
             teacherSessions={teacherSessions}
             teacherSessionId={teacherSessionId}
@@ -2339,8 +2409,8 @@ export function App(): ReactElement {
             onStop={() => void stopTeacherTask()}
             onPersonaSettingsSaved={setDashboard}
             onAnalyze={() => void runCurrentMoveAnalysis()}
-            onAnalyzeGame={() => void runTeacherQuickTask('分析这盘整盘围棋，找出关键问题手、胜负转折点和复盘重点。')}
-            onAnalyzeRecent={() => void runTeacherQuickTask('分析当前棋手最近10局围棋，找出常见问题、薄弱环节，并更新棋手画像。')}
+            onAnalyzeGame={() => void runTeacherQuickTask(t('quickAnalyzeGamePrompt'))}
+            onAnalyzeRecent={() => void runTeacherQuickTask(t('quickAnalyzeRecentPrompt'))}
             onJumpToMove={jumpToMove}
             onAnalyzeMove={(targetMove) => void runMoveAnalysisAt(targetMove)}
             onNewTeacherSession={() => void startNewTeacherSession()}
@@ -2355,6 +2425,7 @@ export function App(): ReactElement {
           katagoReady={katagoAssets?.ready || dashboard.systemProfile.katagoReady}
           llmReady={dashboard.systemProfile.hasLlmApiKey}
           busy={busy}
+          t={t}
         />
         <CommandPalette
           open={commandPaletteOpen}
@@ -2363,6 +2434,7 @@ export function App(): ReactElement {
           hasGames={dashboard.games.length > 0}
           onClose={() => setCommandPaletteOpen(false)}
           onRun={runDesktopCommand}
+          t={t}
         />
         <DesktopPreferencesModal
           open={settingsOpen}
@@ -2374,6 +2446,7 @@ export function App(): ReactElement {
           katagoBenchmarkMessage={katagoBenchmarkMessage}
           katagoInstallMessage={katagoInstallMessage}
           katagoInstallProgress={katagoInstallProgress}
+          t={t}
           onClose={() => setSettingsOpen(false)}
           onSave={(form) => void saveSettings(form)}
           onTest={(form) => void testLlmSettings(form)}
@@ -2394,6 +2467,7 @@ export function App(): ReactElement {
         onSkip={() => setStudentBinding(null)}
         onBindExisting={(input) => void bindImportedGameToExisting(input)}
         onCreateStudent={(input) => void createStudentAndBind(input)}
+        t={t}
       />
     </DiagnosticsGate>
   )
@@ -2401,6 +2475,7 @@ export function App(): ReactElement {
 
 function LibraryPanel({
   dashboard,
+  t,
   selectedGame,
   foxKeyword,
   busy,
@@ -2413,6 +2488,7 @@ function LibraryPanel({
   onChangePlayerBinding
 }: {
   dashboard: DashboardData
+  t: UiTranslator
   selectedGame?: LibraryGame
   foxKeyword: string
   busy: string
@@ -2461,23 +2537,24 @@ function LibraryPanel({
           onSync()
         }}
       >
-        <input value={foxKeyword} onChange={(event) => onFoxKeyword(event.target.value)} placeholder="输入野狐昵称" />
+        <input value={foxKeyword} onChange={(event) => onFoxKeyword(event.target.value)} placeholder={t('foxNicknamePlaceholder')} />
         <button className="primary-button fox-search-button" type="submit" disabled={!foxKeyword.trim() || busy !== ''}>
-          {busy === 'fox' ? '搜索中' : '搜索野狐棋谱'}
+          {busy === 'fox' ? t('searching') : t('foxSearch')}
         </button>
       </form>
       <button className="ghost-button library-import-button" type="button" onClick={onImport} disabled={busy !== ''}>
-        {busy === 'import' ? '正在导入棋谱...' : '导入棋谱 SGF 文件'}
+        {busy === 'import' ? t('importingSgf') : t('importSgf')}
       </button>
       <StudentRailCard
         displayName={currentStudent?.displayName}
         primaryFoxNickname={currentStudent?.primaryFoxNickname}
         disabled={!selectedGame}
         onChangeBinding={onChangePlayerBinding}
+        t={t}
       />
       <div className="library-list-head">
-        <span>{keyword ? '野狐棋谱' : '棋谱库'}</span>
-        <small>{visibleGames.length} 盘 · {pageStart}-{pageEnd}</small>
+        <span>{keyword ? t('foxGames') : t('library')}</span>
+        <small>{visibleGames.length} {t('gamesUnit')} · {pageStart}-{pageEnd}</small>
       </div>
       <div className="game-list">
         {pageGames.map((game) => (
@@ -2487,14 +2564,14 @@ function LibraryPanel({
                 <span>{gameDisplayName(game)}</span>
                 {game.source === 'fox' ? (
                   <em className={`game-row__badge ${game.downloadStatus === 'downloaded' ? 'game-row__badge--downloaded' : 'game-row__badge--remote'}`}>
-                    {game.downloadStatus === 'downloaded' ? '已缓存' : '仅列表'}
+                    {game.downloadStatus === 'downloaded' ? t('cached') : t('remoteOnly')}
                   </em>
                 ) : (
-                  <em className="game-row__badge">本地</em>
+                  <em className="game-row__badge">{t('local')}</em>
                 )}
               </div>
               <small className="game-row__meta">
-                {game.date || '未知日期'} · {game.moveCount ? `${game.moveCount}手 · ` : ''}{game.result || '未知结果'}
+                {game.date || t('unknownDate')} · {game.moveCount ? `${game.moveCount}${t('movesSuffix')} · ` : ''}{game.result || t('unknownResult')}
               </small>
             </button>
             <button
@@ -2502,21 +2579,21 @@ function LibraryPanel({
               className="game-row__delete"
               onClick={() => onDeleteGame(game)}
               disabled={busy !== ''}
-              title="删除棋谱"
-              aria-label={`删除棋谱 ${gameDisplayName(game)}`}
+              title={t('deleteGame')}
+              aria-label={`${t('deleteGame')} ${gameDisplayName(game)}`}
             >
-              删除
+              {t('delete')}
             </button>
           </article>
         ))}
-        {pageGames.length === 0 ? <div className="empty-list">没有匹配的棋谱</div> : null}
+        {pageGames.length === 0 ? <div className="empty-list">{t('noMatchedGames')}</div> : null}
       </div>
-      <div className="pagination-row library-pagination" aria-label="棋谱分页">
-        <button className="ghost-button" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage <= 1} aria-label="上一页棋谱">
+      <div className="pagination-row library-pagination" aria-label={t('gamePagination')}>
+        <button className="ghost-button" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage <= 1} aria-label={t('previousPage')}>
           ‹
         </button>
         <span>{safePage} / {pageCount}</span>
-        <button className="ghost-button" onClick={() => setPage(Math.min(pageCount, safePage + 1))} disabled={safePage >= pageCount} aria-label="下一页棋谱">
+        <button className="ghost-button" onClick={() => setPage(Math.min(pageCount, safePage + 1))} disabled={safePage >= pageCount} aria-label={t('nextPage')}>
           ›
         </button>
       </div>
@@ -2538,10 +2615,12 @@ function StatusPills({ items }: { items: StatusPill[] }): ReactElement {
 
 function DesktopTitleBar({
   statusItems,
-  onCommand
+  onCommand,
+  t
 }: {
   statusItems: StatusPill[]
   onCommand: (command: DesktopCommand) => void
+  t: UiTranslator
 }): ReactElement {
   return (
     <header className="desktop-titlebar">
@@ -2555,7 +2634,7 @@ function DesktopTitleBar({
         <StatusPills items={statusItems} />
       </div>
       <div className="desktop-titlebar__actions">
-        <button type="button" onClick={() => onCommand('open-settings')}>设置</button>
+        <button type="button" onClick={() => onCommand('open-settings')}>{t('settings')}</button>
       </div>
     </header>
   )
@@ -2566,20 +2645,22 @@ function DesktopStatusBar({
   graphProgress,
   katagoReady,
   llmReady,
-  busy
+  busy,
+  t
 }: {
   graphBusy: boolean
   graphProgress: string
   katagoReady: boolean
   llmReady: boolean
   busy: string
+  t: UiTranslator
 }): ReactElement {
   return (
     <footer className="desktop-statusbar">
-      <span>{graphBusy ? `Winrate ${graphProgress || 'analyzing'}` : 'Winrate ready'}</span>
-      <span data-ready={katagoReady}>KataGo</span>
-      <span data-ready={llmReady}>Vision LLM</span>
-      <em>{busy ? `Task: ${busy}` : 'Ready'}</em>
+      <span>{graphBusy ? t('winrateAnalyzing', { progress: graphProgress || t('timelineLoading') }) : t('winrateReady')}</span>
+      <span data-ready={katagoReady}>{t('katagoEngine')}</span>
+      <span data-ready={llmReady}>{t('visionLlm')}</span>
+      <em>{busy ? t('appStatusTask', { busy }) : t('appStatusReady')}</em>
     </footer>
   )
 }
@@ -2590,7 +2671,8 @@ function CommandPalette({
   hasRecord,
   hasGames,
   onClose,
-  onRun
+  onRun,
+  t
 }: {
   open: boolean
   busy: string
@@ -2598,6 +2680,7 @@ function CommandPalette({
   hasGames: boolean
   onClose: () => void
   onRun: (command: DesktopCommand) => void
+  t: UiTranslator
 }): ReactElement | null {
   const [query, setQuery] = useState('')
   useEffect(() => {
@@ -2606,14 +2689,14 @@ function CommandPalette({
     }
   }, [open])
   const commands = useMemo(() => [
-    { id: 'analyze-current' as const, title: '分析当前手', detail: '截图棋盘，调用 KataGo，再让老师讲解', shortcut: 'Ctrl/Cmd 1', disabled: !hasRecord || busy !== '' },
-    { id: 'analyze-game' as const, title: '分析整盘围棋', detail: '扫描关键问题手和胜负转折点', shortcut: 'Ctrl/Cmd 2', disabled: !hasRecord || busy !== '' },
-    { id: 'analyze-recent' as const, title: '分析近 10 局', detail: '聚合棋手稳定问题并更新画像', shortcut: 'Ctrl/Cmd 3', disabled: !hasGames || busy !== '' },
-    { id: 'import-sgf' as const, title: '导入棋谱 SGF 文件', detail: '从本机文件系统添加棋谱', shortcut: 'Ctrl/Cmd O', disabled: busy !== '' },
-    { id: 'open-settings' as const, title: '打开设置', detail: '配置模型、KataGo 资源和发布 readiness', shortcut: 'Ctrl/Cmd ,', disabled: false },
-    { id: 'toggle-library' as const, title: '切换棋谱栏', detail: '收起或展开左侧棋手棋谱栏', shortcut: 'Ctrl/Cmd B', disabled: false },
-    { id: 'open-ui-gallery' as const, title: '打开 UI Gallery', detail: '进入内部视觉 QA 样例页', shortcut: 'Ctrl/Cmd Shift G', disabled: false }
-  ], [busy, hasGames, hasRecord])
+    { id: 'analyze-current' as const, title: t('commandAnalyzeCurrent'), detail: t('commandAnalyzeCurrentDetail'), shortcut: 'Ctrl/Cmd 1', disabled: !hasRecord || busy !== '' },
+    { id: 'analyze-game' as const, title: t('commandAnalyzeGame'), detail: t('commandAnalyzeGameDetail'), shortcut: 'Ctrl/Cmd 2', disabled: !hasRecord || busy !== '' },
+    { id: 'analyze-recent' as const, title: t('commandAnalyzeRecent'), detail: t('commandAnalyzeRecentDetail'), shortcut: 'Ctrl/Cmd 3', disabled: !hasGames || busy !== '' },
+    { id: 'import-sgf' as const, title: t('importSgf'), detail: t('commandImportSgfDetail'), shortcut: 'Ctrl/Cmd O', disabled: busy !== '' },
+    { id: 'open-settings' as const, title: t('commandOpenSettings'), detail: t('commandOpenSettingsDetail'), shortcut: 'Ctrl/Cmd ,', disabled: false },
+    { id: 'toggle-library' as const, title: t('toggleLibrary'), detail: t('commandToggleLibraryDetail'), shortcut: 'Ctrl/Cmd B', disabled: false },
+    { id: 'open-ui-gallery' as const, title: t('commandOpenGallery'), detail: t('commandOpenGalleryDetail'), shortcut: 'Ctrl/Cmd Shift G', disabled: false }
+  ], [busy, hasGames, hasRecord, t])
   const filtered = commands.filter((command) => {
     const haystack = `${command.title} ${command.detail}`.toLowerCase()
     return haystack.includes(query.trim().toLowerCase())
@@ -2636,7 +2719,7 @@ function CommandPalette({
     <div className="desktop-command-palette" role="dialog" aria-modal="true" aria-label="GoMentor command palette" onMouseDown={onClose}>
       <section className="desktop-command-palette__panel" onMouseDown={(event) => event.stopPropagation()}>
         <header>
-          <span>Command Palette</span>
+          <span>{t('commandPalette')}</span>
           <button type="button" onClick={onClose}>Esc</button>
         </header>
         <input
@@ -2644,7 +2727,7 @@ function CommandPalette({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="输入任务或命令，例如：分析当前手、导入棋谱、打开设置"
+          placeholder={t('commandPlaceholder')}
         />
         <div className="desktop-command-palette__list">
           {filtered.map((command) => (
@@ -2675,7 +2758,8 @@ function DesktopPreferencesModal({
   onTest,
   onBenchmark,
   onInstallOfficialModel,
-  onRefreshKataGoAssets
+  onRefreshKataGoAssets,
+  t
 }: {
   open: boolean
   dashboard: DashboardData
@@ -2692,6 +2776,7 @@ function DesktopPreferencesModal({
   onBenchmark: () => void
   onInstallOfficialModel: (presetId: KataGoModelPresetId) => void
   onRefreshKataGoAssets: () => void
+  t: UiTranslator
 }): ReactElement | null {
   if (!open) {
     return null
@@ -2699,21 +2784,21 @@ function DesktopPreferencesModal({
   const katagoReady = katagoAssets?.ready || dashboard.systemProfile.katagoReady
   const llmReady = dashboard.systemProfile.hasLlmApiKey
   return (
-    <div className="desktop-preferences" role="dialog" aria-modal="true" aria-label="GoMentor 设置" onMouseDown={onClose}>
+    <div className="desktop-preferences" role="dialog" aria-modal="true" aria-label={t('settingsTitle')} onMouseDown={onClose}>
       <section className="desktop-preferences__window" onMouseDown={(event) => event.stopPropagation()}>
         <header className="desktop-preferences__titlebar">
           <div className="desktop-preferences__heading">
             <span className="desktop-preferences__mark" aria-hidden="true" />
             <div>
-              <span>GoMentor 设置</span>
-              <strong>模型、KataGo 与运行诊断</strong>
-              <p>把老师、棋盘分析和本机资源配置在一个地方。</p>
+              <span>{t('settingsTitle')}</span>
+              <strong>{t('settingsSubtitle')}</strong>
+              <p>{t('settingsDescription')}</p>
             </div>
           </div>
-          <div className="desktop-preferences__meta" aria-label="设置状态">
-            <em className={katagoReady ? 'is-ready' : ''}>KataGo {katagoReady ? 'ready' : '待配置'}</em>
-            <em className={llmReady ? 'is-ready' : ''}>LLM {llmReady ? 'ready' : '待配置'}</em>
-            <button type="button" onClick={onClose} aria-label="关闭设置">关闭</button>
+          <div className="desktop-preferences__meta" aria-label={t('settingsStatus')}>
+            <em className={katagoReady ? 'is-ready' : ''}>KataGo {katagoReady ? t('ready') : t('pendingConfig')}</em>
+            <em className={llmReady ? 'is-ready' : ''}>LLM {llmReady ? t('ready') : t('pendingConfig')}</em>
+            <button type="button" onClick={onClose} aria-label={t('close')}>{t('close')}</button>
           </div>
         </header>
         <SettingsDrawer
@@ -2730,23 +2815,24 @@ function DesktopPreferencesModal({
           onBenchmark={onBenchmark}
           onInstallOfficialModel={onInstallOfficialModel}
           onRefreshKataGoAssets={onRefreshKataGoAssets}
+          t={t}
         />
       </section>
     </div>
   )
 }
 
-function teacherResultKeyMoves(result?: TeacherRunResult): Array<{ moveNumber: number; title: string; summary: string; severity: string }> {
+function teacherResultKeyMoves(result: TeacherRunResult | undefined, t: UiTranslator): Array<{ moveNumber: number; title: string; summary: string; severity: string }> {
   const structured = result?.structuredResult ?? result?.structured
   return (structured?.keyMistakes ?? []).flatMap((move, index) => {
     if (typeof move.moveNumber !== 'number') {
       return []
     }
-    const title = `第 ${move.moveNumber} 手${move.played ? ` ${move.played}` : ''}`
-    const summary = move.explanation || move.evidence || '这手值得回到棋盘上单独看。'
+    const title = t('keyMoveTitle', { move: move.moveNumber, played: move.played ? ` ${move.played}` : '' })
+    const summary = move.explanation || move.evidence || t('keyMoveDefaultSummary')
     return [{
       moveNumber: move.moveNumber,
-      title: title || `关键手 ${index + 1}`,
+      title: title || t('keyMoveFallbackTitle', { index: index + 1 }),
       summary,
       severity: move.errorType || move.severity || '重点'
     }]
@@ -2785,76 +2871,76 @@ function ChatMarkdown({ text }: { text: string }): ReactElement {
   return <div className="chat-markdown">{nodes}</div>
 }
 
-function teacherToolTitle(log: TeacherTraceLog, logs: TeacherTraceLog[] = [], index = 0): string {
+function teacherToolTitle(log: TeacherTraceLog, t: UiTranslator, logs: TeacherTraceLog[] = [], index = 0): string {
   const sameToolCount = logs.filter((item) => item.name === log.name).length
   const occurrence = logs.slice(0, index + 1).filter((item) => item.name === log.name).length
   if (log.name === 'katago.analyzePosition') {
-    if (sameToolCount <= 1) return 'KataGo 读取当前局面'
-    if (occurrence === 1) return 'KataGo 读取当前局面'
-    if (occurrence === 2) return 'KataGo 复核候选点'
-    return `KataGo 补充验证 ${occurrence}`
+    if (sameToolCount <= 1) return t('toolKatagoCurrent')
+    if (occurrence === 1) return t('toolKatagoCurrent')
+    if (occurrence === 2) return t('toolKatagoRecheck')
+    return t('toolKatagoExtra', { count: occurrence })
   }
   const byName: Record<string, string> = {
-    'library.findGames': '筛选棋谱',
-    'sgf.readGameRecord': '读取棋谱',
-    'katago.analyzeGameBatch': 'KataGo 整盘分析',
-    'board.captureTeachingImage': '读取棋盘图',
-    'knowledge.searchLocal': '检索知识库',
-    'studentProfile.read': '读取棋手画像',
-    'studentProfile.write': '更新棋手画像',
-    'system.detectEnvironment': '检查环境',
-    'settings.writeAppConfig': '写入设置',
-    'katago.verifyAnalysis': '验证 KataGo',
-    'web.searchGoKnowledge': '联网检索',
-    'filesystem.read': '读取文件',
-    'shell.exec': '执行 Shell',
-    'shell.kill': '停止 Shell',
-    'report.saveAnalysis': '保存报告'
+    'library.findGames': t('toolFindGames'),
+    'sgf.readGameRecord': t('toolReadSgf'),
+    'katago.analyzeGameBatch': t('toolAnalyzeGame'),
+    'board.captureTeachingImage': t('toolBoardImage'),
+    'knowledge.searchLocal': t('toolKnowledge'),
+    'studentProfile.read': t('toolProfileRead'),
+    'studentProfile.write': t('toolProfileWrite'),
+    'system.detectEnvironment': t('toolEnvironment'),
+    'settings.writeAppConfig': t('toolSettingsWrite'),
+    'katago.verifyAnalysis': t('toolVerifyKatago'),
+    'web.searchGoKnowledge': t('toolWebSearch'),
+    'filesystem.read': t('toolReadFile'),
+    'shell.exec': t('toolShellExec'),
+    'shell.kill': t('toolShellKill'),
+    'report.saveAnalysis': t('toolSaveReport')
   }
-  return byName[log.name] ?? log.label ?? '调用工具'
+  return byName[log.name] ?? log.label ?? t('toolCall')
 }
 
-function teacherToolStatusText(status: TeacherTraceLog['status']): string {
-  if (status === 'running') return '进行中'
-  if (status === 'done') return '完成'
-  if (status === 'error') return '异常'
-  return '跳过'
+function teacherToolStatusText(status: TeacherTraceLog['status'], t: UiTranslator): string {
+  if (status === 'running') return t('toolRunning')
+  if (status === 'done') return t('toolDone')
+  if (status === 'error') return t('toolError')
+  return t('toolSkipped')
 }
 
-function teacherToolDetail(log: TeacherTraceLog, logs: TeacherTraceLog[], index: number): string {
+function teacherToolDetail(log: TeacherTraceLog, logs: TeacherTraceLog[], index: number, t: UiTranslator): string {
   const sameToolCount = logs.filter((item) => item.name === log.name).length
   const occurrence = logs.slice(0, index + 1).filter((item) => item.name === log.name).length
   if (log.status === 'error') {
     return log.detail.replace(/\s+/g, ' ').slice(0, 96)
   }
   if (log.name === 'katago.analyzePosition') {
-    if (occurrence === 1) return '获取候选点、胜率、目差和 PV，作为讲解的主证据。'
-    if (sameToolCount > 1 && occurrence === 2) return '再次核对候选点和胜率差，避免只凭一次引擎结果下结论。'
-    return `第 ${occurrence} 次补充验证，用来确认局部细节或回答追问。`
+    if (occurrence === 1) return t('toolDetailKatagoFirst')
+    if (sameToolCount > 1 && occurrence === 2) return t('toolDetailKatagoSecond')
+    return t('toolDetailKatagoExtra', { count: occurrence })
   }
-  if (log.name === 'knowledge.searchLocal') return '匹配棋形、定式、死活、手筋和常见错误类型。'
-  if (log.name === 'board.captureTeachingImage') return '读取当前棋盘图，保证讲解对得上画面。'
-  if (log.name === 'sgf.readGameRecord') return '读取棋谱手顺和当前手上下文。'
-  if (log.name === 'katago.analyzeGameBatch') return '扫描整盘胜率走势和问题手分布。'
-  if (log.status === 'running') return '正在处理，完成后会继续组织老师回复。'
-  return log.detail && log.detail.length < 120 ? log.detail.replace(/\s+/g, ' ') : '已完成，结果会进入最终讲解。'
+  if (log.name === 'knowledge.searchLocal') return t('toolDetailKnowledge')
+  if (log.name === 'board.captureTeachingImage') return t('toolDetailBoardImage')
+  if (log.name === 'sgf.readGameRecord') return t('toolDetailReadSgf')
+  if (log.name === 'katago.analyzeGameBatch') return t('toolDetailAnalyzeGame')
+  if (log.status === 'running') return t('toolDetailRunning')
+  return log.detail && log.detail.length < 120 ? log.detail.replace(/\s+/g, ' ') : t('toolDetailDone')
 }
 
-function teacherToolDisplay(log: TeacherTraceLog, logs: TeacherTraceLog[], index: number): TeacherTraceDisplay {
+function teacherToolDisplay(log: TeacherTraceLog, logs: TeacherTraceLog[], index: number, t: UiTranslator): TeacherTraceDisplay {
   return {
-    title: teacherToolTitle(log, logs, index),
-    detail: teacherToolDetail(log, logs, index),
-    status: teacherToolStatusText(log.status)
+    title: teacherToolTitle(log, t, logs, index),
+    detail: teacherToolDetail(log, logs, index, t),
+    status: teacherToolStatusText(log.status, t)
   }
 }
 
-function teacherToolTraceSummary(logs: TeacherTraceLog[]): string {
+function teacherToolTraceSummary(logs: TeacherTraceLog[], t: UiTranslator): string {
   const runningIndex = logs.findIndex((log) => log.status === 'running')
   if (runningIndex >= 0) {
-    return `工具调用 · ${logs.length} 步 · 正在${teacherToolTitle(logs[runningIndex], logs, runningIndex)}`
+    return t('toolTraceRunning', { count: logs.length, tool: teacherToolTitle(logs[runningIndex], t, logs, runningIndex) })
   }
   const katagoChecks = logs.filter((log) => log.name === 'katago.analyzePosition').length
-  return katagoChecks > 1 ? `工具调用 · ${logs.length} 步 · KataGo 复核 ${katagoChecks} 次` : `工具调用 · ${logs.length} 步`
+  return katagoChecks > 1 ? t('toolTraceChecked', { count: logs.length, countKatago: katagoChecks }) : t('toolTracePlain', { count: logs.length })
 }
 
 async function copyTextToClipboard(text: string): Promise<void> {
@@ -2884,14 +2970,16 @@ async function copyTextToClipboard(text: string): Promise<void> {
 
 function TeacherInlineResponse({
   message,
+  t,
   onJumpToMove,
   onAnalyzeMove
 }: {
   message: ChatMessage
+  t: UiTranslator
   onJumpToMove: (moveNumber: number) => void
   onAnalyzeMove: (moveNumber: number) => void
 }): ReactElement {
-  const keyMoves = teacherResultKeyMoves(message.result)
+  const keyMoves = teacherResultKeyMoves(message.result, t)
   const toolLogs = message.toolLogs ?? message.result?.toolLogs ?? []
   const isRunning = message.status === 'running'
   const isTeacher = message.role === 'teacher'
@@ -2913,10 +3001,10 @@ function TeacherInlineResponse({
     <>
       {isTeacher && toolLogs.length > 0 ? (
         <details className="codex-tool-trace" open={isRunning || undefined}>
-          <summary>{teacherToolTraceSummary(toolLogs)}</summary>
+          <summary>{teacherToolTraceSummary(toolLogs, t)}</summary>
           <div>
             {toolLogs.map((log, index) => {
-              const display = teacherToolDisplay(log, toolLogs, index)
+              const display = teacherToolDisplay(log, toolLogs, index, t)
               return (
                 <p key={log.id} className={`codex-tool-trace__row codex-tool-trace__row--${log.status}`} aria-label={`${display.title} · ${display.status} · ${display.detail}`}>
                   <span className="codex-tool-trace__dot" aria-hidden="true" />
@@ -2936,26 +3024,26 @@ function TeacherInlineResponse({
           <div className="codex-working codex-working--active">
             <span />
             <div>
-              <p>正在读取棋盘、KataGo数据，正在开始分析。</p>
-              <small>准备局面快照 · 获取候选点 · 检索证据链 · 组织老师讲解</small>
+              <p>{t('workingShort')}</p>
+              <small>{t('workingDetail')}</small>
             </div>
           </div>
         ) : isTeacher ? (
           <>
             {message.content.trim() ? (
               <div className="assistant-copybar">
-                <button type="button" onClick={() => void copyAssistantText()} aria-label="复制老师回复">
-                  {copyState === 'copied' ? '已复制' : copyState === 'failed' ? '复制失败' : '复制'}
+                <button type="button" onClick={() => void copyAssistantText()} aria-label={t('copyTeacherReply')}>
+                  {copyState === 'copied' ? t('copied') : copyState === 'failed' ? t('copyFailed') : t('copy')}
                 </button>
               </div>
             ) : null}
             <ChatMarkdown text={message.content} />
-            {isRunning ? <span className="streaming-cursor" aria-label="正在输出" /> : null}
+            {isRunning ? <span className="streaming-cursor" aria-label={t('streaming')} /> : null}
           </>
         ) : message.content}
       </div>
       {keyMoves.length > 0 ? (
-        <div className="codex-keymove-strip" aria-label="关键手跳转">
+        <div className="codex-keymove-strip" aria-label={t('keyMoveJump')}>
           {keyMoves.map((move) => (
             <button key={`${move.moveNumber}-${move.title}`} type="button" onClick={() => onJumpToMove(move.moveNumber)}>
               <span>{move.title}</span>
@@ -2964,7 +3052,7 @@ function TeacherInlineResponse({
             </button>
           ))}
           <button type="button" className="codex-keymove-strip__analyze" onClick={() => onAnalyzeMove(keyMoves[0].moveNumber)}>
-            展开这一手
+            {t('expandThisMove')}
           </button>
         </div>
       ) : null}
@@ -2977,6 +3065,7 @@ function TeacherPanel({
   prompt,
   busy,
   dashboard,
+  t,
   error,
   teacherSessions,
   teacherSessionId,
@@ -2998,6 +3087,7 @@ function TeacherPanel({
   prompt: string
   busy: string
   dashboard: DashboardData
+  t: UiTranslator
   error: string
   teacherSessions: TeacherSession[]
   teacherSessionId: string
@@ -3031,10 +3121,10 @@ function TeacherPanel({
       .filter((session) => {
         if (!hasVisibleTeacherSessionContent(session)) return false
         if (!query) return true
-        return `${session.title} ${teacherSessionContext(session)} ${teacherSessionPreview(session)}`.toLowerCase().includes(query)
+        return `${session.title} ${teacherSessionContext(session, t)} ${teacherSessionPreview(session)}`.toLowerCase().includes(query)
       })
       .slice(0, 24)
-  }, [historyQuery, teacherSessions])
+  }, [historyQuery, teacherSessions, t])
   const todaySessions = visibleSessions.filter((session) => isTodayDate(session.updatedAt))
   const yesterdaySessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && isYesterdayDate(session.updatedAt))
   const earlierSessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && !isYesterdayDate(session.updatedAt))
@@ -3103,7 +3193,7 @@ function TeacherPanel({
       setSettingsOpen(false)
     } catch (cause) {
       const message = cause instanceof Error && cause.message ? cause.message : String(cause)
-      setPersonaSaveError(`保存失败：${message}`)
+      setPersonaSaveError(t('saveFailed', { error: message }))
     }
   }
 
@@ -3149,7 +3239,7 @@ function TeacherPanel({
               >
                 <span className="teacher-history-item__main">
                   <strong>{session.title}</strong>
-                  <small>{formatTeacherSessionTime(session.updatedAt)} · {teacherSessionContext(session) || '自由问答'}</small>
+                  <small>{formatTeacherSessionTime(session.updatedAt)} · {teacherSessionContext(session, t) || t('freeChat')}</small>
                   <em>{teacherSessionPreview(session)}</em>
                 </span>
                 <span className="teacher-history-item__icon">↺</span>
@@ -3157,14 +3247,14 @@ function TeacherPanel({
               <button
                 type="button"
                 className="teacher-history-item__delete"
-                aria-label={`删除会话 ${session.title}`}
-                title="删除会话"
+                aria-label={`${t('deleteSession')} ${session.title}`}
+                title={t('deleteSession')}
                 onClick={() => onDeleteTeacherSession(session.id)}
                 disabled={busy !== ''}
               >
-                删除
+                {t('delete')}
               </button>
-              {session.archivedAt ? <span className="teacher-history-item__archived">已归档</span> : null}
+              {session.archivedAt ? <span className="teacher-history-item__archived">{t('archived')}</span> : null}
             </div>
           ))}
         </div>
@@ -3175,14 +3265,14 @@ function TeacherPanel({
     <div className="teacher-panel teacher-agent-editor">
       <header className="teacher-editor-head">
         <div className="teacher-editor-title">
-          <span className="teacher-contract-copy">Agent thread</span>
-          <strong>AI 老师</strong>
+          <span className="teacher-contract-copy">{t('teacherThread')}</span>
+          <strong>{t('teacherPanelTitle')}</strong>
         </div>
         <div className="teacher-editor-actions">
           <button
             type="button"
-            title="新会话"
-            aria-label="新会话"
+            title={t('newSession')}
+            aria-label={t('newSession')}
             onClick={() => {
               closeOverlays()
               onNewTeacherSession()
@@ -3194,8 +3284,8 @@ function TeacherPanel({
           <button
             type="button"
             className={historyOpen ? 'is-active' : ''}
-            title="历史会话"
-            aria-label="历史会话"
+            title={t('historySession')}
+            aria-label={t('historySession')}
             aria-pressed={historyOpen}
             onClick={() => {
               setHistoryOpen((open) => !open)
@@ -3208,8 +3298,8 @@ function TeacherPanel({
           <button
             type="button"
             className={settingsOpen ? 'is-active' : ''}
-            title="教学设定"
-            aria-label="教学设定"
+            title={t('teachingSettings')}
+            aria-label={t('teachingSettings')}
             aria-pressed={settingsOpen}
             onClick={toggleSettings}
           >
@@ -3219,13 +3309,13 @@ function TeacherPanel({
       </header>
 
       {settingsOpen ? (
-        <aside className="teacher-persona-popover" aria-label="教学设定">
+        <aside className="teacher-persona-popover" aria-label={t('teachingSettings')}>
           <div className="teacher-popover-head">
-            <strong>教学设定</strong>
-            <span>只调整表达，不改变 KataGo 证据</span>
+            <strong>{t('teachingSettings')}</strong>
+            <span>{t('teachingSettingsHelp')}</span>
             <button
               type="button"
-              aria-label="关闭教学设定"
+              aria-label={t('closeTeachingSettings')}
               onClick={() => {
                 setDraftPersonaSettings(personaSettings)
                 setPersonaSaveError('')
@@ -3238,22 +3328,22 @@ function TeacherPanel({
           <section className="teacher-setting-block">
             <button type="button" className="teacher-setting-block__title" onClick={() => setStudentSettingsOpen((open) => !open)}>
               <span>♙</span>
-              <strong>学生设定</strong>
+              <strong>{t('studentSettings')}</strong>
               <em>{studentSettingsOpen ? '⌃' : '⌄'}</em>
             </button>
             {studentSettingsOpen ? (
               <div className="teacher-setting-fields">
                 <label className="teacher-field-row">
-                  <span>段位</span>
+                  <span>{t('rank')}</span>
                   <select
                     value={draftPersonaSettings.defaultStudentRank}
                     onChange={(event) => patchDraftRank(event.target.value as StudentRank)}
                     disabled={busy !== ''}
                   >
-                    {PERSONA_RANK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    {PERSONA_RANK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{rankLabel(t, option.value)}</option>)}
                   </select>
                 </label>
-                <div className="teacher-segmented teacher-segmented--rank" aria-label="段位快捷选择">
+                <div className="teacher-segmented teacher-segmented--rank" aria-label={t('rankQuickSelect')}>
                   {PERSONA_RANK_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -3262,12 +3352,12 @@ function TeacherPanel({
                       onClick={() => patchDraftRank(option.value)}
                       disabled={busy !== ''}
                     >
-                      {option.label}
+                      {rankLabel(t, option.value)}
                     </button>
                   ))}
                 </div>
                 <label className="teacher-field-row">
-                  <span>年龄</span>
+                  <span>{t('age')}</span>
                   <div className="teacher-age-stepper">
                     <input
                       type="number"
@@ -3275,12 +3365,12 @@ function TeacherPanel({
                       max="120"
                       value={draftPersonaSettings.defaultStudentAge || ''}
                       onChange={(event) => patchDraftAge(event.target.value)}
-                      placeholder="未填写"
+                      placeholder={t('ageEmpty')}
                       disabled={busy !== ''}
                     />
-                    <span>岁</span>
-                    <button type="button" aria-label="增加年龄" onClick={() => patchDraftAge(String((draftPersonaSettings.defaultStudentAge || 0) + 1))} disabled={busy !== ''}>⌃</button>
-                    <button type="button" aria-label="减少年龄" onClick={() => patchDraftAge(String(Math.max(0, (draftPersonaSettings.defaultStudentAge || 0) - 1)))} disabled={busy !== ''}>⌄</button>
+                    <span>{t('yearsOld')}</span>
+                    <button type="button" aria-label={t('increaseAge')} onClick={() => patchDraftAge(String((draftPersonaSettings.defaultStudentAge || 0) + 1))} disabled={busy !== ''}>⌃</button>
+                    <button type="button" aria-label={t('decreaseAge')} onClick={() => patchDraftAge(String(Math.max(0, (draftPersonaSettings.defaultStudentAge || 0) - 1)))} disabled={busy !== ''}>⌄</button>
                   </div>
                 </label>
               </div>
@@ -3289,13 +3379,13 @@ function TeacherPanel({
           <section className="teacher-setting-block">
             <button type="button" className="teacher-setting-block__title" onClick={() => setTeacherSettingsOpen((open) => !open)}>
               <span>♙</span>
-              <strong>老师设定</strong>
+              <strong>{t('teacherSettings')}</strong>
               <em>{teacherSettingsOpen ? '⌃' : '⌄'}</em>
             </button>
             {teacherSettingsOpen ? (
               <div className="teacher-setting-fields">
-                <label className="teacher-field-label">老师风格</label>
-                <div className="teacher-segmented teacher-segmented--wrap" aria-label="老师风格">
+                <label className="teacher-field-label">{t('teacherStyle')}</label>
+                <div className="teacher-segmented teacher-segmented--wrap" aria-label={t('teacherStyle')}>
                   {PERSONA_STYLE_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -3304,13 +3394,13 @@ function TeacherPanel({
                       onClick={() => patchDraftPersona({ teacherStyle: option.value })}
                       disabled={busy !== ''}
                     >
-                      {option.label}
+                      {teacherStyleLabel(t, option.value)}
                     </button>
                   ))}
                 </div>
-                <label className="teacher-field-label">术语密度</label>
+                <label className="teacher-field-label">{t('terminologyDensity')}</label>
                 <div className="teacher-density-slider">
-                  <span>少</span>
+                  <span>{t('low')}</span>
                   <input
                     type="range"
                     min="0"
@@ -3319,11 +3409,11 @@ function TeacherPanel({
                     onChange={(event) => patchDraftPersona({ teacherTerminologyDensity: TERMINOLOGY_DENSITY_OPTIONS[Number(event.target.value)]?.value ?? 'medium' })}
                     disabled={busy !== ''}
                   />
-                  <span>多</span>
-                  <b>{TERMINOLOGY_DENSITY_OPTIONS.find((option) => option.value === draftPersonaSettings.teacherTerminologyDensity)?.label ?? '中'}</b>
+                  <span>{t('high')}</span>
+                  <b>{terminologyDensityLabel(t, draftPersonaSettings.teacherTerminologyDensity)}</b>
                 </div>
-                <label className="teacher-field-label">讲解节奏</label>
-                <div className="teacher-segmented teacher-segmented--three" aria-label="讲解节奏">
+                <label className="teacher-field-label">{t('explanationPace')}</label>
+                <div className="teacher-segmented teacher-segmented--three" aria-label={t('explanationPace')}>
                   {EXPLANATION_PACE_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -3332,12 +3422,12 @@ function TeacherPanel({
                       onClick={() => patchDraftPersona({ teacherExplanationPace: option.value })}
                       disabled={busy !== ''}
                     >
-                      {option.label}
+                      {explanationPaceLabel(t, option.value)}
                     </button>
                   ))}
                 </div>
-                <label className="teacher-field-label">参考变化</label>
-                <div className="teacher-segmented teacher-segmented--three" aria-label="参考变化">
+                <label className="teacher-field-label">{t('variationDetail')}</label>
+                <div className="teacher-segmented teacher-segmented--three" aria-label={t('variationDetail')}>
                   {VARIATION_DETAIL_OPTIONS.map((option) => (
                     <button
                       key={option.value}
@@ -3346,7 +3436,7 @@ function TeacherPanel({
                       onClick={() => patchDraftPersona({ teacherVariationDetail: option.value })}
                       disabled={busy !== ''}
                     >
-                      {option.label}
+                      {variationDetailLabel(t, option.value)}
                     </button>
                   ))}
                 </div>
@@ -3355,61 +3445,64 @@ function TeacherPanel({
           </section>
           {personaSaveError ? <p className="teacher-popover-error" role="alert">{personaSaveError}</p> : null}
           <footer className="teacher-popover-foot">
-            <button type="button" onClick={() => setDraftPersonaSettings(defaultPersonaUiSettings())}>重置</button>
-            <button type="button" className="is-primary" onClick={() => void saveTeacherPersona()}>完成</button>
+            <button type="button" onClick={() => setDraftPersonaSettings(defaultPersonaUiSettings())}>{t('reset')}</button>
+            <button type="button" className="is-primary" onClick={() => void saveTeacherPersona()}>{t('done')}</button>
           </footer>
         </aside>
       ) : null}
 
       {historyOpen ? (
-        <aside className="teacher-history-drawer" aria-label="历史会话">
+        <aside className="teacher-history-drawer" aria-label={t('historySession')}>
           <div className="teacher-history-head">
-            <strong>历史会话</strong>
-            <button type="button" aria-label="关闭历史会话" onClick={() => setHistoryOpen(false)}>×</button>
+            <strong>{t('historySession')}</strong>
+            <button type="button" aria-label={t('historySession')} onClick={() => setHistoryOpen(false)}>×</button>
           </div>
           <div className="teacher-history-search" role="search">
             <span aria-hidden="true">⌕</span>
             <input
               type="search"
-              aria-label="搜索历史会话"
+              aria-label={t('searchHistory')}
               value={historyQuery}
               onChange={(event) => setHistoryQuery(event.target.value)}
-              placeholder="搜索历史会话"
+              placeholder={t('searchHistory')}
             />
             {historyQuery ? (
-              <button type="button" aria-label="清除搜索" onClick={() => setHistoryQuery('')}>×</button>
+              <button type="button" aria-label={t('clearSearch')} onClick={() => setHistoryQuery('')}>×</button>
             ) : null}
           </div>
           <div className="teacher-history-scroll">
             {visibleSessions.length === 0 ? (
-              <p className="teacher-history-empty">没有匹配的会话。</p>
+              <p className="teacher-history-empty">{t('noHistoryMatched')}</p>
             ) : (
               <>
-                {renderHistorySection('今天', todaySessions)}
-                {renderHistorySection('昨天', yesterdaySessions)}
-                {renderHistorySection('更早', earlierSessions)}
+                {renderHistorySection(t('today'), todaySessions)}
+                {renderHistorySection(t('yesterday'), yesterdaySessions)}
+                {renderHistorySection(t('earlier'), earlierSessions)}
               </>
             )}
           </div>
           <footer className="teacher-history-foot">
-            <span>仅保留最近 90 天的会话</span>
-            <button type="button" aria-label="历史设置">⚙</button>
+            <span>{t('sessionRetention')}</span>
+            <button type="button" aria-label={t('historySettings')}>⚙</button>
           </footer>
         </aside>
       ) : null}
 
-      <div className={`message-list agent-thread ${messages.length === 0 && !hasRunningTask ? 'agent-thread--empty' : ''}`}>
+      <div
+        className={`message-list agent-thread ${messages.length === 0 && !hasRunningTask ? 'agent-thread--empty' : ''}`}
+        aria-label={t('teacherThread')}
+      >
         {messages.length === 0 && !hasRunningTask ? (
-          <section className="teacher-empty-state" aria-label="AI 老师默认引导">
+          <section className="teacher-empty-state" aria-label={t('teacherEmptyTitle')}>
             <div className="teacher-empty-state__bubble" aria-hidden="true">
               <span />
               <span />
               <span />
             </div>
-            <strong>随时提问，AI 老师为你解答</strong>
-            <p>你可以问这盘棋的胜率判断、关键手分析、布局思路和形势判断。</p>
-            <div className="teacher-empty-state__prompts" aria-label="示例问题">
-              {TEACHER_EMPTY_PROMPTS.map((item) => (
+            <strong>{t('teacherEmptyTitle')}</strong>
+            <p>{t('teacherEmptyDescription')}</p>
+            <div className="teacher-empty-state__prompts" aria-label={t('sampleQuestions')}>
+              {teacherEmptyPrompts(t).map((item) => (
                 <button key={item} type="button" onClick={() => onQuickPrompt(item)} disabled={busy !== ''}>
                   {item}
                 </button>
@@ -3421,11 +3514,12 @@ function TeacherPanel({
             <article key={message.id} className={`message message--${message.role} agent-turn agent-turn--${message.role}`}>
               <div className="agent-turn__body">
                 <header className="agent-turn__head">
-                  <strong>{message.role === 'teacher' ? 'GoMentor' : 'User'}</strong>
-                  <small>{message.status ?? (message.result ? 'completed' : message.role === 'teacher' ? 'assistant' : 'prompt')}</small>
+                  <strong>{message.role === 'teacher' ? 'GoMentor' : t('user')}</strong>
+                  <small>{message.status ?? (message.result ? t('completed') : message.role === 'teacher' ? t('assistant') : t('prompt'))}</small>
                 </header>
                 <TeacherInlineResponse
                   message={message}
+                  t={t}
                   onJumpToMove={onJumpToMove}
                   onAnalyzeMove={onAnalyzeMove}
                 />
@@ -3438,11 +3532,11 @@ function TeacherPanel({
             <div className="agent-turn__body">
               <header className="agent-turn__head">
                 <strong>GoMentor</strong>
-                <small>running</small>
+                <small>{t('running')}</small>
               </header>
               <div className="codex-working">
                 <span />
-                <p>正在看棋盘、KataGo 候选点和你的问题，然后组织成一段能下次用上的讲解。</p>
+                <p>{t('teacherThinking')}</p>
               </div>
             </div>
           </div>
@@ -3457,6 +3551,7 @@ function TeacherPanel({
         onChange={onPrompt}
         onSubmit={onSubmit}
         onStop={onStop}
+        t={t}
       />
     </div>
   )
@@ -3466,6 +3561,7 @@ function SettingsDrawer({
   dashboard,
   katagoAssets,
   busy,
+  t,
   llmTestMessage,
   katagoBenchmark,
   katagoBenchmarkMessage,
@@ -3480,6 +3576,7 @@ function SettingsDrawer({
   dashboard: DashboardData
   katagoAssets: KataGoAssetStatus | null
   busy: string
+  t: UiTranslator
   llmTestMessage: string
   katagoBenchmark: KataGoBenchmarkResult | null
   katagoBenchmarkMessage: string
@@ -3504,7 +3601,6 @@ function SettingsDrawer({
   const modelPresets = dashboard.systemProfile.katagoModelPresets
   const [selectedPresetId, setSelectedPresetId] = useState<KataGoModelPresetId>(dashboard.settings.katagoModelPreset)
   const selectedPreset = modelPresets.find((preset) => preset.id === selectedPresetId) ?? modelPresets[0]
-  const t = useMemo(() => createUiTranslator(dashboard.settings.reviewLanguage), [dashboard.settings.reviewLanguage])
   const localeOptions = SUPPORTED_UI_LOCALES
   const fallbackLlmModelOptions = uniqueModelOptions([
     selectedLlmModel,
@@ -3516,22 +3612,22 @@ function SettingsDrawer({
   const groupedModelPresets = useMemo(() => {
     const groups = new Map<string, typeof modelPresets>()
     for (const preset of modelPresets) {
-      const group = preset.group || '官方权重'
+      const group = translateKataGoPresetGroup(preset.group, t)
       groups.set(group, [...(groups.get(group) ?? []), preset])
     }
     const groupOrder = [
-      '官网推荐 zhizi 模型',
-      '18b 官方推荐 / 日常教学',
-      '20b 快速分析 / 旧机友好',
-      '28b 高强度精读',
-      '40b 旗舰 / 高配机器'
+      t('modelGroupZhizi'),
+      t('modelGroupB18'),
+      t('modelGroupB20'),
+      t('modelGroupB28'),
+      t('modelGroupB40')
     ]
     return [...groups.entries()].sort(([left], [right]) => {
       const leftIndex = groupOrder.indexOf(left)
       const rightIndex = groupOrder.indexOf(right)
       return (leftIndex === -1 ? 99 : leftIndex) - (rightIndex === -1 ? 99 : rightIndex)
     })
-  }, [modelPresets])
+  }, [modelPresets, t])
   const betaItems = useMemo<BetaAcceptanceItem[]>(() => {
     if (releaseReadiness) {
       return releaseReadiness.items.map((item) => ({
@@ -3544,30 +3640,35 @@ function SettingsDrawer({
     return [
       {
         id: 'katago-assets',
-        label: 'KataGo 内置资源',
+        label: t('katagoBundledAssets'),
         status: katagoAssets?.ready ? 'pass' : katagoAssets?.manifestFound ? 'warn' : 'fail',
-        detail: katagoAssets?.detail ?? dashboard.systemProfile.katagoStatus
+        detail: katagoAssets?.detail ?? localizeKataGoStatus(
+          dashboard.systemProfile.katagoStatus,
+          dashboard.systemProfile.katagoModelPresets,
+          dashboard.systemProfile.katagoModelPreset,
+          t
+        )
       },
       {
         id: 'llm-provider',
-        label: 'Claude 兼容代理',
+        label: t('claudeProxy'),
         status: dashboard.systemProfile.hasLlmApiKey ? 'pass' : 'warn',
-        detail: dashboard.systemProfile.hasLlmApiKey ? `模型 ${dashboard.settings.llmModel}` : '未配置 API Key，老师多模态讲解不可用'
+        detail: dashboard.systemProfile.hasLlmApiKey ? t('llmModelDetail', { model: dashboard.settings.llmModel }) : t('llmApiMissingDetail')
       },
       {
         id: 'knowledge',
-        label: '本地围棋知识库',
+        label: t('localKnowledgeBase'),
         status: 'pass',
-        detail: 'P0 教学卡随应用打包'
+        detail: t('knowledgePackaged')
       },
       {
         id: 'teacher-ui',
-        label: '老师智能体 UI',
+        label: t('teacherAgentUi'),
         status: 'pass',
-        detail: '关键手、工具日志、结构化结果卡已接入'
+        detail: t('teacherUiReadyDetail')
       }
     ]
-  }, [dashboard.settings.llmModel, dashboard.systemProfile.hasLlmApiKey, dashboard.systemProfile.katagoStatus, katagoAssets, releaseReadiness])
+  }, [dashboard.settings.llmModel, dashboard.systemProfile.hasLlmApiKey, dashboard.systemProfile.katagoStatus, katagoAssets, releaseReadiness, t])
 
   async function refreshReleaseReadiness(): Promise<void> {
     try {
@@ -3577,7 +3678,7 @@ function SettingsDrawer({
       }
       setReleaseReadiness(await window.gomentor.getReleaseReadiness())
     } catch (cause) {
-      setReleaseReadinessError(`Beta 验收状态读取失败: ${String(cause)}`)
+      setReleaseReadinessError(t('releaseReadinessFailed', { error: String(cause) }))
     }
   }
 
@@ -3608,7 +3709,7 @@ function SettingsDrawer({
       }
       setLlmModelRefreshMessage(result.message)
     } catch (cause) {
-      setLlmModelRefreshMessage(`模型刷新失败: ${String(cause)}`)
+      setLlmModelRefreshMessage(t('modelRefreshFailed', { error: String(cause) }))
     } finally {
       setLlmModelsRefreshing(false)
     }
@@ -3633,13 +3734,13 @@ function SettingsDrawer({
       if (!result.hasKey || !result.apiKey) {
         setSavedLlmApiKey('')
         setShowLlmApiKey(false)
-        setLlmKeyMessage('还没有保存 API Key。')
+        setLlmKeyMessage(t('apiKeyMissingMessage'))
         return
       }
       setSavedLlmApiKey(result.apiKey)
       setShowLlmApiKey(true)
     } catch (cause) {
-      setLlmKeyMessage(`读取 API Key 失败: ${String(cause)}`)
+      setLlmKeyMessage(t('apiKeyReadFailed', { error: String(cause) }))
     }
   }
 
@@ -3653,7 +3754,7 @@ function SettingsDrawer({
       }}
     >
       <label className="katago-preset-select">
-        KataGo 官方权重
+        {t('katagoWeights')}
         <select
           name="katagoModelPreset"
           value={selectedPresetId}
@@ -3661,15 +3762,18 @@ function SettingsDrawer({
         >
           {groupedModelPresets.map(([group, presets]) => (
             <optgroup key={group} label={group}>
-              {presets.map((preset) => (
-                <option key={preset.id} value={preset.id}>
-                  {preset.label} · {preset.badge} · {preset.sizeHint}
-                </option>
-              ))}
+              {presets.map((preset) => {
+                const presetCopy = translateKataGoPreset(preset, t)
+                return (
+                  <option key={preset.id} value={preset.id}>
+                    {presetCopy.label} · {presetCopy.badge} · {presetCopy.sizeHint}
+                  </option>
+                )
+              })}
             </optgroup>
           ))}
         </select>
-        {selectedPreset ? <small>{selectedPreset.description}</small> : null}
+        {selectedPreset ? <small>{translateKataGoPreset(selectedPreset, t).description}</small> : null}
       </label>
       <KataGoAssetsPanel
         status={katagoAssets}
@@ -3679,6 +3783,7 @@ function SettingsDrawer({
         installMessage={katagoInstallMessage}
         onInstall={() => onInstallOfficialModel(selectedPreset?.id ?? dashboard.settings.katagoModelPreset)}
         onRefresh={onRefreshKataGoAssets}
+        t={t}
       />
       <KataGoBenchmarkPanel
         settings={dashboard.settings}
@@ -3686,6 +3791,7 @@ function SettingsDrawer({
         message={katagoBenchmarkMessage}
         busy={busy === 'katago-benchmark'}
         onRun={onBenchmark}
+        t={t}
       />
       <BetaAcceptancePanel
         items={betaItems}
@@ -3694,6 +3800,7 @@ function SettingsDrawer({
           void refreshReleaseReadiness()
           onRefreshKataGoAssets()
         }}
+        t={t}
       />
       {releaseReadinessError ? <div className="test-message">{releaseReadinessError}</div> : null}
       <section className="settings-section settings-section-language">
@@ -3711,7 +3818,7 @@ function SettingsDrawer({
         </label>
       </section>
       <label>
-        LLM Base URL
+        {t('llmBaseUrl')}
         <input
           className="llm-config-input"
           name="llmBaseUrl"
@@ -3720,18 +3827,18 @@ function SettingsDrawer({
           autoCorrect="off"
           spellCheck={false}
         />
-        <small>当前 API：{dashboard.settings.llmBaseUrl || '未配置'}</small>
+        <small>{t('currentApi', { url: dashboard.settings.llmBaseUrl || t('apiNotSet') })}</small>
       </label>
       <div className="llm-api-key-field">
         <label>
-          LLM API Key
+        {t('llmApiKey')}
           <div className="llm-secret-input-row">
             <input
               className="llm-config-input"
               name="llmApiKey"
               type={showLlmApiKey ? 'text' : 'password'}
               defaultValue={showLlmApiKey ? savedLlmApiKey : ''}
-              placeholder={dashboard.systemProfile.hasLlmApiKey ? '已安全保存；留空则继续使用' : '需要支持图片输入的模型 API key'}
+              placeholder={dashboard.systemProfile.hasLlmApiKey ? t('apiKeySavedPlaceholder') : t('apiKeyNeededPlaceholder')}
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
@@ -3742,22 +3849,22 @@ function SettingsDrawer({
               onClick={() => showLlmApiKey ? setShowLlmApiKey(false) : void revealSavedLlmApiKey()}
               disabled={busy !== ''}
             >
-              {showLlmApiKey ? '隐藏' : '显示 Key'}
+              {showLlmApiKey ? t('hide') : t('showKey')}
             </button>
           </div>
         </label>
-        <small>{showLlmApiKey ? '当前已显示保存的 Key；编辑后点击保存会覆盖。右键或 Cmd/Ctrl+V 可以粘贴新的 Key。' : dashboard.systemProfile.hasLlmApiKey ? '已保存 Key；点击“显示 Key”可核对，也可以直接粘贴新 Key 覆盖。' : '尚未保存 Key；可从代理后台复制后右键粘贴。'}</small>
+        <small>{showLlmApiKey ? t('apiKeyShownHelp') : dashboard.systemProfile.hasLlmApiKey ? t('apiKeySavedHelp') : t('apiKeyMissingHelp')}</small>
         {llmKeyMessage ? <small>{llmKeyMessage}</small> : null}
       </div>
       <label>
-        多模态模型
+        {t('multimodalModel')}
         <div className="llm-model-picker">
           <select
             className="llm-model-select"
             name="llmModel"
             value={selectedLlmModel}
             onChange={(event) => setSelectedLlmModel(event.target.value)}
-            aria-label="选择多模态模型"
+            aria-label={t('selectMultimodalModel')}
           >
             {llmModelOptions.length ? (
               llmModelOptions.map((model) => (
@@ -3767,7 +3874,7 @@ function SettingsDrawer({
               ))
             ) : (
               <option value="" disabled>
-                未返回模型
+                {t('noModelReturned')}
               </option>
             )}
           </select>
@@ -3777,18 +3884,18 @@ function SettingsDrawer({
             onClick={(event) => void refreshLlmModels(event.currentTarget.form)}
             disabled={busy !== '' || llmModelsRefreshing}
           >
-            {llmModelsRefreshing ? '刷新中' : '刷新模型'}
+            {llmModelsRefreshing ? t('refreshing') : t('refreshModels')}
           </button>
         </div>
-        <small>从代理返回的模型中选择；如果没有看到新模型，请先刷新模型。</small>
+        <small>{t('modelPickerHelp')}</small>
         {llmModelRefreshMessage ? <small>{llmModelRefreshMessage}</small> : null}
       </label>
       <div className="settings-actions">
         <button className="ghost-button" type="button" onClick={(event) => onTest(event.currentTarget.form!)} disabled={busy !== ''}>
-          图片测试
+          {t('imageTest')}
         </button>
         <button className="primary-button" type="submit" disabled={busy !== ''}>
-          保存
+          {t('save')}
         </button>
       </div>
       {llmTestMessage ? <div className="test-message">{llmTestMessage}</div> : null}
@@ -3801,13 +3908,15 @@ function KataGoBenchmarkPanel({
   result,
   message,
   busy,
-  onRun
+  onRun,
+  t
 }: {
   settings: DashboardData['settings']
   result: KataGoBenchmarkResult | null
   message: string
   busy: boolean
   onRun: () => void
+  t: UiTranslator
 }): ReactElement {
   const bestThreads = result?.recommendedThreads || settings.katagoBenchmarkThreads
   const bestSpeed = result?.visitsPerSecond || settings.katagoBenchmarkVisitsPerSecond
@@ -3815,21 +3924,21 @@ function KataGoBenchmarkPanel({
   return (
     <section className="runtime-card katago-benchmark-card">
       <header>
-        <strong>KataGo 一键测速</strong>
+        <strong>{t('katagoBenchmarkTitle')}</strong>
         <span className={bestThreads ? 'runtime-pill runtime-pill--ready' : 'runtime-pill runtime-pill--warn'}>
-          {bestThreads ? `${bestThreads} threads` : '未测速'}
+          {bestThreads ? `${bestThreads} threads` : t('benchmarkNotRun')}
         </span>
       </header>
-      <p>使用 KataGo 官方 benchmark 命令测试本机搜索线程，自动写入分析配置。</p>
+      <p>{t('benchmarkDescription')}</p>
       <div className="runtime-list">
-        <div><span>推荐线程</span><strong>{bestThreads || '待测速'}</strong></div>
-        <div><span>测速速度</span><strong>{bestSpeed ? formatSearchSpeed(bestSpeed) : '待测速'}</strong></div>
-        <div><span>分析配置</span><strong>{settings.katagoAnalysisThreads || 'auto'} × {settings.katagoSearchThreadsPerAnalysisThread || 1}</strong></div>
-        <div><span>批量</span><strong>{settings.katagoMaxBatchSize || 32}</strong></div>
-        {tunedAt ? <div><span>更新时间</span><strong>{new Date(tunedAt).toLocaleString()}</strong></div> : null}
+        <div><span>{t('recommendedThreads')}</span><strong>{bestThreads || t('benchmarkPending')}</strong></div>
+        <div><span>{t('benchmarkSpeed')}</span><strong>{bestSpeed ? formatSearchSpeed(bestSpeed) : t('benchmarkPending')}</strong></div>
+        <div><span>{t('analysisConfig')}</span><strong>{settings.katagoAnalysisThreads || 'auto'} × {settings.katagoSearchThreadsPerAnalysisThread || 1}</strong></div>
+        <div><span>{t('batchSize')}</span><strong>{settings.katagoMaxBatchSize || 32}</strong></div>
+        {tunedAt ? <div><span>{t('updatedAt')}</span><strong>{new Date(tunedAt).toLocaleString()}</strong></div> : null}
       </div>
       <button className="primary-button" type="button" onClick={onRun} disabled={busy}>
-        {busy ? '测速中' : '一键测速并优化'}
+        {busy ? t('benchmarkRunning') : t('benchmarkRun')}
       </button>
       {message ? <p className="test-message">{message}</p> : null}
       {result?.tested.length ? (
@@ -3909,7 +4018,8 @@ function BoardContextBar({
   liveAnalysis,
   disabled,
   onStart,
-  onPause
+  onPause,
+  t
 }: {
   title: string
   record: GameRecord
@@ -3919,6 +4029,7 @@ function BoardContextBar({
   disabled: boolean
   onStart: () => void
   onPause: () => void
+  t: UiTranslator
 }): ReactElement {
   const current = moveNumber > 0 ? record.moves[moveNumber - 1] : undefined
   const scoreLead = analysis?.after.scoreLead
@@ -3928,7 +4039,7 @@ function BoardContextBar({
   const bestVisits = isCurrentLiveTarget ? liveAnalysis.bestVisits : candidateBestVisits(analysis)
   const status = isCurrentLiveTarget
     ? liveAnalysis.status
-    : (analysis ? `已搜索 ${formatVisits(totalVisits)}` : '等待精读')
+    : (analysis ? t('analysisSearched', { visits: formatVisits(totalVisits) }) : t('analysisWaiting'))
   const speedLabel = isCurrentLiveTarget && liveAnalysis.visitsPerSecond > 0
     ? formatSearchSpeed(liveAnalysis.visitsPerSecond)
     : '—'
@@ -3937,27 +4048,27 @@ function BoardContextBar({
       <div className="board-contextbar__identity">
         <h1>{title}</h1>
         <span>{moveNumber}/{record.moves.length}</span>
-        <em>{current ? `${current.color === 'B' ? '黑' : '白'} ${current.gtp}` : '开局'}</em>
+        <em>{current ? `${current.color === 'B' ? t('black') : t('white')} ${current.gtp}` : t('opening')}</em>
       </div>
-      <div className="board-contextbar__metrics" aria-label="当前局面数据">
+      <div className="board-contextbar__metrics" aria-label={t('currentBoardMetrics')}>
         <div className="board-contextbar__metric">
-          <span>黑胜率</span>
-          <strong>{typeof winrate === 'number' ? `${winrate.toFixed(1)}%` : '待分析'}</strong>
+          <span>{t('timelineBlackWinrate')}</span>
+          <strong>{typeof winrate === 'number' ? `${winrate.toFixed(1)}%` : t('toAnalyze')}</strong>
         </div>
         <div className="board-contextbar__metric">
-          <span>目差</span>
-          <strong>{formatScoreLead(scoreLead)}</strong>
+          <span>{t('timelineScoreLead')}</span>
+          <strong>{formatScoreLead(scoreLead, t)}</strong>
         </div>
         <div className="board-contextbar__metric board-contextbar__metric--search">
           <span>{status}</span>
-          <strong>总 {formatVisits(totalVisits)} · 一选 {formatVisits(bestVisits)}</strong>
+          <strong>{t('totalAndBestVisits', { total: formatVisits(totalVisits), best: formatVisits(bestVisits) })}</strong>
         </div>
         <div className="board-contextbar__metric board-contextbar__metric--speed">
-          <span>速度</span>
+          <span>{t('searchSpeed')}</span>
           <strong>{speedLabel}</strong>
         </div>
       </div>
-      <div className="analysis-control-strip" aria-label="KataGo 持续分析控制">
+      <div className="analysis-control-strip" aria-label="KataGo live analysis control">
         <button
           type="button"
           className={`analysis-toggle-button ${liveAnalysis.running ? 'is-running' : ''}`}
@@ -3965,7 +4076,7 @@ function BoardContextBar({
           disabled={!liveAnalysis.running && disabled}
         >
           <span className="analysis-toggle-button__dot" />
-          {liveAnalysis.running ? '暂停分析' : '开始分析'}
+          {liveAnalysis.running ? t('pauseAnalysis') : t('startAnalysis')}
         </button>
       </div>
     </div>
@@ -3980,14 +4091,14 @@ function roundedScale(value: number, granularity: number, floor: number): number
   return Math.max(floor, Math.ceil(Math.max(0, value) / granularity) * granularity)
 }
 
-function formatScoreLead(scoreLead: number | undefined): string {
+function formatScoreLead(scoreLead: number | undefined, t?: UiTranslator): string {
   if (scoreLead === undefined) {
-    return '待分析'
+    return t ? t('toAnalyze') : '待分析'
   }
   if (Math.abs(scoreLead) < 0.05) {
-    return '均势'
+    return t ? t('even') : '均势'
   }
-  return `${scoreLead > 0 ? '黑' : '白'}+${Math.abs(scoreLead).toFixed(1)}`
+  return `${scoreLead > 0 ? (t ? t('black') : '黑') : (t ? t('white') : '白')}+${Math.abs(scoreLead).toFixed(1)}`
 }
 
 function formatVisits(visits: number): string {
@@ -4031,8 +4142,8 @@ function formatIssueLoss(loss: number): string {
   return `${loss.toFixed(loss >= 10 ? 0 : 1)}%`
 }
 
-function timelineIssueColorLabel(color: TimelineIssueColor): string {
-  return color === 'B' ? '黑棋' : '白棋'
+function timelineIssueColorLabel(color: TimelineIssueColor, t: UiTranslator): string {
+  return color === 'B' ? t('black') : t('white')
 }
 
 function TimelineIssueList({
@@ -4041,7 +4152,8 @@ function TimelineIssueList({
   currentMoveNumber,
   loading,
   onColorChange,
-  onJump
+  onJump,
+  t
 }: {
   color: TimelineIssueColor
   issues: TimelineIssueItem[]
@@ -4049,15 +4161,16 @@ function TimelineIssueList({
   loading: boolean
   onColorChange: (color: TimelineIssueColor) => void
   onJump: (moveNumber: number) => void
+  t: UiTranslator
 }): ReactElement {
   return (
-    <aside className="timeline-issues" aria-label="问题手列表">
+    <aside className="timeline-issues" aria-label={t('issueList')}>
       <div className="timeline-issues__head">
         <div className="timeline-issues__title">
-          <span>问题手</span>
+          <span>{t('issueList')}</span>
           <strong>{issues.length}</strong>
         </div>
-        <div className="timeline-issues__switch" role="group" aria-label="选择棋手颜色">
+        <div className="timeline-issues__switch" role="group" aria-label={t('choosePlayerColor')}>
           {(['B', 'W'] as const).map((item) => (
             <button
               key={item}
@@ -4066,7 +4179,7 @@ function TimelineIssueList({
               aria-pressed={item === color}
               onClick={() => onColorChange(item)}
             >
-              {timelineIssueColorLabel(item)}
+              {timelineIssueColorLabel(item, t)}
             </button>
           ))}
         </div>
@@ -4078,17 +4191,17 @@ function TimelineIssueList({
             type="button"
             className={`timeline-issue timeline-issue--${issue.severity} ${issue.moveNumber === currentMoveNumber ? 'is-current' : ''}`}
             onClick={() => onJump(issue.moveNumber)}
-            title={`第 ${issue.moveNumber} 手，胜率差 ${formatIssueLoss(issue.loss)}`}
+            title={t('issueTitle', { move: issue.moveNumber, loss: formatIssueLoss(issue.loss) })}
           >
-            <span className="timeline-issue__move">第 {issue.moveNumber} 手</span>
+            <span className="timeline-issue__move">{t('issueMove', { move: issue.moveNumber })}</span>
             <span className="timeline-issue__line">
-              {issue.playedMove || '实战'}{issue.bestMove ? ` → ${issue.bestMove}` : ''}
+              {issue.playedMove || t('actualMove')}{issue.bestMove ? ` → ${issue.bestMove}` : ''}
             </span>
             <strong>{formatIssueLoss(issue.loss)}</strong>
           </button>
         )) : (
           <div className="timeline-issues__empty">
-            {loading ? '正在生成问题手…' : `${timelineIssueColorLabel(color)}暂无明显问题手`}
+            {loading ? t('loadingIssues') : t('noIssues', { color: timelineIssueColorLabel(color, t) })}
           </div>
         )}
       </div>

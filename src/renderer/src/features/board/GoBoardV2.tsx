@@ -1,6 +1,7 @@
 import type { MouseEvent, PointerEvent, ReactElement } from 'react'
 import { useMemo, useState } from 'react'
 import type { GameRecord, KataGoMoveAnalysis } from '@main/lib/types'
+import type { UiTranslator } from '../../i18n'
 import {
   candidateVariationMoves,
   getBoardSize,
@@ -26,6 +27,7 @@ interface GoBoardV2Props {
   compact?: boolean
   onPointClick?: (point: BoardPoint) => void
   onCandidateHover?: (candidate: RenderCandidate | null) => void
+  t?: UiTranslator
 }
 
 const VIEWBOX = 960
@@ -65,7 +67,7 @@ function starPoints(boardSize: number): BoardPoint[] {
   return anchors.flatMap((x) => anchors.map((y) => ({ x, y })))
 }
 
-function toTooltipMove(candidate: RenderCandidate): CandidateTooltipMove {
+function toTooltipMove(candidate: RenderCandidate, t: UiTranslator): CandidateTooltipMove {
   const rawPv = valueOf(candidate.raw, 'pv')
   return {
     order: candidate.rank,
@@ -76,7 +78,7 @@ function toTooltipMove(candidate: RenderCandidate): CandidateTooltipMove {
     visits: valueOf(candidate.raw, 'visits') as number | undefined,
     prior: valueOf(candidate.raw, 'prior') as number | undefined,
     pv: Array.isArray(rawPv) ? rawPv.map(String).slice(0, 14) : undefined,
-    note: candidate.rank === 1 ? 'KataGo 当前首选。' : undefined
+    note: candidate.rank === 1 ? t('boardCandidateTopNote') : undefined
   }
 }
 
@@ -233,9 +235,9 @@ function VariationPreview({
   )
 }
 
-function PlayedMoveMark({ played, boardSize }: { played: RenderPlayedMove; boardSize: number }): ReactElement {
+function PlayedMoveMark({ played, boardSize, t }: { played: RenderPlayedMove; boardSize: number; t: UiTranslator }): ReactElement {
   const p = xy(played, boardSize)
-  const rankLabel = played.rank ? `${played.rank}选` : '实战'
+  const rankLabel = played.rank ? t('rankChoice', { rank: played.rank }) : t('playedMove')
   const loss = Math.max(0, played.winrateLoss ?? 0)
   const severity = loss >= 10 ? 'mistake' : loss >= 4 ? 'inaccuracy' : 'ok'
   return (
@@ -243,7 +245,7 @@ function PlayedMoveMark({ played, boardSize }: { played: RenderPlayedMove; board
       <rect className="ks-played-move-frame" x="-29" y="-29" width="58" height="58" rx="9.5" />
       <rect className="ks-played-move-panel" x="-23" y="-20.5" width="46" height="41" rx="8.5" />
       <rect className="ks-played-move-label-bg" x="-27" y="-32.5" width="30" height="13.5" rx="6.75" />
-      <text className="ks-played-move-label" x="-12" y="-25.6">实战</text>
+      <text className="ks-played-move-label" x="-12" y="-25.6">{t('playedMove')}</text>
       <text className="ks-played-move-rank" x="13.5" y="-25.6">{rankLabel}</text>
       <text className="ks-played-move-winrate" y="-7.6">{played.winrateLabel ?? '—'}</text>
       <text className="ks-played-move-visits" y="5">{formatVisitsLabel(played.visitsLabel)}</text>
@@ -252,9 +254,9 @@ function PlayedMoveMark({ played, boardSize }: { played: RenderPlayedMove; board
   )
 }
 
-function PreviousMoveMarker({ color }: { color: 'B' | 'W' }): ReactElement {
+function PreviousMoveMarker({ color, t }: { color: 'B' | 'W'; t: UiTranslator }): ReactElement {
   return (
-    <g className={`ks-previous-move ks-previous-move--${color}`} aria-label="当前手的上一手">
+    <g className={`ks-previous-move ks-previous-move--${color}`} aria-label={t('boardPreviousMoveLabel')}>
       <rect className="ks-previous-move-shadow" x="-8.2" y="-8.2" width="16.4" height="16.4" rx="3.2" transform="rotate(45)" />
       <rect className="ks-previous-move-gem" x="-7.1" y="-7.1" width="14.2" height="14.2" rx="2.8" transform="rotate(45)" />
       <path className="ks-previous-move-glint" d="M -3.6 -5.4 L 5.2 3.4" />
@@ -262,7 +264,14 @@ function PreviousMoveMarker({ color }: { color: 'B' | 'W' }): ReactElement {
   )
 }
 
-export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], compact = false, onPointClick, onCandidateHover }: GoBoardV2Props): ReactElement {
+export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], compact = false, onPointClick, onCandidateHover, t: providedT }: GoBoardV2Props): ReactElement {
+  const t = providedT ?? ((key: string) => {
+    const fallback: Record<string, string> = {
+      boardImageLabel: '围棋棋盘',
+      boardCandidateTopNote: 'KataGo 当前首选。'
+    }
+    return fallback[key] ?? key
+  }) as UiTranslator
   const [hoveredCandidate, setHoveredCandidate] = useState<HoveredCandidate>(null)
   const boardSize = getBoardSize(record)
   const stones = useMemo(() => renderStones(record, moveNumber), [record, moveNumber])
@@ -280,7 +289,7 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
   const lines = Array.from({ length: boardSize }, (_, index) => index)
 
   function handleCandidateHover(candidate: RenderCandidate | null, position?: CandidateTooltipPosition): void {
-    setHoveredCandidate(candidate && position ? { candidate: toTooltipMove(candidate), renderCandidate: candidate, position } : null)
+    setHoveredCandidate(candidate && position ? { candidate: toTooltipMove(candidate, t), renderCandidate: candidate, position } : null)
     onCandidateHover?.(candidate)
   }
 
@@ -357,7 +366,7 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
         className="ks-go-board-v2"
         viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
         role="img"
-        aria-label="围棋棋盘"
+        aria-label={t('boardImageLabel')}
         onPointerMove={handleBoardPointerMove}
         onPointerLeave={() => handleCandidateHover(null)}
         onMouseMove={handleBoardPointerMove}
@@ -458,7 +467,7 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
                 <circle className="ks-stone-shadow" r="24" />
                 <circle className="ks-stone-body" r="22.2" />
                 <ellipse className="ks-stone-highlight" cx="-6.5" cy="-8.2" rx="8.6" ry="5.2" />
-                {isPreviousMove ? <PreviousMoveMarker color={stone.color} /> : null}
+                {isPreviousMove ? <PreviousMoveMarker color={stone.color} t={t} /> : null}
               </g>
             )
           })}
@@ -484,7 +493,7 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
 
         {playedMove ? (
           <g className="ks-played-move-layer">
-            <PlayedMoveMark played={playedMove} boardSize={boardSize} />
+            <PlayedMoveMark played={playedMove} boardSize={boardSize} t={t} />
           </g>
         ) : null}
       </svg>
