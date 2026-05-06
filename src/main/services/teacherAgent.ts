@@ -991,22 +991,48 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
           ? getGames().filter((game) => game.id === gameId)
           : findGamesForStudent(studentName, count)
         const issues: BatchIssue[] = []
-        const maxVisits = numberInput(input, 'maxVisits', 220, 40, 2000)
+        const failedGames: Array<{ gameId: string; title: string; error: string }> = []
+        const requestedVisits = numberInput(input, 'maxVisits', 4, 1, 600)
+        const sweepVisits = Math.min(16, Math.max(4, requestedVisits))
+        const refineVisits = Math.max(120, Math.min(420, requestedVisits * 16))
+        const refineTopN = count > 1 ? 2 : 4
         const minWinrateDrop = numberInput(input, 'minWinrateDrop', 6, 1, 40)
+        cancelKataGoAnalysis({ group: 'quick' })
         for (const game of games) {
           assertTeacherRunActive(state.context)
-          const analyses = await analyzeGameQuick(game.id, maxVisits, undefined, {
-            refineVisits: Math.max(maxVisits, 420),
-            refineTopN: 8,
-            runId: `${state.id}-batch-${game.id}`,
-            group: 'teacher'
-          })
+          let analyses: Awaited<ReturnType<typeof analyzeGameQuick>>
+          try {
+            analyses = await analyzeGameQuick(game.id, sweepVisits, undefined, {
+              refineVisits,
+              refineTopN,
+              runId: `${state.id}-batch-${game.id}`,
+              group: 'teacher'
+            })
+          } catch (error) {
+            if (/KataGo 分析超时|timed out|timeout/i.test(String(error))) {
+              failedGames.push({
+                gameId: game.id,
+                title: game.title,
+                error: 'KataGo 整盘快扫超时，已跳过这盘。'
+              })
+              continue
+            }
+            throw error
+          }
           assertTeacherRunActive(state.context)
           issues.push(...extractIssuesFromAnalyses(analyses, game, minWinrateDrop))
         }
         return {
           studentName,
+          analysisMode: 'fast-sweep-plus-key-move-refine',
+          visits: {
+            sweep: sweepVisits,
+            refine: refineVisits,
+            refineTopN
+          },
+          status: failedGames.length === 0 ? 'complete' : issues.length > 0 ? 'partial' : 'failed',
           games: summarizeGames(games),
+          failedGames,
           issues: issues.filter((issue) => issue.loss > 0).sort((a, b) => b.loss - a.loss).slice(0, 30)
         }
       }
