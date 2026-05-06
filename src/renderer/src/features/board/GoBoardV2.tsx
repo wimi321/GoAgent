@@ -10,6 +10,7 @@ import {
   renderCandidates,
   renderPlayedMove,
   renderStones,
+  boardPointLabel,
   type BoardPoint,
   type RenderCandidate,
   type RenderKeyMove,
@@ -24,6 +25,7 @@ interface GoBoardV2Props {
   moveNumber: number
   analysis?: KataGoMoveAnalysis | null
   keyMoves?: RenderKeyMove[]
+  flashPoint?: (BoardPoint & { nonce?: number; label?: string }) | null
   compact?: boolean
   onPointClick?: (point: BoardPoint) => void
   onCandidateHover?: (candidate: RenderCandidate | null) => void
@@ -264,7 +266,23 @@ function PreviousMoveMarker({ color, t }: { color: 'B' | 'W'; t: UiTranslator })
   )
 }
 
-export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], compact = false, onPointClick, onCandidateHover, t: providedT }: GoBoardV2Props): ReactElement {
+function BoardFlashMark({ point, boardSize }: { point: BoardPoint & { label?: string }; boardSize: number }): ReactElement {
+  const p = xy(point, boardSize)
+  const label = point.label ?? boardPointLabel(point, boardSize)
+  return (
+    <g className="ks-board-flash" transform={`translate(${p.x} ${p.y})`} aria-label={label}>
+      <circle className="ks-board-flash__halo" r="34" />
+      <circle className="ks-board-flash__ring" r="27" />
+      <circle className="ks-board-flash__core" r="5.2" />
+      <g className="ks-board-flash__label" transform="translate(0 -42)">
+        <rect x="-19" y="-11" width="38" height="22" rx="11" />
+        <text y="0.5">{label}</text>
+      </g>
+    </g>
+  )
+}
+
+export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], flashPoint = null, compact = false, onPointClick, onCandidateHover, t: providedT }: GoBoardV2Props): ReactElement {
   const t = providedT ?? ((key: string) => {
     const fallback: Record<string, string> = {
       boardImageLabel: '围棋棋盘',
@@ -494,6 +512,12 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
         {playedMove ? (
           <g className="ks-played-move-layer">
             <PlayedMoveMark played={playedMove} boardSize={boardSize} t={t} />
+          </g>
+        ) : null}
+
+        {flashPoint ? (
+          <g key={`${flashPoint.x}-${flashPoint.y}-${flashPoint.nonce ?? 0}`} className="ks-board-flash-layer">
+            <BoardFlashMark point={flashPoint} boardSize={boardSize} />
           </g>
         ) : null}
       </svg>

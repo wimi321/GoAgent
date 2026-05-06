@@ -2046,6 +2046,48 @@ label,
   font-weight: 850;
 }
 
+.chat-reference-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  margin: 0 1px;
+  padding: 0 5px;
+  border: 1px solid rgb(75 148 140 / 0.22);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgb(79 155 145 / 0.1), rgb(79 155 145 / 0.04));
+  color: #146b65;
+  font: inherit;
+  font-weight: 760;
+  line-height: 1.25;
+  letter-spacing: 0;
+  vertical-align: baseline;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.58);
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.chat-reference-link--point {
+  border-color: rgb(202 138 61 / 0.3);
+  background: linear-gradient(180deg, rgb(215 157 78 / 0.12), rgb(215 157 78 / 0.05));
+  color: #8a4d12;
+}
+
+.chat-reference-link:hover,
+.chat-reference-link:focus-visible {
+  border-color: rgb(41 132 124 / 0.48);
+  background: rgb(79 155 145 / 0.14);
+  color: #0d5954;
+  transform: translateY(-0.5px);
+  outline: none;
+}
+
+.chat-reference-link--point:hover,
+.chat-reference-link--point:focus-visible {
+  border-color: rgb(194 121 37 / 0.52);
+  background: rgb(215 157 78 / 0.16);
+  color: #6f3c0b;
+}
+
 .assistant-copybar {
   display: flex;
   justify-content: flex-end;
