@@ -4,6 +4,13 @@ All notable changes to GoMentor will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.3.14-dev.2 - Real Eval Prompt Grounding Hotfix
+
+### Fixed
+
+- Tightened the real teaching eval prompt so strict runs only allow coordinates already present in the KataGo evidence coordinate set.
+- Verified strict real eval locally with bundled KataGo v1.16.4 Metal, b18 recommended model, CLIProxyAPI, and `gpt-5.5`.
+
 ## 0.3.14-dev.1 - Real Teaching Eval and Persistent KataGo Engine
 
 ### Added
