@@ -4,6 +4,20 @@ All notable changes to GoMentor will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.3.14-dev.1 - Real Teaching Eval and Persistent KataGo Engine
+
+### Added
+
+- Added real local teaching evaluation that can run true KataGo analysis plus a true LLM teacher response when `GOMENTOR_REAL_EVAL=1` and local credentials/assets are configured.
+- Added opt-in persistent KataGo analysis engine reuse through `GOMENTOR_KATAGO_ENGINE_POOL=1`, while keeping the existing spawn-per-batch fallback as the default.
+- Added a deep teacher-quality command that includes strict real teaching evaluation without forcing it into default CI.
+
+### Notes
+
+- `pnpm eval:real-teaching` skips cleanly when real KataGo or LLM configuration is missing.
+- `pnpm eval:real-teaching:strict` is intended for local/release machines with real KataGo and LLM credentials.
+- Development releases are marked as prerelease and are not promoted over the latest stable GitHub release.
+
 ## 0.3.10 - Windows OpenCL Runtime Bundle Hotfix
 
 ### Fixed

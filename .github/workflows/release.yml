@@ -460,6 +460,8 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ contains(github.ref_name, '-') && 'false' || 'true' }}
           files: |
             artifacts/**/GoMentor-*-mac-arm64.dmg
             artifacts/**/GoMentor-*-mac-x64.dmg
