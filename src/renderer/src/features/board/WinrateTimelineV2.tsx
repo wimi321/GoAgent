@@ -1,6 +1,7 @@
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactElement, ReactNode } from 'react'
 import { useMemo, useRef, useState } from 'react'
 import type { KataGoMoveAnalysis } from '@main/lib/types'
+import type { UiTranslator } from '../../i18n'
 import { getAnalysisMoveNumber, getAnalysisWinrate, classifyMoveLoss, normalizeWinrate } from './boardGeometry'
 import { moveFromPointer } from './timelineInteraction'
 import './board-v2.css'
@@ -25,6 +26,7 @@ interface WinrateTimelineV2Props {
   rangeStart?: number | null
   rangeEnd?: number | null
   summary?: ReactNode
+  t?: UiTranslator
 }
 
 function valueOf(record: unknown, key: string): unknown {
@@ -47,11 +49,11 @@ function extractLoss(item: unknown): number | undefined {
   return undefined
 }
 
-function severityLabel(severity: TimelinePoint['severity']): string {
-  if (severity === 'blunder') return '重大问题'
-  if (severity === 'mistake') return '问题手'
-  if (severity === 'inaccuracy') return '缓手'
-  return '走势点'
+function severityLabel(severity: TimelinePoint['severity'], t: UiTranslator): string {
+  if (severity === 'blunder') return t('severityBlunder')
+  if (severity === 'mistake') return t('severityMistake')
+  if (severity === 'inaccuracy') return t('severityInaccuracy')
+  return t('severityTurningPoint')
 }
 
 function formatWinrateLoss(loss: number | undefined): string {
@@ -104,8 +106,29 @@ export function WinrateTimelineV2({
   onRangeClear,
   rangeStart: activeRangeStart,
   rangeEnd: activeRangeEnd,
-  summary
+  summary,
+  t: providedT
 }: WinrateTimelineV2Props): ReactElement {
+  const t = providedT ?? ((key: string, vars?: Record<string, string | number | undefined>) => {
+    const fallback: Record<string, string> = {
+      timelineAria: '胜率图，点击后可用左右方向键切换手数',
+      timelineTitle: '胜率走势',
+      timelineLoading: '分析中',
+      timelineSubtitle: '胜率 / 目差曲线',
+      timelineCurrentLoss: '当前胜率差',
+      timelineLegend: '曲线说明',
+      timelineBlackWinrate: '黑胜率',
+      timelineScoreLead: '目差',
+      timelineEmpty: '导入棋谱后生成胜率图',
+      timelineTooltip: `第 ${vars?.move ?? ''} 手 · ${vars?.winrate ?? ''}%`,
+      timelineTooltipLoss: `胜率差 ${vars?.loss ?? ''} · ${vars?.severity ?? ''}`,
+      severityBlunder: '重大问题',
+      severityMistake: '问题手',
+      severityInaccuracy: '缓手',
+      severityTurningPoint: '走势点'
+    }
+    return fallback[key] ?? key
+  }) as UiTranslator
   const [dragging, setDragging] = useState(false)
   const [hoveredMove, setHoveredMove] = useState<number | null>(null)
   const [hoverLeft, setHoverLeft] = useState(0)
@@ -246,21 +269,21 @@ export function WinrateTimelineV2({
       className="ks-timeline-v2"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      aria-label="胜率图，点击后可用左右方向键切换手数"
+      aria-label={t('timelineAria')}
     >
       <div className="ks-timeline-head">
         <div className="ks-timeline-title">
-          <span>胜率走势</span>
-          <small>{loading ? (loadingLabel || '分析中') : '胜率 / 目差曲线'}</small>
+          <span>{t('timelineTitle')}</span>
+          <small>{loading ? (loadingLabel || t('timelineLoading')) : t('timelineSubtitle')}</small>
         </div>
         <div className="ks-timeline-move-count">{currentMoveNumber} / {totalMoves}</div>
         <div className={`ks-timeline-current-loss ks-timeline-current-loss--${currentPoint?.severity ?? 'quiet'}`}>
-          <span>当前胜率差</span>
+          <span>{t('timelineCurrentLoss')}</span>
           <strong>{currentLossLabel}</strong>
         </div>
-        <div className="ks-timeline-legend" aria-label="曲线说明">
-          <span><i className="ks-timeline-legend__swatch ks-timeline-legend__swatch--winrate" />黑胜率</span>
-          <span><i className="ks-timeline-legend__swatch ks-timeline-legend__swatch--score" />目差</span>
+        <div className="ks-timeline-legend" aria-label={t('timelineLegend')}>
+          <span><i className="ks-timeline-legend__swatch ks-timeline-legend__swatch--winrate" />{t('timelineBlackWinrate')}</span>
+          <span><i className="ks-timeline-legend__swatch ks-timeline-legend__swatch--score" />{t('timelineScoreLead')}</span>
         </div>
         {summary ? <div className="ks-timeline-summary">{summary}</div> : null}
       </div>
@@ -277,7 +300,7 @@ export function WinrateTimelineV2({
           }
         }}
         role="img"
-        aria-label="胜率图"
+        aria-label={t('timelineTitle')}
       >
         <defs>
           <linearGradient id="ks-timeline-bg" x1="0" y1="0" x2="0" y2="1">
@@ -317,12 +340,12 @@ export function WinrateTimelineV2({
           <rect className="ks-timeline-current-label-bg" x="-21" y="-12" width="42" height="22" rx="11" />
           <text className="ks-timeline-current-label" y="4">{currentMoveNumber}</text>
         </g>
-        {points.length === 0 ? <text className="ks-timeline-empty" x={width / 2} y={height / 2}>导入棋谱后生成胜率图</text> : null}
+        {points.length === 0 ? <text className="ks-timeline-empty" x={width / 2} y={height / 2}>{t('timelineEmpty')}</text> : null}
       </svg>
       {hoverPoint ? (
         <div className="ks-timeline-tooltip" style={{ left: `${Math.round(hoverLeft)}px` }}>
-          <strong>第 {hoverPoint.moveNumber} 手 · {Math.round(hoverPoint.winrate * 100)}%</strong>
-          <span>胜率差 {formatWinrateLoss(hoverPoint.loss)} · {severityLabel(hoverPoint.severity)}</span>
+          <strong>{t('timelineTooltip', { move: hoverPoint.moveNumber, winrate: Math.round(hoverPoint.winrate * 100) })}</strong>
+          <span>{t('timelineTooltipLoss', { loss: formatWinrateLoss(hoverPoint.loss), severity: severityLabel(hoverPoint.severity, t) })}</span>
         </div>
       ) : null}
       {rangeLo !== null && rangeHi !== null && !isRangeDragging ? (

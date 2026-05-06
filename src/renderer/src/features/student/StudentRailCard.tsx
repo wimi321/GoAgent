@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import type { UiTranslator } from '../../i18n'
 import './student.css'
 
 export interface StudentRailCardProps {
@@ -6,15 +7,28 @@ export interface StudentRailCardProps {
   primaryFoxNickname?: string
   disabled?: boolean
   onChangeBinding?: () => void
+  t?: UiTranslator
 }
 
 export function StudentRailCard({
   displayName,
   primaryFoxNickname,
   disabled = false,
-  onChangeBinding
+  onChangeBinding,
+  t
 }: StudentRailCardProps): ReactElement {
-  const name = displayName || primaryFoxNickname || '未绑定棋手'
+  const translate = t ?? ((key: string, vars?: Record<string, string | number | undefined>) => {
+    const fallback: Record<string, string> = {
+      studentCardLabel: '棋手',
+      unboundPlayer: '未绑定棋手',
+      changeBinding: '修改',
+      bindPlayer: '绑定',
+      bindPlayerAria: '绑定棋手',
+      changeBindingAria: `修改绑定棋手：${vars?.name ?? ''}`
+    }
+    return fallback[key] ?? key
+  }) as UiTranslator
+  const name = displayName || primaryFoxNickname || translate('unboundPlayer')
   const hasPlayer = Boolean(displayName || primaryFoxNickname)
   return (
     <section className="student-rail-card">
@@ -23,11 +37,11 @@ export function StudentRailCard({
         className="student-rail-card__button"
         disabled={disabled}
         onClick={onChangeBinding}
-        aria-label={hasPlayer ? `修改绑定棋手：${name}` : '绑定棋手'}
+        aria-label={hasPlayer ? translate('changeBindingAria', { name }) : translate('bindPlayerAria')}
       >
-        <span>棋手</span>
+        <span>{translate('studentCardLabel')}</span>
         <strong>{name}</strong>
-        <em>{hasPlayer ? '修改' : '绑定'}</em>
+        <em>{hasPlayer ? translate('changeBinding') : translate('bindPlayer')}</em>
       </button>
     </section>
   )

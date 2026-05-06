@@ -53,6 +53,7 @@ test('v5 teaching runtime wires motifs, evidence, verification, and multilingual
   assert.match(joseki, /loadBundledJosekiSgfCards/)
   assert.match(app, /SUPPORTED_UI_LOCALES/)
   assert.match(app, /reviewLanguage/)
+  assert.match(i18n, /zh-TW/)
   assert.match(i18n, /th-TH/)
   assert.match(i18n, /vi-VN/)
   assert.match(types, /teachingEvidence\?: unknown/)

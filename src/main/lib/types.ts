@@ -16,7 +16,7 @@ export interface AppSettings {
   llmBaseUrl: string
   llmApiKey: string
   llmModel: string
-  reviewLanguage: 'zh-CN' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
+  reviewLanguage: 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
   defaultPlayerName: string
   defaultCoachLevel: CoachUserLevel
   defaultStudentRank: StudentRank

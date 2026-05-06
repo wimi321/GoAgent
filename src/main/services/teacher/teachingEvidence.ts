@@ -115,10 +115,10 @@ export interface TeacherMarkdownVerification {
   allowedMoves: string[]
 }
 
-type Locale = 'zh-CN' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
+type Locale = 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
 
 function normalizeLocale(locale: unknown): Locale {
-  if (locale === 'en-US' || locale === 'ja-JP' || locale === 'ko-KR' || locale === 'th-TH' || locale === 'vi-VN') return locale
+  if (locale === 'zh-TW' || locale === 'en-US' || locale === 'ja-JP' || locale === 'ko-KR' || locale === 'th-TH' || locale === 'vi-VN') return locale
   return 'zh-CN'
 }
 
@@ -560,6 +560,12 @@ function evidenceSummaryZh(evidence: TeachingEvidence): string {
   return `AI 证据链：第 ${evidence.moveNumber} 手，实战 ${actual}，首选 ${best}，胜率损失 ${round(evidence.loss.winrateLoss, 1)}%，目差损失约 ${round(evidence.loss.scoreLoss, 1)}，判断 ${evidence.loss.severity}，置信度 ${evidence.loss.confidence}。`
 }
 
+function evidenceSummaryTw(evidence: TeachingEvidence): string {
+  const best = evidence.bestCandidates[0]?.move ?? '未知'
+  const actual = evidence.actualMove ?? '未知'
+  return `AI 證據鏈：第 ${evidence.moveNumber} 手，實戰 ${actual}，首選 ${best}，勝率損失 ${round(evidence.loss.winrateLoss, 1)}%，目差損失約 ${round(evidence.loss.scoreLoss, 1)}，判斷 ${evidence.loss.severity}，置信度 ${evidence.loss.confidence}。`
+}
+
 function evidenceSummaryEn(evidence: TeachingEvidence): string {
   const best = evidence.bestCandidates[0]?.move ?? 'unknown'
   const actual = evidence.actualMove ?? 'unknown'
@@ -568,15 +574,17 @@ function evidenceSummaryEn(evidence: TeachingEvidence): string {
 
 export function buildVerificationNote(verification: TeacherMarkdownVerification, evidence: TeachingEvidence, localeInput: unknown = 'zh-CN'): string {
   const locale = normalizeLocale(localeInput)
-  const summary = locale === 'en-US' ? evidenceSummaryEn(evidence) : evidenceSummaryZh(evidence)
+  const summary = locale === 'zh-CN' ? evidenceSummaryZh(evidence) : locale === 'zh-TW' ? evidenceSummaryTw(evidence) : evidenceSummaryEn(evidence)
   const motif = evidence.recognizedMotifs[0]
   const motifLine = motif
-    ? locale === 'en-US'
+    ? locale !== 'zh-CN' && locale !== 'zh-TW'
       ? `\n> Recognized motif: ${motif.title} (${motif.confidence}, score ${round(motif.score, 1)}${motif.sourceRefs?.length ? `, sources ${motif.sourceRefs.join('/')}` : ''}).`
-      : `\n> 识别棋形：${motif.title}（${motif.confidence}，score ${round(motif.score, 1)}${motif.sourceRefs?.length ? `，来源标记 ${motif.sourceRefs.join('/')}` : ''}）。`
+      : locale === 'zh-TW'
+        ? `\n> 識別棋形：${motif.title}（${motif.confidence}，score ${round(motif.score, 1)}${motif.sourceRefs?.length ? `，來源標記 ${motif.sourceRefs.join('/')}` : ''}）。`
+        : `\n> 识别棋形：${motif.title}（${motif.confidence}，score ${round(motif.score, 1)}${motif.sourceRefs?.length ? `，来源标记 ${motif.sourceRefs.join('/')}` : ''}）。`
     : ''
   const issueLines = [...verification.violations, ...verification.warnings]
-  const issues = issueLines.length ? `\n> ${locale === 'en-US' ? 'Verifier notes' : '校验提示'}：${issueLines.slice(0, 3).join('；')}` : ''
+  const issues = issueLines.length ? `\n> ${locale === 'zh-CN' ? '校验提示' : locale === 'zh-TW' ? '校驗提示' : 'Verifier notes'}：${issueLines.slice(0, 3).join('；')}` : ''
   return `> ${summary}${motifLine}${issues}`
 }
 
