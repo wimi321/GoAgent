@@ -39,7 +39,7 @@ import logoUrl from '../../../assets/logo.svg'
 import { GoBoardV2 } from './features/board/GoBoardV2'
 import type { KeyMoveSummary } from './features/board/KeyMoveNavigator'
 import { WinrateTimelineV2 } from './features/board/WinrateTimelineV2'
-import { parseBoardPoint, type RenderKeyMove } from './features/board/boardGeometry'
+import { boardPointLabel, parseBoardPoint, type BoardPoint, type RenderKeyMove } from './features/board/boardGeometry'
 import { DiagnosticsGate } from './features/diagnostics/DiagnosticsGate'
 import { UiGallery } from './features/gallery/UiGallery'
 import { BetaAcceptancePanel, type BetaAcceptanceItem } from './features/release/BetaAcceptancePanel'
@@ -721,6 +721,7 @@ export function App(): ReactElement {
   const [playerName, setPlayerName] = useState('')
   const [prompt, setPrompt] = useState('')
   const [moveRange, setMoveRange] = useState<{ start: number; end: number } | null>(null)
+  const [boardFlash, setBoardFlash] = useState<(BoardPoint & { nonce: number; label: string }) | null>(null)
   const [busy, setBusy] = useState('')
   const [graphBusy, setGraphBusy] = useState(false)
   const [graphProgress, setGraphProgress] = useState('')
@@ -758,6 +759,7 @@ export function App(): ReactElement {
   const selectedEvaluationCacheKeyRef = useRef('')
   const evaluationCacheRef = useRef<Record<string, EvaluationByMove>>({})
   const evaluationPersistTimersRef = useRef<Record<string, number>>({})
+  const boardFlashNonceRef = useRef(0)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [teacherSessionId, setTeacherSessionId] = useState('')
   const [teacherSessions, setTeacherSessions] = useState<TeacherSession[]>([])
@@ -1632,6 +1634,22 @@ export function App(): ReactElement {
     }
   }
 
+  function flashBoardCoordinate(label: string): void {
+    if (!record) {
+      return
+    }
+    const point = parseBoardPoint(label, record.boardSize)
+    if (!point) {
+      return
+    }
+    boardFlashNonceRef.current += 1
+    setBoardFlash({
+      ...point,
+      label: boardPointLabel(point, record.boardSize),
+      nonce: boardFlashNonceRef.current
+    })
+  }
+
   function handleTimelineRangeSelect(start: number, end: number): void {
     const validation = validateMoveRange(start, end, record?.moves.length, MOVE_RANGE_MAX_MOVES)
     if (!validation.ok || !validation.range) {
@@ -2343,7 +2361,7 @@ export function App(): ReactElement {
             {record ? (
               <div className="board-table board-table--v2">
                 {record.boardSize >= 2 ? (
-                  <GoBoardV2 record={record} moveNumber={moveNumber} analysis={currentAnalysis} keyMoves={currentBoardKeyMoveMarks} t={t} />
+                  <GoBoardV2 record={record} moveNumber={moveNumber} analysis={currentAnalysis} keyMoves={currentBoardKeyMoveMarks} flashPoint={boardFlash} t={t} />
                 ) : (
                   <GoBoard record={record} moveNumber={moveNumber} analysis={currentAnalysis} />
                 )}
@@ -2412,6 +2430,9 @@ export function App(): ReactElement {
             onAnalyzeGame={() => void runTeacherQuickTask(t('quickAnalyzeGamePrompt'))}
             onAnalyzeRecent={() => void runTeacherQuickTask(t('quickAnalyzeRecentPrompt'))}
             onJumpToMove={jumpToMove}
+            onFlashPoint={flashBoardCoordinate}
+            boardSize={record?.boardSize ?? 19}
+            totalMoves={record?.moves.length ?? 0}
             onAnalyzeMove={(targetMove) => void runMoveAnalysisAt(targetMove)}
             onNewTeacherSession={() => void startNewTeacherSession()}
             onRestoreTeacherSession={(sessionId) => void restoreTeacherSessionById(sessionId)}
@@ -2839,19 +2860,121 @@ function teacherResultKeyMoves(result: TeacherRunResult | undefined, t: UiTransl
   }).slice(0, 4)
 }
 
-function renderInlineMarkdown(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>
+type TeacherReferenceRenderOptions = {
+  boardSize: number
+  totalMoves: number
+  t: UiTranslator
+  onJumpToMove: (moveNumber: number) => void
+  onFlashPoint: (point: string) => void
+}
+
+type InlineReference =
+  | { kind: 'move'; start: number; end: number; text: string; moveNumber: number }
+  | { kind: 'point'; start: number; end: number; text: string; pointLabel: string }
+
+function firstInlineReference(text: string, cursor: number, boardSize: number, totalMoves: number): InlineReference | null {
+  const movePatterns = [
+    /第\s*(\d{1,4})\s*手/g,
+    /(?<!\d)(\d{1,4})\s*手/g,
+    /\bmove\s*#?\s*(\d{1,4})\b/gi
+  ]
+  const candidates: InlineReference[] = []
+  for (const pattern of movePatterns) {
+    pattern.lastIndex = cursor
+    const match = pattern.exec(text)
+    if (!match) continue
+    const moveNumber = Number(match[1])
+    if (!Number.isInteger(moveNumber) || moveNumber < 0 || (totalMoves > 0 && moveNumber > totalMoves)) continue
+    candidates.push({
+      kind: 'move',
+      start: match.index,
+      end: match.index + match[0].length,
+      text: match[0],
+      moveNumber
+    })
+  }
+
+  const coordPattern = /(^|[^A-Za-z0-9])([A-HJ-Z])\s?([1-9]|1[0-9]|2[0-5])(?![A-Za-z0-9])/g
+  coordPattern.lastIndex = cursor
+  const coord = coordPattern.exec(text)
+  if (coord) {
+    const prefixLength = coord[1]?.length ?? 0
+    const start = coord.index + prefixLength
+    const end = coord.index + coord[0].length
+    const pointLabel = `${coord[2]}${coord[3]}`
+    if (parseBoardPoint(pointLabel, boardSize)) {
+      candidates.push({
+        kind: 'point',
+        start,
+        end,
+        text: text.slice(start, end),
+        pointLabel
+      })
     }
-    return part
+  }
+
+  return candidates
+    .filter((item) => item.start >= cursor)
+    .sort((left, right) => left.start - right.start || right.end - right.start - (left.end - left.start))[0] ?? null
+}
+
+function renderReferenceText(text: string, options: TeacherReferenceRenderOptions, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = []
+  let cursor = 0
+  while (cursor < text.length) {
+    const reference = firstInlineReference(text, cursor, options.boardSize, options.totalMoves)
+    if (!reference) {
+      nodes.push(text.slice(cursor))
+      break
+    }
+    if (reference.start > cursor) {
+      nodes.push(text.slice(cursor, reference.start))
+    }
+    if (reference.kind === 'move') {
+      nodes.push(
+        <button
+          key={`${keyPrefix}-move-${reference.start}-${reference.moveNumber}`}
+          type="button"
+          className="chat-reference-link chat-reference-link--move"
+          onClick={() => options.onJumpToMove(reference.moveNumber)}
+          aria-label={options.t('jumpToReferencedMove', { move: reference.moveNumber })}
+        >
+          {reference.text}
+        </button>
+      )
+    } else {
+      nodes.push(
+        <button
+          key={`${keyPrefix}-point-${reference.start}-${reference.pointLabel}`}
+          type="button"
+          className="chat-reference-link chat-reference-link--point"
+          onClick={() => options.onFlashPoint(reference.pointLabel)}
+          aria-label={options.t('flashReferencedPoint', { point: reference.pointLabel })}
+        >
+          {reference.text}
+        </button>
+      )
+    }
+    cursor = reference.end
+  }
+  return nodes
+}
+
+function renderInlineMarkdown(text: string, options: TeacherReferenceRenderOptions, keyPrefix: string): ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).flatMap((part, index) => {
+    const key = `${keyPrefix}-${index}`
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={key}>{renderReferenceText(part.slice(2, -2), options, key)}</strong>
+    }
+    return renderReferenceText(part, options, key)
   })
 }
 
-function ChatMarkdown({ text }: { text: string }): ReactElement {
+function ChatMarkdown({ text, boardSize, totalMoves, t, onJumpToMove, onFlashPoint }: { text: string; boardSize: number; totalMoves: number; t: UiTranslator; onJumpToMove: (moveNumber: number) => void; onFlashPoint: (point: string) => void }): ReactElement {
   const lines = text.split(/\n+/).map((line) => line.trim()).filter(Boolean)
   const nodes: ReactElement[] = []
   let list: ReactElement[] = []
+  const inlineOptions: TeacherReferenceRenderOptions = { boardSize, totalMoves, t, onJumpToMove, onFlashPoint }
   function flushList(): void {
     if (list.length > 0) {
       nodes.push(<ol key={`ol-${nodes.length}`}>{list}</ol>)
@@ -2861,11 +2984,11 @@ function ChatMarkdown({ text }: { text: string }): ReactElement {
   for (const line of lines) {
     const numbered = line.match(/^(\d+)[.、]\s*(.+)$/)
     if (numbered) {
-      list.push(<li key={`${nodes.length}-${list.length}`}>{renderInlineMarkdown(numbered[2])}</li>)
+      list.push(<li key={`${nodes.length}-${list.length}`}>{renderInlineMarkdown(numbered[2], inlineOptions, `li-${nodes.length}-${list.length}`)}</li>)
       continue
     }
     flushList()
-    nodes.push(<p key={`p-${nodes.length}`}>{renderInlineMarkdown(line)}</p>)
+    nodes.push(<p key={`p-${nodes.length}`}>{renderInlineMarkdown(line, inlineOptions, `p-${nodes.length}`)}</p>)
   }
   flushList()
   return <div className="chat-markdown">{nodes}</div>
@@ -2972,11 +3095,17 @@ function TeacherInlineResponse({
   message,
   t,
   onJumpToMove,
+  onFlashPoint,
+  boardSize,
+  totalMoves,
   onAnalyzeMove
 }: {
   message: ChatMessage
   t: UiTranslator
   onJumpToMove: (moveNumber: number) => void
+  onFlashPoint: (point: string) => void
+  boardSize: number
+  totalMoves: number
   onAnalyzeMove: (moveNumber: number) => void
 }): ReactElement {
   const keyMoves = teacherResultKeyMoves(message.result, t)
@@ -3037,7 +3166,7 @@ function TeacherInlineResponse({
                 </button>
               </div>
             ) : null}
-            <ChatMarkdown text={message.content} />
+            <ChatMarkdown text={message.content} boardSize={boardSize} totalMoves={totalMoves} t={t} onJumpToMove={onJumpToMove} onFlashPoint={onFlashPoint} />
             {isRunning ? <span className="streaming-cursor" aria-label={t('streaming')} /> : null}
           </>
         ) : message.content}
@@ -3078,6 +3207,9 @@ function TeacherPanel({
   onAnalyzeGame,
   onAnalyzeRecent,
   onJumpToMove,
+  onFlashPoint,
+  boardSize,
+  totalMoves,
   onAnalyzeMove,
   onNewTeacherSession,
   onRestoreTeacherSession,
@@ -3100,6 +3232,9 @@ function TeacherPanel({
   onAnalyzeGame: () => void
   onAnalyzeRecent: () => void
   onJumpToMove: (moveNumber: number) => void
+  onFlashPoint: (point: string) => void
+  boardSize: number
+  totalMoves: number
   onAnalyzeMove: (moveNumber: number) => void
   onNewTeacherSession: () => void
   onRestoreTeacherSession: (sessionId: string) => void
@@ -3521,6 +3656,9 @@ function TeacherPanel({
                   message={message}
                   t={t}
                   onJumpToMove={onJumpToMove}
+                  onFlashPoint={onFlashPoint}
+                  boardSize={boardSize}
+                  totalMoves={totalMoves}
                   onAnalyzeMove={onAnalyzeMove}
                 />
               </div>
