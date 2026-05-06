@@ -72,6 +72,7 @@ interface QueryBatchOptions {
   runId?: string
   group?: KataGoAnalysisGroup
   replaceGroup?: boolean
+  resolvePartialAfterMs?: number
 }
 
 interface ActiveKataGoProcess {
@@ -80,14 +81,19 @@ interface ActiveKataGoProcess {
   cancelled: boolean
 }
 
-const QUICK_ANALYSIS_FAST_VISITS = 25
+const QUICK_ANALYSIS_FAST_VISITS = 4
+const QUICK_ANALYSIS_MAX_SWEEP_VISITS = 16
 const QUICK_ANALYSIS_REFINE_VISITS = 120
-const QUICK_ANALYSIS_REFINE_TOP_N = 18
+const QUICK_ANALYSIS_REFINE_TOP_N = 10
 const QUICK_ANALYSIS_REFINE_MIN_LOSS = 4
 const QUICK_ANALYSIS_WIDE_ROOT_NOISE = 0.04
 const FORCED_ACTUAL_EVIDENCE_MIN_VISITS = 1200
-const QUICK_FORCED_ACTUAL_REFINE_MIN_VISITS = 240
+const QUICK_FORCED_ACTUAL_REFINE_MIN_VISITS = 80
 const activeKataGoProcesses = new Map<string, ActiveKataGoProcess>()
+
+function isKataGoTimeoutError(error: unknown): boolean {
+  return /KataGo 分析超时|timed out|timeout/i.test(String(error))
+}
 
 export function cancelKataGoAnalysis(filter: { runId?: string; group?: KataGoAnalysisGroup }): { cancelled: number } {
   let cancelled = 0
@@ -507,11 +513,37 @@ async function queryKataGoBatch(
     let settled = false
     let stdout = ''
     const results = new Map<string, KataGoResponse>()
+    let partialTimer: NodeJS.Timeout | undefined
+    function clearPartialTimer(): void {
+      if (partialTimer) {
+        clearTimeout(partialTimer)
+        partialTimer = undefined
+      }
+    }
+    function schedulePartialResolve(): void {
+      const partialAfterMs = options.resolvePartialAfterMs
+      if (!partialAfterMs || results.size === 0 || results.size >= queries.length || settled) {
+        return
+      }
+      clearPartialTimer()
+      partialTimer = setTimeout(() => {
+        if (settled || results.size === 0) {
+          return
+        }
+        settled = true
+        clearTimeout(timer)
+        child.kill()
+        cleanup()
+        engineLease.finish('done')
+        resolve(results)
+      }, partialAfterMs)
+    }
     const timer = setTimeout(() => {
       if (settled) {
         return
       }
       settled = true
+      clearPartialTimer()
       child.kill()
       cleanup()
       engineLease.finish('error')
@@ -538,10 +570,12 @@ async function queryKataGoBatch(
           }
           if (id && !parsed.isDuringSearch) {
             results.set(id, parsed)
+            schedulePartialResolve()
           }
         } catch (error) {
           settled = true
           clearTimeout(timer)
+          clearPartialTimer()
           child.kill()
           cleanup()
           engineLease.finish('error')
@@ -551,6 +585,7 @@ async function queryKataGoBatch(
         if (results.size >= queries.length) {
           settled = true
           clearTimeout(timer)
+          clearPartialTimer()
           child.kill()
           cleanup()
           engineLease.finish('done')
@@ -566,6 +601,7 @@ async function queryKataGoBatch(
       }
       settled = true
       clearTimeout(timer)
+      clearPartialTimer()
       cleanup()
       engineLease.finish('error')
       reject(error)
@@ -577,6 +613,7 @@ async function queryKataGoBatch(
       }
       settled = true
       clearTimeout(timer)
+      clearPartialTimer()
       cleanup()
       if (activeEntry.cancelled) {
         engineLease.finish('cancelled')
@@ -941,12 +978,13 @@ export async function analyzeGameQuick(
   const rootInitialStones = initialStonesFromRecord(record)
   const rootInitialPlayer = initialPlayerFromRecord(record)
   const queries: AnalysisQuery[] = []
-  const quickVisits = Math.max(QUICK_ANALYSIS_FAST_VISITS, Math.round(maxVisits))
+  const quickVisits = Math.max(QUICK_ANALYSIS_FAST_VISITS, Math.min(QUICK_ANALYSIS_MAX_SWEEP_VISITS, Math.round(maxVisits)))
   const quickOverrideSettings = { wideRootNoise: QUICK_ANALYSIS_WIDE_ROOT_NOISE }
   const rootPositionCount = moves.length + 1
 
   // Build the visible winrate line first. Forced actual-move queries are queued
-  // after the root sweep so the graph appears quickly, then issue labels refine.
+  // only for suspected mistakes during the refine pass so long games do not
+  // spend the first pass on hundreds of forced branches.
   for (let moveNumber = 0; moveNumber <= moves.length; moveNumber += 1) {
     queries.push({
       id: `${gameId}-quick-${moveNumber}`,
@@ -958,25 +996,6 @@ export async function analyzeGameQuick(
       maxVisits: quickVisits,
       overrideSettings: quickOverrideSettings
     })
-  }
-
-  for (let moveNumber = 0; moveNumber < moves.length; moveNumber += 1) {
-    const currentMove = moves[moveNumber]
-    const actualQuery = forcePlayedMoveQuery(
-      `${gameId}-quick-actual-${moveNumber + 1}`,
-      moves.slice(0, moveNumber),
-      currentMove,
-      record.boardSize,
-      normalizedKomi,
-      quickVisits,
-      undefined,
-      quickOverrideSettings,
-      rootInitialStones,
-      rootInitialPlayer
-    )
-    if (actualQuery) {
-      queries.push(actualQuery)
-    }
   }
 
   const roots = new Map<number, { winrate: number; scoreLead: number }>()
@@ -1058,41 +1077,65 @@ export async function analyzeGameQuick(
     })
   }
 
+  function buildReadyEvaluations(): KataGoMoveAnalysis[] {
+    const evaluations: KataGoMoveAnalysis[] = []
+    for (let moveNumber = 1; moveNumber <= moves.length; moveNumber += 1) {
+      const evaluation = buildEvaluation(moveNumber)
+      if (!evaluation) {
+        continue
+      }
+      evaluations.push(evaluation)
+    }
+    return evaluations
+  }
+
   const runId = options.runId || `${gameId}-quick-${Date.now()}`
   const group = options.group ?? 'quick'
-  const responses = await queryKataGoBatch(queries, (response) => {
-    if (response.id?.startsWith(actualIdPrefix)) {
-      const moveNumber = Number.parseInt(response.id.slice(actualIdPrefix.length), 10)
-      if (Number.isFinite(moveNumber)) {
-        const candidate = forcedPlayedCandidate(response, moves[moveNumber - 1])
-        if (candidate) {
-          actualCandidatesByMove.set(moveNumber, candidate)
+  let responses: Map<string, KataGoResponse>
+  try {
+    responses = await queryKataGoBatch(queries, (response) => {
+      if (response.id?.startsWith(actualIdPrefix)) {
+        const moveNumber = Number.parseInt(response.id.slice(actualIdPrefix.length), 10)
+        if (Number.isFinite(moveNumber)) {
+          const candidate = forcedPlayedCandidate(response, moves[moveNumber - 1])
+          if (candidate) {
+            actualCandidatesByMove.set(moveNumber, candidate)
+          }
+          emitIfReady(moveNumber)
         }
-        emitIfReady(moveNumber)
+        return
       }
-      return
+      if (!response.id?.startsWith(idPrefix)) {
+        return
+      }
+      const position = Number.parseInt(response.id.slice(idPrefix.length), 10)
+      if (!Number.isFinite(position)) {
+        return
+      }
+      try {
+        const sideToMove = sideToMoveAt(moves, position)
+        roots.set(position, root(response, sideToMove))
+        topMovesByPosition.set(position, candidates(response, sideToMove).slice(0, 8))
+        emitIfReady(position)
+        emitIfReady(position + 1)
+      } catch {
+        // Keep the quick graph resilient: one invalid branch point should not block the rest.
+      }
+    }, {
+      runId: `${runId}-root`,
+      group,
+      replaceGroup: group === 'quick',
+      resolvePartialAfterMs: 8_000
+    })
+  } catch (error) {
+    if (isKataGoTimeoutError(error)) {
+      const partial = buildReadyEvaluations()
+      if (partial.length > 0) {
+        return partial
+      }
     }
-    if (!response.id?.startsWith(idPrefix)) {
-      return
-    }
-    const position = Number.parseInt(response.id.slice(idPrefix.length), 10)
-    if (!Number.isFinite(position)) {
-      return
-    }
-    try {
-      const sideToMove = sideToMoveAt(moves, position)
-      roots.set(position, root(response, sideToMove))
-      topMovesByPosition.set(position, candidates(response, sideToMove).slice(0, 8))
-      emitIfReady(position)
-      emitIfReady(position + 1)
-    } catch {
-      // Keep the quick graph resilient: one invalid branch point should not block the rest.
-    }
-  }, {
-    runId: `${runId}-root`,
-    group,
-    replaceGroup: group === 'quick'
-  })
+    throw error
+  }
 
   for (let moveNumber = 0; moveNumber <= moves.length; moveNumber += 1) {
     const response = responses.get(`${gameId}-quick-${moveNumber}`)
@@ -1123,14 +1166,7 @@ export async function analyzeGameQuick(
     throw new Error('KataGo 快速分析没有返回有效局面')
   }
 
-  const evaluations: KataGoMoveAnalysis[] = []
-  for (let moveNumber = 1; moveNumber <= moves.length; moveNumber += 1) {
-    const evaluation = buildEvaluation(moveNumber)
-    if (!evaluation) {
-      continue
-    }
-    evaluations.push(evaluation)
-  }
+  const evaluations = buildReadyEvaluations()
 
   const refineVisits = Math.max(quickVisits, Math.round(options.refineVisits ?? QUICK_ANALYSIS_REFINE_VISITS))
   const refineTopN = Math.max(0, Math.round(options.refineTopN ?? QUICK_ANALYSIS_REFINE_TOP_N))
@@ -1191,10 +1227,19 @@ export async function analyzeGameQuick(
     }
   }
 
-  const refinedResponses = await queryKataGoBatch(refineQueries, undefined, {
-    runId: `${runId}-refine`,
-    group
-  })
+  let refinedResponses: Map<string, KataGoResponse>
+  try {
+    refinedResponses = await queryKataGoBatch(refineQueries, undefined, {
+      runId: `${runId}-refine`,
+      group,
+      resolvePartialAfterMs: 6_000
+    })
+  } catch (error) {
+    if (isKataGoTimeoutError(error)) {
+      return evaluations
+    }
+    throw error
+  }
   const byMove = new Map(evaluations.map((item) => [item.moveNumber, item]))
   let refinedCount = 0
   for (const moveNumber of refineMoveNumbers) {
