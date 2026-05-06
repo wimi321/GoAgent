@@ -6,6 +6,7 @@ import { readGameRecord } from './sgf'
 import { resolveKataGoRuntime } from './katagoRuntime'
 import { ensureFoxGameDownloaded } from './fox'
 import { beginKataGoEngineTask } from './katagoEnginePool'
+import { cancelPersistentKataGoAnalysis, persistentKataGoEngineEnabled, queryKataGoPersistentBatch } from './katagoPersistentEngine'
 
 interface KataGoResponse {
   id?: string
@@ -90,6 +91,7 @@ const activeKataGoProcesses = new Map<string, ActiveKataGoProcess>()
 
 export function cancelKataGoAnalysis(filter: { runId?: string; group?: KataGoAnalysisGroup }): { cancelled: number } {
   let cancelled = 0
+  cancelled += cancelPersistentKataGoAnalysis(filter).cancelled
   for (const [id, entry] of activeKataGoProcesses.entries()) {
     const matchesRun = filter.runId ? id === filter.runId : true
     const matchesGroup = filter.group ? entry.group === filter.group : true
@@ -383,6 +385,53 @@ function playedLoss(
   }
 }
 
+function buildKataGoPayload(query: AnalysisQuery): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    id: query.id,
+    moves: query.moves,
+    initialStones: query.initialStones ?? [],
+    initialPlayer: query.initialPlayer,
+    rules: 'Chinese',
+    komi: query.komi,
+    boardXSize: query.boardSize,
+    boardYSize: query.boardSize,
+    maxVisits: query.maxVisits
+  }
+  if (!query.initialPlayer) {
+    delete payload.initialPlayer
+  }
+  if (query.reportDuringSearchEvery !== undefined) {
+    payload.reportDuringSearchEvery = query.reportDuringSearchEvery
+  }
+  if (query.includeOwnership) {
+    payload.includeOwnership = true
+  }
+  if (query.includeMovesOwnership) {
+    payload.includeMovesOwnership = true
+  }
+  if (query.includeOwnershipStdev) {
+    payload.includeOwnershipStdev = true
+  }
+  if (query.includePolicy) {
+    payload.includePolicy = true
+  }
+  if (query.includePVVisits) {
+    payload.includePVVisits = true
+  }
+  if (query.overrideSettings) {
+    payload.overrideSettings = {
+      reportAnalysisWinratesAs: 'SIDETOMOVE',
+      ...query.overrideSettings
+    }
+  } else {
+    payload.overrideSettings = { reportAnalysisWinratesAs: 'SIDETOMOVE' }
+  }
+  if (query.allowMoves) {
+    payload.allowMoves = query.allowMoves
+  }
+  return payload
+}
+
 async function queryKataGoBatch(
   queries: AnalysisQuery[],
   onResponse?: (response: KataGoResponse) => void,
@@ -403,14 +452,34 @@ async function queryKataGoBatch(
     group: options.group,
     queryCount: queries.length
   })
-
-  const child = spawn(runtime.katagoBin, [
+  const command = [
+    runtime.katagoBin,
     'analysis',
     '-config',
     runtime.katagoConfig,
     '-model',
     runtime.katagoModel
-  ], {
+  ]
+
+  if (persistentKataGoEngineEnabled()) {
+    try {
+      const results = await queryKataGoPersistentBatch({
+        command,
+        queries: queries.map(buildKataGoPayload),
+        runId: options.runId,
+        group: options.group,
+        timeoutMs: Math.max(120_000, queries.length * 2500),
+        onResponse: onResponse as ((response: Record<string, unknown>) => void) | undefined
+      })
+      engineLease.finish('done')
+      return results as Map<string, KataGoResponse>
+    } catch (error) {
+      engineLease.finish(String(error).includes('已取消') || String(error).includes('cancel') ? 'cancelled' : 'error')
+      throw error
+    }
+  }
+
+  const child = spawn(command[0], command.slice(1), {
     stdio: ['pipe', 'pipe', 'pipe']
   })
 

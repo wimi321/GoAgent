@@ -1,0 +1,31 @@
+{
+  "id": "corner-approach-real-001",
+  "category": "current-move",
+  "sgf": "(;GM[1]FF[4]SZ[19]KM[7.5]PB[Black]PW[White];B[pd];W[dd];B[qp];W[dp];B[oq];W[qf];B[nd];W[cf];B[fc];W[df];B[jd];W[qc];B[pc];W[qd];B[qe];W[rd];B[re];W[pe];B[oe];W[qg];B[pf])",
+  "moveNumber": 21,
+  "student": {
+    "level": "intermediate",
+    "ageRange": "adult",
+    "style": "rigorous"
+  },
+  "expected": {
+    "allowedBestMoves": [],
+    "forbiddenMoves": [],
+    "expectedShapes": [],
+    "forbiddenShapes": [
+      "joseki-hard-claim"
+    ],
+    "mustMention": [
+      "KataGo"
+    ],
+    "mustNotMention": [
+      "唯一",
+      "必杀",
+      "绝对"
+    ],
+    "numericTolerance": {
+      "winrateLoss": 0.8,
+      "scoreLoss": 0.8
+    }
+  }
+}
