@@ -254,6 +254,9 @@ async function callLlm(config, fixture, evidence) {
           '你是 GoMentor 的围棋老师质量评测模式。',
           '只能依据用户给出的 KataGo evidence 讲解。',
           '不得编造坐标、胜率、目差、PV、定式名、死活结论。',
+          '如果提到棋盘坐标，只能使用 evidence.knownCoordinates 中已经列出的坐标；其他棋盘坐标一律不要写。',
+          '没有证据支持的变化图，不要用 C6、D5 这类棋盘坐标表达；改用“这个方向”“靠住”“压低”“A 点/B 点”这样的非坐标说法。',
+          '自动评分会把任何 evidence.knownCoordinates 之外的棋盘坐标判为失败。',
           '请输出 JSON，字段为 markdown、claims。claims 每项含 type、text、evidenceRefs。'
         ].join('\n')
       },
@@ -267,8 +270,36 @@ async function callLlm(config, fixture, evidence) {
       }
     ],
     response_format: { type: 'json_object' },
+    temperature: 0,
     max_completion_tokens: 1400
   }
+  const llmOutput = await requestTeachingJson(config, body)
+  const unsupported = unsupportedCoordinates(llmOutput, evidence)
+  if (unsupported.length === 0) return llmOutput
+
+  const repairBody = {
+    ...body,
+    messages: [
+      ...body.messages,
+      {
+        role: 'assistant',
+        content: JSON.stringify(llmOutput)
+      },
+      {
+        role: 'user',
+        content: JSON.stringify({
+          task: '上一次输出包含 evidence.knownCoordinates 之外的棋盘坐标，请重写 JSON。',
+          unsupportedCoordinates: unsupported,
+          allowedCoordinates: evidence.knownCoordinates,
+          instruction: '删除或改写所有 unsupportedCoordinates。不要新增任何棋盘坐标。仍然保留 KataGo 证据引用和自然讲解。'
+        }, null, 2)
+      }
+    ]
+  }
+  return requestTeachingJson(config, repairBody)
+}
+
+async function requestTeachingJson(config, body) {
   const response = await fetch(`${config.llmBaseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -294,6 +325,14 @@ async function callLlm(config, fixture, evidence) {
   } catch {
     return { markdown: content, claims: [] }
   }
+}
+
+function unsupportedCoordinates(llmOutput, evidence) {
+  const known = new Set((evidence.knownCoordinates ?? []).map(normalizeMove))
+  const text = `${llmOutput.markdown}\n${JSON.stringify(llmOutput.claims)}`
+  return Array.from(new Set(text.match(/\b[A-HJ-T](?:1[0-9]|[1-9])\b/gi) ?? []))
+    .map(normalizeMove)
+    .filter((move) => !known.has(move))
 }
 
 function scoreFixture(fixture, evidence, llmOutput) {
