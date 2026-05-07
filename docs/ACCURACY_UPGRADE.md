@@ -1,6 +1,6 @@
-# GoMentor accuracy upgrade
+# GoAgent accuracy upgrade
 
-This patch raises the floor for GoMentor's teaching accuracy by adding four foundations:
+This patch raises the floor for GoAgent's teaching accuracy by adding four foundations:
 
 1. SGF setup and board-state reconstruction.
 2. Richer KataGo evidence fields and analysis quality metadata.
@@ -9,7 +9,7 @@ This patch raises the floor for GoMentor's teaching accuracy by adding four foun
 
 ## Why this matters
 
-LLMs are good at explanation, but Go teaching is unforgiving: one invented coordinate, one wrong color perspective, or one overconfident joseki name can mislead a student. GoMentor should therefore treat KataGo and deterministic board state as facts, and let the LLM explain only what the evidence supports.
+LLMs are good at explanation, but Go teaching is unforgiving: one invented coordinate, one wrong color perspective, or one overconfident joseki name can mislead a student. GoAgent should therefore treat KataGo and deterministic board state as facts, and let the LLM explain only what the evidence supports.
 
 ## New modules
 
@@ -76,7 +76,7 @@ The v6 card pack adds higher-value tactical and strategic motifs:
 - invasion vs reduction;
 - overconcentration.
 
-All cards are original GoMentor teaching summaries and reference `gomentor-curated-original` rather than copying third-party text.
+All cards are original GoAgent teaching summaries and reference `goagent-curated-original` rather than copying third-party text.
 
 ## Next integration steps
 

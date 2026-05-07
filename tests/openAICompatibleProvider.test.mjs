@@ -8,7 +8,7 @@ import test from 'node:test'
 import ts from 'typescript'
 
 async function importProviderForTest() {
-  const root = await mkdtemp(join(tmpdir(), 'gomentor-provider-test-'))
+  const root = await mkdtemp(join(tmpdir(), 'goagent-provider-test-'))
   const servicesDir = join(root, 'src/main/services')
   const providerDir = join(servicesDir, 'llm')
   await mkdir(providerDir, { recursive: true })

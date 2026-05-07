@@ -1,15 +1,15 @@
-# GoMentor v0.3.6
+# GoAgent v0.3.6
 
-GoMentor v0.3.6 is a top-quality teaching upgrade: stronger grounded shape recognition, broader local knowledge coverage, stricter source-policy gates, and an optimized move-range review workflow inspired by PR #5.
+GoAgent v0.3.6 is a top-quality teaching upgrade: stronger grounded shape recognition, broader local knowledge coverage, stricter source-policy gates, and an optimized move-range review workflow inspired by PR #5.
 
-QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
+QQ群：1030632742，欢迎一起交流、提建议、完善 GoAgent。
 
 ## Downloads
 
-- macOS Apple Silicon: `GoMentor-0.3.6-mac-arm64.dmg`
-- macOS Intel: `GoMentor-0.3.6-mac-x64.dmg`
-- Windows x64 portable: `GoMentor-0.3.6-win-x64-portable.zip`
-- Windows x64 installer: `GoMentor-0.3.6-win-x64.exe`
+- macOS Apple Silicon: `GoAgent-0.3.6-mac-arm64.dmg`
+- macOS Intel: `GoAgent-0.3.6-mac-x64.dmg`
+- Windows x64 portable: `GoAgent-0.3.6-win-x64-portable.zip`
+- Windows x64 installer: `GoAgent-0.3.6-win-x64.exe`
 - Checksums: `SHA256SUMS.txt`
 
 ## What's New

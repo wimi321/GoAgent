@@ -1,6 +1,6 @@
 # Windows OpenCL Release
 
-GoMentor's standard Windows x64 package is the OpenCL package for normal users.
+GoAgent's standard Windows x64 package is the OpenCL package for normal users.
 
 ## Asset Source
 
@@ -24,6 +24,6 @@ This follows the LizzieYzy Next release pattern: keep `katago.exe` with its adja
 
 ## What Is Not Bundled
 
-GoMentor does not bundle a user's NVIDIA, AMD, or Intel display driver. Vendor OpenCL drivers still come from the graphics driver installed on the user's machine.
+GoAgent does not bundle a user's NVIDIA, AMD, or Intel display driver. Vendor OpenCL drivers still come from the graphics driver installed on the user's machine.
 
 The bundled files make KataGo's own OpenCL runtime directory self-contained; they do not replace GPU driver installation.

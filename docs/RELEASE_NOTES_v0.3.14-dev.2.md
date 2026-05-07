@@ -1,8 +1,8 @@
-# GoMentor v0.3.14-dev.2
+# GoAgent v0.3.14-dev.2
 
-GoMentor v0.3.14-dev.2 is a development hotfix for the Real Teaching Eval path. It tightens the real-eval teacher prompt so strict scoring only allows coordinates already present in the KataGo evidence coordinate set. This release keeps the v0.3.14-dev.1 development baseline: real local KataGo + LLM teaching evaluation, opt-in persistent KataGo analysis engine, spawn fallback, grounded shape recognition engine, local pattern matcher, knowledge source-policy gates, optimized move-range review, quality checks and eval gates, Real Eval / engine silver fixture gate, KataGo engine pool telemetry, Release artifact smoke, student level, student age, teacher persona style settings with evidence boundary, teacher sessions, and selective PR #6 integration. Windows packages continue to include the Windows OpenCL runtime bundle and KataGo OpenCL adjacent runtime files; GPU vendor OpenCL drivers still come from the user's GPU driver. Thanks to layiku and wimi321.
+GoAgent v0.3.14-dev.2 is a development hotfix for the Real Teaching Eval path. It tightens the real-eval teacher prompt so strict scoring only allows coordinates already present in the KataGo evidence coordinate set. This release keeps the v0.3.14-dev.1 development baseline: real local KataGo + LLM teaching evaluation, opt-in persistent KataGo analysis engine, spawn fallback, grounded shape recognition engine, local pattern matcher, knowledge source-policy gates, optimized move-range review, quality checks and eval gates, Real Eval / engine silver fixture gate, KataGo engine pool telemetry, Release artifact smoke, student level, student age, teacher persona style settings with evidence boundary, teacher sessions, and selective PR #6 integration. Windows packages continue to include the Windows OpenCL runtime bundle and KataGo OpenCL adjacent runtime files; GPU vendor OpenCL drivers still come from the user's GPU driver. Thanks to layiku and wimi321.
 
-QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
+QQ群：1030632742，欢迎一起交流、提建议、完善 GoAgent。
 
 ## 中文
 
@@ -10,10 +10,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 平台 / 场景 | 推荐下载 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.14-dev.2-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.14-dev.2-mac-x64.dmg` |
-| Windows 普通版，OpenCL 推荐包 | `GoMentor-0.3.14-dev.2-win-x64.exe` 或 `GoMentor-0.3.14-dev.2-win-x64-portable.zip` |
-| Windows NVIDIA 专版，适合 NVIDIA 显卡和 CUDA 环境 | `GoMentor-0.3.14-dev.2-win-x64-nvidia.exe` 或 `GoMentor-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.14-dev.2-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.14-dev.2-mac-x64.dmg` |
+| Windows 普通版，OpenCL 推荐包 | `GoAgent-0.3.14-dev.2-win-x64.exe` 或 `GoAgent-0.3.14-dev.2-win-x64-portable.zip` |
+| Windows NVIDIA 专版，适合 NVIDIA 显卡和 CUDA 环境 | `GoAgent-0.3.14-dev.2-win-x64-nvidia.exe` 或 `GoAgent-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
 | 校验文件 | `SHA256SUMS.txt` |
 
 ### 本版重点
@@ -21,7 +21,7 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 - 修复真实教学评测 strict 模式中，LLM 可能提到 evidence 之外坐标而导致失败的问题。
 - 本机已用真实 KataGo v1.16.4 Metal、b18 推荐模型、CLIProxyAPI 和 `gpt-5.5` 跑通 strict eval。
 - `pnpm eval:real-teaching` 未配置时仍会干净跳过；`pnpm eval:real-teaching:strict` 仍要求真实 KataGo 和 LLM 环境。
-- persistent KataGo engine 仍通过 `GOMENTOR_KATAGO_ENGINE_POOL=1` opt-in，默认保留 spawn fallback。
+- persistent KataGo engine 仍通过 `GOAGENT_KATAGO_ENGINE_POOL=1` opt-in，默认保留 spawn fallback。
 
 ## 繁體中文
 
@@ -29,10 +29,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 平台 / 使用情境 | 建議下載 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.14-dev.2-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.14-dev.2-mac-x64.dmg` |
-| Windows 一般版，OpenCL 推薦包 | `GoMentor-0.3.14-dev.2-win-x64.exe` 或 `GoMentor-0.3.14-dev.2-win-x64-portable.zip` |
-| Windows NVIDIA 專版 | `GoMentor-0.3.14-dev.2-win-x64-nvidia.exe` 或 `GoMentor-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.14-dev.2-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.14-dev.2-mac-x64.dmg` |
+| Windows 一般版，OpenCL 推薦包 | `GoAgent-0.3.14-dev.2-win-x64.exe` 或 `GoAgent-0.3.14-dev.2-win-x64-portable.zip` |
+| Windows NVIDIA 專版 | `GoAgent-0.3.14-dev.2-win-x64-nvidia.exe` 或 `GoAgent-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
 | 校驗檔 | `SHA256SUMS.txt` |
 
 ### 本版重點
@@ -48,10 +48,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | Platform / use case | Recommended download |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.14-dev.2-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.14-dev.2-mac-x64.dmg` |
-| Standard Windows x64, OpenCL recommended | `GoMentor-0.3.14-dev.2-win-x64.exe` or `GoMentor-0.3.14-dev.2-win-x64-portable.zip` |
-| Windows NVIDIA edition for NVIDIA GPUs and CUDA runtimes | `GoMentor-0.3.14-dev.2-win-x64-nvidia.exe` or `GoMentor-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.14-dev.2-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.14-dev.2-mac-x64.dmg` |
+| Standard Windows x64, OpenCL recommended | `GoAgent-0.3.14-dev.2-win-x64.exe` or `GoAgent-0.3.14-dev.2-win-x64-portable.zip` |
+| Windows NVIDIA edition for NVIDIA GPUs and CUDA runtimes | `GoAgent-0.3.14-dev.2-win-x64-nvidia.exe` or `GoAgent-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### Why update
@@ -59,7 +59,7 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 - Fixes strict real teaching eval so the LLM is explicitly limited to coordinates present in `evidence.knownCoordinates`.
 - Verified locally with real KataGo v1.16.4 Metal, the bundled b18 recommended model, CLIProxyAPI, and `gpt-5.5`.
 - `pnpm eval:real-teaching` still skips cleanly without configuration; strict mode still requires real KataGo and LLM credentials.
-- The persistent KataGo engine remains opt-in via `GOMENTOR_KATAGO_ENGINE_POOL=1`, with spawn fallback as the default.
+- The persistent KataGo engine remains opt-in via `GOAGENT_KATAGO_ENGINE_POOL=1`, with spawn fallback as the default.
 
 ## 日本語
 
@@ -67,10 +67,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 環境 | 推奨ファイル |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.14-dev.2-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.14-dev.2-mac-x64.dmg` |
-| Windows 標準版、OpenCL 推奨 | `GoMentor-0.3.14-dev.2-win-x64.exe` または `GoMentor-0.3.14-dev.2-win-x64-portable.zip` |
-| NVIDIA GPU / CUDA 向け Windows NVIDIA 版 | `GoMentor-0.3.14-dev.2-win-x64-nvidia.exe` または `GoMentor-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.14-dev.2-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.14-dev.2-mac-x64.dmg` |
+| Windows 標準版、OpenCL 推奨 | `GoAgent-0.3.14-dev.2-win-x64.exe` または `GoAgent-0.3.14-dev.2-win-x64-portable.zip` |
+| NVIDIA GPU / CUDA 向け Windows NVIDIA 版 | `GoAgent-0.3.14-dev.2-win-x64-nvidia.exe` または `GoAgent-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
 | チェックサム | `SHA256SUMS.txt` |
 
 ### 主な変更
@@ -86,10 +86,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 환경 | 권장 다운로드 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.14-dev.2-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.14-dev.2-mac-x64.dmg` |
-| Windows 표준 x64, OpenCL 권장 | `GoMentor-0.3.14-dev.2-win-x64.exe` 또는 `GoMentor-0.3.14-dev.2-win-x64-portable.zip` |
-| NVIDIA GPU / CUDA용 Windows NVIDIA 에디션 | `GoMentor-0.3.14-dev.2-win-x64-nvidia.exe` 또는 `GoMentor-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.14-dev.2-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.14-dev.2-mac-x64.dmg` |
+| Windows 표준 x64, OpenCL 권장 | `GoAgent-0.3.14-dev.2-win-x64.exe` 또는 `GoAgent-0.3.14-dev.2-win-x64-portable.zip` |
+| NVIDIA GPU / CUDA용 Windows NVIDIA 에디션 | `GoAgent-0.3.14-dev.2-win-x64-nvidia.exe` 또는 `GoAgent-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
 | 체크섬 | `SHA256SUMS.txt` |
 
 ### 핵심 변경
@@ -105,10 +105,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | ระบบ / การใช้งาน | ไฟล์ที่แนะนำ |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.14-dev.2-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.14-dev.2-mac-x64.dmg` |
-| Windows x64 รุ่นมาตรฐาน แนะนำ OpenCL | `GoMentor-0.3.14-dev.2-win-x64.exe` หรือ `GoMentor-0.3.14-dev.2-win-x64-portable.zip` |
-| Windows NVIDIA edition สำหรับ NVIDIA GPU และ CUDA | `GoMentor-0.3.14-dev.2-win-x64-nvidia.exe` หรือ `GoMentor-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.14-dev.2-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.14-dev.2-mac-x64.dmg` |
+| Windows x64 รุ่นมาตรฐาน แนะนำ OpenCL | `GoAgent-0.3.14-dev.2-win-x64.exe` หรือ `GoAgent-0.3.14-dev.2-win-x64-portable.zip` |
+| Windows NVIDIA edition สำหรับ NVIDIA GPU และ CUDA | `GoAgent-0.3.14-dev.2-win-x64-nvidia.exe` หรือ `GoAgent-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### สิ่งที่เปลี่ยน
@@ -124,10 +124,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | Nền tảng / nhu cầu | Tệp nên tải |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.14-dev.2-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.14-dev.2-mac-x64.dmg` |
-| Windows x64 tiêu chuẩn, khuyến nghị OpenCL | `GoMentor-0.3.14-dev.2-win-x64.exe` hoặc `GoMentor-0.3.14-dev.2-win-x64-portable.zip` |
-| Windows NVIDIA edition cho GPU NVIDIA và CUDA | `GoMentor-0.3.14-dev.2-win-x64-nvidia.exe` hoặc `GoMentor-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.14-dev.2-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.14-dev.2-mac-x64.dmg` |
+| Windows x64 tiêu chuẩn, khuyến nghị OpenCL | `GoAgent-0.3.14-dev.2-win-x64.exe` hoặc `GoAgent-0.3.14-dev.2-win-x64-portable.zip` |
+| Windows NVIDIA edition cho GPU NVIDIA và CUDA | `GoAgent-0.3.14-dev.2-win-x64-nvidia.exe` hoặc `GoAgent-0.3.14-dev.2-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### Điểm mới

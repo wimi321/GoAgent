@@ -23,12 +23,12 @@ const requiredSections = [
   '## Tiếng Việt'
 ]
 const requiredAssets = [
-  `GoMentor-${version}-mac-arm64.dmg`,
-  `GoMentor-${version}-mac-x64.dmg`,
-  `GoMentor-${version}-win-x64-portable.zip`,
-  `GoMentor-${version}-win-x64.exe`,
-  `GoMentor-${version}-win-x64-nvidia-portable.zip`,
-  `GoMentor-${version}-win-x64-nvidia.exe`,
+  `GoAgent-${version}-mac-arm64.dmg`,
+  `GoAgent-${version}-mac-x64.dmg`,
+  `GoAgent-${version}-win-x64-portable.zip`,
+  `GoAgent-${version}-win-x64.exe`,
+  `GoAgent-${version}-win-x64-nvidia-portable.zip`,
+  `GoAgent-${version}-win-x64-nvidia.exe`,
   'SHA256SUMS.txt'
 ]
 const requiredTopics = [

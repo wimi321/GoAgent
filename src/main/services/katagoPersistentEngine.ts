@@ -43,8 +43,8 @@ const engines = new Map<string, PersistentEngine>()
 let batchCounter = 0
 
 export function persistentKataGoEngineEnabled(): boolean {
-  return process.env.GOMENTOR_KATAGO_ENGINE_POOL === '1' ||
-    process.env.GOMENTOR_KATAGO_PERSISTENT_ENGINE === '1'
+  return process.env.GOAGENT_KATAGO_ENGINE_POOL === '1' ||
+    process.env.GOAGENT_KATAGO_PERSISTENT_ENGINE === '1'
 }
 
 export function stopPersistentKataGoEngines(): void {

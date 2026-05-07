@@ -52,7 +52,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -109,7 +109,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -167,7 +167,7 @@
     "confidenceBoost": 3,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -224,7 +224,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -280,7 +280,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -338,7 +338,7 @@
     "confidenceBoost": 3,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -397,7 +397,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -457,7 +457,7 @@
     "sourceRefs": [
       "sensei-go-terms",
       "wikibooks-go",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "concept-reference-original-card"
   },
@@ -516,7 +516,7 @@
     "sourceRefs": [
       "sensei-go-terms",
       "wikibooks-go",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "concept-reference-original-card"
   },
@@ -575,7 +575,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -629,7 +629,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -682,7 +682,7 @@
     "confidenceBoost": 4,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -737,7 +737,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -793,7 +793,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -849,7 +849,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -904,7 +904,7 @@
     "confidenceBoost": 4,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -960,7 +960,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -1017,7 +1017,7 @@
     "confidenceBoost": 3,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-original-card"
   },
@@ -1074,7 +1074,7 @@
     "sourceRefs": [
       "katago-analysis-engine-docs",
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "engine-and-taxonomy-original-card"
   },
@@ -1130,7 +1130,7 @@
     "drillPrompt": "给两个候选：最大收益和最稳收益，判断读秒时该选哪个。",
     "confidenceBoost": 2,
     "sourceRefs": [
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "original-practical-coaching-card"
   }

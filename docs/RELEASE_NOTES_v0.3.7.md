@@ -1,8 +1,8 @@
-# GoMentor v0.3.7
+# GoAgent v0.3.7
 
 This release keeps the v0.3.6 teaching-quality upgrade and adds a dedicated Windows NVIDIA edition plus a lizzieyzy-next style multilingual release page.
 
-QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
+QQ群：1030632742，欢迎一起交流、提建议、完善 GoAgent。
 
 ## 中文
 
@@ -10,10 +10,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 平台 / 场景 | 推荐下载 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.7-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.7-mac-x64.dmg` |
-| Windows 普通版，适合大多数电脑 | `GoMentor-0.3.7-win-x64.exe` 或 `GoMentor-0.3.7-win-x64-portable.zip` |
-| Windows NVIDIA 专版，适合 NVIDIA 显卡和 CUDA 运行环境 | `GoMentor-0.3.7-win-x64-nvidia.exe` 或 `GoMentor-0.3.7-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.7-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.7-mac-x64.dmg` |
+| Windows 普通版，适合大多数电脑 | `GoAgent-0.3.7-win-x64.exe` 或 `GoAgent-0.3.7-win-x64-portable.zip` |
+| Windows NVIDIA 专版，适合 NVIDIA 显卡和 CUDA 运行环境 | `GoAgent-0.3.7-win-x64-nvidia.exe` 或 `GoAgent-0.3.7-win-x64-nvidia-portable.zip` |
 | 校验文件 | `SHA256SUMS.txt` |
 
 ### 为什么值得升级
@@ -34,10 +34,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 平台 / 使用情境 | 建議下載 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.7-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.7-mac-x64.dmg` |
-| Windows 一般版，適合多數電腦 | `GoMentor-0.3.7-win-x64.exe` 或 `GoMentor-0.3.7-win-x64-portable.zip` |
-| Windows NVIDIA 專版，適合 NVIDIA 顯示卡與 CUDA 環境 | `GoMentor-0.3.7-win-x64-nvidia.exe` 或 `GoMentor-0.3.7-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.7-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.7-mac-x64.dmg` |
+| Windows 一般版，適合多數電腦 | `GoAgent-0.3.7-win-x64.exe` 或 `GoAgent-0.3.7-win-x64-portable.zip` |
+| Windows NVIDIA 專版，適合 NVIDIA 顯示卡與 CUDA 環境 | `GoAgent-0.3.7-win-x64-nvidia.exe` 或 `GoAgent-0.3.7-win-x64-nvidia-portable.zip` |
 | 校驗檔 | `SHA256SUMS.txt` |
 
 ### 本版重點
@@ -53,10 +53,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | Platform / use case | Recommended download |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.7-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.7-mac-x64.dmg` |
-| Standard Windows x64 | `GoMentor-0.3.7-win-x64.exe` or `GoMentor-0.3.7-win-x64-portable.zip` |
-| Windows NVIDIA edition for NVIDIA GPUs and CUDA runtimes | `GoMentor-0.3.7-win-x64-nvidia.exe` or `GoMentor-0.3.7-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.7-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.7-mac-x64.dmg` |
+| Standard Windows x64 | `GoAgent-0.3.7-win-x64.exe` or `GoAgent-0.3.7-win-x64-portable.zip` |
+| Windows NVIDIA edition for NVIDIA GPUs and CUDA runtimes | `GoAgent-0.3.7-win-x64-nvidia.exe` or `GoAgent-0.3.7-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### Why try this release
@@ -77,10 +77,10 @@ Thanks to layiku for PR #3's early global arrow-key idea; PR #4 fully absorbed t
 
 | 環境 | 推奨ファイル |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.7-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.7-mac-x64.dmg` |
-| Windows 標準版 | `GoMentor-0.3.7-win-x64.exe` または `GoMentor-0.3.7-win-x64-portable.zip` |
-| NVIDIA GPU / CUDA 向け Windows NVIDIA 版 | `GoMentor-0.3.7-win-x64-nvidia.exe` または `GoMentor-0.3.7-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.7-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.7-mac-x64.dmg` |
+| Windows 標準版 | `GoAgent-0.3.7-win-x64.exe` または `GoAgent-0.3.7-win-x64-portable.zip` |
+| NVIDIA GPU / CUDA 向け Windows NVIDIA 版 | `GoAgent-0.3.7-win-x64-nvidia.exe` または `GoAgent-0.3.7-win-x64-nvidia-portable.zip` |
 | チェックサム | `SHA256SUMS.txt` |
 
 ### 主な変更
@@ -96,10 +96,10 @@ Thanks to layiku for PR #3's early global arrow-key idea; PR #4 fully absorbed t
 
 | 환경 | 권장 다운로드 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.7-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.7-mac-x64.dmg` |
-| Windows 표준 x64 | `GoMentor-0.3.7-win-x64.exe` 또는 `GoMentor-0.3.7-win-x64-portable.zip` |
-| NVIDIA GPU / CUDA용 Windows NVIDIA 에디션 | `GoMentor-0.3.7-win-x64-nvidia.exe` 또는 `GoMentor-0.3.7-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.7-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.7-mac-x64.dmg` |
+| Windows 표준 x64 | `GoAgent-0.3.7-win-x64.exe` 또는 `GoAgent-0.3.7-win-x64-portable.zip` |
+| NVIDIA GPU / CUDA용 Windows NVIDIA 에디션 | `GoAgent-0.3.7-win-x64-nvidia.exe` 또는 `GoAgent-0.3.7-win-x64-nvidia-portable.zip` |
 | 체크섬 | `SHA256SUMS.txt` |
 
 ### 이번 버전의 핵심
@@ -115,10 +115,10 @@ Thanks to layiku for PR #3's early global arrow-key idea; PR #4 fully absorbed t
 
 | ระบบ / การใช้งาน | ไฟล์ที่แนะนำ |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.7-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.7-mac-x64.dmg` |
-| Windows x64 รุ่นมาตรฐาน | `GoMentor-0.3.7-win-x64.exe` หรือ `GoMentor-0.3.7-win-x64-portable.zip` |
-| Windows NVIDIA edition สำหรับ NVIDIA GPU และ CUDA | `GoMentor-0.3.7-win-x64-nvidia.exe` หรือ `GoMentor-0.3.7-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.7-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.7-mac-x64.dmg` |
+| Windows x64 รุ่นมาตรฐาน | `GoAgent-0.3.7-win-x64.exe` หรือ `GoAgent-0.3.7-win-x64-portable.zip` |
+| Windows NVIDIA edition สำหรับ NVIDIA GPU และ CUDA | `GoAgent-0.3.7-win-x64-nvidia.exe` หรือ `GoAgent-0.3.7-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### จุดเด่น
@@ -134,10 +134,10 @@ Thanks to layiku for PR #3's early global arrow-key idea; PR #4 fully absorbed t
 
 | Nền tảng / nhu cầu | Tệp nên tải |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.7-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.7-mac-x64.dmg` |
-| Windows x64 tiêu chuẩn | `GoMentor-0.3.7-win-x64.exe` hoặc `GoMentor-0.3.7-win-x64-portable.zip` |
-| Windows NVIDIA edition cho GPU NVIDIA và CUDA | `GoMentor-0.3.7-win-x64-nvidia.exe` hoặc `GoMentor-0.3.7-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.7-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.7-mac-x64.dmg` |
+| Windows x64 tiêu chuẩn | `GoAgent-0.3.7-win-x64.exe` hoặc `GoAgent-0.3.7-win-x64-portable.zip` |
+| Windows NVIDIA edition cho GPU NVIDIA và CUDA | `GoAgent-0.3.7-win-x64-nvidia.exe` hoặc `GoAgent-0.3.7-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### Điểm mới

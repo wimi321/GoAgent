@@ -23,7 +23,7 @@ interface DiagnosticsApi {
 }
 
 function diagnosticsApi(): DiagnosticsApi {
-  return (window as unknown as { gomentor?: DiagnosticsApi }).gomentor ?? {}
+  return (window as unknown as { goagent?: DiagnosticsApi }).goagent ?? {}
 }
 
 export function DiagnosticsGate({ children }: { children: ReactNode }): ReactElement {
@@ -32,7 +32,7 @@ export function DiagnosticsGate({ children }: { children: ReactNode }): ReactEle
       const api = diagnosticsApi()
       await api.getDiagnostics?.()
     } catch (cause) {
-      console.warn('[GoMentor] startup diagnostics failed', cause)
+      console.warn('[GoAgent] startup diagnostics failed', cause)
     }
   }
 

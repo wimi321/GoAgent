@@ -1,4 +1,4 @@
-# GoMentor v0.2.0-beta.1 P0 Release Candidate Guide
+# GoAgent v0.2.0-beta.1 P0 Release Candidate Guide
 
 ## 1. 目标
 
@@ -69,8 +69,8 @@ node scripts/verify_release_artifacts.mjs --mode=release
 P0 beta Windows 产物应为：
 
 ```text
-GoMentor-0.2.0-beta.1-win-x64.exe
-GoMentor-0.2.0-beta.1-win-x64-portable.zip
+GoAgent-0.2.0-beta.1-win-x64.exe
+GoAgent-0.2.0-beta.1-win-x64-portable.zip
 ```
 
 `win-arm64` 产物在 P0 beta 阶段视为发布阻塞项。

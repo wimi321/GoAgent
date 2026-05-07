@@ -1,6 +1,6 @@
 # Desktop App UX References
 
-GoMentor is a desktop workbench, not a browser-first web app. Sprint 7 desktop polish follows these product references without copying their UI.
+GoAgent is a desktop workbench, not a browser-first web app. Sprint 7 desktop polish follows these product references without copying their UI.
 
 ## Reference Directions
 
@@ -10,7 +10,7 @@ GoMentor is a desktop workbench, not a browser-first web app. Sprint 7 desktop p
 - VS Code: native menu, command palette, status bar, file/workspace mental model.
 - Claude Desktop: quiet MCP/tool setup and minimal preferences surface.
 
-## GoMentor Decisions
+## GoAgent Decisions
 
 - Native Electron menu owns global commands such as import, settings, command palette, and analysis actions.
 - Renderer uses a desktop shell with titlebar, workbench, and statusbar instead of a page-only layout.

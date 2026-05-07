@@ -1,6 +1,6 @@
 # Teacher quality evaluation and production hardening
 
-This document defines the second accuracy-hardening layer for GoMentor.
+This document defines the second accuracy-hardening layer for GoAgent.
 
 ## Why this patch exists
 

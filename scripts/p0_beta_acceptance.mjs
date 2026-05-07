@@ -56,7 +56,7 @@ try {
   failures.push(`knowledge cards parse failed: ${error.message}`)
 }
 
-console.log('\nGoMentor P0 Beta Acceptance')
+console.log('\nGoAgent P0 Beta Acceptance')
 console.log('================================')
 for (const line of passes) console.log(`✅ ${line}`)
 for (const line of warnings) console.log(`⚠️  ${line}`)

@@ -56,7 +56,7 @@ export function UiGallery(): ReactElement {
       <header className="ui-gallery__hero">
         <div>
           <p className="eyebrow">Internal Visual QA</p>
-          <h1>GoMentor UI Gallery</h1>
+          <h1>GoAgent UI Gallery</h1>
           <p>固定样例，不依赖真实 KataGo、LLM 或野狐同步。用于检查棋盘、老师智能体、棋手栏、诊断与发布状态的视觉质量。</p>
         </div>
         <a href="/" className="ui-gallery__back">返回应用</a>
@@ -98,7 +98,7 @@ export function UiGallery(): ReactElement {
           <div className="teacher-panel teacher-agent-editor ui-gallery__agent-shell">
             <header className="teacher-editor-head">
               <div className="teacher-editor-title">
-                <span>GoMentor AI Editor</span>
+                <span>GoAgent AI Editor</span>
                 <strong>对话式围棋分析线程</strong>
                 <div className="teacher-editor-meta">
                   <em>gpt-5.5</em>
@@ -126,7 +126,7 @@ export function UiGallery(): ReactElement {
               </article>
               <article className="message message--teacher agent-turn agent-turn--teacher">
                 <div className="agent-turn__body">
-                  <header className="agent-turn__head"><strong>GoMentor</strong><small>turn complete · item stream</small></header>
+                  <header className="agent-turn__head"><strong>GoAgent</strong><small>turn complete · item stream</small></header>
                   <TeacherRunCardPro
                     result={galleryTeacherResult}
                     markdown={galleryTeacherResult.markdown}
@@ -137,7 +137,7 @@ export function UiGallery(): ReactElement {
               </article>
               <div className="message message--teacher message--running agent-turn agent-turn--teacher agent-turn--running">
                 <div className="agent-turn__body">
-                  <header className="agent-turn__head"><strong>GoMentor</strong><small>turn running · item stream</small></header>
+                  <header className="agent-turn__head"><strong>GoAgent</strong><small>turn running · item stream</small></header>
                   <TeacherRunCardPro running markdown="正在读取棋盘、调用 KataGo、检索教学卡并组织讲解..." />
                 </div>
               </div>

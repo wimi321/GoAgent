@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os'
 
 const root = process.cwd()
 const fixtureRoot = join(root, 'tests', 'fixtures', 'real-teaching')
-const strict = process.argv.includes('--strict') || process.env.GOMENTOR_REAL_EVAL_STRICT === '1'
-const enabled = strict || process.env.GOMENTOR_REAL_EVAL === '1'
+const strict = process.argv.includes('--strict') || process.env.GOAGENT_REAL_EVAL_STRICT === '1'
+const enabled = strict || process.env.GOAGENT_REAL_EVAL === '1'
 
 function walkJson(dir) {
   if (!existsSync(dir)) return []
@@ -36,25 +36,25 @@ function validationErrors(fixture, path) {
 
 function envConfig() {
   const config = {
-    katagoBin: process.env.GOMENTOR_KATAGO_BIN || process.env.KATAGO_BIN || '',
-    katagoConfig: process.env.GOMENTOR_KATAGO_CONFIG || process.env.KATAGO_CONFIG || '',
-    katagoModel: process.env.GOMENTOR_KATAGO_MODEL || process.env.KATAGO_MODEL || '',
-    llmBaseUrl: process.env.GOMENTOR_LLM_BASE_URL || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
-    llmApiKey: process.env.GOMENTOR_LLM_API_KEY || process.env.OPENAI_API_KEY || '',
-    llmModel: process.env.GOMENTOR_LLM_MODEL || process.env.LLM_MODEL || 'gpt-5-mini',
-    visits: Number(process.env.GOMENTOR_REAL_EVAL_VISITS || 800),
-    maxFixtures: Number(process.env.GOMENTOR_REAL_EVAL_MAX_FIXTURES || 0)
+    katagoBin: process.env.GOAGENT_KATAGO_BIN || process.env.KATAGO_BIN || '',
+    katagoConfig: process.env.GOAGENT_KATAGO_CONFIG || process.env.KATAGO_CONFIG || '',
+    katagoModel: process.env.GOAGENT_KATAGO_MODEL || process.env.KATAGO_MODEL || '',
+    llmBaseUrl: process.env.GOAGENT_LLM_BASE_URL || process.env.LLM_BASE_URL || 'https://api.openai.com/v1',
+    llmApiKey: process.env.GOAGENT_LLM_API_KEY || process.env.OPENAI_API_KEY || '',
+    llmModel: process.env.GOAGENT_LLM_MODEL || process.env.LLM_MODEL || 'gpt-5-mini',
+    visits: Number(process.env.GOAGENT_REAL_EVAL_VISITS || 800),
+    maxFixtures: Number(process.env.GOAGENT_REAL_EVAL_MAX_FIXTURES || 0)
   }
   return config
 }
 
 function missingConfig(config) {
   const missing = []
-  if (!config.katagoBin) missing.push('GOMENTOR_KATAGO_BIN')
-  if (!config.katagoConfig) missing.push('GOMENTOR_KATAGO_CONFIG')
-  if (!config.katagoModel) missing.push('GOMENTOR_KATAGO_MODEL')
-  if (!config.llmApiKey) missing.push('GOMENTOR_LLM_API_KEY or OPENAI_API_KEY')
-  if (!config.llmModel) missing.push('GOMENTOR_LLM_MODEL')
+  if (!config.katagoBin) missing.push('GOAGENT_KATAGO_BIN')
+  if (!config.katagoConfig) missing.push('GOAGENT_KATAGO_CONFIG')
+  if (!config.katagoModel) missing.push('GOAGENT_KATAGO_MODEL')
+  if (!config.llmApiKey) missing.push('GOAGENT_LLM_API_KEY or OPENAI_API_KEY')
+  if (!config.llmModel) missing.push('GOAGENT_LLM_MODEL')
   return missing
 }
 
@@ -251,7 +251,7 @@ async function callLlm(config, fixture, evidence) {
       {
         role: 'system',
         content: [
-          '你是 GoMentor 的围棋老师质量评测模式。',
+          '你是 GoAgent 的围棋老师质量评测模式。',
           '只能依据用户给出的 KataGo evidence 讲解。',
           '不得编造坐标、胜率、目差、PV、定式名、死活结论。',
           '如果提到棋盘坐标，只能使用 evidence.knownCoordinates 中已经列出的坐标；其他棋盘坐标一律不要写。',
@@ -403,7 +403,7 @@ async function main() {
   if (!enabled || missing.length) {
     const summary = {
       skipped: true,
-      reason: !enabled ? 'Set GOMENTOR_REAL_EVAL=1 or pass --strict to run real KataGo + real LLM evaluation.' : `Missing config: ${missing.join(', ')}`,
+      reason: !enabled ? 'Set GOAGENT_REAL_EVAL=1 or pass --strict to run real KataGo + real LLM evaluation.' : `Missing config: ${missing.join(', ')}`,
       fixtureCount: fixtures.length,
       strict
     }

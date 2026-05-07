@@ -1,6 +1,6 @@
-# GoMentor Teacher Agent
+# GoAgent Teacher Agent
 
-GoMentor treats the right-side coach as an agent, not a static chat panel. The agent can plan a task, call local tools, inspect results, and write a student profile that improves later reviews.
+GoAgent treats the right-side coach as an agent, not a static chat panel. The agent can plan a task, call local tools, inspect results, and write a student profile that improves later reviews.
 
 The agent must not be product-limited to a small set of button workflows. Current-move analysis, recent-game review, and training-plan generation are only fast paths. Any natural-language request can enter the open-ended agent path, where the teacher receives the tool catalog, current game context, student profile, knowledge cards, and optional web-search snippets, then decides the right output shape.
 
@@ -18,7 +18,7 @@ If these sources disagree, KataGo wins.
 - Do not artificially restrict the teacher to "current move", "recent games", or "training plan".
 - Treat every tool as part of one extensible capability registry.
 - Let the teacher plan multi-step work from the user's actual goal, then choose tools by need.
-- Environment setup is also a teacher capability: the teacher may detect local KataGo, write GoMentor app config, and verify that analysis works.
+- Environment setup is also a teacher capability: the teacher may detect local KataGo, write GoAgent app config, and verify that analysis works.
 - Show every tool call in the chat log so the user can see what happened.
 - Add new tools by registering their capability and privacy notes; do not fork the agent into more hard-coded flows.
 - Privacy and local-system safety are guardrails, not product limitations: do not send student names, SGF contents, screenshots, API keys, or local paths to web search. Destructive actions, installation, and OS-level security changes should be surfaced as explicit tool steps.
@@ -30,13 +30,13 @@ If these sources disagree, KataGo wins.
 - `katago.analyzePosition`: compare the current move with KataGo recommendations.
 - `katago.analyzeGameBatch`: run local batch analysis without per-game LLM calls.
 - `system.detectEnvironment`: inspect local KataGo, model/config paths, local LLM proxy, and available models.
-- `settings.writeAppConfig`: update GoMentor settings so the teacher can use detected local tools immediately.
+- `settings.writeAppConfig`: update GoAgent settings so the teacher can use detected local tools immediately.
 - `katago.verifyAnalysis`: run a low-visit KataGo analysis to verify binary/config/model compatibility.
 - `board.captureTeachingImage`: create a board-only PNG with current move and recommendation marks.
 - `knowledge.searchLocal`: retrieve structured cards from `data/knowledge`.
 - `web.searchGoKnowledge`: optional generic web search; never include student names, SGF content, or board screenshots.
 - `studentProfile.read/write`: persist long-term learning signals.
-- `report.saveAnalysis`: write reports under `~/.gomentor/teacher-reports`.
+- `report.saveAnalysis`: write reports under `~/.goagent/teacher-reports`.
 
 ## Open-Ended Agent Path
 
@@ -56,7 +56,7 @@ This is intentionally close to Claude Code's model: the teacher is a task-runnin
 
 - LLM API keys are stored through Electron `safeStorage` when available.
 - Renderer receives only whether an API key exists, never the saved key itself.
-- Opening files through IPC is restricted to GoMentor-managed directories.
+- Opening files through IPC is restricted to GoAgent-managed directories.
 - Current-move analysis sends the board PNG, KataGo JSON, and selected knowledge cards to the configured multimodal LLM.
 - Batch analysis disables per-game LLM calls and performs one final teacher summary.
 - Open-ended tasks may call the LLM with the tool catalog, student profile, SGF metadata/recent moves, local knowledge cards, and generic web-search titles.

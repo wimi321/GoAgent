@@ -27,7 +27,7 @@ function move(moveNumber: number, color: 'B' | 'W', gtp: string): GameMove {
 export const galleryGame: LibraryGame = {
   id: 'gallery-game-01',
   title: 'Sprint 7 UI Gallery',
-  event: 'GoMentor Demo',
+  event: 'GoAgent Demo',
   black: '小明',
   white: 'AI老师示例',
   result: 'B+R',

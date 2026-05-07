@@ -2,7 +2,7 @@
 
 ## P0 decision
 
-GoMentor P0 beta should ship with a bundled KataGo binary and one default model. The default model should be the b18 recommended model already referenced by the project.
+GoAgent P0 beta should ship with a bundled KataGo binary and one default model. The default model should be the b18 recommended model already referenced by the project.
 
 Supported P0 beta platforms:
 
@@ -38,8 +38,8 @@ Do not add or publish `bin/win32-arm64/katago.exe` until a tested official or tr
 Prepare assets:
 
 ```bash
-GOMENTOR_KATAGO_BINARY=/path/to/katago \
-GOMENTOR_KATAGO_MODEL=/path/to/model.bin.gz \
+GOAGENT_KATAGO_BINARY=/path/to/katago \
+GOAGENT_KATAGO_MODEL=/path/to/model.bin.gz \
 node scripts/prepare_katago_assets.mjs
 ```
 

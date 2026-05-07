@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="GoMentor logo" width="132" height="132" />
+  <img src="./assets/logo.png" alt="GoAgent logo" width="132" height="132" />
 </p>
 
-<h1 align="center">GoMentor</h1>
+<h1 align="center">GoAgent · AI Go Agent</h1>
 
 <p align="center">
-  <strong>An AI-editor-style Go teacher for desktop.</strong><br />
+  <strong>An agentic AI teacher for Go / Weiqi / Baduk.</strong><br />
   KataGo provides the facts, a multimodal LLM explains the lesson, and student profiles keep coaching consistent over time.
 </p>
 
 <p align="center">
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoMentor?include_prereleases&style=for-the-badge&label=Release" /></a>
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoMentor/total?style=for-the-badge&label=Downloads" /></a>
-  <a href="https://github.com/wimi321/GoMentor/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoMentor?style=for-the-badge" /></a>
-  <a href="https://github.com/wimi321/GoMentor/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/wimi321/GoMentor/ci.yml?branch=main&style=for-the-badge&label=CI" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoAgent?include_prereleases&style=for-the-badge&label=Release" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoAgent/total?style=for-the-badge&label=Downloads" /></a>
+  <a href="https://github.com/wimi321/GoAgent/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoAgent?style=for-the-badge" /></a>
+  <a href="https://github.com/wimi321/GoAgent/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/wimi321/GoAgent/ci.yml?branch=main&style=for-the-badge&label=CI" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-0f172a?style=for-the-badge" /></a>
   <a href="#community"><img alt="QQ Group" src="https://img.shields.io/badge/QQ%20Group-1030632742-2563eb?style=for-the-badge" /></a>
 </p>
@@ -28,13 +28,13 @@
 </p>
 
 <p align="center">
-  <strong>Join the GoMentor community: QQ 1030632742</strong><br />
+  <strong>Join the GoAgent community: QQ 1030632742</strong><br />
   Share feedback, report bugs, and help improve the AI Go teacher together.
 </p>
 
 ---
 
-GoMentor is a local-first, cross-platform desktop workbench for Go students and teachers. It is not just a chat panel beside a board: it turns KataGo, board screenshots, local knowledge cards, long-term student memory, and a multimodal LLM into an agentic Go teacher.
+GoAgent is a local-first, cross-platform desktop workbench and agentic AI teacher for Go / Weiqi / Baduk students and teachers. It is not just a chat panel beside a board: it turns KataGo, board screenshots, local knowledge cards, long-term student memory, and a multimodal LLM into an agentic Go teacher.
 
 Ask it to:
 
@@ -49,14 +49,14 @@ KataGo is the source of truth. The LLM is the teacher that turns those facts int
 
 Current release:
 
-[GoMentor v0.3.4](https://github.com/wimi321/GoMentor/releases/tag/v0.3.4)
+[GoAgent v0.3.15](https://github.com/wimi321/GoAgent/releases/tag/v0.3.15)
 
 | Platform | Download |
 | --- | --- |
-| macOS Apple Silicon | [GoMentor-0.3.4-mac-arm64.dmg](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-arm64.dmg) |
-| macOS Intel | [GoMentor-0.3.4-mac-x64.dmg](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-x64.dmg) |
-| Windows x64 portable ZIP | [GoMentor-0.3.4-win-x64-portable.zip](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64-portable.zip) |
-| Windows x64 installer | [GoMentor-0.3.4-win-x64.exe](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64.exe) |
+| macOS Apple Silicon | [GoAgent-0.3.15-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-arm64.dmg) |
+| macOS Intel | [GoAgent-0.3.15-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-x64.dmg) |
+| Windows x64 portable ZIP | [GoAgent-0.3.15-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64-portable.zip) |
+| Windows x64 installer | [GoAgent-0.3.15-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64.exe) |
 
 Release caveats:
 
@@ -148,7 +148,7 @@ pnpm dist:linux
 
 ## Privacy
 
-- Games, reports, settings, and student profiles stay under `~/.gomentor` by default.
+- Games, reports, settings, and student profiles stay under `~/.goagent` by default.
 - Saved LLM API keys are encrypted with Electron `safeStorage` when available.
 - Current-move teaching may send a board screenshot, KataGo JSON, and selected knowledge cards to the configured LLM endpoint.
 - Web search is optional and should only use generic Go concepts.

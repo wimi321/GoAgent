@@ -113,7 +113,7 @@ export function TeacherRunCardPro({
     <article className={`ks-teacher-pro-card ks-agent-response ${running ? 'ks-teacher-pro-card--running' : ''}`}>
       <header className="ks-teacher-pro-card__header">
         <div>
-          <span className="ks-teacher-pro-card__eyebrow">GoMentor</span>
+          <span className="ks-teacher-pro-card__eyebrow">GoAgent</span>
           <h3>{running ? '正在思考…' : 'assistant response'}</h3>
         </div>
         <span className="ks-teacher-pro-card__status">{running ? '执行中' : error ? '需处理' : '完成'}</span>

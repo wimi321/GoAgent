@@ -1,8 +1,8 @@
-# GoMentor v0.3.8
+# GoAgent v0.3.8
 
 This hotfix keeps the v0.3.7 top-quality upgrade and fixes first-launch detection for the Windows NVIDIA edition. The NVIDIA package now opens as a ready-to-analyze desktop app instead of showing `KataGo missing` when the bundled model is named `default.bin.gz`.
 
-QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
+QQ群：1030632742，欢迎一起交流、提建议、完善 GoAgent。
 
 ## 中文
 
@@ -10,10 +10,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 平台 / 场景 | 推荐下载 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.8-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.8-mac-x64.dmg` |
-| Windows 普通版，适合大多数电脑 | `GoMentor-0.3.8-win-x64.exe` 或 `GoMentor-0.3.8-win-x64-portable.zip` |
-| Windows NVIDIA 专版，适合 NVIDIA 显卡和 CUDA 环境 | `GoMentor-0.3.8-win-x64-nvidia.exe` 或 `GoMentor-0.3.8-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.8-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.8-mac-x64.dmg` |
+| Windows 普通版，适合大多数电脑 | `GoAgent-0.3.8-win-x64.exe` 或 `GoAgent-0.3.8-win-x64-portable.zip` |
+| Windows NVIDIA 专版，适合 NVIDIA 显卡和 CUDA 环境 | `GoAgent-0.3.8-win-x64-nvidia.exe` 或 `GoAgent-0.3.8-win-x64-nvidia-portable.zip` |
 | 校验文件 | `SHA256SUMS.txt` |
 
 ### 修复重点
@@ -29,10 +29,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 平台 / 使用情境 | 建議下載 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.8-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.8-mac-x64.dmg` |
-| Windows 一般版 | `GoMentor-0.3.8-win-x64.exe` 或 `GoMentor-0.3.8-win-x64-portable.zip` |
-| Windows NVIDIA 專版 | `GoMentor-0.3.8-win-x64-nvidia.exe` 或 `GoMentor-0.3.8-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.8-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.8-mac-x64.dmg` |
+| Windows 一般版 | `GoAgent-0.3.8-win-x64.exe` 或 `GoAgent-0.3.8-win-x64-portable.zip` |
+| Windows NVIDIA 專版 | `GoAgent-0.3.8-win-x64-nvidia.exe` 或 `GoAgent-0.3.8-win-x64-nvidia-portable.zip` |
 | 校驗檔 | `SHA256SUMS.txt` |
 
 ### 本版重點
@@ -48,10 +48,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | Platform / use case | Recommended download |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.8-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.8-mac-x64.dmg` |
-| Standard Windows x64 | `GoMentor-0.3.8-win-x64.exe` or `GoMentor-0.3.8-win-x64-portable.zip` |
-| Windows NVIDIA edition for NVIDIA GPUs and CUDA runtimes | `GoMentor-0.3.8-win-x64-nvidia.exe` or `GoMentor-0.3.8-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.8-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.8-mac-x64.dmg` |
+| Standard Windows x64 | `GoAgent-0.3.8-win-x64.exe` or `GoAgent-0.3.8-win-x64-portable.zip` |
+| Windows NVIDIA edition for NVIDIA GPUs and CUDA runtimes | `GoAgent-0.3.8-win-x64-nvidia.exe` or `GoAgent-0.3.8-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### Why update
@@ -67,10 +67,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 環境 | 推奨ファイル |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.8-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.8-mac-x64.dmg` |
-| Windows 標準版 | `GoMentor-0.3.8-win-x64.exe` または `GoMentor-0.3.8-win-x64-portable.zip` |
-| NVIDIA GPU / CUDA 向け Windows NVIDIA 版 | `GoMentor-0.3.8-win-x64-nvidia.exe` または `GoMentor-0.3.8-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.8-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.8-mac-x64.dmg` |
+| Windows 標準版 | `GoAgent-0.3.8-win-x64.exe` または `GoAgent-0.3.8-win-x64-portable.zip` |
+| NVIDIA GPU / CUDA 向け Windows NVIDIA 版 | `GoAgent-0.3.8-win-x64-nvidia.exe` または `GoAgent-0.3.8-win-x64-nvidia-portable.zip` |
 | チェックサム | `SHA256SUMS.txt` |
 
 ### 主な修正
@@ -86,10 +86,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | 환경 | 권장 다운로드 |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.8-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.8-mac-x64.dmg` |
-| Windows 표준 x64 | `GoMentor-0.3.8-win-x64.exe` 또는 `GoMentor-0.3.8-win-x64-portable.zip` |
-| NVIDIA GPU / CUDA용 Windows NVIDIA 에디션 | `GoMentor-0.3.8-win-x64-nvidia.exe` 또는 `GoMentor-0.3.8-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.8-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.8-mac-x64.dmg` |
+| Windows 표준 x64 | `GoAgent-0.3.8-win-x64.exe` 또는 `GoAgent-0.3.8-win-x64-portable.zip` |
+| NVIDIA GPU / CUDA용 Windows NVIDIA 에디션 | `GoAgent-0.3.8-win-x64-nvidia.exe` 또는 `GoAgent-0.3.8-win-x64-nvidia-portable.zip` |
 | 체크섬 | `SHA256SUMS.txt` |
 
 ### 핵심 수정
@@ -105,10 +105,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | ระบบ / การใช้งาน | ไฟล์ที่แนะนำ |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.8-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.8-mac-x64.dmg` |
-| Windows x64 รุ่นมาตรฐาน | `GoMentor-0.3.8-win-x64.exe` หรือ `GoMentor-0.3.8-win-x64-portable.zip` |
-| Windows NVIDIA edition สำหรับ NVIDIA GPU และ CUDA | `GoMentor-0.3.8-win-x64-nvidia.exe` หรือ `GoMentor-0.3.8-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.8-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.8-mac-x64.dmg` |
+| Windows x64 รุ่นมาตรฐาน | `GoAgent-0.3.8-win-x64.exe` หรือ `GoAgent-0.3.8-win-x64-portable.zip` |
+| Windows NVIDIA edition สำหรับ NVIDIA GPU และ CUDA | `GoAgent-0.3.8-win-x64-nvidia.exe` หรือ `GoAgent-0.3.8-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### สิ่งที่แก้ไข
@@ -124,10 +124,10 @@ QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
 
 | Nền tảng / nhu cầu | Tệp nên tải |
 | --- | --- |
-| macOS Apple Silicon | `GoMentor-0.3.8-mac-arm64.dmg` |
-| macOS Intel | `GoMentor-0.3.8-mac-x64.dmg` |
-| Windows x64 tiêu chuẩn | `GoMentor-0.3.8-win-x64.exe` hoặc `GoMentor-0.3.8-win-x64-portable.zip` |
-| Windows NVIDIA edition cho GPU NVIDIA và CUDA | `GoMentor-0.3.8-win-x64-nvidia.exe` hoặc `GoMentor-0.3.8-win-x64-nvidia-portable.zip` |
+| macOS Apple Silicon | `GoAgent-0.3.8-mac-arm64.dmg` |
+| macOS Intel | `GoAgent-0.3.8-mac-x64.dmg` |
+| Windows x64 tiêu chuẩn | `GoAgent-0.3.8-win-x64.exe` hoặc `GoAgent-0.3.8-win-x64-portable.zip` |
+| Windows NVIDIA edition cho GPU NVIDIA và CUDA | `GoAgent-0.3.8-win-x64-nvidia.exe` hoặc `GoAgent-0.3.8-win-x64-nvidia-portable.zip` |
 | Checksums | `SHA256SUMS.txt` |
 
 ### Bản sửa lỗi

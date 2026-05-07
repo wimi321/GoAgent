@@ -2,7 +2,7 @@
 
 ## Summary
 
-This PR productizes GoMentor P0 into a macOS arm64/x64 and Windows x64 beta candidate Go teacher workbench.
+This PR productizes GoAgent P0 into a macOS arm64/x64 and Windows x64 beta candidate Go teacher workbench.
 
 It adds:
 

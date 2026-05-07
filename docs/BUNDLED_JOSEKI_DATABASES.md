@@ -18,7 +18,7 @@ This v5 patch adds real bundled SGF-based joseki coverage, instead of relying on
 - License: MIT, copied as `LICENSE`.
 - Coverage: a larger joseki explorer dictionary SGF.
 
-## How GoMentor uses these files
+## How GoAgent uses these files
 
 `src/main/services/knowledge/josekiSgfDatabase.ts` parses every bundled SGF variation tree, extracts move prefixes, normalizes them into corner-relative coordinates, and converts them into `JosekiPatternCard` records. `josekiRecognizer.ts` then merges these SGF-derived cards with the curated cards from `joseki-pattern-cards.json`.
 
@@ -26,7 +26,7 @@ The LLM teacher receives these matches as recognized motifs. It should present t
 
 ## Why Kogo is not bundled
 
-Kogo's Joseki Dictionary is public to download, but the SGF itself includes an explicit copyright/distribution warning and asks distributors to request permission before distribution. GoMentor should not bundle that file until permission is obtained. The source is still tracked in `data/knowledge/joseki-source-manifest.json` so the maintainer can add it later if permission is granted.
+Kogo's Joseki Dictionary is public to download, but the SGF itself includes an explicit copyright/distribution warning and asks distributors to request permission before distribution. GoAgent should not bundle that file until permission is obtained. The source is still tracked in `data/knowledge/joseki-source-manifest.json` so the maintainer can add it later if permission is granted.
 
 ## QA checklist
 

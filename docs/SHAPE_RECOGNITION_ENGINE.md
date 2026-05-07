@@ -1,6 +1,6 @@
 # Shape recognition engine
 
-GoMentor's teaching accuracy depends on recognizing board shape without overclaiming. This module adds a dedicated shape recognition layer between raw KataGo evidence and the LLM teacher.
+GoAgent's teaching accuracy depends on recognizing board shape without overclaiming. This module adds a dedicated shape recognition layer between raw KataGo evidence and the LLM teacher.
 
 ## Design goals
 
@@ -24,7 +24,7 @@ tests/fixtures/shape-recognition-golden/
 
 ## Why this improves accuracy
 
-Classic Go engines treat patterns as board geometry with constraints and transformations. GNU Go's pattern system documents eight transformations and constraint/helper logic. Kombilo-style pattern search similarly treats rotations/reflections and color switching as first-class search behavior. GoMentor uses this engineering pattern, but keeps the teaching text original and validates final judgement against KataGo.
+Classic Go engines treat patterns as board geometry with constraints and transformations. GNU Go's pattern system documents eight transformations and constraint/helper logic. Kombilo-style pattern search similarly treats rotations/reflections and color switching as first-class search behavior. GoAgent uses this engineering pattern, but keeps the teaching text original and validates final judgement against KataGo.
 
 ## Safe wording policy
 

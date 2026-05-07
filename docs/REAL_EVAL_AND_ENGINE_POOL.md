@@ -1,11 +1,11 @@
 # Real Teaching Eval and KataGo Engine Pool
 
-This document describes the next hardening step for GoMentor: real local quality
+This document describes the next hardening step for GoAgent: real local quality
 evaluation and an optional persistent KataGo analysis engine.
 
 ## Why this exists
 
-GoMentor is a local desktop app. It does not need a server to evaluate quality.
+GoAgent is a local desktop app. It does not need a server to evaluate quality.
 Quality evaluation is a local or CI command, just like `pnpm test` or
 `pnpm typecheck`.
 
@@ -25,13 +25,13 @@ Real evaluation is intentionally not part of default CI because it requires loca
 KataGo assets and an LLM API key.
 
 ```bash
-export GOMENTOR_REAL_EVAL=1
-export GOMENTOR_KATAGO_BIN=/path/to/katago
-export GOMENTOR_KATAGO_CONFIG=/path/to/analysis.cfg
-export GOMENTOR_KATAGO_MODEL=/path/to/model.bin.gz
-export GOMENTOR_LLM_BASE_URL=https://api.openai.com/v1
-export GOMENTOR_LLM_API_KEY=...
-export GOMENTOR_LLM_MODEL=gpt-5-mini
+export GOAGENT_REAL_EVAL=1
+export GOAGENT_KATAGO_BIN=/path/to/katago
+export GOAGENT_KATAGO_CONFIG=/path/to/analysis.cfg
+export GOAGENT_KATAGO_MODEL=/path/to/model.bin.gz
+export GOAGENT_LLM_BASE_URL=https://api.openai.com/v1
+export GOAGENT_LLM_API_KEY=...
+export GOAGENT_LLM_MODEL=gpt-5-mini
 
 pnpm eval:real-teaching
 ```
@@ -82,10 +82,10 @@ Example:
 The persistent engine is opt-in:
 
 ```bash
-export GOMENTOR_KATAGO_ENGINE_POOL=1
+export GOAGENT_KATAGO_ENGINE_POOL=1
 ```
 
-When enabled, GoMentor reuses a long-lived `katago analysis` process for normal
+When enabled, GoAgent reuses a long-lived `katago analysis` process for normal
 query batches. The existing spawn-per-batch code remains the default fallback.
 
 The persistent engine supports:

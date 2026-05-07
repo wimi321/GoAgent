@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       katago_asset_release_tag:
-        description: "GoMentor release tag to reuse standard bundled KataGo assets from"
+        description: "GoAgent release tag to reuse standard bundled KataGo assets from"
         required: false
         default: "v0.3.6"
         type: string
@@ -62,34 +62,34 @@ jobs:
         id: katago-assets
         shell: bash
         env:
-          GOMENTOR_KATAGO_ASSET_DIR: ${{ secrets.GOMENTOR_KATAGO_ASSET_DIR }}
-          GOMENTOR_KATAGO_BINARY: ${{ secrets.GOMENTOR_KATAGO_BINARY }}
-          GOMENTOR_KATAGO_MODEL: ${{ secrets.GOMENTOR_KATAGO_MODEL }}
-          GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
-          GOMENTOR_OPENCL_KATAGO_ASSET_REPO: ${{ inputs.opencl_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
-          GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.opencl_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
-          GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN: ${{ inputs.opencl_katago_asset_pattern || '*windows64.opencl.portable.zip' }}
-          GOMENTOR_NVIDIA_KATAGO_ASSET_REPO: ${{ inputs.nvidia_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
-          GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.nvidia_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
-          GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN: ${{ inputs.nvidia_katago_asset_pattern || '*windows64.nvidia.portable.zip' }}
+          GOAGENT_KATAGO_ASSET_DIR: ${{ secrets.GOAGENT_KATAGO_ASSET_DIR }}
+          GOAGENT_KATAGO_BINARY: ${{ secrets.GOAGENT_KATAGO_BINARY }}
+          GOAGENT_KATAGO_MODEL: ${{ secrets.GOAGENT_KATAGO_MODEL }}
+          GOAGENT_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
+          GOAGENT_OPENCL_KATAGO_ASSET_REPO: ${{ inputs.opencl_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOAGENT_OPENCL_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.opencl_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOAGENT_OPENCL_KATAGO_ASSET_PATTERN: ${{ inputs.opencl_katago_asset_pattern || '*windows64.opencl.portable.zip' }}
+          GOAGENT_NVIDIA_KATAGO_ASSET_REPO: ${{ inputs.nvidia_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOAGENT_NVIDIA_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.nvidia_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOAGENT_NVIDIA_KATAGO_ASSET_PATTERN: ${{ inputs.nvidia_katago_asset_pattern || '*windows64.nvidia.portable.zip' }}
         run: |
-          if [[ -n "${GOMENTOR_KATAGO_ASSET_DIR}" || ( -n "${GOMENTOR_KATAGO_BINARY}" && -n "${GOMENTOR_KATAGO_MODEL}" ) ]]; then
+          if [[ -n "${GOAGENT_KATAGO_ASSET_DIR}" || ( -n "${GOAGENT_KATAGO_BINARY}" && -n "${GOAGENT_KATAGO_MODEL}" ) ]]; then
             echo "can-package=true" >> "${GITHUB_OUTPUT}"
             echo "KataGo standard release asset source is configured."
-          elif [[ -n "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" ]]; then
+          elif [[ -n "${GOAGENT_KATAGO_ASSET_RELEASE_TAG}" ]]; then
             echo "can-package=true" >> "${GITHUB_OUTPUT}"
-            echo "KataGo standard assets will be restored from GoMentor ${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}."
-            if [[ -n "${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" ]]; then
-              echo "Windows OpenCL KataGo assets will be restored from ${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}@${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}."
+            echo "KataGo standard assets will be restored from configured release sources."
+            if [[ -n "${GOAGENT_OPENCL_KATAGO_ASSET_REPO}" && -n "${GOAGENT_OPENCL_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOAGENT_OPENCL_KATAGO_ASSET_PATTERN}" ]]; then
+              echo "Windows OpenCL KataGo assets will be restored from ${GOAGENT_OPENCL_KATAGO_ASSET_REPO}@${GOAGENT_OPENCL_KATAGO_ASSET_RELEASE_TAG}."
             fi
           else
             echo "can-package=false" >> "${GITHUB_OUTPUT}"
-            echo "::notice title=Release packaging skipped::KataGo standard assets are not configured. Set GOMENTOR_KATAGO_ASSET_DIR, both GOMENTOR_KATAGO_BINARY and GOMENTOR_KATAGO_MODEL, or katago_asset_release_tag to enable automated packaging."
+            echo "::notice title=Release packaging skipped::KataGo standard assets are not configured. Set GOAGENT_KATAGO_ASSET_DIR, both GOAGENT_KATAGO_BINARY and GOAGENT_KATAGO_MODEL, or katago_asset_release_tag to enable automated packaging."
           fi
 
-          if [[ -n "${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}" && -n "${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}" ]]; then
+          if [[ -n "${GOAGENT_NVIDIA_KATAGO_ASSET_REPO}" && -n "${GOAGENT_NVIDIA_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOAGENT_NVIDIA_KATAGO_ASSET_PATTERN}" ]]; then
             echo "can-package-nvidia=true" >> "${GITHUB_OUTPUT}"
-            echo "KataGo NVIDIA assets will be restored from ${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}@${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}."
+            echo "KataGo NVIDIA assets will be restored from ${GOAGENT_NVIDIA_KATAGO_ASSET_REPO}@${GOAGENT_NVIDIA_KATAGO_ASSET_RELEASE_TAG}."
           else
             echo "can-package-nvidia=false" >> "${GITHUB_OUTPUT}"
             echo "::notice title=NVIDIA package skipped::Set nvidia_katago_asset_repo, nvidia_katago_asset_release_tag, and nvidia_katago_asset_pattern to publish the Windows NVIDIA edition."
@@ -142,18 +142,18 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          GOMENTOR_KATAGO_ASSET_DIR: ${{ secrets.GOMENTOR_KATAGO_ASSET_DIR }}
-          GOMENTOR_KATAGO_BINARY: ${{ secrets.GOMENTOR_KATAGO_BINARY }}
-          GOMENTOR_KATAGO_MODEL: ${{ secrets.GOMENTOR_KATAGO_MODEL }}
-          GOMENTOR_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
-          GOMENTOR_OPENCL_KATAGO_ASSET_REPO: ${{ inputs.opencl_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
-          GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.opencl_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
-          GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN: ${{ inputs.opencl_katago_asset_pattern || '*windows64.opencl.portable.zip' }}
+          GOAGENT_KATAGO_ASSET_DIR: ${{ secrets.GOAGENT_KATAGO_ASSET_DIR }}
+          GOAGENT_KATAGO_BINARY: ${{ secrets.GOAGENT_KATAGO_BINARY }}
+          GOAGENT_KATAGO_MODEL: ${{ secrets.GOAGENT_KATAGO_MODEL }}
+          GOAGENT_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.katago_asset_release_tag || 'v0.3.6' }}
+          GOAGENT_OPENCL_KATAGO_ASSET_REPO: ${{ inputs.opencl_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOAGENT_OPENCL_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.opencl_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOAGENT_OPENCL_KATAGO_ASSET_PATTERN: ${{ inputs.opencl_katago_asset_pattern || '*windows64.opencl.portable.zip' }}
         run: |
-          if [[ -n "${GOMENTOR_KATAGO_ASSET_DIR}" || ( -n "${GOMENTOR_KATAGO_BINARY}" && -n "${GOMENTOR_KATAGO_MODEL}" ) ]]; then
-            if [[ "${RUNNER_OS}" == "macOS" && -n "${GOMENTOR_KATAGO_ASSET_DIR}" ]]; then
-              node scripts/prepare_katago_assets.mjs --asset-dir="${GOMENTOR_KATAGO_ASSET_DIR}" --platform=darwin-arm64 --flavor=standard --source-label="manual release asset source"
-              node scripts/prepare_katago_assets.mjs --asset-dir="${GOMENTOR_KATAGO_ASSET_DIR}" --platform=darwin-x64 --flavor=standard --source-label="manual release asset source"
+          if [[ -n "${GOAGENT_KATAGO_ASSET_DIR}" || ( -n "${GOAGENT_KATAGO_BINARY}" && -n "${GOAGENT_KATAGO_MODEL}" ) ]]; then
+            if [[ "${RUNNER_OS}" == "macOS" && -n "${GOAGENT_KATAGO_ASSET_DIR}" ]]; then
+              node scripts/prepare_katago_assets.mjs --asset-dir="${GOAGENT_KATAGO_ASSET_DIR}" --platform=darwin-arm64 --flavor=standard --source-label="manual release asset source"
+              node scripts/prepare_katago_assets.mjs --asset-dir="${GOAGENT_KATAGO_ASSET_DIR}" --platform=darwin-x64 --flavor=standard --source-label="manual release asset source"
             else
               node scripts/prepare_katago_assets.mjs --flavor=standard --source-label="manual release asset source"
             fi
@@ -196,19 +196,19 @@ jobs:
               hdiutil detach "${mount_point}" -quiet
             }
 
-            prepare_macos_asset darwin-arm64 "${{ github.repository }}" "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" "GoMentor-*-mac-arm64.dmg" exact
-            echo "Restoring Intel macOS KataGo runtime from lizzieyzy-next."
+            echo "Restoring macOS KataGo runtimes from lizzieyzy-next."
+            prepare_macos_asset darwin-arm64 "wimi321/lizzieyzy-next" "1.0.0-next-2026-05-02.3" "*mac-apple-silicon.with-katago.dmg" scan
             prepare_macos_asset darwin-x64 "wimi321/lizzieyzy-next" "1.0.0-next-2026-05-02.3" "*mac-intel.with-katago.dmg" scan
           else
-            if [[ -n "${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" ]]; then
+            if [[ -n "${GOAGENT_OPENCL_KATAGO_ASSET_REPO}" && -n "${GOAGENT_OPENCL_KATAGO_ASSET_RELEASE_TAG}" && -n "${GOAGENT_OPENCL_KATAGO_ASSET_PATTERN}" ]]; then
               mkdir -p .katago-opencl-source/extracted
-              gh release download "${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}" \
-                --repo "${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}" \
-                --pattern "${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" \
+              gh release download "${GOAGENT_OPENCL_KATAGO_ASSET_RELEASE_TAG}" \
+                --repo "${GOAGENT_OPENCL_KATAGO_ASSET_REPO}" \
+                --pattern "${GOAGENT_OPENCL_KATAGO_ASSET_PATTERN}" \
                 --dir .katago-opencl-source
               asset_archive="$(find .katago-opencl-source -maxdepth 1 -type f | head -n 1)"
               if [[ -z "${asset_archive}" ]]; then
-                echo "No Windows OpenCL KataGo asset matched ${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}" >&2
+                echo "No Windows OpenCL KataGo asset matched ${GOAGENT_OPENCL_KATAGO_ASSET_PATTERN}" >&2
                 exit 1
               fi
               if [[ "${RUNNER_OS}" == "Windows" ]] && command -v 7z >/dev/null 2>&1; then
@@ -227,14 +227,14 @@ jobs:
                 --copy-runtime-dir \
                 --preserve-model-name \
                 --flavor=opencl \
-                --source-label="${GOMENTOR_OPENCL_KATAGO_ASSET_REPO}@${GOMENTOR_OPENCL_KATAGO_ASSET_RELEASE_TAG}:${GOMENTOR_OPENCL_KATAGO_ASSET_PATTERN}"
+                --source-label="${GOAGENT_OPENCL_KATAGO_ASSET_REPO}@${GOAGENT_OPENCL_KATAGO_ASSET_RELEASE_TAG}:${GOAGENT_OPENCL_KATAGO_ASSET_PATTERN}"
             else
               mkdir -p .katago-asset-source/extracted
-              gh release download "${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}" \
+              gh release download "${GOAGENT_KATAGO_ASSET_RELEASE_TAG}" \
                 --repo "${{ github.repository }}" \
-                --pattern "GoMentor-*-win-x64-portable.zip" \
+                --pattern "GoAgent-*-win-x64-portable.zip" \
                 --dir .katago-asset-source
-              asset_zip="$(find .katago-asset-source -maxdepth 1 -name 'GoMentor-*-win-x64-portable.zip' | head -n 1)"
+              asset_zip="$(find .katago-asset-source -maxdepth 1 -name 'GoAgent-*-win-x64-portable.zip' | head -n 1)"
               if command -v unzip >/dev/null 2>&1; then
                 unzip -q "${asset_zip}" -d .katago-asset-source/extracted
               elif command -v 7z >/dev/null 2>&1; then
@@ -242,7 +242,7 @@ jobs:
               else
                 powershell -NoProfile -Command "Expand-Archive -LiteralPath '${asset_zip}' -DestinationPath '.katago-asset-source/extracted'"
               fi
-              node scripts/prepare_katago_assets.mjs --asset-dir=".katago-asset-source/extracted/resources/data/katago" --flavor=standard --source-label="${{ github.repository }}@${GOMENTOR_KATAGO_ASSET_RELEASE_TAG}"
+              node scripts/prepare_katago_assets.mjs --asset-dir=".katago-asset-source/extracted/resources/data/katago" --flavor=standard --source-label="${{ github.repository }}@${GOAGENT_KATAGO_ASSET_RELEASE_TAG}"
             fi
           fi
           if [[ "${RUNNER_OS}" == "macOS" ]]; then
@@ -295,7 +295,7 @@ jobs:
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GoMentor-${{ matrix.name }}
+          name: GoAgent-${{ matrix.name }}
           path: |
             release/**/*.AppImage
             release/**/*.deb
@@ -337,18 +337,18 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          GOMENTOR_NVIDIA_KATAGO_ASSET_REPO: ${{ inputs.nvidia_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
-          GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.nvidia_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
-          GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN: ${{ inputs.nvidia_katago_asset_pattern || '*windows64.nvidia.portable.zip' }}
+          GOAGENT_NVIDIA_KATAGO_ASSET_REPO: ${{ inputs.nvidia_katago_asset_repo || 'wimi321/lizzieyzy-next' }}
+          GOAGENT_NVIDIA_KATAGO_ASSET_RELEASE_TAG: ${{ inputs.nvidia_katago_asset_release_tag || '1.0.0-next-2026-05-02.3' }}
+          GOAGENT_NVIDIA_KATAGO_ASSET_PATTERN: ${{ inputs.nvidia_katago_asset_pattern || '*windows64.nvidia.portable.zip' }}
         run: |
           mkdir -p .katago-nvidia-source/extracted
-          gh release download "${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}" \
-            --repo "${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}" \
-            --pattern "${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}" \
+          gh release download "${GOAGENT_NVIDIA_KATAGO_ASSET_RELEASE_TAG}" \
+            --repo "${GOAGENT_NVIDIA_KATAGO_ASSET_REPO}" \
+            --pattern "${GOAGENT_NVIDIA_KATAGO_ASSET_PATTERN}" \
             --dir .katago-nvidia-source
           asset_archive="$(find .katago-nvidia-source -maxdepth 1 -type f | head -n 1)"
           if [[ -z "${asset_archive}" ]]; then
-            echo "No NVIDIA KataGo asset matched ${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}" >&2
+            echo "No NVIDIA KataGo asset matched ${GOAGENT_NVIDIA_KATAGO_ASSET_PATTERN}" >&2
             exit 1
           fi
           case "${asset_archive}" in
@@ -382,7 +382,7 @@ jobs:
             --copy-runtime-dir \
             --preserve-model-name \
             --flavor=nvidia \
-            --source-label="${GOMENTOR_NVIDIA_KATAGO_ASSET_REPO}@${GOMENTOR_NVIDIA_KATAGO_ASSET_RELEASE_TAG}:${GOMENTOR_NVIDIA_KATAGO_ASSET_PATTERN}"
+            --source-label="${GOAGENT_NVIDIA_KATAGO_ASSET_REPO}@${GOAGENT_NVIDIA_KATAGO_ASSET_RELEASE_TAG}:${GOAGENT_NVIDIA_KATAGO_ASSET_PATTERN}"
           node scripts/check_katago_assets.mjs --mode=release --platform=win32-x64
 
       - name: Package NVIDIA desktop app
@@ -404,17 +404,17 @@ jobs:
         run: |
           $version = node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version"
           $releaseDir = Join-Path "release" $version
-          $portable = Get-ChildItem -Path $releaseDir -Filter "GoMentor-$version-win-x64-portable.zip" -File | Select-Object -First 1
-          $installer = Get-ChildItem -Path $releaseDir -Filter "GoMentor-$version-win-x64.exe" -File | Select-Object -First 1
+          $portable = Get-ChildItem -Path $releaseDir -Filter "GoAgent-$version-win-x64-portable.zip" -File | Select-Object -First 1
+          $installer = Get-ChildItem -Path $releaseDir -Filter "GoAgent-$version-win-x64.exe" -File | Select-Object -First 1
           if (-not $portable) { throw "Missing NVIDIA portable ZIP before rename." }
           if (-not $installer) { throw "Missing NVIDIA installer EXE before rename." }
-          Rename-Item -LiteralPath $portable.FullName -NewName "GoMentor-$version-win-x64-nvidia-portable.zip" -Force
-          Rename-Item -LiteralPath $installer.FullName -NewName "GoMentor-$version-win-x64-nvidia.exe" -Force
+          Rename-Item -LiteralPath $portable.FullName -NewName "GoAgent-$version-win-x64-nvidia-portable.zip" -Force
+          Rename-Item -LiteralPath $installer.FullName -NewName "GoAgent-$version-win-x64-nvidia.exe" -Force
 
       - name: Upload NVIDIA packaged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GoMentor-Windows-NVIDIA
+          name: GoAgent-Windows-NVIDIA
           path: |
             release/**/*nvidia*.exe
             release/**/*nvidia*.zip
@@ -444,12 +444,12 @@ jobs:
         run: |
           shopt -s globstar nullglob
           files=(
-            artifacts/**/GoMentor-*-mac-arm64.dmg
-            artifacts/**/GoMentor-*-mac-x64.dmg
-            artifacts/**/GoMentor-*-win-x64-portable.zip
-            artifacts/**/GoMentor-*-win-x64.exe
-            artifacts/**/GoMentor-*-win-x64-nvidia-portable.zip
-            artifacts/**/GoMentor-*-win-x64-nvidia.exe
+            artifacts/**/GoAgent-*-mac-arm64.dmg
+            artifacts/**/GoAgent-*-mac-x64.dmg
+            artifacts/**/GoAgent-*-win-x64-portable.zip
+            artifacts/**/GoAgent-*-win-x64.exe
+            artifacts/**/GoAgent-*-win-x64-nvidia-portable.zip
+            artifacts/**/GoAgent-*-win-x64-nvidia.exe
           )
           if [[ ${#files[@]} -eq 0 ]]; then
             echo "No release assets found for checksum generation." >&2
@@ -463,11 +463,11 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           make_latest: ${{ contains(github.ref_name, '-') && 'false' || 'true' }}
           files: |
-            artifacts/**/GoMentor-*-mac-arm64.dmg
-            artifacts/**/GoMentor-*-mac-x64.dmg
-            artifacts/**/GoMentor-*-win-x64-portable.zip
-            artifacts/**/GoMentor-*-win-x64.exe
-            artifacts/**/GoMentor-*-win-x64-nvidia-portable.zip
-            artifacts/**/GoMentor-*-win-x64-nvidia.exe
+            artifacts/**/GoAgent-*-mac-arm64.dmg
+            artifacts/**/GoAgent-*-mac-x64.dmg
+            artifacts/**/GoAgent-*-win-x64-portable.zip
+            artifacts/**/GoAgent-*-win-x64.exe
+            artifacts/**/GoAgent-*-win-x64-nvidia-portable.zip
+            artifacts/**/GoAgent-*-win-x64-nvidia.exe
             artifacts/SHA256SUMS.txt
           body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md

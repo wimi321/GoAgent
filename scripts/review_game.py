@@ -134,7 +134,7 @@ def summarize_issue(issue, student_name):
 def build_markdown(info, student_name, student_color, issues, language, llm_text):
     if language == "en-US":
         lines = [
-            f"# GoMentor Review: {info['black']} vs {info['white']}",
+            f"# GoAgent Review: {info['black']} vs {info['white']}",
             "",
             f"- Student: {student_name or 'auto'} ({student_color})",
             f"- Result: {info['result'] or 'Unknown'}",
@@ -150,7 +150,7 @@ def build_markdown(info, student_name, student_color, issues, language, llm_text
         return "\n".join(lines)
 
     lines = [
-        f"# GoMentor 复盘报告：{info['black']} vs {info['white']}",
+        f"# GoAgent 复盘报告：{info['black']} vs {info['white']}",
         "",
         f"- 学生：{student_name or '自动识别'}（执{ '黑' if student_color == 'B' else '白' }）",
         f"- 结果：{info['result'] or '未知'}",

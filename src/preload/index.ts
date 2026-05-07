@@ -118,10 +118,10 @@ const api = {
   }
 }
 
-contextBridge.exposeInMainWorld('gomentor', api)
+contextBridge.exposeInMainWorld('goagent', api)
 
 declare global {
   interface Window {
-    gomentor: typeof api
+    goagent: typeof api
   }
 }

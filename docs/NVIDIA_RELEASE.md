@@ -1,6 +1,6 @@
 # Windows NVIDIA Release
 
-GoMentor publishes a dedicated Windows NVIDIA edition in addition to the standard Windows x64 package.
+GoAgent publishes a dedicated Windows NVIDIA edition in addition to the standard Windows x64 package.
 
 ## Asset Source
 
@@ -27,15 +27,15 @@ This matters because CUDA builds normally need neighboring DLL/runtime files nex
 ## Expected Artifacts
 
 ```text
-GoMentor-<version>-win-x64-nvidia.exe
-GoMentor-<version>-win-x64-nvidia-portable.zip
+GoAgent-<version>-win-x64-nvidia.exe
+GoAgent-<version>-win-x64-nvidia-portable.zip
 ```
 
 The standard Windows package remains:
 
 ```text
-GoMentor-<version>-win-x64.exe
-GoMentor-<version>-win-x64-portable.zip
+GoAgent-<version>-win-x64.exe
+GoAgent-<version>-win-x64-portable.zip
 ```
 
 ## Checks

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 const root = process.cwd()
 const args = new Set(process.argv.slice(2))
@@ -10,7 +10,7 @@ const releaseRoot = join(root, 'release')
 const packageVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version
 const versionReleaseDir = join(releaseRoot, packageVersion)
 const releaseDir = existsSync(versionReleaseDir) ? versionReleaseDir : releaseRoot
-const minSizeBytes = Number(process.env.GOMENTOR_MIN_ARTIFACT_BYTES ?? 1024 * 1024)
+const minSizeBytes = Number(process.env.GOAGENT_MIN_ARTIFACT_BYTES ?? 1024 * 1024)
 
 function walk(dir) {
   if (!existsSync(dir)) return []
@@ -38,28 +38,30 @@ function isPackagedArtifact(file) {
 }
 
 const artifacts = files.filter(isPackagedArtifact)
-const macArm64Dmg = artifacts.filter((file) => /mac-arm64\.dmg$/i.test(file))
-const macX64Dmg = artifacts.filter((file) => /mac-x64\.dmg$/i.test(file))
-const winX64Installer = artifacts.filter((file) => /win-x64\.exe$/i.test(file) && !/portable/i.test(file))
-const winX64PortableZip = artifacts.filter((file) => /win-x64-portable\.zip$/i.test(file))
-const winX64NvidiaInstaller = artifacts.filter((file) => /win-x64-nvidia\.exe$/i.test(file))
-const winX64NvidiaPortableZip = artifacts.filter((file) => /win-x64-nvidia-portable\.zip$/i.test(file))
-const winPortableExe = artifacts.filter((file) => /win-x64-portable\.exe$/i.test(file))
-const winArm64 = artifacts.filter((file) => /win-arm64/i.test(file))
-const tiny = artifacts.filter((file) => statSync(file).size < minSizeBytes)
+const currentArtifactPrefix = `GoAgent-${packageVersion}-`
+const currentArtifacts = artifacts.filter((file) => basename(file).startsWith(currentArtifactPrefix))
+const macArm64Dmg = currentArtifacts.filter((file) => /mac-arm64\.dmg$/i.test(file))
+const macX64Dmg = currentArtifacts.filter((file) => /mac-x64\.dmg$/i.test(file))
+const winX64Installer = currentArtifacts.filter((file) => /win-x64\.exe$/i.test(file) && !/portable/i.test(file))
+const winX64PortableZip = currentArtifacts.filter((file) => /win-x64-portable\.zip$/i.test(file))
+const winX64NvidiaInstaller = currentArtifacts.filter((file) => /win-x64-nvidia\.exe$/i.test(file))
+const winX64NvidiaPortableZip = currentArtifacts.filter((file) => /win-x64-nvidia-portable\.zip$/i.test(file))
+const winPortableExe = currentArtifacts.filter((file) => /win-x64-portable\.exe$/i.test(file))
+const winArm64 = currentArtifacts.filter((file) => /win-arm64/i.test(file))
+const tiny = currentArtifacts.filter((file) => statSync(file).size < minSizeBytes)
 
 console.log(`Release artifact smoke (${mode})`)
 console.log(`packageVersion=${packageVersion}`)
 console.log(`scanDir=${releaseDir.replace(root + '/', '')}`)
-console.log(`Found ${artifacts.length} artifact candidates`)
-for (const artifact of artifacts) {
+console.log(`Found ${currentArtifacts.length} current GoAgent artifact candidates`)
+for (const artifact of currentArtifacts) {
   const size = statSync(artifact).size
   console.log(`- ${artifact.replace(root + '/', '')} (${Math.round(size / 1024)} KB)`)
 }
 
 const failures = []
 const warnings = []
-if (artifacts.length === 0) {
+if (currentArtifacts.length === 0) {
   if (mode === 'release') failures.push('No release artifacts found')
   else warnings.push('No release artifacts found in dev mode')
 }
@@ -80,5 +82,5 @@ if (mode === 'release') {
 
 for (const warning of warnings) console.log(`! ${warning}`)
 for (const failure of failures) console.log(`✗ ${failure}`)
-console.log(`Summary: ${Math.max(0, artifacts.length - tiny.length)} artifact(s), ${warnings.length} warning(s), ${failures.length} failure(s)`)
+console.log(`Summary: ${Math.max(0, currentArtifacts.length - tiny.length)} artifact(s), ${warnings.length} warning(s), ${failures.length} failure(s)`)
 process.exit(failures.length > 0 ? 1 : 0)

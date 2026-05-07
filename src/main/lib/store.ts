@@ -2,9 +2,10 @@ import Store from 'electron-store'
 import { app, safeStorage } from 'electron'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { BRAND_DATA_DIR } from '@shared/brand'
 import type { AppSettings, LibraryGame } from './types'
 
-export const appHome = process.env.GOMENTOR_APP_HOME || join(app.getPath('home'), '.gomentor')
+export const appHome = process.env.GOAGENT_APP_HOME || join(app.getPath('home'), BRAND_DATA_DIR)
 export const libraryDir = join(appHome, 'library')
 export const reviewsDir = join(appHome, 'reviews')
 export const cacheDir = join(appHome, 'cache')

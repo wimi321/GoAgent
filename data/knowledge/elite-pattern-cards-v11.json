@@ -19,7 +19,7 @@
     "coachLines": ["这不是背坐标，而是认结构。", "同型换方向仍然要被识别出来。"],
     "drillPrompt": "把同一个断点形旋转到四个方向，确认你仍然能认出连接点。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gnu-go-pattern-docs", "kombilo-pattern-search", "gomentor-curated-original"],
+    "sourceRefs": ["gnu-go-pattern-docs", "kombilo-pattern-search", "goagent-curated-original"],
     "sourceQuality": "engineering-reference-original-summary"
   },
   {
@@ -42,7 +42,7 @@
     "coachLines": ["先降误报，再追召回。", "不能确定的棋形不要硬讲。"],
     "drillPrompt": "给一个疑似征子的局面，列出支持征子的证据和反证各两条。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gnu-go-pattern-docs", "katago-analysis-engine-docs", "gomentor-curated-original"],
+    "sourceRefs": ["gnu-go-pattern-docs", "katago-analysis-engine-docs", "goagent-curated-original"],
     "sourceQuality": "engineering-reference-original-summary"
   },
   {
@@ -65,7 +65,7 @@
     "coachLines": ["局部像手筋，不等于本局应该主讲手筋。", "用 KataGo 证据决定讲解重心。"],
     "drillPrompt": "对比实战手和首选手距离：近距离讲棋形，远距离先讲全局方向。",
     "confidenceBoost": 4,
-    "sourceRefs": ["katago-analysis-engine-docs", "gomentor-curated-original"],
+    "sourceRefs": ["katago-analysis-engine-docs", "goagent-curated-original"],
     "sourceQuality": "engine-api-reference-original-summary"
   },
   {
@@ -88,7 +88,7 @@
     "coachLines": ["先看逃跑路线，再看能不能打吃。", "枷的价值是限制，不是立刻提子。"],
     "drillPrompt": "给一块两气棋，先标出它的逃跑路线，再找征子或枷。",
     "confidenceBoost": 3,
-    "sourceRefs": ["sensei-go-terms", "gomentor-curated-original"],
+    "sourceRefs": ["sensei-go-terms", "goagent-curated-original"],
     "sourceQuality": "taxonomy-reference-original-summary"
   },
   {
@@ -111,7 +111,7 @@
     "coachLines": ["空点不是眼，稳固的空点才是眼。", "假眼来自连接问题。"],
     "drillPrompt": "圈出两个疑似眼位，分别判断对方先手能否破掉。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gnu-go-eyes-docs", "sensei-go-terms", "gomentor-curated-original"],
+    "sourceRefs": ["gnu-go-eyes-docs", "sensei-go-terms", "goagent-curated-original"],
     "sourceQuality": "engineering-reference-original-summary"
   },
   {
@@ -134,7 +134,7 @@
     "coachLines": ["没有评测集，就没有识别率。", "误报率和召回率一样重要。"],
     "drillPrompt": "为一个断点、一个假眼、一个枷各写一个正例和一个反例。",
     "confidenceBoost": 4,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-quality-policy"
   }
 ]

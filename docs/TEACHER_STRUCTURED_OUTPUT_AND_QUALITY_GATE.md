@@ -1,6 +1,6 @@
 # Teacher structured output and quality gate
 
-This upgrade makes GoMentor's teacher pipeline more auditable. The teacher can still write natural coaching text, but every risky factual statement should be expressible as a grounded claim that points back to local evidence.
+This upgrade makes GoAgent's teacher pipeline more auditable. The teacher can still write natural coaching text, but every risky factual statement should be expressible as a grounded claim that points back to local evidence.
 
 ## Why this matters
 
@@ -58,4 +58,4 @@ The runtime should append the quality gate note to teacher reports in beta build
 3. If violations exist, ask the model to repair only the failed sentences without adding new facts.
 4. Re-run the gate and save the final report.
 
-This keeps GoMentor's teacher human-readable while making each factual statement traceable and testable.
+This keeps GoAgent's teacher human-readable while making each factual statement traceable and testable.

@@ -1,4 +1,4 @@
-export type GoMentorErrorCode =
+export type GoAgentErrorCode =
   | 'APP_HOME_NOT_WRITABLE'
   | 'KATAGO_BINARY_MISSING'
   | 'KATAGO_BINARY_NOT_EXECUTABLE'
@@ -16,14 +16,14 @@ export type GoMentorErrorCode =
   | 'UNKNOWN_ERROR'
 
 export interface UserFacingError {
-  code: GoMentorErrorCode
+  code: GoAgentErrorCode
   title: string
   message: string
   action?: string
   technicalDetail?: string
 }
 
-export function toUserFacingError(error: unknown, fallbackCode: GoMentorErrorCode = 'UNKNOWN_ERROR'): UserFacingError {
+export function toUserFacingError(error: unknown, fallbackCode: GoAgentErrorCode = 'UNKNOWN_ERROR'): UserFacingError {
   const text = error instanceof Error ? error.message : String(error)
   if (/katago/i.test(text) && /model|network|bin\.gz/i.test(text)) {
     return {

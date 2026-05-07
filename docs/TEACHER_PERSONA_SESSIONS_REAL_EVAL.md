@@ -1,6 +1,6 @@
 # Teacher persona, sessions, silver eval, and release smoke
 
-This upgrade adds the next quality layer for GoMentor after grounded evidence, shape recognition, and move-range review.
+This upgrade adds the next quality layer for GoAgent after grounded evidence, shape recognition, and move-range review.
 
 ## Student level, age, and teacher style
 
@@ -57,7 +57,7 @@ The first version is telemetry-oriented and prepares the codebase for a persiste
 `pnpm smoke:release-artifacts` checks real packaged artifacts when `release/` exists. In non-strict local mode it reports missing assets without failing. In release CI, set:
 
 ```bash
-GOMENTOR_RELEASE_ARTIFACT_SMOKE_STRICT=1
+GOAGENT_RELEASE_ARTIFACT_SMOKE_STRICT=1
 ```
 
 to fail when standard/NVIDIA/mac artifacts are missing or suspiciously tiny.

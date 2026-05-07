@@ -1,6 +1,6 @@
-# Contributing to GoMentor
+# Contributing to GoAgent
 
-Thanks for helping build GoMentor. This project sits at the intersection of Go education, local desktop engineering, KataGo analysis, and LLM agent design, so changes should be careful and grounded.
+Thanks for helping build GoAgent. This project sits at the intersection of Go education, local desktop engineering, KataGo analysis, and LLM agent design, so changes should be careful and grounded.
 
 ## Development Setup
 
@@ -59,7 +59,7 @@ When adding a tool:
 - TypeScript for Electron and React code.
 - Keep IPC boundaries explicit and typed in `src/main/lib/types.ts`.
 - Prefer structured SGF/KataGo parsing over string heuristics.
-- Keep local file access inside GoMentor-managed directories unless the user explicitly chooses files.
+- Keep local file access inside GoAgent-managed directories unless the user explicitly chooses files.
 
 ## Release Process
 

@@ -126,7 +126,7 @@ async function discoverModelDownloadUrl(presetId?: string): Promise<string> {
   const fallback = `https://media.katagotraining.org/uploaded/networks/models/kata1/${preset.fileName}`
   try {
     const response = await fetch(preset.sourceUrl, {
-      headers: { 'User-Agent': 'GoMentor KataGo asset installer' }
+      headers: { 'User-Agent': 'GoAgent KataGo asset installer' }
     })
     if (!response.ok) {
       return fallback
@@ -174,7 +174,7 @@ async function downloadFile(
   await mkdir(dirname(target), { recursive: true })
   await unlink(tmp).catch(() => undefined)
   const response = await fetch(url, {
-    headers: { 'User-Agent': 'GoMentor KataGo asset installer' }
+    headers: { 'User-Agent': 'GoAgent KataGo asset installer' }
   })
   if (!response.ok || !response.body) {
     throw new Error(`官方权重下载失败: HTTP ${response.status}`)

@@ -1,6 +1,6 @@
 # Knowledge expansion and source policy
 
-This upgrade expands GoMentor's local teaching knowledge while keeping the project safe for public distribution.
+This upgrade expands GoAgent's local teaching knowledge while keeping the project safe for public distribution.
 
 ## What was added
 
@@ -12,13 +12,13 @@ This upgrade expands GoMentor's local teaching knowledge while keeping the proje
 
 ## Source policy
 
-GoMentor uses internet sources in three different ways:
+GoAgent uses internet sources in three different ways:
 
 1. Primary API / format references, such as KataGo Analysis Engine docs and SGF FF[4] property references.
 2. Taxonomy references, such as Go terminology indexes, used only to check coverage.
 3. Future data candidates, such as professional-game frequency mining sources, which require a separate release review before import.
 
-The local knowledge cards remain original GoMentor teaching content. They must not copy book diagrams, problem collections, joseki comments, wiki definitions, or website prose.
+The local knowledge cards remain original GoAgent teaching content. They must not copy book diagrams, problem collections, joseki comments, wiki definitions, or website prose.
 
 ## Required release gate
 

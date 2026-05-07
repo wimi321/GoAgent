@@ -19,7 +19,7 @@
     "coachLines": ["这类棋先别急着讲大局，先数气。", "如果一手棋同时长己气、紧对方气，它通常比普通补形大。"],
     "drillPrompt": "遮住推荐点，先只数双方各有几口气，再找一手同时长气和紧气的点。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -42,7 +42,7 @@
     "coachLines": ["连接不是目的，连接后能不能少受攻击才是目的。", "能让对方断点消失或让自己少一块孤棋，就是大价值。"],
     "drillPrompt": "在局部标出所有断点，判断哪一个是必须先处理的。",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -65,7 +65,7 @@
     "coachLines": ["同样是打吃，方向错了就等于帮对方整形。", "好的打吃通常同时获得先手、厚味或切断。"],
     "drillPrompt": "给同一块棋两个打吃方向，说出每个方向对方会逃向哪里。",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -88,7 +88,7 @@
     "coachLines": ["征子要看全盘，不是局部两三手能决定。", "枷的价值是让对方没路，而不是立刻吃掉。"],
     "drillPrompt": "从被追棋块开始，沿征子方向读到边，检查是否有接应子。",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -111,7 +111,7 @@
     "coachLines": ["空点不等于真眼。", "真眼要经得起对方先手破眼。"],
     "drillPrompt": "圈出所有眼位，逐个问：对方能不能一手把它变成假眼？",
     "confidenceBoost": 3,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -134,7 +134,7 @@
     "coachLines": ["有些送子是为了让对方形变坏。", "扑入要看下一手能否倒扑或破眼。"],
     "drillPrompt": "把送子后的棋形摆出来，只问对方吃完后还有几口气。",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -157,7 +157,7 @@
     "coachLines": ["劫不是局部题，是全盘价值题。", "没有劫材时，强行开劫通常是送先手。"],
     "drillPrompt": "列出双方各三个最大劫材，并估算是否大于本劫价值。",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -180,7 +180,7 @@
     "coachLines": ["官子不是只数一手几目，还要看下一手谁来走。", "逆收的价值常常比表面目数大。"],
     "drillPrompt": "选三个官子点，分别判断是先手、后手还是逆收，再排序。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -203,7 +203,7 @@
     "coachLines": ["先手不是免费午餐。", "好的利筋让自己得到东西，坏的利筋帮对方补形。"],
     "drillPrompt": "每下一手利筋前，先说出对方应完后哪里变弱。",
     "confidenceBoost": 1,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -226,7 +226,7 @@
     "coachLines": ["试应手不是定式背诵，是信息收集。", "对方怎么应，决定你下一步大方向。"],
     "drillPrompt": "列出对方两种回答，并分别说出你下一手全局计划。",
     "confidenceBoost": 1,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -249,7 +249,7 @@
     "coachLines": ["打入不是越深越勇敢。", "浅消的目标是削弱对方模样，同时不送一块孤棋。"],
     "drillPrompt": "在同一模样里标出一个打入点和一个浅消点，说出各自风险。",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   },
   {
@@ -272,7 +272,7 @@
     "coachLines": ["厚不是越厚越好，厚要用出去。", "安全以后还继续补，就是把先手花在低价值处。"],
     "drillPrompt": "每次想补棋前，问：如果不补，对方一手能造成什么具体伤害？",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local-original"
   }
 ]

@@ -15,10 +15,10 @@ test('release notes include multilingual download guidance', () => {
 
 test('release notes list standard and NVIDIA artifacts', () => {
   for (const asset of [
-    `GoMentor-${packageJson.version}-win-x64-portable.zip`,
-    `GoMentor-${packageJson.version}-win-x64.exe`,
-    `GoMentor-${packageJson.version}-win-x64-nvidia-portable.zip`,
-    `GoMentor-${packageJson.version}-win-x64-nvidia.exe`
+    `GoAgent-${packageJson.version}-win-x64-portable.zip`,
+    `GoAgent-${packageJson.version}-win-x64.exe`,
+    `GoAgent-${packageJson.version}-win-x64-nvidia-portable.zip`,
+    `GoAgent-${packageJson.version}-win-x64-nvidia.exe`
   ]) {
     assert.ok(notes.includes(asset), `missing ${asset}`)
   }

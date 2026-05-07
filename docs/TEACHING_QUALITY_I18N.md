@@ -1,6 +1,6 @@
 # Teaching quality and multilingual UI upgrade
 
-This patch adds four production-quality foundations for GoMentor's AI teacher.
+This patch adds four production-quality foundations for GoAgent's AI teacher.
 
 ## 1. Evidence chain
 
@@ -87,7 +87,7 @@ users see:
 
 ```text
 围棋分析引擎还没准备好。
-请检查 KataGo 程序和模型路径，或让 GoMentor 自动下载资源。
+请检查 KataGo 程序和模型路径，或让 GoAgent 自动下载资源。
 ```
 
 ## Suggested next tests

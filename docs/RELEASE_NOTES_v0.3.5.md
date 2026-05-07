@@ -1,15 +1,15 @@
-# GoMentor v0.3.5
+# GoAgent v0.3.5
 
-GoMentor v0.3.5 is a keyboard navigation release for faster review sessions. You can now step through a game with Left/Right arrows, jump to the beginning or end with Home/End, and move quickly without causing a burst of KataGo live-analysis restarts.
+GoAgent v0.3.5 is a keyboard navigation release for faster review sessions. You can now step through a game with Left/Right arrows, jump to the beginning or end with Home/End, and move quickly without causing a burst of KataGo live-analysis restarts.
 
-QQ群：1030632742，欢迎一起交流、提建议、完善 GoMentor。
+QQ群：1030632742，欢迎一起交流、提建议、完善 GoAgent。
 
 ## Downloads
 
-- macOS Apple Silicon: `GoMentor-0.3.5-mac-arm64.dmg`
-- macOS Intel: `GoMentor-0.3.5-mac-x64.dmg`
-- Windows x64 portable: `GoMentor-0.3.5-win-x64-portable.zip`
-- Windows x64 installer: `GoMentor-0.3.5-win-x64.exe`
+- macOS Apple Silicon: `GoAgent-0.3.5-mac-arm64.dmg`
+- macOS Intel: `GoAgent-0.3.5-mac-x64.dmg`
+- Windows x64 portable: `GoAgent-0.3.5-win-x64-portable.zip`
+- Windows x64 installer: `GoAgent-0.3.5-win-x64.exe`
 - Checksums: `SHA256SUMS.txt`
 
 ## What's New
@@ -43,9 +43,9 @@ v0.3.5 让复盘切手更顺手：可以用左右方向键前后移动，用 Hom
 
 推荐下载：
 
-- Windows 用户优先下载 `GoMentor-0.3.5-win-x64-portable.zip` 免安装版。
-- macOS Apple Silicon 下载 `GoMentor-0.3.5-mac-arm64.dmg`。
-- macOS Intel 下载 `GoMentor-0.3.5-mac-x64.dmg`。
+- Windows 用户优先下载 `GoAgent-0.3.5-win-x64-portable.zip` 免安装版。
+- macOS Apple Silicon 下载 `GoAgent-0.3.5-mac-arm64.dmg`。
+- macOS Intel 下载 `GoAgent-0.3.5-mac-x64.dmg`。
 
 ## 日本語
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { basename, join } from 'node:path'
 
 const root = process.cwd()
 const releaseRoot = join(root, 'release')
-const strict = process.env.GOMENTOR_RELEASE_ARTIFACT_SMOKE_STRICT === '1'
+const strict = process.env.GOAGENT_RELEASE_ARTIFACT_SMOKE_STRICT === '1'
+const packageVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version
+const currentArtifactPrefix = `GoAgent-${packageVersion}-`
 
 function walk(dir) {
   if (!existsSync(dir)) return []
@@ -15,6 +17,7 @@ function walk(dir) {
 }
 
 function classify(file) {
+  if (!basename(file).startsWith(currentArtifactPrefix)) return ''
   const name = file.replace(/\\/g, '/')
   if (/mac-arm64\.dmg$/.test(name)) return 'mac-arm64-dmg'
   if (/mac-x64\.dmg$/.test(name)) return 'mac-x64-dmg'

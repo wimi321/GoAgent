@@ -64,7 +64,7 @@ export function runTeacherQualityGate(input: TeacherQualityGateInput): TeacherQu
     noteParts.push(buildClaimVerificationNote(claimVerification))
   }
   if (!noteParts.length) {
-    noteParts.push(`> GoMentor 质量门禁：${ok ? '通过' : '未通过'}。${uniqueViolations.concat(uniqueWarnings).slice(0, 3).join('；') || '没有可校验的证据。'}`)
+    noteParts.push(`> GoAgent 质量门禁：${ok ? '通过' : '未通过'}。${uniqueViolations.concat(uniqueWarnings).slice(0, 3).join('；') || '没有可校验的证据。'}`)
   }
 
   return {

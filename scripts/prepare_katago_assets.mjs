@@ -175,14 +175,14 @@ async function main() {
     throw new Error(`Unsupported platform key: ${key}. Supported: ${Object.keys(manifest.supportedPlatforms ?? {}).join(', ')}`)
   }
 
-  const binarySource = arg('binary', process.env.GOMENTOR_KATAGO_BINARY ?? '')
-  const modelSource = arg('model', process.env.GOMENTOR_KATAGO_MODEL ?? '')
-  const assetDir = arg('asset-dir', process.env.GOMENTOR_KATAGO_ASSET_DIR ?? '')
+  const binarySource = arg('binary', process.env.GOAGENT_KATAGO_BINARY ?? '')
+  const modelSource = arg('model', process.env.GOAGENT_KATAGO_MODEL ?? '')
+  const assetDir = arg('asset-dir', process.env.GOAGENT_KATAGO_ASSET_DIR ?? '')
   const scan = hasFlag('scan')
   const copyRuntimeDir = hasFlag('copy-runtime-dir')
   const preserveModelName = hasFlag('preserve-model-name')
-  const flavor = arg('flavor', process.env.GOMENTOR_KATAGO_FLAVOR ?? 'standard')
-  const sourceLabel = arg('source-label', process.env.GOMENTOR_KATAGO_SOURCE_LABEL ?? (assetDir || 'manual'))
+  const flavor = arg('flavor', process.env.GOAGENT_KATAGO_FLAVOR ?? 'standard')
+  const sourceLabel = arg('source-label', process.env.GOAGENT_KATAGO_SOURCE_LABEL ?? (assetDir || 'manual'))
 
   const binaryFallback = assetDir ? (scan ? await findRuntimeBinary(assetDir, platform) : join(resolve(assetDir), platform.binaryPath)) : ''
   const modelFallback = assetDir ? (scan ? await findModel(assetDir, manifest) : join(resolve(assetDir), manifest.modelPath)) : ''

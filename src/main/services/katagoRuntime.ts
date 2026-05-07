@@ -237,7 +237,7 @@ function binaryCandidates(): string[] {
   const file = platformBinaryName()
   const roots = resourceRoots()
   return [
-    process.env.GOMENTOR_KATAGO_BIN ?? '',
+    process.env.GOAGENT_KATAGO_BIN ?? '',
     ...roots.map((root) => {
       const metadata = bundledMetadata(root)
       return metadata.binaryPath ? join(root, metadata.binaryPath) : ''

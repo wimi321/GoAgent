@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="GoMentor logo" width="132" height="132" />
+  <img src="./assets/logo.png" alt="GoAgent logo" width="132" height="132" />
 </p>
 
-<h1 align="center">GoMentor</h1>
+<h1 align="center">GoAgent · AI Agent cờ vây</h1>
 
 <p align="center">
-  <strong>Một giáo viên cờ vây trên desktop, hoạt động theo phong cách AI editor.</strong><br />
+  <strong>AI agent cho Go / Weiqi / Baduk.</strong><br />
   KataGo đưa ra dữ liệu phân tích, multimodal LLM chuyển dữ liệu đó thành lời giảng dễ hiểu.
 </p>
 
 <p align="center">
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoMentor?include_prereleases&style=for-the-badge&label=Release" /></a>
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoMentor/total?style=for-the-badge&label=Downloads" /></a>
-  <a href="https://github.com/wimi321/GoMentor/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoMentor?style=for-the-badge" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoAgent?include_prereleases&style=for-the-badge&label=Release" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoAgent/total?style=for-the-badge&label=Downloads" /></a>
+  <a href="https://github.com/wimi321/GoAgent/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoAgent?style=for-the-badge" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-0f172a?style=for-the-badge" /></a>
   <a href="#cộng-đồng"><img alt="QQ Group" src="https://img.shields.io/badge/QQ%20Group-1030632742-2563eb?style=for-the-badge" /></a>
 </p>
@@ -27,26 +27,26 @@
 </p>
 
 <p align="center">
-  <strong>Cộng đồng GoMentor: QQ 1030632742</strong><br />
+  <strong>Cộng đồng GoAgent: QQ 1030632742</strong><br />
   Chào mừng góp ý, báo lỗi và cùng hoàn thiện giáo viên cờ vây AI.
 </p>
 
 ---
 
-GoMentor là ứng dụng desktop local-first cho người học và giáo viên cờ vây. Ứng dụng kết hợp KataGo, ảnh bàn cờ, bộ thẻ kiến thức cục bộ, hồ sơ học viên dài hạn và multimodal LLM thành một giáo viên cờ vây có thể tự chạy công cụ và giải thích kết quả.
+GoAgent là ứng dụng desktop local-first cho người học và giáo viên cờ vây. Ứng dụng kết hợp KataGo, ảnh bàn cờ, bộ thẻ kiến thức cục bộ, hồ sơ học viên dài hạn và multimodal LLM thành một giáo viên cờ vây có thể tự chạy công cụ và giải thích kết quả.
 
 ## Tải xuống
 
 Bản phát hành công khai:
 
-[GoMentor v0.3.4](https://github.com/wimi321/GoMentor/releases/tag/v0.3.4)
+[GoAgent v0.3.15](https://github.com/wimi321/GoAgent/releases/tag/v0.3.15)
 
 | Nền tảng | Tải xuống |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-x64.dmg) |
-| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64-portable.zip) |
-| Windows x64 installer | [EXE](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-x64.dmg) |
+| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64-portable.zip) |
+| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64.exe) |
 
 Lưu ý: bản phát hành hiện chưa được ký và notarize trên macOS, cũng chưa được code-sign trên Windows, vì vậy hệ điều hành có thể hiển thị cảnh báo bảo mật.
 
@@ -76,11 +76,11 @@ pnpm check
 
 ## Quyền riêng tư
 
-Ván cờ, báo cáo, cài đặt và hồ sơ học viên được lưu mặc định trong `~/.gomentor`. Phân tích nước hiện tại có thể gửi ảnh bàn cờ, KataGo JSON và một số knowledge cards đến LLM endpoint do người dùng cấu hình.
+Ván cờ, báo cáo, cài đặt và hồ sơ học viên được lưu mặc định trong `~/.goagent`. Phân tích nước hiện tại có thể gửi ảnh bàn cờ, KataGo JSON và một số knowledge cards đến LLM endpoint do người dùng cấu hình.
 
 ## Cộng đồng
 
-Tham gia nhóm QQ để trao đổi, góp ý và cùng hoàn thiện GoMentor:
+Tham gia nhóm QQ để trao đổi, góp ý và cùng hoàn thiện GoAgent:
 
 ```text
 1030632742

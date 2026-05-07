@@ -9,7 +9,7 @@
     "gnu-go-pattern-docs",
     "gnu-go-eyes-docs",
     "kombilo-pattern-search",
-    "gomentor-curated-original"
+    "goagent-curated-original"
   ],
   "requiredPacks": [
     "elite-pattern-cards-v9.json",

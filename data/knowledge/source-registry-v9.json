@@ -18,7 +18,7 @@
     "url": "https://mjw.woodcraft.me.uk/sgfmill/doc/1.1.1/properties.html",
     "license": "Documentation reference; no text copied into cards",
     "status": "format-property-reference",
-    "why": "Concise property table for AB/AW/AE/B/W and related FF[4] fields; used as a cross-check for GoMentor parser coverage.",
+    "why": "Concise property table for AB/AW/AE/B/W and related FF[4] fields; used as a cross-check for GoAgent parser coverage.",
     "usedFor": [
       "SGF property coverage checks",
       "developer QA"
@@ -30,7 +30,7 @@
     "url": "https://senseis.xmp.net/?GoTerms=",
     "license": "External wiki/reference; not imported verbatim",
     "status": "taxonomy-reference-only",
-    "why": "Broad terminology index used only for coverage planning. GoMentor cards use original teaching wording and do not copy definitions.",
+    "why": "Broad terminology index used only for coverage planning. GoAgent cards use original teaching wording and do not copy definitions.",
     "usedFor": [
       "Go terminology coverage",
       "knowledge gap analysis"
@@ -42,7 +42,7 @@
     "url": "https://www.josekipedia.com/game/info.php",
     "license": "Creative Commons license stated by Josekipedia for game database; exact terms require release review",
     "status": "future-frequency-mining-candidate",
-    "why": "The page says comments and variations are discarded and game records are distributed under a Creative Commons License. GoMentor currently treats it only as a future frequency-mining candidate.",
+    "why": "The page says comments and variations are discarded and game records are distributed under a Creative Commons License. GoAgent currently treats it only as a future frequency-mining candidate.",
     "usedFor": [
       "future joseki frequency mining",
       "source policy planning"
@@ -54,7 +54,7 @@
     "url": "https://www.josekipedia.com/info/contributing.php",
     "license": "Policy reference only",
     "status": "source-policy-reference",
-    "why": "Used to remind maintainers not to copy user-entered text or professional commentary into GoMentor without a rights review.",
+    "why": "Used to remind maintainers not to copy user-entered text or professional commentary into GoAgent without a rights review.",
     "usedFor": [
       "copyright risk policy",
       "source registry checks"

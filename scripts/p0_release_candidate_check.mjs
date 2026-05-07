@@ -8,7 +8,7 @@ const args = new Set(process.argv.slice(2))
 const modeArg = process.argv.find((arg) => arg.startsWith('--mode='))
 const mode = modeArg ? modeArg.split('=')[1] : (args.has('--release') ? 'release' : 'dev')
 const json = args.has('--json')
-const p0BetaVersion = process.env.GOMENTOR_RELEASE_VERSION ?? JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version
+const p0BetaVersion = process.env.GOAGENT_RELEASE_VERSION ?? JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version
 
 const results = []
 
@@ -184,13 +184,13 @@ function checkDocs() {
 
 function checkManualReleaseBlockers() {
   const signingEvidence =
-    process.env.GOMENTOR_SIGNING_READY === '1' ||
+    process.env.GOAGENT_SIGNING_READY === '1' ||
     existsSync(join(root, 'release-evidence', 'signing-ready.json'))
   const windowsSmokeEvidence =
-    process.env.GOMENTOR_WINDOWS_SMOKE_READY === '1' ||
+    process.env.GOAGENT_WINDOWS_SMOKE_READY === '1' ||
     existsSync(join(root, 'release-evidence', 'windows-smoke-ready.json'))
   const visualQaEvidence =
-    process.env.GOMENTOR_VISUAL_QA_READY === '1' ||
+    process.env.GOAGENT_VISUAL_QA_READY === '1' ||
     existsSync(join(root, 'release-evidence', 'visual-qa-ready.json'))
 
   push(

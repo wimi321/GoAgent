@@ -1,6 +1,6 @@
-# GoMentor v0.3.0 Release Notes
+# GoAgent v0.3.0 Release Notes
 
-GoMentor v0.3.0 focuses on teaching quality. This release adds a richer local joseki and pattern knowledge layer, multilingual UI language selection, and a stricter evidence pipeline so the AI teacher can explain positions with less template-like output and more reliable Go context.
+GoAgent v0.3.0 focuses on teaching quality. This release adds a richer local joseki and pattern knowledge layer, multilingual UI language selection, and a stricter evidence pipeline so the AI teacher can explain positions with less template-like output and more reliable Go context.
 
 ## Highlights
 
@@ -20,10 +20,10 @@ GoMentor v0.3.0 focuses on teaching quality. This release adds a richer local jo
 
 ## Downloads
 
-- `GoMentor-0.3.0-mac-arm64.dmg`
-- `GoMentor-0.3.0-mac-x64.dmg`
-- `GoMentor-0.3.0-win-x64-portable.zip`
-- `GoMentor-0.3.0-win-x64.exe`
+- `GoAgent-0.3.0-mac-arm64.dmg`
+- `GoAgent-0.3.0-mac-x64.dmg`
+- `GoAgent-0.3.0-win-x64-portable.zip`
+- `GoAgent-0.3.0-win-x64.exe`
 
 ## Known Limitations
 

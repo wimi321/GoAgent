@@ -52,7 +52,7 @@ type DesktopCommand =
 
 declare global {
   interface Window {
-    gomentor: {
+    goagent: {
       getDashboard: () => Promise<DashboardData>
       getGameRecord: (gameId: string) => Promise<GameRecord>
       importLibrary: () => Promise<LibraryImportResult>

@@ -19,7 +19,7 @@
     "coachLines": ["这句话能指向哪条证据？", "没有证据的判断要降级为倾向或假设。"],
     "drillPrompt": "选一段讲解，给每个事实句标注 evidenceRefs；标不出的句子删掉或改成假设。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gomentor-curated-original", "katago-analysis-engine-docs"],
+    "sourceRefs": ["goagent-curated-original", "katago-analysis-engine-docs"],
     "sourceQuality": "project-local"
   },
   {
@@ -42,7 +42,7 @@
     "coachLines": ["这手目前只能说 AI 更倾向。", "如果要下结论，先加深搜索。"],
     "drillPrompt": "比较两个候选差距小于 1% 的局面，练习把讲解写成倾向而不是定论。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gomentor-curated-original", "katago-analysis-engine-docs"],
+    "sourceRefs": ["goagent-curated-original", "katago-analysis-engine-docs"],
     "sourceQuality": "project-local"
   },
   {
@@ -65,7 +65,7 @@
     "coachLines": ["这手的问题不是坐标本身，而是让这片区域的归属变了。", "先看哪块棋安全性下降，再看目差。"],
     "drillPrompt": "给一张 ownership 摆动图，先描述哪片地从谁的潜在控制变成谁的潜在控制。",
     "confidenceBoost": 2,
-    "sourceRefs": ["gomentor-curated-original", "katago-analysis-engine-docs"],
+    "sourceRefs": ["goagent-curated-original", "katago-analysis-engine-docs"],
     "sourceQuality": "project-local"
   },
   {
@@ -88,7 +88,7 @@
     "coachLines": ["这类题目先检查初始摆子，不要直接复盘主线。", "棋盘事实错了，后面的讲解都会错。"],
     "drillPrompt": "导入一个 AB/AW 死活题，核对前端棋盘、BoardState snapshot 和 KataGo initialStones 是否一致。",
     "confidenceBoost": 4,
-    "sourceRefs": ["gomentor-curated-original", "wikibooks-go"],
+    "sourceRefs": ["goagent-curated-original", "wikibooks-go"],
     "sourceQuality": "project-local"
   },
   {
@@ -111,7 +111,7 @@
     "coachLines": ["这条变化来自哪个候选？", "PV 后续没有证据时不要补手。"],
     "drillPrompt": "给两个 KataGo 候选 PV，练习只按原始分支复述，不跨分支拼接。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gomentor-curated-original", "katago-analysis-engine-docs"],
+    "sourceRefs": ["goagent-curated-original", "katago-analysis-engine-docs"],
     "sourceQuality": "project-local"
   },
   {
@@ -134,7 +134,7 @@
     "coachLines": ["没有评测集的优化不可证明。", "每修一个 hallucination，都要留下 fixture。"],
     "drillPrompt": "把一次用户反馈转成 golden fixture：SGF、moveNumber、必须提到、禁止提到、claims 和 evidenceRefs。",
     "confidenceBoost": 3,
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-local"
   }
 ]

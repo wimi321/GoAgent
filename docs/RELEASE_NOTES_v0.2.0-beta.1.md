@@ -1,4 +1,4 @@
-# GoMentor v0.2.0-beta.1 Release Notes
+# GoAgent v0.2.0-beta.1 Release Notes
 
 ## P0 Beta Scope
 

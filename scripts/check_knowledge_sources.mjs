@@ -82,7 +82,7 @@ function assertExpansionPolicy() {
   }
 
   const refs = new Set(cards.flatMap(({ card }) => card.sourceRefs))
-  for (const required of ['katago-analysis-engine-docs', 'sgf-ff4-red-bean', 'sensei-go-terms', 'josekipedia-game-collection', 'gomentor-curated-original']) {
+  for (const required of ['katago-analysis-engine-docs', 'sgf-ff4-red-bean', 'sensei-go-terms', 'josekipedia-game-collection', 'goagent-curated-original']) {
     assert.ok(refs.has(required), `knowledge expansion does not reference required source ${required}`)
   }
 

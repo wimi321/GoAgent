@@ -31,6 +31,7 @@ import type {
   TeacherTerminologyDensity,
   TeacherVariationDetail
 } from '@main/lib/types'
+import { BRAND_DISPLAY_NAME, BRAND_NAME } from '@shared/brand'
 import { MOVE_RANGE_MAX_MOVES, describeMoveRange, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import lizzieBlackStoneUrl from './assets/lizzie/black.png'
 import lizzieBoardUrl from './assets/lizzie/board.png'
@@ -388,8 +389,8 @@ const QUICK_GRAPH_REFINE_TOP_N = 8
 const LIBRARY_PAGE_SIZE = 10
 const TIMELINE_ISSUE_MIN_LOSS = 1
 const ANALYSIS_CACHE_SCHEMA_VERSION = 'v3-sidetomove'
-const ANALYSIS_CACHE_PREFIX = `gomentor.analysisCache.${ANALYSIS_CACHE_SCHEMA_VERSION}.`
-const ANALYSIS_CACHE_INDEX_KEY = `gomentor.analysisCache.${ANALYSIS_CACHE_SCHEMA_VERSION}.index`
+const ANALYSIS_CACHE_PREFIX = `goagent.analysisCache.${ANALYSIS_CACHE_SCHEMA_VERSION}.`
+const ANALYSIS_CACHE_INDEX_KEY = `goagent.analysisCache.${ANALYSIS_CACHE_SCHEMA_VERSION}.index`
 const ANALYSIS_CACHE_MAX_GAMES = 8
 const ANALYSIS_CACHE_COMPLETE_RATIO = 0.9
 
@@ -757,6 +758,10 @@ export function App(): ReactElement {
   const activeTeacherRunRef = useRef<ActiveTeacherRunUi | null>(null)
   const selectedGameIdRef = useRef('')
   const selectedEvaluationCacheKeyRef = useRef('')
+
+  useEffect(() => {
+    document.title = BRAND_DISPLAY_NAME
+  }, [])
   const evaluationCacheRef = useRef<Record<string, EvaluationByMove>>({})
   const evaluationPersistTimersRef = useRef<Record<string, number>>({})
   const boardFlashNonceRef = useRef(0)
@@ -766,8 +771,8 @@ export function App(): ReactElement {
   const t = useMemo(() => createUiTranslator(dashboard.settings.reviewLanguage), [dashboard.settings.reviewLanguage])
   const uiError = (cause: unknown, context?: string): string => humanizeUiError(cause, dashboard.settings.reviewLanguage, context)
 
-  async function cancelKataGoWork(payload: Parameters<typeof window.gomentor.cancelKataGoAnalysis>[0]): Promise<void> {
-    await window.gomentor.cancelKataGoAnalysis(payload).catch(() => undefined)
+  async function cancelKataGoWork(payload: Parameters<typeof window.goagent.cancelKataGoAnalysis>[0]): Promise<void> {
+    await window.goagent.cancelKataGoAnalysis(payload).catch(() => undefined)
   }
 
   function analysisCacheKeyForGame(gameId: string): string {
@@ -817,7 +822,7 @@ export function App(): ReactElement {
   }, [])
 
   useEffect(() => {
-    return window.gomentor.onKataGoAssetInstallProgress((progress) => {
+    return window.goagent.onKataGoAssetInstallProgress((progress) => {
       setKataGoInstallProgress(progress)
       setKataGoInstallMessage(progress.message)
     })
@@ -865,19 +870,19 @@ export function App(): ReactElement {
   }
 
   async function refreshTeacherSessions(): Promise<void> {
-    const sessions = await window.gomentor.listTeacherSessions().catch(() => [])
+    const sessions = await window.goagent.listTeacherSessions().catch(() => [])
     setTeacherSessions(sessions)
   }
 
   async function persistCurrentTeacherSession(): Promise<void> {
     if (!teacherSessionId || messages.length === 0) return
-    await window.gomentor.updateTeacherSessionMessages({ sessionId: teacherSessionId, messages: storedTeacherMessages() }).catch(() => undefined)
+    await window.goagent.updateTeacherSessionMessages({ sessionId: teacherSessionId, messages: storedTeacherMessages() }).catch(() => undefined)
     await refreshTeacherSessions()
   }
 
   async function startNewTeacherSession(): Promise<void> {
     await persistCurrentTeacherSession()
-    const session = await window.gomentor.createTeacherSession({ gameId: selectedGame?.id, moveNumber, moveRange: moveRange ?? undefined })
+    const session = await window.goagent.createTeacherSession({ gameId: selectedGame?.id, moveNumber, moveRange: moveRange ?? undefined })
     setTeacherSessionId(session.id)
     setMessages([])
     setPrompt('')
@@ -886,8 +891,8 @@ export function App(): ReactElement {
 
   async function closeCurrentTeacherSession(): Promise<void> {
     await persistCurrentTeacherSession()
-    if (teacherSessionId) await window.gomentor.archiveTeacherSession(teacherSessionId).catch(() => undefined)
-    const session = await window.gomentor.createTeacherSession({ gameId: selectedGame?.id, moveNumber })
+    if (teacherSessionId) await window.goagent.archiveTeacherSession(teacherSessionId).catch(() => undefined)
+    const session = await window.goagent.createTeacherSession({ gameId: selectedGame?.id, moveNumber })
     setTeacherSessionId(session.id)
     setMessages([])
     setPrompt('')
@@ -902,7 +907,7 @@ export function App(): ReactElement {
   }
 
   async function restoreTeacherSessionById(sessionId: string): Promise<void> {
-    const sessions = teacherSessions.length ? teacherSessions : await window.gomentor.listTeacherSessions().catch(() => [])
+    const sessions = teacherSessions.length ? teacherSessions : await window.goagent.listTeacherSessions().catch(() => [])
     const session = sessions.find((candidate) => candidate.id === sessionId)
     if (!session) return
     await restoreTeacherSession(session)
@@ -910,18 +915,18 @@ export function App(): ReactElement {
 
   async function deleteTeacherSessionById(sessionId: string): Promise<void> {
     if (busy !== '') return
-    const sessions = teacherSessions.length ? teacherSessions : await window.gomentor.listTeacherSessions().catch(() => [])
+    const sessions = teacherSessions.length ? teacherSessions : await window.goagent.listTeacherSessions().catch(() => [])
     const session = sessions.find((candidate) => candidate.id === sessionId)
     const title = session?.title?.trim() || '这条历史会话'
     if (!window.confirm(`删除「${title}」？删除后无法恢复。`)) return
     await persistCurrentTeacherSession()
-    const deleted = await window.gomentor.deleteTeacherSession(sessionId).catch((cause) => {
+    const deleted = await window.goagent.deleteTeacherSession(sessionId).catch((cause) => {
       setError(`删除历史会话失败：${String(cause)}`)
       return false
     })
     if (!deleted) return
     if (sessionId === teacherSessionId) {
-      const activeSession = await window.gomentor.getActiveTeacherSession()
+      const activeSession = await window.goagent.getActiveTeacherSession()
       setTeacherSessionId(activeSession.id)
       restoreTeacherSessionMessages(activeSession)
     }
@@ -929,7 +934,7 @@ export function App(): ReactElement {
   }
 
   async function restoreTeacherSessionFromHistory(): Promise<void> {
-    const sessions = teacherSessions.length ? teacherSessions : await window.gomentor.listTeacherSessions().catch(() => [])
+    const sessions = teacherSessions.length ? teacherSessions : await window.goagent.listTeacherSessions().catch(() => [])
     if (sessions.length === 0) return
     const menu = sessions.slice(0, 12).map((session, index) => `${index + 1}. ${session.title} · ${new Date(session.updatedAt).toLocaleString()}`).join('\n')
     const picked = window.prompt(`选择要恢复的老师会话：\n${menu}`)
@@ -940,7 +945,7 @@ export function App(): ReactElement {
   }
 
   useEffect(() => {
-    void window.gomentor.getActiveTeacherSession().then((session) => {
+    void window.goagent.getActiveTeacherSession().then((session) => {
       setTeacherSessionId(session.id)
       restoreTeacherSessionMessages(session)
     }).catch(() => undefined)
@@ -954,14 +959,14 @@ export function App(): ReactElement {
       else if (action === 'close') void closeCurrentTeacherSession()
       else if (action === 'history') void restoreTeacherSessionFromHistory()
     }
-    window.addEventListener('gomentor:teacher-session-action', handler)
-    return () => window.removeEventListener('gomentor:teacher-session-action', handler)
+    window.addEventListener('goagent:teacher-session-action', handler)
+    return () => window.removeEventListener('goagent:teacher-session-action', handler)
   }, [messages, teacherSessionId, selectedGame?.id, moveNumber, moveRange, teacherSessions])
 
   useEffect(() => {
     if (!teacherSessionId || messages.length === 0) return
     const timer = window.setTimeout(() => {
-      void window.gomentor.updateTeacherSessionMessages({ sessionId: teacherSessionId, messages: storedTeacherMessages() })
+      void window.goagent.updateTeacherSessionMessages({ sessionId: teacherSessionId, messages: storedTeacherMessages() })
         .then(() => refreshTeacherSessions())
         .catch(() => undefined)
     }, 700)
@@ -1020,7 +1025,7 @@ export function App(): ReactElement {
   }, [selectedGame?.id])
 
   useEffect(() => {
-    const dispose = window.gomentor.onDesktopCommand?.((command) => runDesktopCommand(command))
+    const dispose = window.goagent.onDesktopCommand?.((command) => runDesktopCommand(command))
     return () => dispose?.()
   }, [selectedGame?.id, moveNumber, busy, record, dashboard.games.length])
 
@@ -1080,7 +1085,7 @@ export function App(): ReactElement {
 
   async function refresh(): Promise<void> {
     try {
-      const next = await window.gomentor.getDashboard()
+      const next = await window.goagent.getDashboard()
       setDashboard(next)
       if (!playerName && next.settings.defaultPlayerName) {
         setPlayerName(next.settings.defaultPlayerName)
@@ -1092,7 +1097,7 @@ export function App(): ReactElement {
 
   async function refreshKataGoAssets(): Promise<void> {
     try {
-      setKatagoAssets(await window.gomentor.inspectKataGoAssets())
+      setKatagoAssets(await window.goagent.inspectKataGoAssets())
     } catch (cause) {
       setError(`KataGo 资源检查失败: ${String(cause)}`)
     }
@@ -1101,7 +1106,7 @@ export function App(): ReactElement {
   async function loadRecord(gameId: string): Promise<void> {
     try {
       void cancelKataGoWork({ group: 'quick' })
-      const next = await window.gomentor.getGameRecord(gameId)
+      const next = await window.goagent.getGameRecord(gameId)
       setDashboard((current) => ({
         ...current,
         games: current.games.map((game) => (game.id === next.game.id ? next.game : game))
@@ -1138,7 +1143,7 @@ export function App(): ReactElement {
 
   async function loadBoundPlayer(gameId: string): Promise<void> {
     try {
-      const student = await window.gomentor.getStudentForGame(gameId)
+      const student = await window.goagent.getStudentForGame(gameId)
       if (selectedGameIdRef.current === gameId) {
         setCurrentStudent(student)
       }
@@ -1156,7 +1161,7 @@ export function App(): ReactElement {
     graphRunId.current = runId
     setGraphBusy(true)
     setGraphProgress('启动快速胜率图')
-    const disposeProgress = window.gomentor.onAnalyzeGameQuickProgress((progress: AnalyzeGameQuickProgress) => {
+    const disposeProgress = window.goagent.onAnalyzeGameQuickProgress((progress: AnalyzeGameQuickProgress) => {
       if (graphRunId.current !== runId || progress.runId !== runId || progress.gameId !== gameId) {
         return
       }
@@ -1170,7 +1175,7 @@ export function App(): ReactElement {
     try {
       await cancelKataGoWork({ group: 'quick' })
       const fastVisits = quickGraphFastVisits(dashboard.settings.katagoBenchmarkVisitsPerSecond)
-      const quickEvaluations = await window.gomentor.analyzeGameQuick({
+      const quickEvaluations = await window.goagent.analyzeGameQuick({
         gameId,
         maxVisits: fastVisits,
         refineVisits: Math.max(QUICK_GRAPH_REFINE_VISITS, fastVisits * 3),
@@ -1203,7 +1208,7 @@ export function App(): ReactElement {
     setBusy('import')
     setError('')
     try {
-      const { dashboard: next, imported } = await window.gomentor.importLibrary()
+      const { dashboard: next, imported } = await window.goagent.importLibrary()
       setDashboard(next)
       if (imported[0]) {
         setSelectedId(imported[0].id)
@@ -1248,7 +1253,7 @@ export function App(): ReactElement {
         setGraphProgress('')
       }
 
-      const { dashboard: next } = await window.gomentor.deleteLibraryGame({ gameId: game.id })
+      const { dashboard: next } = await window.goagent.deleteLibraryGame({ gameId: game.id })
       setDashboard(next)
       if (deletingSelected) {
         const nextGame = next.games.find((candidate) => candidate.source !== 'fox' || candidate.downloadStatus === 'downloaded') ?? next.games[0]
@@ -1274,7 +1279,7 @@ export function App(): ReactElement {
     setBusy('fox')
     setError('')
     try {
-      const { dashboard: next, result, student } = await window.gomentor.syncFox({
+      const { dashboard: next, result, student } = await window.goagent.syncFox({
         keyword: foxKeyword
       })
       setDashboard(next)
@@ -1292,7 +1297,7 @@ export function App(): ReactElement {
 
   async function openStudentBinding(game: LibraryGame): Promise<void> {
     try {
-      const suggestions = await window.gomentor.suggestStudentBindings({
+      const suggestions = await window.goagent.suggestStudentBindings({
         blackName: game.black,
         whiteName: game.white,
         source: game.source,
@@ -1309,7 +1314,7 @@ export function App(): ReactElement {
       return
     }
     try {
-      const student = await window.gomentor.bindSgfGameToStudent({
+      const student = await window.goagent.bindSgfGameToStudent({
         gameId: studentBinding.game.id,
         studentId: input.studentId,
         aliasFromPlayerName: input.aliasFromPlayerName
@@ -1327,12 +1332,12 @@ export function App(): ReactElement {
     }
     try {
       const student = input.foxNickname
-        ? await window.gomentor.bindFoxGamesToStudent({
+        ? await window.goagent.bindFoxGamesToStudent({
             foxNickname: input.foxNickname,
             gameIds: [studentBinding.game.id],
             aliases: [input.displayName, input.aliasFromPlayerName ?? ''].filter(Boolean)
           })
-        : await window.gomentor.bindSgfGameToStudent({
+        : await window.goagent.bindSgfGameToStudent({
             gameId: studentBinding.game.id,
             createDisplayName: input.displayName,
             aliasFromPlayerName: input.aliasFromPlayerName
@@ -1349,7 +1354,7 @@ export function App(): ReactElement {
     setError('')
     try {
       const formData = new FormData(form)
-      const next = await window.gomentor.updateSettings({
+      const next = await window.goagent.updateSettings({
         katagoModelPreset: String(formData.get('katagoModelPreset') ?? dashboard.settings.katagoModelPreset) as KataGoModelPresetId,
         reviewLanguage: normalizeUiLocale(String(formData.get('reviewLanguage') ?? dashboard.settings.reviewLanguage)),
         llmBaseUrl: String(formData.get('llmBaseUrl') ?? ''),
@@ -1376,7 +1381,7 @@ export function App(): ReactElement {
     setLlmTestMessage('')
     try {
       const formData = new FormData(form)
-      const result = await window.gomentor.testLlmSettings({
+      const result = await window.goagent.testLlmSettings({
         llmBaseUrl: String(formData.get('llmBaseUrl') ?? ''),
         llmApiKey: String(formData.get('llmApiKey') ?? ''),
         llmModel: String(formData.get('llmModel') ?? '')
@@ -1394,13 +1399,13 @@ export function App(): ReactElement {
     setKataGoBenchmarkMessage(t('benchmarkStarting'))
     setError('')
     try {
-      if (typeof window.gomentor.benchmarkKataGo !== 'function') {
+      if (typeof window.goagent.benchmarkKataGo !== 'function') {
         throw new Error('测速服务尚未加载，请重启应用后再试。')
       }
-      const result = await window.gomentor.benchmarkKataGo()
+      const result = await window.goagent.benchmarkKataGo()
       setKataGoBenchmark(result)
       setKataGoBenchmarkMessage(`已优化：推荐 ${result.recommendedThreads} 线程，${formatSearchSpeed(result.visitsPerSecond)}。`)
-      setDashboard(await window.gomentor.getDashboard())
+      setDashboard(await window.goagent.getDashboard())
       void refreshKataGoAssets()
       if (selectedGame && record) {
         pauseLiveAnalysis('测速完成，准备使用新配置')
@@ -1424,9 +1429,9 @@ export function App(): ReactElement {
     setKataGoInstallProgress({ stage: 'discovering', message: t('katagoInstallPreparing') })
     setKataGoInstallMessage(t('katagoInstallPreparing'))
     try {
-      const result = await window.gomentor.installKataGoOfficialModel({ presetId })
+      const result = await window.goagent.installKataGoOfficialModel({ presetId })
       setKataGoInstallMessage(result.detail)
-      const next = await window.gomentor.updateSettings({ katagoModelPreset: presetId })
+      const next = await window.goagent.updateSettings({ katagoModelPreset: presetId })
       setDashboard(next)
       await refreshKataGoAssets()
       if (selectedGame && record) {
@@ -1521,7 +1526,7 @@ export function App(): ReactElement {
     setError('')
     markTeacherRunStopped(active)
     await Promise.all([
-      window.gomentor.cancelTeacherRun({ runId: active.runId }).catch(() => undefined),
+      window.goagent.cancelTeacherRun({ runId: active.runId }).catch(() => undefined),
       cancelKataGoWork({ runId: active.runId, group: 'teacher' }).catch(() => undefined)
     ])
   }
@@ -1533,13 +1538,13 @@ export function App(): ReactElement {
   ): Promise<TeacherRunResult> {
     const runId = existingRunId ?? crypto.randomUUID()
     activeTeacherRunRef.current = { runId, messageId: assistantMessageId }
-    const dispose = window.gomentor.onTeacherRunProgress((progress) => {
+    const dispose = window.goagent.onTeacherRunProgress((progress) => {
       if (progress.runId === runId && isActiveTeacherRun(runId)) {
         mergeTeacherProgress(assistantMessageId, progress)
       }
     })
     try {
-      const result = await window.gomentor.runTeacherTask({
+      const result = await window.goagent.runTeacherTask({
         ...request,
         teacherSessionId: teacherSessionId || undefined,
         runId
@@ -1794,8 +1799,8 @@ export function App(): ReactElement {
       round: 0
     })
 
-    if (typeof window.gomentor.analyzePositionStream === 'function') {
-      const disposeProgress = window.gomentor.onAnalyzePositionProgress((progress) => {
+    if (typeof window.goagent.analyzePositionStream === 'function') {
+      const disposeProgress = window.goagent.onAnalyzePositionProgress((progress) => {
         if (
           liveAnalysisRunId.current !== runId ||
           progress.runId !== runId ||
@@ -1837,7 +1842,7 @@ export function App(): ReactElement {
         })
       })
       try {
-        const finalAnalysis = await window.gomentor.analyzePositionStream({
+        const finalAnalysis = await window.goagent.analyzePositionStream({
           gameId,
           moveNumber: targetMove,
           maxVisits: LIVE_ANALYSIS_TOTAL_VISIT_LIMIT,
@@ -1876,7 +1881,7 @@ export function App(): ReactElement {
             }))
           } else if (message.includes('KataGo 分析超时')) {
             try {
-              const quickAnalysis = await window.gomentor.analyzePosition({
+              const quickAnalysis = await window.goagent.analyzePosition({
                 gameId,
                 moveNumber: targetMove,
                 maxVisits: 120
@@ -1936,7 +1941,7 @@ export function App(): ReactElement {
         targetMoveNumber: targetMove
       }))
       try {
-        const nextAnalysis = await window.gomentor.analyzePosition({
+        const nextAnalysis = await window.goagent.analyzePosition({
           gameId,
           moveNumber: targetMove,
           maxVisits
@@ -2034,7 +2039,7 @@ export function App(): ReactElement {
     const runId = crypto.randomUUID()
     activeTeacherRunRef.current = { runId, messageId: assistantMessageId }
     try {
-      const nextAnalysis = await window.gomentor.analyzePosition({
+      const nextAnalysis = await window.goagent.analyzePosition({
         gameId: selectedGame.id,
         moveNumber: targetMove,
         maxVisits: 520,
@@ -2172,7 +2177,7 @@ export function App(): ReactElement {
       const range = parsedRange ?? (text === selectedRangeText ? moveRange : null)
       const wantsMoveRange = range !== null
       if (wantsCurrentMove && record && selectedGame) {
-        const nextAnalysis = await window.gomentor.analyzePosition({
+        const nextAnalysis = await window.goagent.analyzePosition({
           gameId: selectedGame.id,
           moveNumber,
           maxVisits: 520,
@@ -2216,7 +2221,7 @@ export function App(): ReactElement {
             if (!merged.has(m)) missing.push(m)
           }
           if (missing.length > 0) {
-            const allAnalyses = await window.gomentor.analyzeGameQuick({ gameId: selectedGame.id, maxVisits: 25, refineVisits: 120, refineTopN: 12, runId })
+            const allAnalyses = await window.goagent.analyzeGameQuick({ gameId: selectedGame.id, maxVisits: 25, refineVisits: 120, refineTopN: 12, runId })
             if (!isActiveTeacherRun(runId)) {
               return
             }
@@ -2648,7 +2653,7 @@ function DesktopTitleBar({
       <div className="desktop-titlebar__brand">
         <img src={logoUrl} alt="" aria-hidden="true" />
         <div>
-          <strong>GoMentor</strong>
+          <strong>{BRAND_NAME}</strong>
         </div>
       </div>
       <div className="desktop-titlebar__center">
@@ -2737,7 +2742,7 @@ function CommandPalette({
     return null
   }
   return (
-    <div className="desktop-command-palette" role="dialog" aria-modal="true" aria-label="GoMentor command palette" onMouseDown={onClose}>
+    <div className="desktop-command-palette" role="dialog" aria-modal="true" aria-label={`${BRAND_NAME} command palette`} onMouseDown={onClose}>
       <section className="desktop-command-palette__panel" onMouseDown={(event) => event.stopPropagation()}>
         <header>
           <span>{t('commandPalette')}</span>
@@ -3320,7 +3325,7 @@ function TeacherPanel({
   async function saveTeacherPersona(): Promise<void> {
     setPersonaSaveError('')
     try {
-      const updated = await window.gomentor.updateSettings(draftPersonaSettings)
+      const updated = await window.goagent.updateSettings(draftPersonaSettings)
       const nextSettings = readPersonaUiSettings(updated.settings)
       onPersonaSettingsSaved(updated)
       setPersonaSettings(nextSettings)
@@ -3649,7 +3654,7 @@ function TeacherPanel({
             <article key={message.id} className={`message message--${message.role} agent-turn agent-turn--${message.role}`}>
               <div className="agent-turn__body">
                 <header className="agent-turn__head">
-                  <strong>{message.role === 'teacher' ? 'GoMentor' : t('user')}</strong>
+                  <strong>{message.role === 'teacher' ? BRAND_NAME : t('user')}</strong>
                   <small>{message.status ?? (message.result ? t('completed') : message.role === 'teacher' ? t('assistant') : t('prompt'))}</small>
                 </header>
                 <TeacherInlineResponse
@@ -3669,7 +3674,7 @@ function TeacherPanel({
           <div className="message message--teacher message--running agent-turn agent-turn--teacher agent-turn--running">
             <div className="agent-turn__body">
               <header className="agent-turn__head">
-                <strong>GoMentor</strong>
+                <strong>{BRAND_NAME}</strong>
                 <small>{t('running')}</small>
               </header>
               <div className="codex-working">
@@ -3811,10 +3816,10 @@ function SettingsDrawer({
   async function refreshReleaseReadiness(): Promise<void> {
     try {
       setReleaseReadinessError('')
-      if (!window.gomentor.getReleaseReadiness) {
+      if (!window.goagent.getReleaseReadiness) {
         return
       }
-      setReleaseReadiness(await window.gomentor.getReleaseReadiness())
+      setReleaseReadiness(await window.goagent.getReleaseReadiness())
     } catch (cause) {
       setReleaseReadinessError(t('releaseReadinessFailed', { error: String(cause) }))
     }
@@ -3825,7 +3830,7 @@ function SettingsDrawer({
     setLlmModelRefreshMessage('')
     try {
       const formData = new FormData(form ?? undefined)
-      const result = await window.gomentor.listLlmModels({
+      const result = await window.goagent.listLlmModels({
         llmBaseUrl: String(formData.get('llmBaseUrl') ?? dashboard.settings.llmBaseUrl),
         llmApiKey: String(formData.get('llmApiKey') ?? '')
       })
@@ -3868,7 +3873,7 @@ function SettingsDrawer({
   async function revealSavedLlmApiKey(): Promise<void> {
     setLlmKeyMessage('')
     try {
-      const result = await window.gomentor.getSavedLlmApiKey()
+      const result = await window.goagent.getSavedLlmApiKey()
       if (!result.hasKey || !result.apiKey) {
         setSavedLlmApiKey('')
         setShowLlmApiKey(false)

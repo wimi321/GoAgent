@@ -1,4 +1,4 @@
-# GoMentor Knowledge Matching QA
+# GoAgent Knowledge Matching QA
 
 This document records the current knowledge coverage and the matching quality rules used by the Go teacher agent.
 

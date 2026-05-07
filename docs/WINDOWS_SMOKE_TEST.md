@@ -6,8 +6,8 @@ This checklist is manual required before tagging `v0.2.0-beta.1`. A GitHub Windo
 
 - OS: Windows 11 x64.
 - User path: include one account with a Chinese username or a path containing Chinese characters.
-- Artifact: `GoMentor-0.2.0-beta.1-win-x64.exe`.
-- Optional: `GoMentor-0.2.0-beta.1-win-x64-portable.zip`.
+- Artifact: `GoAgent-0.2.0-beta.1-win-x64.exe`.
+- Optional: `GoAgent-0.2.0-beta.1-win-x64-portable.zip`.
 
 ## Installer
 

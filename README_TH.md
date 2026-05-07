@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="GoMentor logo" width="132" height="132" />
+  <img src="./assets/logo.png" alt="GoAgent logo" width="132" height="132" />
 </p>
 
-<h1 align="center">GoMentor</h1>
+<h1 align="center">GoAgent · AI Agent สำหรับโกะ</h1>
 
 <p align="center">
-  <strong>ครูสอนโกะบนเดสก์ท็อปที่ทำงานเหมือน AI editor.</strong><br />
+  <strong>AI agent สำหรับการเรียน Go / Weiqi / Baduk.</strong><br />
   KataGo ให้ข้อมูลเชิงวิเคราะห์ ส่วน multimodal LLM ช่วยอธิบายให้ผู้เรียนเข้าใจและนำไปฝึกต่อได้
 </p>
 
 <p align="center">
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoMentor?include_prereleases&style=for-the-badge&label=Release" /></a>
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoMentor/total?style=for-the-badge&label=Downloads" /></a>
-  <a href="https://github.com/wimi321/GoMentor/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoMentor?style=for-the-badge" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoAgent?include_prereleases&style=for-the-badge&label=Release" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoAgent/total?style=for-the-badge&label=Downloads" /></a>
+  <a href="https://github.com/wimi321/GoAgent/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoAgent?style=for-the-badge" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-0f172a?style=for-the-badge" /></a>
   <a href="#ชุมชน"><img alt="QQ Group" src="https://img.shields.io/badge/QQ%20Group-1030632742-2563eb?style=for-the-badge" /></a>
 </p>
@@ -27,26 +27,26 @@
 </p>
 
 <p align="center">
-  <strong>ชุมชน GoMentor: QQ 1030632742</strong><br />
+  <strong>ชุมชน GoAgent: QQ 1030632742</strong><br />
   ยินดีรับฟังความคิดเห็น ข้อเสนอแนะ และรายงานบั๊ก
 </p>
 
 ---
 
-GoMentor เป็นแอปเดสก์ท็อปแบบ local-first สำหรับผู้เรียนและครูสอนโกะ แอปนี้รวม KataGo, ภาพกระดาน, ฐานความรู้ในเครื่อง, โปรไฟล์ผู้เรียน และ multimodal LLM ให้กลายเป็นครูโกะแบบ agent ที่ช่วยวิเคราะห์และวางแผนการฝึกได้
+GoAgent เป็นแอปเดสก์ท็อปแบบ local-first สำหรับผู้เรียนและครูสอนโกะ แอปนี้รวม KataGo, ภาพกระดาน, ฐานความรู้ในเครื่อง, โปรไฟล์ผู้เรียน และ multimodal LLM ให้กลายเป็นครูโกะแบบ agent ที่ช่วยวิเคราะห์และวางแผนการฝึกได้
 
 ## ดาวน์โหลด
 
 รุ่นเผยแพร่สาธารณะ:
 
-[GoMentor v0.3.4](https://github.com/wimi321/GoMentor/releases/tag/v0.3.4)
+[GoAgent v0.3.15](https://github.com/wimi321/GoAgent/releases/tag/v0.3.15)
 
 | แพลตฟอร์ม | ดาวน์โหลด |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-x64.dmg) |
-| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64-portable.zip) |
-| Windows x64 installer | [EXE](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-x64.dmg) |
+| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64-portable.zip) |
+| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64.exe) |
 
 หมายเหตุ: รุ่นนี้ยังไม่ได้ signed/notarized บน macOS และยังไม่ได้ code-signed บน Windows จึงอาจมีคำเตือนจากระบบปฏิบัติการ
 
@@ -76,7 +76,7 @@ pnpm check
 
 ## ความเป็นส่วนตัว
 
-棋谱, รายงาน, การตั้งค่า และโปรไฟล์ผู้เรียนจะถูกเก็บไว้ที่ `~/.gomentor` โดยค่าเริ่มต้น การวิเคราะห์ตาปัจจุบันอาจส่งภาพกระดาน, KataGo JSON และ knowledge cards บางส่วนไปยัง LLM endpoint ที่ผู้ใช้ตั้งค่าไว้
+棋谱, รายงาน, การตั้งค่า และโปรไฟล์ผู้เรียนจะถูกเก็บไว้ที่ `~/.goagent` โดยค่าเริ่มต้น การวิเคราะห์ตาปัจจุบันอาจส่งภาพกระดาน, KataGo JSON และ knowledge cards บางส่วนไปยัง LLM endpoint ที่ผู้ใช้ตั้งค่าไว้
 
 ## ชุมชน
 

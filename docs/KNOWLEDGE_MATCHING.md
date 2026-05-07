@@ -1,6 +1,6 @@
-# GoMentor Knowledge Matching
+# GoAgent Knowledge Matching
 
-GoMentor uses KataGo as the factual judge and the local knowledge base as the teaching layer. The knowledge system should not only answer keyword questions; it should recognize common Go patterns well enough for the AI teacher to explain joseki, life-and-death shapes, tesuji, and training memory cues.
+GoAgent uses KataGo as the factual judge and the local knowledge base as the teaching layer. The knowledge system should not only answer keyword questions; it should recognize common Go patterns well enough for the AI teacher to explain joseki, life-and-death shapes, tesuji, and training memory cues.
 
 ## Knowledge Layers
 
@@ -47,7 +47,7 @@ Pattern matching is helpful but not omniscient. The teacher prompt tells the mod
 
 ## GitHub Source Review
 
-The knowledge base is expanded from public research, but GoMentor does not blindly import raw SGF/problem data.
+The knowledge base is expanded from public research, but GoAgent does not blindly import raw SGF/problem data.
 
 - `sanderland/tsumego`: useful as a tsumego product and category reference. The repository has an MIT-style license, but the problem folders reference classic book collections, so raw positions are not imported.
 - `SzalonySamuraj/Joseki-Master`: MIT licensed. Its collection taxonomy is useful for star-point and komoku joseki coverage planning.
@@ -55,7 +55,7 @@ The knowledge base is expanded from public research, but GoMentor does not blind
 - `online-go/godojo-server`: joseki-feature server, but no explicit license found during review. Do not import code/data.
 - `kovarex/tsumego-hero`: useful product architecture reference, but no top-level license found during review. Do not import problem data.
 - `Josekipedia game collection`: states that its game database is Creative Commons. Treat as a future import candidate only after exact license terms and attribution handling are confirmed.
-- `Wikipedia: Life and death` and `Wikipedia: Go`: useful for broad terminology checks around eyes, life status, semeai, ko, seki, corners, sides, and joseki. GoMentor uses original teaching text rather than copying article prose.
+- `Wikipedia: Life and death` and `Wikipedia: Go`: useful for broad terminology checks around eyes, life status, semeai, ko, seki, corners, sides, and joseki. GoAgent uses original teaching text rather than copying article prose.
 - `goproblems.com best practices`: useful as problem taxonomy reference. Do not import problem text or diagrams without permission.
 - OGS Creative Commons discussion: useful policy reminder that archived or publicly posted Go books may still be all-rights-reserved.
 

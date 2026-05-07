@@ -1,6 +1,6 @@
 # Knowledge sources, curated cards, and joseki recognition
 
-This patch separates three kinds of GoMentor knowledge so the teacher can be accurate without pretending that every teaching card comes from a single authoritative database.
+This patch separates three kinds of GoAgent knowledge so the teacher can be accurate without pretending that every teaching card comes from a single authoritative database.
 
 ## What is bundled
 
@@ -13,7 +13,7 @@ This patch separates three kinds of GoMentor knowledge so the teacher can be acc
 
 ## Are the cards copied from a database?
 
-No. The bundled cards are original structured summaries written for GoMentor. They reference common Go concepts and public/open references, but they do not copy long text, comments, SGF trees, or full joseki dictionaries.
+No. The bundled cards are original structured summaries written for GoAgent. They reference common Go concepts and public/open references, but they do not copy long text, comments, SGF trees, or full joseki dictionaries.
 
 This matters because several joseki resources are useful but have different reuse constraints:
 

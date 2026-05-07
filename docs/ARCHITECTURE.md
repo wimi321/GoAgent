@@ -1,6 +1,6 @@
 # Architecture
 
-GoMentor is a local-first desktop workbench for Go education. It combines a professional board/review UI, KataGo analysis, a local knowledge base, and an agentic teacher runtime.
+GoAgent is a local-first desktop workbench for Go education. It combines a professional board/review UI, KataGo analysis, a local knowledge base, and an agentic teacher runtime.
 
 ## Layers
 
@@ -88,7 +88,7 @@ See [TEACHER_AGENT.md](./TEACHER_AGENT.md).
 Default local home:
 
 ```text
-~/.gomentor/
+~/.goagent/
   library/           Imported and synced SGFs
   reports/           Scripted review reports
   teacher-reports/   Agent-generated reports
@@ -103,7 +103,7 @@ LLM API keys are stored through Electron `safeStorage` when available. The rende
 `src/main/services/katagoRuntime.ts` resolves runtime assets in this order:
 
 1. Bundled `data/katago` runtime inside the app/resources.
-2. User-managed `~/.gomentor/katago`.
+2. User-managed `~/.goagent/katago`.
 3. System-installed `katago`.
 4. Development fallback models such as `~/.katago/models/latest-kata1.bin.gz`.
 
@@ -115,7 +115,7 @@ The analysis config is generated in the user data directory so the external Kata
 - Current-move multimodal analysis sends only board PNG, structured KataGo facts, selected knowledge cards, and the user prompt to the configured LLM endpoint.
 - Batch review disables per-game LLM calls and summarizes the aggregate.
 - Web search receives generic Go topic queries only.
-- File-opening IPC is constrained to GoMentor-managed directories.
+- File-opening IPC is constrained to GoAgent-managed directories.
 
 ## Verification Baseline
 

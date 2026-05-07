@@ -1,18 +1,18 @@
 {
-  "name": "gomentor",
-  "version": "0.3.14",
-  "description": "KataGo + multimodal LLM desktop workbench for Go students and teachers.",
+  "name": "goagent",
+  "version": "0.3.15",
+  "description": "Agentic AI teacher for Go / Weiqi / Baduk, powered by KataGo and multimodal LLMs.",
   "main": "out/main/index.js",
   "type": "module",
   "author": "haoc",
   "license": "MIT",
-  "homepage": "https://github.com/wimi321/GoMentor#readme",
+  "homepage": "https://github.com/wimi321/GoAgent#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wimi321/GoMentor.git"
+    "url": "git+https://github.com/wimi321/GoAgent.git"
   },
   "bugs": {
-    "url": "https://github.com/wimi321/GoMentor/issues"
+    "url": "https://github.com/wimi321/GoAgent/issues"
   },
   "packageManager": "pnpm@10.30.3",
   "scripts": {
@@ -81,8 +81,8 @@
     "vite": "^7.1.5"
   },
   "build": {
-    "appId": "com.gomentor.desktop",
-    "productName": "GoMentor",
+    "appId": "com.goagent.desktop",
+    "productName": "GoAgent",
     "icon": "assets/icon",
     "directories": {
       "output": "release/${version}"
@@ -168,7 +168,7 @@
     "publish": {
       "provider": "github",
       "owner": "wimi321",
-      "repo": "GoMentor"
+      "repo": "GoAgent"
     }
   }
 }

@@ -15,7 +15,7 @@ test('structured teaching output module defines strict schema and local validati
   assert.match(source, /validateGroundedTeachingResult/)
   assert.match(source, /extractGroundedTeachingResult/)
   assert.match(source, /evidenceRefs/)
-  assert.match(source, /GOMENTOR_GROUNDING_JSON/)
+  assert.match(source, /GOAGENT_GROUNDING_JSON/)
 })
 
 test('teacher quality gate combines markdown verification, grounded claims, and structured output validation', () => {

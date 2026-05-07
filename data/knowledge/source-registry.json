@@ -5,7 +5,7 @@
     "url": "https://github.com/sanderland/tsumego",
     "license": "MIT-style LICENSE in repository",
     "status": "taxonomy-reference-only",
-    "why": "The repository documents a large tsumego app and exposes useful training categories, but its problem folders reference classic book collections. GoMentor should not import raw positions from those books without a separate rights review.",
+    "why": "The repository documents a large tsumego app and exposes useful training categories, but its problem folders reference classic book collections. GoAgent should not import raw positions from those books without a separate rights review.",
     "usedFor": [
       "life-death taxonomy",
       "difficulty ladder",
@@ -18,7 +18,7 @@
     "url": "https://github.com/SzalonySamuraj/Joseki-Master",
     "license": "MIT",
     "status": "safe-for-structural-reference",
-    "why": "The repository is MIT licensed and its collection names give a compact joseki training taxonomy. GoMentor uses original teaching summaries rather than copying collection data verbatim.",
+    "why": "The repository is MIT licensed and its collection names give a compact joseki training taxonomy. GoAgent uses original teaching summaries rather than copying collection data verbatim.",
     "usedFor": [
       "star-point joseki families",
       "komoku joseki families",
@@ -66,7 +66,7 @@
     "url": "https://www.josekipedia.com/game/info.php",
     "license": "Creative Commons stated for game database",
     "status": "future-import-candidate",
-    "why": "Josekipedia states that its game database is freely distributed under a Creative Commons License and discards comments/variations. This may be useful for future joseki frequency mining, but GoMentor currently only records it as a potential source until the exact CC terms and attribution path are reviewed.",
+    "why": "Josekipedia states that its game database is freely distributed under a Creative Commons License and discards comments/variations. This may be useful for future joseki frequency mining, but GoAgent currently only records it as a potential source until the exact CC terms and attribution path are reviewed.",
     "usedFor": [
       "future joseki frequency mining",
       "license review"
@@ -78,7 +78,7 @@
     "url": "https://en.wikipedia.org/wiki/Life_and_death",
     "license": "CC BY-SA 4.0",
     "status": "concept-reference-only",
-    "why": "The page summarizes fundamental life-and-death concepts such as two eyes, dead groups, unsettled groups, and eye-space. GoMentor uses original teaching text and does not copy article prose.",
+    "why": "The page summarizes fundamental life-and-death concepts such as two eyes, dead groups, unsettled groups, and eye-space. GoAgent uses original teaching text and does not copy article prose.",
     "usedFor": [
       "life-death concept coverage",
       "beginner terminology checks"
@@ -90,7 +90,7 @@
     "url": "https://en.wikipedia.org/wiki/Go_(game)",
     "license": "CC BY-SA 4.0",
     "status": "concept-reference-only",
-    "why": "The article summarizes life status, semeai, corners/sides opening priority, joseki, ko, and seki. GoMentor uses it only to cross-check broad coverage.",
+    "why": "The article summarizes life status, semeai, corners/sides opening priority, joseki, ko, and seki. GoAgent uses it only to cross-check broad coverage.",
     "usedFor": [
       "rules terminology",
       "strategy coverage checklist"
@@ -102,7 +102,7 @@
     "url": "https://www.goproblems.com/article/bestpractices",
     "license": "not found",
     "status": "taxonomy-reference-only",
-    "why": "The page describes common problem classes such as life-and-death and tesuji. It is useful as a taxonomy reference, but GoMentor does not import problem text or diagrams.",
+    "why": "The page describes common problem classes such as life-and-death and tesuji. It is useful as a taxonomy reference, but GoAgent does not import problem text or diagrams.",
     "usedFor": [
       "problem taxonomy",
       "training UX terminology"
@@ -114,14 +114,14 @@
     "url": "https://forums.online-go.com/t/go-books-content-in-the-creative-commons/24517",
     "license": "forum content, not a data source",
     "status": "source-risk-reference",
-    "why": "The discussion highlights that Internet availability and archive copies do not imply Creative Commons rights. GoMentor uses this as a policy reminder to avoid importing classic book scans or problem collections without explicit permission.",
+    "why": "The discussion highlights that Internet availability and archive copies do not imply Creative Commons rights. GoAgent uses this as a policy reminder to avoid importing classic book scans or problem collections without explicit permission.",
     "usedFor": [
       "copyright review policy"
     ]
   },
   {
-    "id": "gomentor_original_training_catalog",
-    "name": "GoMentor original common-pattern training catalog",
+    "id": "goagent_original_training_catalog",
+    "name": "GoAgent original common-pattern training catalog",
     "url": "local:data/knowledge/training-catalog.json",
     "license": "MIT project content",
     "status": "original-common-pattern",
@@ -235,17 +235,17 @@
     "url": "https://gogodonline.co.uk/",
     "license": "Commercial/proprietary purchase",
     "status": "do-not-import",
-    "why": "Commercial game database; useful for future paid data QA, not included in GoMentor data.",
+    "why": "Commercial game database; useful for future paid data QA, not included in GoAgent data.",
     "usedFor": [
       "future licensed validation source",
       "source-risk review"
     ]
   },
   {
-    "id": "gomentor-curated-original",
-    "name": "GoMentor curated original teaching cards",
+    "id": "goagent-curated-original",
+    "name": "GoAgent curated original teaching cards",
     "url": "local:data/knowledge",
-    "license": "Project license for GoMentor repository",
+    "license": "Project license for GoAgent repository",
     "status": "original-common-pattern",
     "why": "Cards are not copied from books or joseki dictionaries. They encode common teaching patterns and should be continuously reviewed by human coaches.",
     "usedFor": [

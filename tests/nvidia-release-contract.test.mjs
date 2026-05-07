@@ -16,8 +16,8 @@ test('release workflow publishes standard Windows as a full OpenCL runtime bundl
   assert.match(workflow, /--copy-runtime-dir/)
   assert.match(workflow, /--preserve-model-name/)
   assert.match(workflow, /--flavor=opencl/)
-  assert.match(workflow, /GoMentor-\*-win-x64-portable\.zip/)
-  assert.match(workflow, /GoMentor-\*-win-x64\.exe/)
+  assert.match(workflow, /GoAgent-\*-win-x64-portable\.zip/)
+  assert.match(workflow, /GoAgent-\*-win-x64\.exe/)
 })
 
 test('release workflow publishes a real Windows NVIDIA edition', () => {
@@ -29,15 +29,15 @@ test('release workflow publishes a real Windows NVIDIA edition', () => {
   assert.match(workflow, /--copy-runtime-dir/)
   assert.match(workflow, /--preserve-model-name/)
   assert.match(workflow, /RUNNER_OS.*Windows/)
-  assert.match(workflow, /GoMentor-\*-win-x64-nvidia-portable\.zip/)
-  assert.match(workflow, /GoMentor-\*-win-x64-nvidia\.exe/)
+  assert.match(workflow, /GoAgent-\*-win-x64-nvidia-portable\.zip/)
+  assert.match(workflow, /GoAgent-\*-win-x64-nvidia\.exe/)
 })
 
 test('release workflow restores macOS KataGo assets from macOS packages', () => {
   const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8')
 
-  assert.match(workflow, /GoMentor-\*-mac-arm64\.dmg/)
-  assert.match(workflow, /GoMentor-\*-mac-x64\.dmg/)
+  assert.match(workflow, /GoAgent-\*-mac-arm64\.dmg/)
+  assert.match(workflow, /GoAgent-\*-mac-x64\.dmg/)
   assert.match(workflow, /\*mac-intel\.with-katago\.dmg/)
   assert.match(workflow, /hdiutil attach/)
   assert.match(workflow, /--platform=darwin-arm64/)

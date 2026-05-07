@@ -33,7 +33,7 @@ export function DiagnosticsPanel({ report, onRetry, onContinue }: {
     <main className={`diagnostics-page diagnostics-page--${report.overall}`}>
       <section className="diagnostics-hero">
         <div>
-          <p className="eyebrow">GoMentor 启动诊断</p>
+          <p className="eyebrow">GoAgent 启动诊断</p>
           <h1>{report.overall === 'ready' ? '准备好了' : report.overall === 'fixable' ? '基础可用，还需配置' : '需要先修复环境'}</h1>
           <p>{report.summary}</p>
         </div>

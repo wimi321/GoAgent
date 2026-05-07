@@ -63,7 +63,7 @@
     "drillPrompt": "同一局面给出两手：一手补强、一手争先；判断哪手保留主动权。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -131,7 +131,7 @@
     "drillPrompt": "找出当前局面一个“现在能下但不一定该下”的手段。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -195,7 +195,7 @@
     "drillPrompt": "这手试应后，对方两种应法分别会改变你的下一步吗？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -257,7 +257,7 @@
     "drillPrompt": "判断这次交换是利き还是帮对方补形。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -319,7 +319,7 @@
     "drillPrompt": "找出一个看似先手但不该交换的点。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -383,7 +383,7 @@
     "drillPrompt": "切断后你打算攻击哪一块？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -451,7 +451,7 @@
     "drillPrompt": "给三个连接点，判断哪一个形最好。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -515,7 +515,7 @@
     "drillPrompt": "这块棋对杀双方各有几气？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -579,7 +579,7 @@
     "drillPrompt": "找出本局唯一能做成眼形的交叉点。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -640,7 +640,7 @@
     "drillPrompt": "列出你现在最大的三个劫材。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -703,7 +703,7 @@
     "drillPrompt": "这次消模样，你的撤退路线在哪里？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -763,7 +763,7 @@
     "drillPrompt": "这手是该打入、消、还是先补自己？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -823,7 +823,7 @@
     "drillPrompt": "这次攻击即使吃不到棋，你能得到什么？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -882,7 +882,7 @@
     "drillPrompt": "如果不杀，这次攻击的合理目标是什么？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -941,7 +941,7 @@
     "drillPrompt": "这块孤棋应该往哪里跑，能不能顺便反攻？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1004,7 +1004,7 @@
     "drillPrompt": "这几颗子如果弃掉，你能换到什么？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1067,7 +1067,7 @@
     "drillPrompt": "这块孤棋最适合靠哪一边借力？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1127,7 +1127,7 @@
     "drillPrompt": "你的厚势现在能影响哪块对方棋？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1188,7 +1188,7 @@
     "drillPrompt": "这手补强后，多出的效率在哪里？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1248,7 +1248,7 @@
     "drillPrompt": "这块棋中哪几颗可以弃，哪几颗必须活？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1307,7 +1307,7 @@
     "drillPrompt": "这三个官子里哪个是逆收？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1366,7 +1366,7 @@
     "drillPrompt": "给三个官子点排序，并标注先手/后手。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1424,7 +1424,7 @@
     "drillPrompt": "这个边界收束后，对方还剩什么后续？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1486,7 +1486,7 @@
     "drillPrompt": "这盘你是该简明收束还是制造变化？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1548,7 +1548,7 @@
     "drillPrompt": "这次战斗前，双方大概谁领先？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1608,7 +1608,7 @@
     "drillPrompt": "这盘布局最大空白区在哪里？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1667,7 +1667,7 @@
     "drillPrompt": "如果你脱先，对方角上最严厉的一手是什么？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1726,7 +1726,7 @@
     "drillPrompt": "现在最需要照顾的是哪条边？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1789,7 +1789,7 @@
     "drillPrompt": "这次接触战如果次序反了，会被对方怎么惩罚？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1849,7 +1849,7 @@
     "drillPrompt": "这手扳头后，对方最强反击是什么？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1912,7 +1912,7 @@
     "drillPrompt": "这块棋是该征还是该枷？征子路上有没有障碍？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -1973,7 +1973,7 @@
     "drillPrompt": "这手扑进去后，对方吃掉会发生什么？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2031,7 +2031,7 @@
     "drillPrompt": "这手之后对方为什么不能简单连接？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2089,7 +2089,7 @@
     "drillPrompt": "这条征子路上哪颗远处棋会影响结果？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2149,7 +2149,7 @@
     "drillPrompt": "这次被窥，如果不补会怎样？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2209,7 +2209,7 @@
     "drillPrompt": "肩冲后对方长出，你下一步计划是什么？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2269,7 +2269,7 @@
     "drillPrompt": "这手镇是想把对方赶向哪里？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2326,7 +2326,7 @@
     "drillPrompt": "这次交换后，对方哪一个弱点消失了？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2383,7 +2383,7 @@
     "drillPrompt": "攻击前你自己哪块棋最危险？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"
@@ -2442,7 +2442,7 @@
     "drillPrompt": "这盘领先时，哪手能最简明地收束？",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "wikibooks-go"
     ],
     "sourceQuality": "curated-open-reference"

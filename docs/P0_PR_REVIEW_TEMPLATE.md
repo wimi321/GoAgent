@@ -2,7 +2,7 @@
 
 ## Summary
 
-This PR productizes GoMentor P0: diagnostics, embedded KataGo asset strategy, Claude-compatible provider, student profiles, local knowledge cards, teacher runtime, upgraded board UI, and Beta readiness checks.
+This PR productizes GoAgent P0: diagnostics, embedded KataGo asset strategy, Claude-compatible provider, student profiles, local knowledge cards, teacher runtime, upgraded board UI, and Beta readiness checks.
 
 ## Must-pass checks
 

@@ -110,7 +110,7 @@ test('Teacher prompt requires board, KataGo, and knowledge evidence without temp
     assert.doesNotMatch(agent, new RegExp(forbidden))
     assert.doesNotMatch(evidence, new RegExp(forbidden))
   }
-  assert.match(agent, /你是 GoMentor 的围棋老师/)
+  assert.match(agent, /你是 GoAgent 的围棋老师/)
   assert.match(agent, /需要信息时调用工具/)
   assert.match(agent, /看棋盘图片/)
   assert.match(agent, /调用 KataGo/)

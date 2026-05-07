@@ -3,8 +3,8 @@ import { mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 
-const url = process.env.GOMENTOR_UI_GALLERY_URL ?? 'http://localhost:5173/#/ui-gallery'
-const outDir = resolve(process.env.GOMENTOR_UI_GALLERY_OUT ?? 'release-evidence/ui-gallery')
+const url = process.env.GOAGENT_UI_GALLERY_URL ?? 'http://localhost:5173/#/ui-gallery'
+const outDir = resolve(process.env.GOAGENT_UI_GALLERY_OUT ?? 'release-evidence/ui-gallery')
 
 async function loadPlaywright() {
   try {

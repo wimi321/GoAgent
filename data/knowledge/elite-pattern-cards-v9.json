@@ -340,9 +340,9 @@
       "knowledgeCoverage",
       "sourceRefs"
     ],
-    "recognition": "大型围棋术语索引适合用来检查覆盖面，但 GoMentor 知识卡应使用原创教学文字，不能复制网页定义。",
+    "recognition": "大型围棋术语索引适合用来检查覆盖面，但 GoAgent 知识卡应使用原创教学文字，不能复制网页定义。",
     "wrongThinking": "把网页术语解释直接复制进 MIT 项目，造成版权和风格风险。",
-    "correctThinking": "用术语索引查漏补缺；每张卡写成 GoMentor 原创识别句、误区、思路和练习。",
+    "correctThinking": "用术语索引查漏补缺；每张卡写成 GoAgent 原创识别句、误区、思路和练习。",
     "coachLines": [
       "来源用于覆盖检查，不是可复制答案。",
       "每个术语必须落回当前局面证据。"
@@ -351,7 +351,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "sensei-go-terms",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "taxonomy-reference-only"
   },
@@ -465,7 +465,7 @@
     "confidenceBoost": 5,
     "sourceRefs": [
       "josekipedia-copyright-policy",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "source-risk-policy"
   },
@@ -508,9 +508,9 @@
       "knowledgeCoverage",
       "sourceRefs"
     ],
-    "recognition": "开放教材适合检查基础概念是否覆盖，例如气、眼、劫、连接、征子、官子；GoMentor 仍应写原创讲解。",
+    "recognition": "开放教材适合检查基础概念是否覆盖，例如气、眼、劫、连接、征子、官子；GoAgent 仍应写原创讲解。",
     "wrongThinking": "把开放教材段落直接搬进本地卡，导致许可证兼容和语气不统一问题。",
-    "correctThinking": "用概念源做 checklist，用 GoMentor 风格重写成当前局面可执行的教学卡。",
+    "correctThinking": "用概念源做 checklist，用 GoAgent 风格重写成当前局面可执行的教学卡。",
     "coachLines": [
       "概念参考不是复制来源。",
       "每张教学卡必须能落到局面证据和学生训练。"
@@ -519,7 +519,7 @@
     "confidenceBoost": 2,
     "sourceRefs": [
       "wikibooks-go",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "concept-reference-only"
   },
@@ -575,7 +575,7 @@
     "confidenceBoost": 4,
     "sourceRefs": [
       "katago-analysis-engine-docs",
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "traceability-policy"
   }

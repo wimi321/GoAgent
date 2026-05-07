@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible GoMentor problem.
+description: Report a reproducible GoAgent problem.
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -23,7 +23,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: GoMentor version
+      label: GoAgent version
       placeholder: "0.2.0-beta.1"
   - type: dropdown
     id: os

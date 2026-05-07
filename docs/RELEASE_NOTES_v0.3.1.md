@@ -1,10 +1,10 @@
-# GoMentor v0.3.1 Release Notes
+# GoAgent v0.3.1 Release Notes
 
-GoMentor v0.3.1 is a quality patch for the v0.3 teaching release. It focuses on the user-facing teacher analysis path and visual QA stability.
+GoAgent v0.3.1 is a quality patch for the v0.3 teaching release. It focuses on the user-facing teacher analysis path and visual QA stability.
 
 ## Highlights
 
-- Fixed current-move teacher smoke when the LLM returns structured JSON plus GoMentor verification notes.
+- Fixed current-move teacher smoke when the LLM returns structured JSON plus GoAgent verification notes.
 - Converts pure JSON teacher responses into readable markdown so users do not see raw machine output.
 - Extracts a useful headline from natural markdown teacher responses.
 - Ensures the teacher runtime can still recommend related training problems when the strongest matches are joseki or weaker pattern matches.
@@ -28,10 +28,10 @@ GoMentor v0.3.1 is a quality patch for the v0.3 teaching release. It focuses on 
 
 ## Downloads
 
-- `GoMentor-0.3.1-mac-arm64.dmg`
-- `GoMentor-0.3.1-mac-x64.dmg`
-- `GoMentor-0.3.1-win-x64-portable.zip`
-- `GoMentor-0.3.1-win-x64.exe`
+- `GoAgent-0.3.1-mac-arm64.dmg`
+- `GoAgent-0.3.1-mac-x64.dmg`
+- `GoAgent-0.3.1-win-x64-portable.zip`
+- `GoAgent-0.3.1-win-x64.exe`
 
 ## Known Notes
 

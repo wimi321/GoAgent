@@ -268,7 +268,7 @@ export function recognizeJosekiPatterns(query: JosekiRecognitionQuery): Recogniz
         matchedCorner: corner,
         matchedRelativeStones: Array.from(corners[corner]).sort(),
         evidence: [...evidence, `corner=${corner}`, `cornerMoves=${rawCornerMoves[corner].slice(-8).join(', ')}`].slice(0, 10),
-        sourceRefs: card.sourceRefs ?? ['gomentor-curated-original'],
+        sourceRefs: card.sourceRefs ?? ['goagent-curated-original'],
         sourceQuality: card.sourceQuality ?? 'curated',
         variationCount: card.variationCount,
         commonNextMoves: nextMoves,

@@ -1,6 +1,6 @@
 import type { GroundedTeachingClaim } from './claimVerifier'
 
-export const GOMENTOR_GROUNDING_JSON_MARKER = 'GOMENTOR_GROUNDING_JSON'
+export const GOAGENT_GROUNDING_JSON_MARKER = 'GOAGENT_GROUNDING_JSON'
 
 export type GroundedTeachingSection = 'judgement' | 'reason' | 'variation' | 'training' | 'profile' | 'evidence-note'
 
@@ -29,7 +29,7 @@ export interface StructuredTeachingValidation {
 }
 
 export const GROUNDED_TEACHING_JSON_SCHEMA = {
-  name: 'gomentor_grounded_teaching_output',
+  name: 'goagent_grounded_teaching_output',
   strict: true,
   schema: {
     type: 'object',
@@ -88,11 +88,11 @@ function stringArray(value: unknown): string[] | null {
 }
 
 function normalizeJsonCandidate(text: string): string | null {
-  const markerPattern = new RegExp(`${GOMENTOR_GROUNDING_JSON_MARKER}\\s*:?\\s*(\\{[\\s\\S]*?\\})\\s*(?:$|\\n)`, 'i')
+  const markerPattern = new RegExp(`${GOAGENT_GROUNDING_JSON_MARKER}\\s*:?\\s*(\\{[\\s\\S]*?\\})\\s*(?:$|\\n)`, 'i')
   const marker = text.match(markerPattern)?.[1]
   if (marker) return marker.trim()
 
-  const fenced = text.match(/```(?:json|gomentor-grounding-json)\s*([\s\S]*?)```/i)?.[1]
+  const fenced = text.match(/```(?:json|goagent-grounding-json)\s*([\s\S]*?)```/i)?.[1]
   if (fenced?.includes('"claims"')) return fenced.trim()
 
   const firstBrace = text.indexOf('{')
@@ -201,8 +201,8 @@ export function validateGroundedTeachingResult(value: unknown): StructuredTeachi
 
 export function buildStructuredTeachingInstruction(): string {
   return [
-    '为了便于 GoMentor 校验证据，最终答案应能被拆成结构化 claims。',
-    `如果当前 LLM 支持结构化 JSON，请按 ${GOMENTOR_GROUNDING_JSON_MARKER} 输出 GroundedTeachingOutput；否则输出自然语言，但每个关键结论必须可回指到 KataGo、棋盘、知识库或学生画像证据。`,
+    '为了便于 GoAgent 校验证据，最终答案应能被拆成结构化 claims。',
+    `如果当前 LLM 支持结构化 JSON，请按 ${GOAGENT_GROUNDING_JSON_MARKER} 输出 GroundedTeachingOutput；否则输出自然语言，但每个关键结论必须可回指到 KataGo、棋盘、知识库或学生画像证据。`,
     '每条 claim 必须包含 evidenceRefs；没有证据的坐标、胜率、目差、PV、定式名、死活结论和先后手判断必须降级为假设或省略。',
     'finalMarkdown 是给学生看的最终讲解，claims 是给本地 verifier 检查的证据声明。'
   ].join('\n')

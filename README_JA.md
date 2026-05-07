@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="GoMentor logo" width="132" height="132" />
+  <img src="./assets/logo.png" alt="GoAgent logo" width="132" height="132" />
 </p>
 
-<h1 align="center">GoMentor</h1>
+<h1 align="center">GoAgent · 囲碁 AI エージェント</h1>
 
 <p align="center">
-  <strong>AI エディタのように動くデスクトップ囲碁教師。</strong><br />
+  <strong>Go / Weiqi / Baduk のためのエージェント型 AI 囲碁教師。</strong><br />
   KataGo が局面を評価し、マルチモーダル LLM が学習者にわかる言葉で説明します。
 </p>
 
 <p align="center">
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoMentor?include_prereleases&style=for-the-badge&label=Release" /></a>
-  <a href="https://github.com/wimi321/GoMentor/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoMentor/total?style=for-the-badge&label=Downloads" /></a>
-  <a href="https://github.com/wimi321/GoMentor/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoMentor?style=for-the-badge" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Release" src="https://img.shields.io/github/v/release/wimi321/GoAgent?include_prereleases&style=for-the-badge&label=Release" /></a>
+  <a href="https://github.com/wimi321/GoAgent/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/wimi321/GoAgent/total?style=for-the-badge&label=Downloads" /></a>
+  <a href="https://github.com/wimi321/GoAgent/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/wimi321/GoAgent?style=for-the-badge" /></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-0f172a?style=for-the-badge" /></a>
   <a href="#コミュニティ"><img alt="QQ Group" src="https://img.shields.io/badge/QQ%20Group-1030632742-2563eb?style=for-the-badge" /></a>
 </p>
@@ -27,26 +27,26 @@
 </p>
 
 <p align="center">
-  <strong>GoMentor コミュニティ: QQ 1030632742</strong><br />
+  <strong>GoAgent コミュニティ: QQ 1030632742</strong><br />
   フィードバック、提案、バグ報告を歓迎します。
 </p>
 
 ---
 
-GoMentor は、KataGo、棋盤スクリーンショット、ローカル知識カード、学習者プロフィール、マルチモーダル LLM を組み合わせたローカル優先の囲碁学習アプリです。単なるチャット付き棋盤ではなく、局面を調べ、根拠を集め、説明し、練習計画まで作れる AI 囲碁教師を目指しています。
+GoAgent は、KataGo、棋盤スクリーンショット、ローカル知識カード、学習者プロフィール、マルチモーダル LLM を組み合わせたローカル優先の囲碁学習アプリです。単なるチャット付き棋盤ではなく、局面を調べ、根拠を集め、説明し、練習計画まで作れる AI 囲碁教師を目指しています。
 
 ## ダウンロード
 
 公開リリース：
 
-[GoMentor v0.3.4](https://github.com/wimi321/GoMentor/releases/tag/v0.3.4)
+[GoAgent v0.3.15](https://github.com/wimi321/GoAgent/releases/tag/v0.3.15)
 
 | プラットフォーム | ダウンロード |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-mac-x64.dmg) |
-| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64-portable.zip) |
-| Windows x64 installer | [EXE](https://github.com/wimi321/GoMentor/releases/download/v0.3.4/GoMentor-0.3.4-win-x64.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-mac-x64.dmg) |
+| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64-portable.zip) |
+| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.3.15/GoAgent-0.3.15-win-x64.exe) |
 
 注意：現在のリリースは未署名です。macOS Gatekeeper や Windows SmartScreen の警告が表示される場合があります。
 
@@ -76,7 +76,7 @@ pnpm check
 
 ## プライバシー
 
-棋譜、設定、レポート、学習者プロフィールは既定で `~/.gomentor` に保存されます。現在手の説明では、ユーザーが設定した LLM エンドポイントへ棋盤画像、KataGo JSON、知識カードの一部を送信する場合があります。
+棋譜、設定、レポート、学習者プロフィールは既定で `~/.goagent` に保存されます。現在手の説明では、ユーザーが設定した LLM エンドポイントへ棋盤画像、KataGo JSON、知識カードの一部を送信する場合があります。
 
 ## コミュニティ
 

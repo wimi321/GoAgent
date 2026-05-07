@@ -1,6 +1,6 @@
 # Packaging
 
-GoMentor uses `electron-builder` for desktop packaging.
+GoAgent uses `electron-builder` for desktop packaging.
 
 ## Local Commands
 
@@ -57,8 +57,8 @@ The release workflow has a separate `package-nvidia-windows` job. By default it 
 The job scans the extracted archive, finds `katago.exe`, copies the whole runtime directory into `data/katago/bin/win32-x64`, preserves the bundled model filename, and renames the final artifacts to:
 
 ```text
-GoMentor-<version>-win-x64-nvidia.exe
-GoMentor-<version>-win-x64-nvidia-portable.zip
+GoAgent-<version>-win-x64-nvidia.exe
+GoAgent-<version>-win-x64-nvidia-portable.zip
 ```
 
 This keeps the NVIDIA package honest: it is not the standard Windows package with a new filename.

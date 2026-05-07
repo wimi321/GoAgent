@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 const args = new Set(process.argv.slice(2))
 const mode = args.has('--mode=release') ? 'release' : 'dev'
@@ -27,7 +27,8 @@ function collectFiles(directory) {
 
 const files = collectFiles(scanRoot)
 const artifactPatterns = [/\.dmg$/i, /\.zip$/i, /\.exe$/i, /\.AppImage$/i, /\.deb$/i, /\.tar\.gz$/i]
-const artifacts = files.filter((file) => artifactPatterns.some((pattern) => pattern.test(file)))
+const currentArtifactPrefix = `GoAgent-${packageVersion}-`
+const artifacts = files.filter((file) => basename(file).startsWith(currentArtifactPrefix) && artifactPatterns.some((pattern) => pattern.test(file)))
 const hasMacArm64Dmg = artifacts.some((file) => /mac-arm64\.dmg$/i.test(file))
 const hasMacX64Dmg = artifacts.some((file) => /mac-x64\.dmg$/i.test(file))
 const hasWinX64Installer = artifacts.some((file) => /win-x64\.exe$/i.test(file) && !/portable/i.test(file))
@@ -35,7 +36,7 @@ const hasWinX64PortableZip = artifacts.some((file) => /win-x64-portable\.zip$/i.
 const winPortableExe = artifacts.filter((file) => /win-x64-portable\.exe$/i.test(file))
 const winArm64 = artifacts.filter((file) => /win-arm64/i.test(file))
 
-console.log('\nGoMentor Package Artifact Smoke Check')
+console.log('\nGoAgent Package Artifact Smoke Check')
 console.log('======================================')
 console.log(`mode=${mode}`)
 console.log(`releaseRoot=${releaseRoot}`)

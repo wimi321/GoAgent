@@ -8,7 +8,7 @@
     "phase": ["middlegame", "endgame", "any"],
     "regions": ["corner", "side", "center", "any"],
     "tags": ["断点", "连接", "棋形", "cut"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 18,
     "points": [
@@ -35,7 +35,7 @@
     "phase": ["middlegame", "endgame", "any"],
     "regions": ["side", "center", "any"],
     "tags": ["竹节", "连接", "好形"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 18,
     "points": [
@@ -62,7 +62,7 @@
     "phase": ["middlegame", "endgame", "any"],
     "regions": ["corner", "side", "center", "any"],
     "tags": ["空三角", "效率", "坏形"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 17,
     "points": [
@@ -87,7 +87,7 @@
     "phase": ["middlegame", "endgame", "any"],
     "regions": ["corner", "side"],
     "tags": ["假眼", "眼形", "死活"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 19,
     "points": [
@@ -114,7 +114,7 @@
     "phase": ["middlegame", "any"],
     "regions": ["side", "center", "any"],
     "tags": ["枷", "网", "限制", "手筋"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 18,
     "points": [
@@ -139,7 +139,7 @@
     "phase": ["middlegame", "endgame", "any"],
     "regions": ["corner", "side"],
     "tags": ["扑入", "倒扑", "手筋", "气数"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 18,
     "points": [
@@ -164,7 +164,7 @@
     "phase": ["middlegame", "endgame", "any"],
     "regions": ["corner", "side", "center", "any"],
     "tags": ["对杀", "气数", "公气", "死活"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 18,
     "points": [
@@ -190,7 +190,7 @@
     "phase": ["middlegame", "endgame", "any"],
     "regions": ["corner", "side"],
     "tags": ["劫", "劫材", "死活", "官子"],
-    "sourceRefs": ["gomentor-curated-original"],
+    "sourceRefs": ["goagent-curated-original"],
     "sourceQuality": "project-original-pattern",
     "minScore": 17,
     "points": [

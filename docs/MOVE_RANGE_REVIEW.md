@@ -1,6 +1,6 @@
 # Move-range review
 
-GoMentor supports focused move-range review so students can ask for a compact explanation of a phase such as a middlegame fight, collapse window, joseki continuation, or endgame sequence.
+GoAgent supports focused move-range review so students can ask for a compact explanation of a phase such as a middlegame fight, collapse window, joseki continuation, or endgame sequence.
 
 The feature intentionally does not perform high-visit analysis for every move in a long interval. It follows a two-stage design:
 

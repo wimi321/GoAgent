@@ -22,7 +22,7 @@ export function TeacherComposerPro({ value, busy = false, actions = [], onChange
   const formRef = useRef<HTMLFormElement | null>(null)
   const translate = t ?? ((key: string) => {
     const fallback: Record<string, string> = {
-      composerChrome: 'Ask GoMentor：新会话、关闭会话、历史、教学设定包含学生级别（段位）、年龄、老师风格',
+      composerChrome: 'Ask GoAgent：新会话、关闭会话、历史、教学设定包含学生级别（段位）、年龄、老师风格',
       composerActions: '老师快捷动作',
       composerPlaceholder: '问这盘棋的问题...',
       stopGenerating: '停止生成',

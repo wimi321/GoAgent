@@ -54,7 +54,7 @@
     "drillPrompt": "把同一手同时写成胜率、目差和一句人类判断，比较哪种说法最能指导下一盘。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "katago-analysis-engine-docs"
     ],
     "sourceQuality": "project-local-original"
@@ -113,7 +113,7 @@
     "drillPrompt": "遮住推荐点，只看变化最大的区域，判断这手要争地、攻击还是补形。",
     "confidenceBoost": 2,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "katago-analysis-engine-docs"
     ],
     "sourceQuality": "project-local-original"
@@ -170,7 +170,7 @@
     "drillPrompt": "把角部手顺打乱一次，判断哪些结论还能成立，哪些必须降级成类似型。",
     "confidenceBoost": 3,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "pachi-joseki-gpl2",
       "josekle-mit-dictionary"
     ],
@@ -227,7 +227,7 @@
     "drillPrompt": "把最近三盘同类错误放在一起，确认它们是否真的来自同一判断漏洞。",
     "confidenceBoost": 2,
     "sourceRefs": [
-      "gomentor-curated-original"
+      "goagent-curated-original"
     ],
     "sourceQuality": "project-local-original"
   },
@@ -284,7 +284,7 @@
     "drillPrompt": "给两条候选PV，分别标出第一手、对方应手和结果，不交叉引用。",
     "confidenceBoost": 2,
     "sourceRefs": [
-      "gomentor-curated-original",
+      "goagent-curated-original",
       "katago-analysis-engine-docs"
     ],
     "sourceQuality": "project-local-original"

@@ -11,5 +11,5 @@ python -m pip install -r scripts/requirements.txt
 Write-Host "[3/4] Preparing KataGo"
 python scripts/install_katago_latest.py
 
-Write-Host "[4/4] Launching GoMentor"
+Write-Host "[4/4] Launching GoAgent"
 pnpm dev

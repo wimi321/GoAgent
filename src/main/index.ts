@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type ContextMenuParams, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getSettings, hasLlmApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
+import { BRAND_NAME } from '@shared/brand'
 import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
@@ -38,7 +39,7 @@ type DesktopCommand =
   | 'toggle-library'
   | 'open-ui-gallery'
 
-const remoteDebuggingPort = process.env.GOMENTOR_REMOTE_DEBUGGING_PORT
+const remoteDebuggingPort = process.env.GOAGENT_REMOTE_DEBUGGING_PORT
 if (remoteDebuggingPort && /^\d+$/.test(remoteDebuggingPort)) {
   app.commandLine.appendSwitch('remote-debugging-port', remoteDebuggingPort)
 }
@@ -52,7 +53,7 @@ function assertManagedPath(filePath: string): string {
   const target = resolve(filePath)
   const rel = relative(root, target)
   if (rel.startsWith('..') || isAbsolute(rel)) {
-    throw new Error('只能打开 GoMentor 管理目录中的文件')
+    throw new Error('只能打开 GoAgent 管理目录中的文件')
   }
   return target
 }
@@ -110,7 +111,7 @@ async function createWindow(): Promise<void> {
     height: 940,
     minWidth: 1180,
     minHeight: 760,
-    title: 'GoMentor',
+    title: BRAND_NAME,
     icon: assetPath('icon.png'),
     backgroundColor: '#0f1115',
     ...(process.platform === 'darwin'

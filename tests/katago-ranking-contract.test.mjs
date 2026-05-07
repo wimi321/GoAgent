@@ -167,7 +167,7 @@ test('Workbench reuses cache for automatic analysis but manual analysis refreshe
   const app = read('src/renderer/src/App.tsx')
   assert.match(app, /ANALYSIS_CACHE_PREFIX/)
   assert.match(app, /ANALYSIS_CACHE_SCHEMA_VERSION = 'v3-sidetomove'/)
-  assert.match(app, /gomentor\.analysisCache\.\$\{ANALYSIS_CACHE_SCHEMA_VERSION\}\./)
+  assert.match(app, /goagent\.analysisCache\.\$\{ANALYSIS_CACHE_SCHEMA_VERSION\}\./)
   assert.match(app, /function analysisQuality/)
   assert.match(app, /function preferAnalysis/)
   assert.match(app, /candidateBestVisits\(analysis\) \* 5/)

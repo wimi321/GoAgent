@@ -291,7 +291,7 @@ test('TeacherRunCardPro behaves like an AI editor response instead of a fixed re
   assert.match(teacherStyles, /teacher-tool-row-breathe/)
   assert.match(app, /t\('foxSearch'\)/)
   const composer = read('src/renderer/src/features/teacher/TeacherComposerPro.tsx')
-  assert.match(composer, /Ask GoMentor/)
+  assert.match(composer, /Ask GoAgent/)
   assert.match(composer, /ks-composer-pro__actions/)
   assert.match(composer, /ks-composer-pro__chrome/)
   assert.match(composer, /onStop/)

@@ -52,7 +52,7 @@ const checks = [
 evidence.checks = checks.map((item) => ({ name: item.name, status: item.status }))
 writeFileSync(join(outDir, 'release-evidence-summary.json'), JSON.stringify(evidence, null, 2))
 writeFileSync(join(outDir, 'README.md'), [
-  '# GoMentor Release Evidence',
+  '# GoAgent Release Evidence',
   '',
   `Mode: ${mode}`,
   `Collected at: ${evidence.collectedAt}`,

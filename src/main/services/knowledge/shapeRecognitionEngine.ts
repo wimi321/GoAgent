@@ -153,7 +153,7 @@ export function recognizeShapes(input: ShapeRecognitionInput): RecognizedShape[]
     wrongThinking: feature.wrongThinking,
     correctThinking: feature.correctThinking,
     drillPrompt: feature.drillPrompt,
-    sourceRefs: ['katago-analysis-engine-docs', 'gomentor-curated-original'],
+    sourceRefs: ['katago-analysis-engine-docs', 'goagent-curated-original'],
     sourceQuality: 'engine-derived-local-feature'
   } satisfies RecognizedShape))
 

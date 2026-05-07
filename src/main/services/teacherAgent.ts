@@ -308,7 +308,7 @@ function teacherLanguageName(locale: unknown): string {
 function systemPrompt(level: CoachUserLevel): string {
   const settings = getSettings()
   return [
-    '你是 GoMentor 的围棋老师。',
+    '你是 GoAgent 的围棋老师。',
     `请默认使用${teacherLanguageName(settings.reviewLanguage)}回答；只有用户明确要求其它语言时才切换。`,
     '帮助学生理解棋局，并提升下一次判断。',
     '需要信息时调用工具；不要靠印象猜局面。',
@@ -1361,7 +1361,7 @@ async function runTeacherAgentSession(
     initialAgentUserMessage(state)
   ]
 
-  emitProgress(context, { stage: 'assistant-start', message: 'GoMentor agent 开始推理。', toolLogs: cloneToolLogs(logs) })
+  emitProgress(context, { stage: 'assistant-start', message: 'GoAgent agent 开始推理。', toolLogs: cloneToolLogs(logs) })
   let finalText = ''
   let emittedText = ''
   for (;;) {
