@@ -5,6 +5,7 @@ release
 .DS_Store
 *.log
 .goagent
+.goagent-smoke
 __pycache__
 *.pyc
 coverage
@@ -24,3 +25,7 @@ data/katago/bin/**
 data/katago/models/**
 data/katago/edition.json
 !data/katago/README.md
+
+# Large local Kokoro TTS model files are prepared by scripts for release packaging.
+# Voices and metadata are small enough to version; the ONNX model is not.
+data/tts/kokoro/**/onnx/*.onnx

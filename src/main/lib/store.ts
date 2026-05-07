@@ -37,6 +37,26 @@ const defaults: AppSettings = {
   llmModel: 'gpt-5-mini',
   reviewLanguage: 'zh-CN',
   defaultPlayerName: '',
+  ttsEnabled: true,
+  ttsAutoPlay: false,
+  ttsProvider: 'kokoro-bundled',
+  ttsLanguage: 'zh-CN',
+  ttsVoiceId: 'zf_001',
+  ttsRate: 1,
+  ttsPitch: 1,
+  ttsVolume: 1,
+  ttsReadMode: 'summary',
+  ttsCacheEnabled: true,
+  ttsKokoroDType: 'q8',
+  ttsKokoroDevice: 'cpu',
+  ttsCustomBaseUrl: '',
+  ttsCustomApiKey: '',
+  ttsCustomModel: '',
+  ttsCustomVoice: '',
+  ttsCustomHeadersJson: '',
+  ttsCustomBodyTemplate: '',
+  ttsCustomResponseType: 'audio-bytes',
+  ttsCustomAudioJsonPath: '',
   defaultCoachLevel: 'intermediate',
   defaultStudentRank: 'sub1d',
   defaultStudentAge: 0,
@@ -57,7 +77,7 @@ type SecretValue =
   | { mode: 'safeStorage'; value: string }
   | { mode: 'plain'; value: string }
 
-export const secretStore = new Store<{ llmApiKey?: SecretValue }>({
+export const secretStore = new Store<{ llmApiKey?: SecretValue; ttsCustomApiKey?: SecretValue }>({
   name: 'secrets',
   cwd: appHome,
   defaults: {}
@@ -103,10 +123,21 @@ export function hasLlmApiKey(): boolean {
   return decryptSecret(secretStore.get('llmApiKey')).trim().length > 0
 }
 
+export function hasTtsCustomApiKey(): boolean {
+  return decryptSecret(secretStore.get('ttsCustomApiKey')).trim().length > 0
+}
+
 function saveLlmApiKey(value: string): void {
   const trimmed = value.trim()
   if (trimmed) {
     secretStore.set('llmApiKey', encryptSecret(trimmed))
+  }
+}
+
+function saveTtsCustomApiKey(value: string): void {
+  const trimmed = value.trim()
+  if (trimmed) {
+    secretStore.set('ttsCustomApiKey', encryptSecret(trimmed))
   }
 }
 
@@ -121,14 +152,21 @@ function migratePlaintextApiKey(settings: AppSettings): AppSettings {
 
 export function getSettings(): AppSettings {
   const persisted = migratePlaintextApiKey({ ...defaults, ...settingsStore.store })
-  return { ...persisted, llmApiKey: decryptSecret(secretStore.get('llmApiKey')) }
+  return {
+    ...persisted,
+    llmApiKey: decryptSecret(secretStore.get('llmApiKey')),
+    ttsCustomApiKey: decryptSecret(secretStore.get('ttsCustomApiKey'))
+  }
 }
 
 export function setSettings(next: Partial<AppSettings>): AppSettings {
   if (typeof next.llmApiKey === 'string') {
     saveLlmApiKey(next.llmApiKey)
   }
-  const { llmApiKey: _llmApiKey, ...safeNext } = next
+  if (typeof next.ttsCustomApiKey === 'string') {
+    saveTtsCustomApiKey(next.ttsCustomApiKey)
+  }
+  const { llmApiKey: _llmApiKey, ttsCustomApiKey: _ttsCustomApiKey, ...safeNext } = next
   settingsStore.set(safeNext)
   return getSettings()
 }
@@ -137,8 +175,15 @@ export function replaceSettings(next: AppSettings): AppSettings {
   if (next.llmApiKey.trim()) {
     saveLlmApiKey(next.llmApiKey)
   }
-  settingsStore.store = { ...next, llmApiKey: '' }
+  if (next.ttsCustomApiKey.trim()) {
+    saveTtsCustomApiKey(next.ttsCustomApiKey)
+  }
+  settingsStore.store = { ...next, llmApiKey: '', ttsCustomApiKey: '' }
   return getSettings()
+}
+
+export function getTtsCustomApiKey(): string {
+  return decryptSecret(secretStore.get('ttsCustomApiKey'))
 }
 
 export function getGames(): LibraryGame[] {

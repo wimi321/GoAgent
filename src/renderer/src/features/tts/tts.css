@@ -1,0 +1,46 @@
+.ga-tts-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ga-tts-controls button,
+.ga-tts-settings button {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 5px 9px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+}
+
+.ga-tts-controls small {
+  opacity: 0.72;
+}
+
+.ga-tts-controls .is-error,
+.ga-tts-settings .is-error {
+  color: #ff8c7a;
+}
+
+.ga-tts-settings {
+  display: grid;
+  gap: 10px;
+}
+
+.ga-tts-settings label,
+.ga-tts-settings details {
+  display: grid;
+  gap: 5px;
+}
+
+.ga-tts-settings input,
+.ga-tts-settings select,
+.ga-tts-settings textarea {
+  width: 100%;
+}
+
+.ga-tts-settings .is-ready {
+  color: #8bd8be;
+}

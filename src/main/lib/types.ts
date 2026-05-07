@@ -1,5 +1,53 @@
 export type ReviewStatus = 'idle' | 'running' | 'done' | 'error'
 
+export type TtsProviderId = 'kokoro-bundled' | 'custom-openai-compatible' | 'custom-http-json' | 'external-local-service'
+export type TtsReadMode = 'summary' | 'full' | 'selection'
+export type TtsAudioFormat = 'wav' | 'mp3' | 'pcm' | 'opus' | 'aac' | 'flac'
+export type TtsRuntimeDevice = 'cpu' | 'wasm' | 'webgpu'
+export type TtsKokoroDType = 'q8' | 'fp32' | 'fp16' | 'q4' | 'q4f16'
+
+export interface TtsVoice {
+  id: string
+  label: string
+  language: AppSettings['reviewLanguage']
+  provider: TtsProviderId
+  bundled?: boolean
+}
+
+export interface TtsAssetStatus {
+  provider: TtsProviderId
+  language: AppSettings['reviewLanguage']
+  ready: boolean
+  detail: string
+  rootPath: string
+  manifestFound: boolean
+  modelPath: string
+  modelFound: boolean
+  modelSha256?: string
+  voicesFound: number
+  defaultVoiceId: string
+  license: string
+}
+
+export interface TtsSynthesisRequest {
+  text: string
+  language?: AppSettings['reviewLanguage']
+  voiceId?: string
+  readMode?: TtsReadMode
+  format?: TtsAudioFormat
+}
+
+export interface TtsSynthesisResult {
+  id: string
+  provider: TtsProviderId
+  mimeType: string
+  audioPath: string
+  audioDataUrl: string
+  cached: boolean
+  textHash: string
+  createdAt: string
+}
+
 export interface AppSettings {
   katagoBin: string
   katagoConfig: string
@@ -18,6 +66,26 @@ export interface AppSettings {
   llmModel: string
   reviewLanguage: 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
   defaultPlayerName: string
+  ttsEnabled: boolean
+  ttsAutoPlay: boolean
+  ttsProvider: TtsProviderId
+  ttsLanguage: 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
+  ttsVoiceId: string
+  ttsRate: number
+  ttsPitch: number
+  ttsVolume: number
+  ttsReadMode: TtsReadMode
+  ttsCacheEnabled: boolean
+  ttsKokoroDType: TtsKokoroDType
+  ttsKokoroDevice: TtsRuntimeDevice
+  ttsCustomBaseUrl: string
+  ttsCustomApiKey: string
+  ttsCustomModel: string
+  ttsCustomVoice: string
+  ttsCustomHeadersJson: string
+  ttsCustomBodyTemplate: string
+  ttsCustomResponseType: 'audio-bytes' | 'json-audio-url' | 'json-base64'
+  ttsCustomAudioJsonPath: string
   defaultCoachLevel: CoachUserLevel
   defaultStudentRank: StudentRank
   defaultStudentAge: number
@@ -664,6 +732,11 @@ export interface LlmModelsListResult {
 }
 
 export interface LlmSavedApiKeyResult {
+  hasKey: boolean
+  apiKey: string
+}
+
+export interface TtsSavedApiKeyResult {
   hasKey: boolean
   apiKey: string
 }

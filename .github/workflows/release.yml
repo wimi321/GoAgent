@@ -138,6 +138,16 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Prepare Kokoro TTS assets
+        shell: bash
+        env:
+          GOAGENT_TTS_ASSETS_STRICT: "1"
+          GOAGENT_TTS_SMOKE_STRICT: "1"
+        run: |
+          pnpm prepare:tts-assets
+          pnpm check:tts-assets
+          pnpm smoke:tts
+
       - name: Prepare KataGo assets
         shell: bash
         env:
@@ -332,6 +342,16 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Prepare Kokoro TTS assets
+        shell: bash
+        env:
+          GOAGENT_TTS_ASSETS_STRICT: "1"
+          GOAGENT_TTS_SMOKE_STRICT: "1"
+        run: |
+          pnpm prepare:tts-assets
+          pnpm check:tts-assets
+          pnpm smoke:tts
 
       - name: Prepare NVIDIA KataGo assets
         shell: bash

@@ -1,6 +1,6 @@
 {
   "name": "goagent",
-  "version": "0.3.15",
+  "version": "0.3.16",
   "description": "Agentic AI teacher for Go / Weiqi / Baduk, powered by KataGo and multimodal LLMs.",
   "main": "out/main/index.js",
   "type": "module",
@@ -35,8 +35,12 @@
     "eval:real-teaching:strict": "node scripts/eval_real_teaching.mjs --strict",
     "eval:teacher-style": "node scripts/eval_teacher_style.mjs",
     "eval:teacher-session": "node scripts/eval_teacher_session.mjs",
+    "eval:tts-provider-policy": "node scripts/eval_tts_provider_policy.mjs",
+    "prepare:tts-assets": "node scripts/prepare_tts_assets.mjs",
+    "check:tts-assets": "node scripts/check_tts_assets.mjs",
+    "smoke:tts": "node scripts/smoke_tts.mjs",
     "smoke:release-artifacts": "node scripts/release_artifact_smoke.mjs",
-    "check:teacher-quality": "pnpm build && pnpm eval:teacher && pnpm eval:claims && pnpm eval:quality-gate && pnpm check:knowledge-sources && pnpm eval:knowledge-coverage && pnpm eval:shape-recognition && pnpm eval:move-range && pnpm eval:engine-silver && pnpm eval:teacher-style && pnpm eval:teacher-session",
+    "check:teacher-quality": "pnpm build && pnpm eval:teacher && pnpm eval:claims && pnpm eval:quality-gate && pnpm check:knowledge-sources && pnpm eval:knowledge-coverage && pnpm eval:shape-recognition && pnpm eval:move-range && pnpm eval:engine-silver && pnpm eval:teacher-style && pnpm eval:teacher-session && pnpm eval:tts-provider-policy",
     "package": "pnpm dist",
     "dist": "pnpm build && electron-builder",
     "check:deep-teacher-quality": "pnpm check:teacher-quality && pnpm eval:real-teaching:strict",
@@ -50,7 +54,7 @@
     "check:katago-assets:release": "node scripts/check_katago_assets.mjs --mode=release",
     "check:nvidia-release-assets": "node scripts/check_nvidia_release_assets.mjs",
     "check:release-notes-i18n": "node scripts/check_release_notes_i18n.mjs",
-    "check:release-quality": "pnpm check:teacher-quality && pnpm check:nvidia-release-assets && pnpm check:release-notes-i18n && pnpm smoke:release-artifacts",
+    "check:release-quality": "pnpm check:teacher-quality && pnpm check:nvidia-release-assets && pnpm check:release-notes-i18n && pnpm check:tts-assets && pnpm smoke:tts && pnpm smoke:release-artifacts",
     "check:p0-beta": "node scripts/p0_beta_acceptance.mjs",
     "check:artifacts": "node scripts/package_artifact_smoke.mjs --mode=dev",
     "smoke:teacher-llm": "pnpm build && node scripts/teacher_llm_smoke.mjs",
@@ -61,6 +65,7 @@
   },
   "dependencies": {
     "electron-store": "^10.0.1",
+    "kokoro-js": "^1.2.1",
     "openai": "^6.3.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -94,6 +99,7 @@
       "data/**/*",
       "!data/katago/bin/**/*",
       "!data/katago/models/**/*",
+      "!data/tts/**/*",
       "assets/**/*",
       "package.json"
     ],
@@ -104,10 +110,18 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "data/tts",
+        "to": "data/tts",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "asarUnpack": [
-      "data/katago/**/*"
+      "data/katago/**/*",
+      "data/tts/**/*"
     ],
     "asar": true,
     "mac": {

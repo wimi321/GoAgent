@@ -35,7 +35,11 @@ import type {
   TeacherRunCancelResult,
   TeacherRunRequest,
   TeacherRunProgress,
-  TeacherRunResult
+  TeacherRunResult,
+  TtsAssetStatus,
+  TtsSynthesisRequest,
+  TtsSynthesisResult,
+  TtsVoice
 } from '@main/lib/types'
 import type { DiagnosticsReport } from '@main/services/diagnostics/types'
 import type { KnowledgeSearchQuery, KnowledgeSearchResult } from '@main/services/knowledge/schema'
@@ -94,6 +98,12 @@ declare global {
       testLlmSettings: (payload: LlmSettingsTestRequest) => Promise<LlmSettingsTestResult>
       listLlmModels: (payload: LlmModelsListRequest) => Promise<LlmModelsListResult>
       getSavedLlmApiKey: () => Promise<{ hasKey: boolean; apiKey: string }>
+      inspectTtsAssets: () => Promise<TtsAssetStatus>
+      listTtsVoices: () => Promise<TtsVoice[]>
+      synthesizeTts: (payload: TtsSynthesisRequest) => Promise<TtsSynthesisResult>
+      clearTtsCache: () => Promise<{ deleted: number }>
+      testTtsSettings: (payload: Partial<AppSettings>) => Promise<TtsSynthesisResult>
+      getSavedTtsApiKey: () => Promise<{ hasKey: boolean; apiKey: string }>
       getReleaseReadiness: () => Promise<ReleaseReadinessResult>
       openPath: (filePath: string) => Promise<void>
       onDesktopCommand?: (handler: (command: DesktopCommand) => void) => () => void
