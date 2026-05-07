@@ -27,6 +27,10 @@ assert.doesNotMatch(implementation, /system-web-speech|speechSynthesis|webkitSpe
 assert.doesNotMatch(implementation, /tryNextProvider|providerChain|autoSwitchProvider/)
 assert.match(implementation, /assertSelectedProvider/)
 assert.match(implementation, /kokoro-bundled/)
+assert.match(implementation, /assertSpeechLanguageMatches/)
+assert.match(implementation, /generate_from_ids/)
+assert.match(implementation, /return 'z'/)
+assert.doesNotMatch(implementation, /voiceIds\.has\(voice\)\) return 'a'/)
 
 const manifest = JSON.parse(readFileSync(join(root, 'data', 'tts', 'kokoro', 'zh-CN', 'manifest.json'), 'utf8'))
 assert.equal(manifest.provider, 'kokoro-bundled')

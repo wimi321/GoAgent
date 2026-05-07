@@ -4,16 +4,29 @@ import { basename, join } from 'node:path'
 import type { AppSettings, TtsSynthesisRequest, TtsSynthesisResult } from '@main/lib/types'
 import { audioDataUrl, cachedAudioPath, hashTtsInput, makeTtsResultId, mimeForFormat } from './cache'
 import { inspectKokoroBundledAssets, kokoroDefaultVoice, kokoroLanguageRoot, kokoroModelRoot, listKokoroBundledVoices, readKokoroManifest } from './assets'
+import { assertSpeechLanguageMatches } from './speechText'
 import type { TtsProvider } from './ttsTypes'
 import { assertSelectedProvider } from './ttsTypes'
 
+type KokoroAudio = {
+  save: (path: string) => Promise<void> | void
+}
+
+type KokoroTokenizerOutput = {
+  input_ids?: unknown
+}
+
+type KokoroInstance = {
+  generate: (text: string, options: Record<string, unknown>) => Promise<KokoroAudio>
+  generate_from_ids?: (inputIds: unknown, options: Record<string, unknown>) => Promise<KokoroAudio>
+  tokenizer?: (text: string, options: Record<string, unknown>) => KokoroTokenizerOutput
+  list_voices?: () => string[]
+  _validate_voice?: (voice: string) => string
+}
+
 type KokoroModule = {
   KokoroTTS: {
-    from_pretrained: (model: string, options: Record<string, unknown>) => Promise<{
-      generate: (text: string, options: Record<string, unknown>) => Promise<{ save: (path: string) => Promise<void> | void }>
-      list_voices?: () => string[]
-      _validate_voice?: (voice: string) => string
-    }>
+    from_pretrained: (model: string, options: Record<string, unknown>) => Promise<KokoroInstance>
   }
 }
 
@@ -29,7 +42,7 @@ function installLocalVoiceRedirect(): void {
   fsPromises.readFile = (async (path: Parameters<typeof fsPromises.readFile>[0], ...args: unknown[]) => {
     const source = String(path)
     const voiceFile = localVoiceFiles.get(basename(source))
-    if (voiceFile && source.includes('kokoro-js') && source.includes('/voices/')) {
+    if (voiceFile && source.includes('kokoro-js') && /[\\/]voices[\\/]/.test(source)) {
       return originalReadFile(voiceFile, ...(args as []))
     }
     return originalReadFile(path, ...(args as []))
@@ -51,17 +64,32 @@ function registerLocalVoices(settings: AppSettings): Set<string> {
   return ids
 }
 
+function kokoroLanguageCode(language: AppSettings['ttsLanguage']): string {
+  if (language === 'zh-CN' || language === 'zh-TW') return 'z'
+  if (language === 'ja-JP') return 'j'
+  if (language === 'ko-KR') return 'k'
+  if (language === 'th-TH') return 't'
+  if (language === 'vi-VN') return 'v'
+  return 'a'
+}
+
+function usesDirectTokenizer(language: AppSettings['ttsLanguage']): boolean {
+  return language === 'zh-CN' || language === 'zh-TW'
+}
+
 function bindManifestVoices(
   tts: NonNullable<typeof cachedTts>,
-  voiceIds: Set<string>
+  voiceIds: Set<string>,
+  language: AppSettings['ttsLanguage']
 ): void {
   tts._validate_voice = (voice: string) => {
-    if (voiceIds.has(voice)) return 'a'
+    if (voiceIds.has(voice)) return kokoroLanguageCode(language)
     throw new Error(`Kokoro bundled voice is not installed for the selected language: ${voice}`)
   }
   // Keep the upstream validator out of the selected-provider path. The bundled
   // zh-CN voice list lives in GoAgent's manifest, not in kokoro-js's English
-  // voice table.
+  // voice table. zh-CN synthesis uses direct tokenizer input below, so it does
+  // not pass Chinese text through kokoro-js's English phonemizer.
 }
 
 async function loadKokoro(settings: AppSettings): Promise<NonNullable<typeof cachedTts>> {
@@ -76,9 +104,23 @@ async function loadKokoro(settings: AppSettings): Promise<NonNullable<typeof cac
     device: settings.ttsKokoroDevice || 'cpu',
     local_files_only: true
   })
-  bindManifestVoices(cachedTts, voiceIds)
+  bindManifestVoices(cachedTts, voiceIds, settings.ttsLanguage || 'zh-CN')
   cachedModelKey = modelKey
   return cachedTts
+}
+
+async function synthesizeWithKokoro(tts: NonNullable<typeof cachedTts>, text: string, language: AppSettings['ttsLanguage'], voice: string, speed: number): Promise<KokoroAudio> {
+  if (!usesDirectTokenizer(language)) {
+    return tts.generate(text, { voice, speed })
+  }
+  if (!tts.tokenizer || !tts.generate_from_ids) {
+    throw new Error('当前 Kokoro runtime 不支持中文 direct-tokenizer 合成。请更新 Kokoro runtime 或切换显式配置的 TTS API。')
+  }
+  const encoded = tts.tokenizer(text, { truncation: true })
+  if (!encoded.input_ids) {
+    throw new Error('Kokoro tokenizer 没有返回 input_ids，无法生成中文语音。')
+  }
+  return tts.generate_from_ids(encoded.input_ids, { voice, speed })
 }
 
 export const kokoroBundledProvider: TtsProvider = {
@@ -103,20 +145,26 @@ export const kokoroBundledProvider: TtsProvider = {
     if (!readiness.ready) throw new Error(readiness.detail)
     const text = request.text.trim()
     if (!text) throw new Error('TTS text is empty')
+    const language = request.language ?? settings.ttsLanguage
+    if (language !== settings.ttsLanguage) {
+      throw new Error(`TTS 请求语言 ${language} 与当前离线语音包 ${settings.ttsLanguage} 不一致。请保存对应语言的语音设置后再播放。`)
+    }
+    assertSpeechLanguageMatches(text, language)
     const format = request.format ?? 'wav'
     if (format !== 'wav') throw new Error('Kokoro bundled provider currently outputs wav only')
     const voice = request.voiceId || kokoroDefaultVoice(settings)
-    const cacheKey = hashTtsInput({ provider: 'kokoro-bundled', text, language: request.language ?? settings.ttsLanguage, voice, rate: settings.ttsRate, pitch: settings.ttsPitch, format })
+    const voiceIds = registerLocalVoices(settings)
+    if (!voiceIds.has(voice)) {
+      throw new Error(`Kokoro bundled voice is not installed for ${language}: ${voice}`)
+    }
+    const cacheKey = hashTtsInput({ provider: 'kokoro-bundled', text, language, voice, rate: settings.ttsRate, pitch: settings.ttsPitch, format })
     const output = cachedAudioPath('kokoro-bundled', cacheKey, format)
     const mimeType = mimeForFormat(format)
     if (settings.ttsCacheEnabled && existsSync(output)) {
       return { id: makeTtsResultId(), provider: 'kokoro-bundled', mimeType, audioPath: output, audioDataUrl: audioDataUrl(output, mimeType), cached: true, textHash: cacheKey, createdAt: new Date().toISOString() }
     }
     const tts = await loadKokoro(settings)
-    const audio = await tts.generate(text, {
-      voice,
-      speed: settings.ttsRate || 1
-    })
+    const audio = await synthesizeWithKokoro(tts, text, language, voice, settings.ttsRate || 1)
     await audio.save(output)
     return { id: makeTtsResultId(), provider: 'kokoro-bundled', mimeType, audioPath: output, audioDataUrl: audioDataUrl(output, mimeType), cached: false, textHash: cacheKey, createdAt: new Date().toISOString() }
   }

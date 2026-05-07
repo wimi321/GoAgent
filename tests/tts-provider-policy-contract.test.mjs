@@ -35,6 +35,22 @@ test('Kokoro bundled assets and scripts are wired', () => {
   assert.match(manifest.runtimeModelFile, /model_quantized\.onnx/)
 })
 
+test('Kokoro zh-CN synthesis does not route Chinese text through the English phonemizer', () => {
+  const provider = read('src/main/services/tts/kokoroBundledProvider.ts')
+  const speechText = read('src/main/services/tts/speechText.ts')
+  const smoke = read('scripts/smoke_tts.mjs')
+  assert.match(provider, /usesDirectTokenizer/)
+  assert.match(provider, /generate_from_ids/)
+  assert.match(provider, /assertSpeechLanguageMatches/)
+  assert.match(provider, /return 'z'/)
+  assert.doesNotMatch(provider, /voiceIds\.has\(voice\)\) return 'a'/)
+  assert.match(speechText, /detectSpeechLanguage/)
+  assert.match(speechText, /TTS 语言不匹配/)
+  assert.match(smoke, /generate_from_ids/)
+  assert.match(smoke, /return 'z'/)
+  assert.doesNotMatch(smoke, /return 'a'/)
+})
+
 test('custom TTS API is explicit and stored separately from public settings', () => {
   const store = read('src/main/lib/store.ts')
   const preload = read('src/preload/index.ts')

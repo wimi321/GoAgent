@@ -34,12 +34,19 @@ async function strictSynthesizeSmoke() {
   const { KokoroTTS } = await import('kokoro-js')
   const tts = await KokoroTTS.from_pretrained(assetRoot, { dtype: 'q8', device: 'cpu' })
   tts._validate_voice = (voice) => {
-    if (voices.has(`${voice}.bin`)) return 'a'
+    if (voices.has(`${voice}.bin`)) return 'z'
     throw new Error(`Smoke voice is not present in bundled manifest: ${voice}`)
   }
   mkdirSync(cacheRoot, { recursive: true })
   const output = join(cacheRoot, 'kokoro-zh-cn-smoke.wav')
-  const audio = await tts.generate('围棋智能体开始复盘。', {
+  if (!tts.tokenizer || !tts.generate_from_ids) {
+    throw new Error('kokoro-js runtime does not expose direct tokenizer synthesis for zh-CN')
+  }
+  const encoded = tts.tokenizer('围棋智能体开始复盘。', { truncation: true })
+  if (!encoded.input_ids) {
+    throw new Error('Kokoro zh-CN tokenizer did not return input_ids')
+  }
+  const audio = await tts.generate_from_ids(encoded.input_ids, {
     voice: manifest.defaultVoiceId ?? 'zf_001',
     speed: 1
   })
