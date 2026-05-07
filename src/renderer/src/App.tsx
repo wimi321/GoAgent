@@ -36,7 +36,7 @@ import { MOVE_RANGE_MAX_MOVES, describeMoveRange, parseMoveRangeFromPrompt, vali
 import lizzieBlackStoneUrl from './assets/lizzie/black.png'
 import lizzieBoardUrl from './assets/lizzie/board.png'
 import lizzieWhiteStoneUrl from './assets/lizzie/white.png'
-import logoUrl from '../../../assets/logo.svg'
+import logoUrl from '../../../assets/logo.png'
 import { GoBoardV2 } from './features/board/GoBoardV2'
 import type { KeyMoveSummary } from './features/board/KeyMoveNavigator'
 import { WinrateTimelineV2 } from './features/board/WinrateTimelineV2'

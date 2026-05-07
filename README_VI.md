@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="GoAgent logo" width="132" height="132" />
+  <img src="./assets/logo.png" alt="GoAgent logo" width="128" height="128" />
 </p>
 
 <h1 align="center">GoAgent · AI Agent cờ vây</h1>
