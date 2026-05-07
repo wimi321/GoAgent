@@ -4,6 +4,20 @@ All notable changes to GoAgent will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.3.16 - Strict Offline Kokoro TTS
+
+### Added
+
+- Added a strict selected-provider TTS system with bundled Kokoro zh-CN offline synthesis as the default provider.
+- Added teacher answer playback controls and a TTS settings panel.
+- Added custom OpenAI-compatible, HTTP JSON, and local-service TTS providers that only run when explicitly selected.
+- Added Kokoro asset preparation, validation, provider-policy checks, and real strict offline synthesis smoke testing.
+
+### Changed
+
+- Updated release packaging so GitHub Release builds prepare Kokoro ONNX assets before packaging installers.
+- Kept the no-fallback policy: no system voice, no Web Speech, no provider chain, and no automatic provider switching.
+
 ## 0.3.15 - GoAgent Brand Identity
 
 ### Changed
