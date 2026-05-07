@@ -1,0 +1,9 @@
+Kokoro-82M-v1.1-zh-ONNX source notice
+
+Model repository: onnx-community/Kokoro-82M-v1.1-zh-ONNX
+License stated by upstream model card: Apache-2.0
+Default model file: onnx/model_int8.onnx
+
+This directory is a release asset target. The large ONNX and voice files are
+prepared by scripts/prepare_tts_assets.mjs and should be verified by
+scripts/check_tts_assets.mjs before release packaging.

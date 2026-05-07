@@ -36,7 +36,11 @@ import type {
   TeacherRunCancelResult,
   TeacherRunRequest,
   TeacherRunProgress,
-  TeacherRunResult
+  TeacherRunResult,
+  TtsAssetStatus,
+  TtsSynthesisRequest,
+  TtsSynthesisResult,
+  TtsVoice
 } from '@main/lib/types'
 import type { DiagnosticsReport } from '@main/services/diagnostics/types'
 import type { KnowledgeSearchQuery, KnowledgeSearchResult } from '@main/services/knowledge/schema'
@@ -109,6 +113,12 @@ const api = {
   testLlmSettings: (payload: LlmSettingsTestRequest): Promise<LlmSettingsTestResult> => ipcRenderer.invoke('llm:test', payload),
   listLlmModels: (payload: LlmModelsListRequest): Promise<LlmModelsListResult> => ipcRenderer.invoke('llm:list-models', payload),
   getSavedLlmApiKey: (): Promise<{ hasKey: boolean; apiKey: string }> => ipcRenderer.invoke('llm:get-saved-api-key'),
+  inspectTtsAssets: (): Promise<TtsAssetStatus> => ipcRenderer.invoke('tts:inspect-assets'),
+  listTtsVoices: (): Promise<TtsVoice[]> => ipcRenderer.invoke('tts:list-voices'),
+  synthesizeTts: (payload: TtsSynthesisRequest): Promise<TtsSynthesisResult> => ipcRenderer.invoke('tts:synthesize', payload),
+  clearTtsCache: (): Promise<{ deleted: number }> => ipcRenderer.invoke('tts:clear-cache'),
+  testTtsSettings: (payload: Partial<AppSettings>): Promise<TtsSynthesisResult> => ipcRenderer.invoke('tts:test', payload),
+  getSavedTtsApiKey: (): Promise<{ hasKey: boolean; apiKey: string }> => ipcRenderer.invoke('tts:get-saved-api-key'),
   getReleaseReadiness: (): Promise<ReleaseReadinessResult> => ipcRenderer.invoke('release:readiness'),
   openPath: (filePath: string): Promise<void> => ipcRenderer.invoke('path:open', filePath),
   onDesktopCommand: (handler: (command: DesktopCommand) => void): (() => void) => {

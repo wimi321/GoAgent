@@ -1,0 +1,21 @@
+{
+  "id": "kokoro-zh-cn-int8",
+  "provider": "kokoro-bundled",
+  "language": "zh-CN",
+  "modelRepo": "onnx-community/Kokoro-82M-v1.1-zh-ONNX",
+  "modelRevision": "6cc0f0d2ebe369a68b0df87c2b65c1af8c0ac3e3",
+  "modelFile": "onnx/model_int8.onnx",
+  "modelSha256": "58b9b997faeaf42b427bac24c8a6246b236b0561311f6b118318cd9d2f47acb1",
+  "runtimeModelFile": "onnx/model_quantized.onnx",
+  "runtimeModelSha256": "a39469be791eeaa3089c1ed5e58b8731d1f2462ea0e7dae2bc44388e58f973d8",
+  "modelSizeMb": 127,
+  "license": "Apache-2.0",
+  "offline": true,
+  "bundled": true,
+  "defaultVoiceId": "zf_001",
+  "voices": [
+    { "id": "zf_001", "label": "中文女声 001", "file": "voices/zf_001.bin", "sha256": "0a89ec12bb93fb9c74077924daf02568baad64e1f869389f5aaee01a386035f8" },
+    { "id": "zm_009", "label": "中文男声 009", "file": "voices/zm_009.bin", "sha256": "7b74d6ed22f201e2fa28758e78ce6197082779f2b80e69ea1bf877908609514a" }
+  ],
+  "sourcePolicy": "Bundled Kokoro provider must use this selected local asset only. No automatic provider switch is allowed."
+}

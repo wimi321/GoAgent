@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type ContextMenuParams, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { isAbsolute, relative, resolve, join } from 'node:path'
-import { appHome, findGame, getGames, getSettings, hasLlmApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
+import { appHome, findGame, getGames, getSettings, getTtsCustomApiKey, hasLlmApiKey, hasTtsCustomApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
 import { BRAND_NAME } from '@shared/brand'
 import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
@@ -27,6 +27,7 @@ import {
   upsertStudentAlias
 } from './services/studentProfile'
 import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
+import { clearTtsCache, inspectTtsAssets, listTtsVoices, synthesizeTts, testTtsSettings } from './services/tts'
 
 let mainWindow: BrowserWindow | null = null
 type DesktopCommand =
@@ -230,7 +231,7 @@ function buildApplicationMenu(): void {
 async function dashboard(): Promise<DashboardData> {
   const hydratedSettings = await applyDetectedDefaults(getSettings())
   replaceSettings(hydratedSettings)
-  const publicSettings = { ...hydratedSettings, llmApiKey: '' }
+  const publicSettings = { ...hydratedSettings, llmApiKey: '', ttsCustomApiKey: '' }
   const detectedProfile = await detectSystemProfile(hydratedSettings)
   return {
     settings: publicSettings,
@@ -400,6 +401,15 @@ app.whenReady().then(() => {
       apiKey: settings.llmApiKey
     }
   })
+  ipcMain.handle('tts:inspect-assets', async () => inspectTtsAssets())
+  ipcMain.handle('tts:list-voices', async () => listTtsVoices())
+  ipcMain.handle('tts:synthesize', async (_event, payload) => synthesizeTts(payload))
+  ipcMain.handle('tts:clear-cache', async () => clearTtsCache())
+  ipcMain.handle('tts:test', async (_event, payload) => testTtsSettings(payload))
+  ipcMain.handle('tts:get-saved-api-key', async () => ({
+    hasKey: hasTtsCustomApiKey(),
+    apiKey: getTtsCustomApiKey()
+  }))
   ipcMain.handle('release:readiness', async () => inspectReleaseReadiness())
   ipcMain.handle('path:open', async (_event, filePath: string) => shell.showItemInFolder(assertManagedPath(filePath)))
 

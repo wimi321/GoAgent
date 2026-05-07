@@ -47,6 +47,8 @@ import { BetaAcceptancePanel, type BetaAcceptanceItem } from './features/release
 import { StudentBindingDialog } from './features/student/StudentBindingDialog'
 import { StudentRailCard } from './features/student/StudentRailCard'
 import { KataGoAssetsPanel } from './features/settings/KataGoAssetsPanel'
+import { TeacherSpeechControls } from './features/tts/TeacherSpeechControls'
+import { TtsSettingsPanel } from './features/tts/TtsSettingsPanel'
 import { TeacherComposerPro } from './features/teacher/TeacherComposerPro'
 import {
   createUiTranslator,
@@ -81,6 +83,26 @@ const emptyDashboard: DashboardData = {
     llmModel: 'gpt-5-mini',
     reviewLanguage: 'zh-CN',
     defaultPlayerName: '',
+    ttsEnabled: true,
+    ttsAutoPlay: false,
+    ttsProvider: 'kokoro-bundled',
+    ttsLanguage: 'zh-CN',
+    ttsVoiceId: 'zf_001',
+    ttsRate: 1,
+    ttsPitch: 1,
+    ttsVolume: 1,
+    ttsReadMode: 'summary',
+    ttsCacheEnabled: true,
+    ttsKokoroDType: 'q8',
+    ttsKokoroDevice: 'cpu',
+    ttsCustomBaseUrl: '',
+    ttsCustomApiKey: '',
+    ttsCustomModel: '',
+    ttsCustomVoice: '',
+    ttsCustomHeadersJson: '',
+    ttsCustomBodyTemplate: '',
+    ttsCustomResponseType: 'audio-bytes',
+    ttsCustomAudioJsonPath: '',
     defaultCoachLevel: 'intermediate',
     defaultStudentRank: 'sub1d',
     defaultStudentAge: 0,
@@ -2479,6 +2501,7 @@ export function App(): ReactElement {
           onBenchmark={() => void runKataGoBenchmark()}
           onInstallOfficialModel={(presetId) => void installOfficialKataGoModel(presetId)}
           onRefreshKataGoAssets={() => void refreshKataGoAssets()}
+          onDashboardUpdated={setDashboard}
         />
       </div>
       <StudentBindingDialog
@@ -2785,6 +2808,7 @@ function DesktopPreferencesModal({
   onBenchmark,
   onInstallOfficialModel,
   onRefreshKataGoAssets,
+  onDashboardUpdated,
   t
 }: {
   open: boolean
@@ -2802,6 +2826,7 @@ function DesktopPreferencesModal({
   onBenchmark: () => void
   onInstallOfficialModel: (presetId: KataGoModelPresetId) => void
   onRefreshKataGoAssets: () => void
+  onDashboardUpdated: (dashboard: DashboardData) => void
   t: UiTranslator
 }): ReactElement | null {
   if (!open) {
@@ -2841,6 +2866,7 @@ function DesktopPreferencesModal({
           onBenchmark={onBenchmark}
           onInstallOfficialModel={onInstallOfficialModel}
           onRefreshKataGoAssets={onRefreshKataGoAssets}
+          onDashboardUpdated={onDashboardUpdated}
           t={t}
         />
       </section>
@@ -3103,7 +3129,9 @@ function TeacherInlineResponse({
   onFlashPoint,
   boardSize,
   totalMoves,
-  onAnalyzeMove
+  onAnalyzeMove,
+  ttsEnabled,
+  ttsAutoPlay
 }: {
   message: ChatMessage
   t: UiTranslator
@@ -3112,6 +3140,8 @@ function TeacherInlineResponse({
   boardSize: number
   totalMoves: number
   onAnalyzeMove: (moveNumber: number) => void
+  ttsEnabled: boolean
+  ttsAutoPlay: boolean
 }): ReactElement {
   const keyMoves = teacherResultKeyMoves(message.result, t)
   const toolLogs = message.toolLogs ?? message.result?.toolLogs ?? []
@@ -3173,6 +3203,12 @@ function TeacherInlineResponse({
             ) : null}
             <ChatMarkdown text={message.content} boardSize={boardSize} totalMoves={totalMoves} t={t} onJumpToMove={onJumpToMove} onFlashPoint={onFlashPoint} />
             {isRunning ? <span className="streaming-cursor" aria-label={t('streaming')} /> : null}
+            <TeacherSpeechControls
+              markdown={message.content}
+              result={message.result}
+              autoPlay={ttsEnabled && ttsAutoPlay && !isRunning && message.status !== 'error'}
+              disabled={!ttsEnabled || isRunning || message.status === 'error' || !message.content.trim()}
+            />
           </>
         ) : message.content}
       </div>
@@ -3665,6 +3701,8 @@ function TeacherPanel({
                   boardSize={boardSize}
                   totalMoves={totalMoves}
                   onAnalyzeMove={onAnalyzeMove}
+                  ttsEnabled={dashboard.settings.ttsEnabled}
+                  ttsAutoPlay={dashboard.settings.ttsAutoPlay}
                 />
               </div>
             </article>
@@ -3714,7 +3752,8 @@ function SettingsDrawer({
   onTest,
   onBenchmark,
   onInstallOfficialModel,
-  onRefreshKataGoAssets
+  onRefreshKataGoAssets,
+  onDashboardUpdated
 }: {
   dashboard: DashboardData
   katagoAssets: KataGoAssetStatus | null
@@ -3730,6 +3769,7 @@ function SettingsDrawer({
   onBenchmark: () => void
   onInstallOfficialModel: (presetId: KataGoModelPresetId) => void
   onRefreshKataGoAssets: () => void
+  onDashboardUpdated: (dashboard: DashboardData) => void
 }): ReactElement {
   const [releaseReadiness, setReleaseReadiness] = useState<ReleaseReadinessResult | null>(null)
   const [releaseReadinessError, setReleaseReadinessError] = useState('')
@@ -3887,15 +3927,21 @@ function SettingsDrawer({
     }
   }
 
+  async function saveTtsSettings(next: Partial<AppSettings>): Promise<void> {
+    const updated = await window.goagent.updateSettings(next)
+    onDashboardUpdated(updated)
+  }
+
   return (
-    <form
-      key={`${dashboard.settings.katagoModelPreset}|${dashboard.settings.llmBaseUrl}|${dashboard.settings.llmModel}|${dashboard.settings.reviewLanguage}`}
-      className="settings-drawer"
-      onSubmit={(event) => {
-        event.preventDefault()
-        onSave(event.currentTarget)
-      }}
-    >
+    <div className="settings-drawer">
+      <form
+        key={`${dashboard.settings.katagoModelPreset}|${dashboard.settings.llmBaseUrl}|${dashboard.settings.llmModel}|${dashboard.settings.reviewLanguage}`}
+        className="settings-drawer__form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onSave(event.currentTarget)
+        }}
+      >
       <label className="katago-preset-select">
         {t('katagoWeights')}
         <select
@@ -4042,7 +4088,13 @@ function SettingsDrawer({
         </button>
       </div>
       {llmTestMessage ? <div className="test-message">{llmTestMessage}</div> : null}
-    </form>
+      </form>
+      <TtsSettingsPanel
+        settings={dashboard.settings}
+        busy={busy !== ''}
+        onSave={(next) => void saveTtsSettings(next)}
+      />
+    </div>
   )
 }
 
