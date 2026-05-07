@@ -1,0 +1,162 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const releasesUrl = 'https://github.com/wimi321/GoAgent/releases'
+const githubUrl = 'https://github.com/wimi321/GoAgent'
+
+const features = [
+  ['当前手讲解', '把棋盘截图、KataGo 候选点、PV、目差和知识库证据交给 AI 老师，讲清这一手为什么好或亏。'],
+  ['区间复盘', '选中一段棋局后聚焦讲解，不再被整盘噪音淹没，适合中盘战、转换和官子专题复盘。'],
+  ['棋形识别', '本地知识库和棋形匹配帮助识别定式、手筋、死活型和常见形状问题。'],
+  ['学生适配', '支持学生水平、年龄和老师风格设置，让解释深度、术语密度和语气更贴近学习者。'],
+  ['来源策略', '知识库保留来源策略，质量门禁检查坐标、定式名、胜率和 PV，减少 AI 编造。'],
+  ['本地优先隐私', '棋谱、学生画像、分析缓存默认保存在本机。LLM 和自定义 TTS 只有用户配置后才会调用。']
+]
+
+const downloads = [
+  ['Windows x64 标准版', '普通 Windows 用户首选，OpenCL 推荐包。'],
+  ['Windows x64 NVIDIA 版', '适合 NVIDIA 显卡和 CUDA 运行环境。'],
+  ['macOS Apple Silicon', '适合 M 系列芯片 Mac。'],
+  ['macOS Intel', '适合 Intel Mac。']
+]
+---
+<BaseLayout>
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Go / Weiqi / Baduk AI Agent</p>
+      <h1>goagent</h1>
+      <p class="subtitle">本地优先的围棋 AI 老师</p>
+      <p class="lead">
+        goagent 把 KataGo 的结构化分析、多模态 LLM 老师、棋形识别、区间复盘、学生画像和老师风格适配放在一个桌面工作台里。目标不是替代人类老师，而是让每一次复盘更清楚、更可验证。
+      </p>
+      <ul class="pill-list" aria-label="核心能力">
+        <li>KataGo 结构化分析</li>
+        <li>多模态 LLM 老师</li>
+        <li>棋形识别</li>
+        <li>区间复盘</li>
+        <li>学生画像</li>
+        <li>老师风格与年龄/水平适配</li>
+        <li>本地离线 TTS 规划</li>
+      </ul>
+      <div class="button-row">
+        <a class="button primary" href={releasesUrl}>下载最新版</a>
+        <a class="button" href={githubUrl}>查看 GitHub</a>
+        <a class="button" href="/docs">阅读文档</a>
+      </div>
+    </div>
+    <div class="hero-card" aria-label="goagent product preview">
+      <div class="board-preview">
+        <span class="stone black"></span>
+        <span class="stone white"></span>
+        <svg class="spark" viewBox="0 0 80 80" aria-hidden="true">
+          <path d="M40 4C45 26 54 35 76 40C54 45 45 54 40 76C35 54 26 45 4 40C26 35 35 26 40 4Z" fill="currentColor" />
+          <circle cx="40" cy="40" r="7" fill="white" />
+        </svg>
+      </div>
+      <div class="metric-strip">
+        <div><strong>KataGo</strong><span>事实证据</span></div>
+        <div><strong>LLM</strong><span>人类讲解</span></div>
+        <div><strong>QA</strong><span>防止编造</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>为认真复盘设计</h2>
+      <p>不是普通聊天，也不是单纯胜率图。goagent 把引擎证据、知识库和老师表达连接起来。</p>
+    </div>
+    <div class="grid three">
+      {features.map(([title, text]) => (
+        <article class="card">
+          <h3>{title}</h3>
+          <p>{text}</p>
+        </article>
+      ))}
+      <article class="card">
+        <h3>多平台发布</h3>
+        <p>提供 Windows 标准版、Windows NVIDIA 版和 macOS 版。下载文件托管在 GitHub Releases。</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>工作方式</h2>
+      <p><strong>KataGo 负责事实，LLM 负责讲解，质量门禁负责防止编造。</strong></p>
+    </div>
+    <div class="grid three workflow">
+      <article class="card">
+        <h3>读取棋谱和棋盘</h3>
+        <p>导入 SGF 或同步棋谱列表，定位当前手、区间和棋盘上下文。</p>
+      </article>
+      <article class="card">
+        <h3>KataGo 生成证据</h3>
+        <p>生成候选点、胜率、目差、PV 和搜索数据，作为老师讲解的事实基础。</p>
+      </article>
+      <article class="card">
+        <h3>老师讲解并训练</h3>
+        <p>结合知识库、学生画像和证据，讲清思路并给出可执行训练建议。</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>产品截图</h2>
+      <p>第一版官网先保留轻量占位卡片，不提交大图。正式截图会随后放入 `website/public/screenshots/`。</p>
+    </div>
+    <div class="grid four grid two">
+      {['棋盘与胜率图', '右侧 AI 老师会话', '区间复盘', '棋形识别证据'].map((item) => (
+        <article class="card screenshot-card">
+          <h3>{item}</h3>
+          <p>Screenshot placeholder</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>下载</h2>
+      <p>安装包不放在 Cloudflare Pages。请从 GitHub Releases 下载，并使用 SHA256SUMS.txt 校验。</p>
+    </div>
+    <div class="grid two">
+      {downloads.map(([title, text]) => (
+        <article class="download-card">
+          <h3>{title}</h3>
+          <p>{text}</p>
+          <a class="button" href={releasesUrl}>前往 GitHub Releases</a>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <div class="privacy-panel">
+      <h2>隐私默认站在用户这边</h2>
+      <p>
+        棋谱和学生画像默认保存在本机，KataGo 在本机运行。只有当用户配置 LLM 或自定义 TTS API，并主动发起老师任务或朗读任务时，相关文本才会发送到用户配置的服务。默认不会上传用户棋谱。
+      </p>
+      <div class="button-row">
+        <a class="button" href="/privacy">阅读隐私说明</a>
+        <a class="button" href="/docs">查看使用文档</a>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>路线图</h2>
+      <p>先把桌面复盘体验做扎实，再逐步扩展更强的自动化评测和发布质量系统。</p>
+    </div>
+    <div class="grid three">
+      {['真实教学评测', '常驻 KataGo Engine Pool', '老师会话与反馈闭环', '本地 Kokoro TTS', '发布包 smoke test', '自动更新'].map((item) => (
+        <article class="card">
+          <h3>{item}</h3>
+          <p>持续完善中。</p>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>
