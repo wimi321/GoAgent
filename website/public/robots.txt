@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://goagent.top/sitemap-index.xml

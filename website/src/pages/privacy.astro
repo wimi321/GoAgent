@@ -1,0 +1,36 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+---
+<BaseLayout title="goagent 隐私说明" description="goagent 默认本地保存棋谱、学生画像、老师会话、分析缓存和设置；第三方服务只在用户配置后调用。">
+  <section class="page-hero">
+    <p class="eyebrow">Privacy</p>
+    <h1>隐私说明</h1>
+    <p class="lead">goagent 的产品原则是本地优先。我们不把官网做成数据收集入口，也不自带项目服务器上传你的棋谱。</p>
+  </section>
+  <section class="content-stack">
+    <article class="privacy-panel">
+      <h2>本地数据</h2>
+      <p>以下内容默认保存在本机用户目录：</p>
+      <ul>
+        <li>棋谱库</li>
+        <li>学生画像</li>
+        <li>老师会话</li>
+        <li>分析缓存</li>
+        <li>应用设置</li>
+      </ul>
+    </article>
+    <article class="privacy-panel">
+      <h2>第三方服务</h2>
+      <ul>
+        <li>如果用户配置 LLM API，发送给对应 LLM 服务的内容取决于用户发起的老师任务。</li>
+        <li>如果用户配置自定义 TTS API，朗读文本会发送到用户配置的 TTS 服务。</li>
+        <li>默认 Kokoro TTS 是本地离线，不上传文本。</li>
+        <li>goagent 不自带项目服务器收集棋谱。</li>
+      </ul>
+    </article>
+    <article class="privacy-panel">
+      <h2>删除数据</h2>
+      <p>后续版本会提供更完整的本地清理入口。当前用户可以通过应用数据目录管理本地棋谱、画像、会话、缓存和设置。</p>
+    </article>
+  </section>
+</BaseLayout>

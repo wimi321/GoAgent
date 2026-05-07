@@ -1,0 +1,41 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">goagent logo</title>
+  <desc id="desc">A polished Go board tile with black and white stones and an AI sparkle.</desc>
+  <defs>
+    <linearGradient id="wood" x1="98" y1="72" x2="418" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8D79A"/>
+      <stop offset="0.55" stop-color="#E9B86C"/>
+      <stop offset="1" stop-color="#C98D43"/>
+    </linearGradient>
+    <radialGradient id="blackStone" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(201 197) rotate(48) scale(82)">
+      <stop stop-color="#6B6B66"/>
+      <stop offset="0.38" stop-color="#20201E"/>
+      <stop offset="1" stop-color="#080808"/>
+    </radialGradient>
+    <radialGradient id="whiteStone" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(298 286) rotate(36) scale(84)">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.58" stop-color="#ECE6D9"/>
+      <stop offset="1" stop-color="#C9BFAE"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#5D3916" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+  <rect x="72" y="72" width="368" height="368" rx="92" fill="url(#wood)" filter="url(#shadow)"/>
+  <rect x="72" y="72" width="368" height="368" rx="92" fill="url(#wood)"/>
+  <path d="M162 96v320M256 86v340M350 96v320M96 162h320M86 256h340M96 350h320" stroke="#4C371E" stroke-width="5" stroke-linecap="round" opacity="0.58"/>
+  <g fill="#231B12" opacity="0.92">
+    <circle cx="162" cy="162" r="9"/>
+    <circle cx="350" cy="162" r="9"/>
+    <circle cx="162" cy="350" r="9"/>
+    <circle cx="350" cy="350" r="9"/>
+  </g>
+  <circle cx="210" cy="214" r="54" fill="url(#blackStone)"/>
+  <circle cx="210" cy="214" r="54" fill="none" stroke="#111" stroke-opacity="0.5" stroke-width="2"/>
+  <ellipse cx="190" cy="190" rx="20" ry="12" fill="white" opacity="0.22" transform="rotate(-36 190 190)"/>
+  <circle cx="305" cy="303" r="55" fill="url(#whiteStone)"/>
+  <circle cx="305" cy="303" r="55" fill="none" stroke="#8C806B" stroke-opacity="0.35" stroke-width="2"/>
+  <path d="M347 207C365 204 374 195 377 177C380 195 389 204 407 207C389 210 380 219 377 237C374 219 365 210 347 207Z" fill="#0FA39B"/>
+  <path d="M377 155v44M377 215v44M333 207h44M393 207h44" stroke="#0FA39B" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 12" opacity="0.55"/>
+  <circle cx="377" cy="207" r="8" fill="#F5FFF9"/>
+</svg>

@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const faqs = [
+  ['goagent 是什么？', 'goagent 是本地优先的围棋智能体，目标是把 KataGo、知识库、多模态 LLM 和质量门禁整合成一个可验证的 AI 围棋老师。'],
+  ['它和普通 AI 聊天有什么区别？', '普通聊天容易凭空讲棋。goagent 会围绕棋盘、KataGo 证据、PV、目差、知识匹配和学生设置组织讲解。'],
+  ['是否需要联网？', 'KataGo 和本地数据可以在本机运行。使用 LLM、自定义 TTS API、下载权重或同步远程棋谱时需要联网。'],
+  ['KataGo 是否本地运行？', '是。goagent 的设计是让 KataGo 在本机运行，作为候选点、胜率、目差和 PV 的事实来源。'],
+  ['LLM 是否必须？', '如果要使用 AI 老师自然语言讲解，需要配置 LLM。棋盘和 KataGo 分析能力可以独立存在。'],
+  ['是否支持 Windows NVIDIA？', '支持。Release 中提供 Windows x64 标准版和 Windows x64 NVIDIA 版。'],
+  ['为什么下载文件不放在官网？', 'Cloudflare Pages 适合静态网页，不适合托管大型安装包。安装包先放在 GitHub Releases。'],
+  ['TTS 是否上传文本？', '默认 Kokoro TTS 是本地离线，不上传。只有用户显式选择自定义 TTS API 时，朗读文本才会发到用户配置的服务。'],
+  ['官网域名是什么？', '官网域名是 goagent.top。'],
+  ['如何反馈问题？', '可以在 GitHub Issues 反馈，也欢迎加入 QQ 群 1030632742 交流。']
+]
+---
+<BaseLayout title="goagent FAQ" description="goagent 常见问题：联网、本地 KataGo、LLM、Windows NVIDIA、TTS 隐私和反馈方式。">
+  <section class="page-hero">
+    <p class="eyebrow">FAQ</p>
+    <h1>常见问题</h1>
+    <p class="lead">这里回答下载、隐私、KataGo、LLM 和 TTS 的基础问题。</p>
+  </section>
+  <section class="content-stack faq-list">
+    {faqs.map(([question, answer]) => (
+      <details>
+        <summary>{question}</summary>
+        <p>{answer}</p>
+      </details>
+    ))}
+  </section>
+</BaseLayout>

@@ -1,0 +1,73 @@
+---
+import '../styles/global.css'
+
+interface Props {
+  title?: string
+  description?: string
+  canonical?: string
+}
+
+const {
+  title = 'goagent - 本地优先的围棋 AI 老师',
+  description = 'goagent 是本地优先的围棋智能体：KataGo 负责事实，多模态 LLM 负责讲解，质量门禁负责防止编造。',
+  canonical = new URL(Astro.url.pathname, 'https://goagent.top').toString()
+} = Astro.props
+
+const navItems = [
+  { href: '/', label: '首页' },
+  { href: '/download', label: '下载' },
+  { href: '/docs', label: '文档' },
+  { href: '/privacy', label: '隐私' },
+  { href: '/faq', label: 'FAQ' },
+  { href: '/changelog', label: 'Changelog' }
+]
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content="https://goagent.top/logo.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#f6efe2" />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="brand" href="/" aria-label="goagent home">
+          <img src="/logo.svg" alt="" width="36" height="36" />
+          <span>goagent</span>
+        </a>
+        <nav aria-label="主导航">
+          {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+        </nav>
+        <a class="header-cta" href="https://github.com/wimi321/GoAgent/releases">下载最新版</a>
+      </header>
+      <main>
+        <slot />
+      </main>
+      <footer class="site-footer">
+        <div>
+          <strong>goagent</strong>
+          <p>本地优先的围棋 AI 老师。KataGo gives evidence. LLM explains.</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/wimi321/GoAgent">GitHub</a>
+          <a href="https://github.com/wimi321/GoAgent/releases">Releases</a>
+          <a href="https://github.com/wimi321/GoAgent/issues">Issues</a>
+          <a href="/privacy">Privacy</a>
+          <a href="https://github.com/wimi321/GoAgent/blob/main/LICENSE">License MIT</a>
+        </div>
+        <p class="copyright">Copyright © {new Date().getFullYear()} goagent contributors.</p>
+      </footer>
+    </div>
+  </body>
+</html>

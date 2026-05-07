@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const docs = [
+  ['安装 goagent', '从 GitHub Releases 下载适合系统的安装包。Windows 普通用户选标准版，NVIDIA 用户可选 NVIDIA 版，Mac 用户按芯片选择 Apple Silicon 或 Intel。'],
+  ['配置 KataGo', 'goagent 以本地 KataGo 为事实裁判。应用会提供官方权重选择和资源状态检查，确保棋盘分析、候选点、PV 和目差可用。'],
+  ['配置 LLM', '在设置中填写用户自己的 LLM Base URL、API Key 和模型。老师任务会把必要的棋盘上下文、KataGo 证据和知识库结果发给配置的服务。'],
+  ['导入 SGF', '可以导入本地 SGF，也可以使用棋谱库能力管理棋局。棋谱默认保存在本机用户目录。'],
+  ['使用当前手讲解', '在棋盘当前手处让老师分析。老师会参考棋盘、KataGo 候选点、PV、知识匹配和学生设置，输出面向人的解释。'],
+  ['使用区间复盘', '选中一段手数后进行聚焦复盘，适合复盘中盘战、转换、定式分支、死活攻防和官子阶段。'],
+  ['设置学生水平、年龄和老师风格', '可配置学生水平、年龄范围、老师讲解风格和术语密度，让同一个局面用不同层次讲清楚。'],
+  ['TTS 规划说明', '默认计划使用 Kokoro 中文 ONNX 离线语音。其它语言作为可选下载包；自定义 TTS API 需要用户显式选择，不自动切换。']
+]
+---
+<BaseLayout title="goagent 文档 - 快速开始" description="goagent 的安装、KataGo、LLM、SGF、当前手讲解、区间复盘和 TTS 使用文档。">
+  <section class="page-hero">
+    <p class="eyebrow">Docs</p>
+    <h1>快速开始</h1>
+    <p class="lead">这是一份短文档，帮助你把 goagent 跑起来，并理解它如何把 KataGo、LLM、知识库和本地隐私策略组合起来。</p>
+  </section>
+  <section class="content-stack">
+    {docs.map(([title, text]) => (
+      <article class="doc-card">
+        <h2>{title}</h2>
+        <p>{text}</p>
+      </article>
+    ))}
+  </section>
+</BaseLayout>
