@@ -37,20 +37,31 @@ requireFile('website/package.json')
 requireFile('website/src/pages/index.astro')
 requireFile('website/src/pages/download.astro')
 requireFile('website/src/pages/privacy.astro')
+requireFile('website/src/pages/[locale].astro')
 requireFile('website/DEPLOYMENT.md')
+requireFile('website/public/sitemap.xml')
+requireFile('website/public/site.webmanifest')
+requireFile('website/public/llms.txt')
 
 const index = read('website/src/pages/index.astro')
 const privacy = read('website/src/pages/privacy.astro')
 const deployment = read('website/DEPLOYMENT.md')
+const sitemap = read('website/public/sitemap.xml')
+const manifest = read('website/public/site.webmanifest')
 
 if (!index.toLowerCase().includes('goagent')) fail('homepage must contain goagent')
 if (!index.includes('https://github.com/wimi321/GoAgent/releases')) fail('homepage must link GitHub Releases')
+if (!index.includes('QQ 1030632742')) fail('homepage must expose QQ community')
 for (const keyword of ['本地', 'LLM', 'TTS']) {
   if (!privacy.includes(keyword)) fail(`privacy page must contain ${keyword}`)
 }
 for (const keyword of ['Cloudflare Pages', 'Spaceship', 'goagent.top']) {
   if (!deployment.includes(keyword)) fail(`DEPLOYMENT.md must contain ${keyword}`)
 }
+for (const keyword of ['https://goagent.top/', 'https://goagent.top/en', 'https://goagent.top/zh-hant']) {
+  if (!sitemap.includes(keyword)) fail(`sitemap.xml must contain ${keyword}`)
+}
+if (!manifest.includes('"name": "goagent"')) fail('site.webmanifest must name goagent')
 
 for (const path of walk(join(websiteRoot, 'public'))) {
   if (/\.(exe|dmg|zip|tar\.gz)$/i.test(path)) fail(`website public must not contain installer/archive: ${path}`)

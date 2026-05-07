@@ -1,0 +1,17 @@
+{
+  "name": "goagent",
+  "short_name": "goagent",
+  "description": "本地优先的围棋智能体",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f5",
+  "theme_color": "#f7f8f5",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

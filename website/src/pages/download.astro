@@ -3,10 +3,10 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 const releasesUrl = 'https://github.com/wimi321/GoAgent/releases'
 const options = [
-  ['Windows 普通用户', 'Windows x64 标准版', '适合大多数 Windows 机器，优先选择 OpenCL 推荐包。'],
-  ['NVIDIA 显卡用户', 'Windows x64 NVIDIA 版', '适合 NVIDIA 显卡和 CUDA 运行环境。'],
-  ['macOS M 系列', 'macOS Apple Silicon', '适合 Apple Silicon / M 系列芯片。'],
-  ['Intel Mac', 'macOS Intel', '适合 Intel 架构 Mac。']
+  ['Windows 普通用户', 'Windows x64 标准版', '适合大多数 Windows 机器，优先选择 OpenCL 推荐包。', '推荐'],
+  ['NVIDIA 显卡用户', 'Windows x64 NVIDIA 版', '适合 NVIDIA 显卡和 CUDA 运行环境。', 'GPU'],
+  ['macOS M 系列', 'macOS Apple Silicon', '适合 Apple Silicon / M 系列芯片。', 'arm64'],
+  ['Intel Mac', 'macOS Intel', '适合 Intel 架构 Mac。', 'x64']
 ]
 ---
 <BaseLayout title="下载 goagent - GitHub Releases" description="从 GitHub Releases 下载 goagent 的 Windows 和 macOS 安装包。">
@@ -21,18 +21,28 @@ const options = [
   </section>
   <section class="content-stack">
     <div class="grid two">
-      {options.map(([audience, title, text]) => (
+      {options.map(([audience, title, text, badge]) => (
         <article class="download-card">
           <p class="eyebrow">{audience}</p>
           <h3>{title}</h3>
           <p>{text}</p>
+          <div class="download-meta">
+            <span>{badge}</span>
+            <span>GitHub Releases</span>
+            <span>SHA256</span>
+          </div>
           <a class="button" href={releasesUrl}>选择版本</a>
         </article>
       ))}
     </div>
     <article class="notice">
       <h2>校验下载文件</h2>
-      <p>每个 release 会提供 `SHA256SUMS.txt`。下载后建议对照校验，尤其是从镜像或第三方下载时。</p>
+      <p>每个 release 会提供 `SHA256SUMS.txt`。下载后建议对照校验，尤其是从镜像或第三方下载时。官网不托管安装包，避免用户拿到和 GitHub Release 不一致的文件。</p>
+      <ul>
+        <li>Windows 可使用 PowerShell 的 `Get-FileHash`。</li>
+        <li>macOS 可使用 `shasum -a 256`。</li>
+        <li>如果文件名、版本号或校验值不一致，请重新从 GitHub Releases 下载。</li>
+      </ul>
     </article>
     <article class="notice">
       <h2>为什么不把安装包放在官网？</h2>

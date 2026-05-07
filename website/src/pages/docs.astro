@@ -3,7 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 const docs = [
   ['安装 goagent', '从 GitHub Releases 下载适合系统的安装包。Windows 普通用户选标准版，NVIDIA 用户可选 NVIDIA 版，Mac 用户按芯片选择 Apple Silicon 或 Intel。'],
-  ['配置 KataGo', 'goagent 以本地 KataGo 为事实裁判。应用会提供官方权重选择和资源状态检查，确保棋盘分析、候选点、PV 和目差可用。'],
+  ['配置 KataGo', 'goagent 以本地 KataGo 为事实裁判。应用会提供官方权重选择、下载状态、资源诊断和速度测试，确保棋盘分析、候选点、PV 和目差可用。'],
   ['配置 LLM', '在设置中填写用户自己的 LLM Base URL、API Key 和模型。老师任务会把必要的棋盘上下文、KataGo 证据和知识库结果发给配置的服务。'],
   ['导入 SGF', '可以导入本地 SGF，也可以使用棋谱库能力管理棋局。棋谱默认保存在本机用户目录。'],
   ['使用当前手讲解', '在棋盘当前手处让老师分析。老师会参考棋盘、KataGo 候选点、PV、知识匹配和学生设置，输出面向人的解释。'],
@@ -19,11 +19,22 @@ const docs = [
     <p class="lead">这是一份短文档，帮助你把 goagent 跑起来，并理解它如何把 KataGo、LLM、知识库和本地隐私策略组合起来。</p>
   </section>
   <section class="content-stack">
-    {docs.map(([title, text]) => (
-      <article class="doc-card">
-        <h2>{title}</h2>
-        <p>{text}</p>
+    {docs.map(([title, text], index) => (
+      <article class="doc-card step-card">
+        <span class="step-index">{index + 1}</span>
+        <div>
+          <h2>{title}</h2>
+          <p>{text}</p>
+        </div>
       </article>
     ))}
+    <article class="notice">
+      <h2>讲解质量原则</h2>
+      <ul>
+        <li>KataGo 是事实依据，LLM 不应编造坐标、胜率、PV 或定式名。</li>
+        <li>常规定式少讲，定式分支讲变化，中盘战和明显损失才详细展开。</li>
+        <li>知识库负责解释和训练迁移，不代替当前局面的引擎判断。</li>
+      </ul>
+    </article>
   </section>
 </BaseLayout>

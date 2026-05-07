@@ -22,11 +22,15 @@ import BaseLayout from '../layouts/BaseLayout.astro'
     <article class="privacy-panel">
       <h2>第三方服务</h2>
       <ul>
-        <li>如果用户配置 LLM API，发送给对应 LLM 服务的内容取决于用户发起的老师任务。</li>
+        <li>如果用户配置 LLM API，发送给对应 LLM 服务的内容取决于用户发起的老师任务，可能包含棋盘截图、局面摘要、KataGo 证据、知识库匹配和用户问题。</li>
         <li>如果用户配置自定义 TTS API，朗读文本会发送到用户配置的 TTS 服务。</li>
         <li>默认 Kokoro TTS 是本地离线，不上传文本。</li>
         <li>goagent 不自带项目服务器收集棋谱。</li>
       </ul>
+    </article>
+    <article class="privacy-panel">
+      <h2>官网数据</h2>
+      <p>goagent.top 是静态官网，不部署数据库，也不提供棋谱上传 API。第一版官网不设置广告追踪脚本。下载按钮跳转到 GitHub Releases。</p>
     </article>
     <article class="privacy-panel">
       <h2>删除数据</h2>

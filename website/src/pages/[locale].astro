@@ -1,0 +1,99 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const releasesUrl = 'https://github.com/wimi321/GoAgent/releases'
+const githubUrl = 'https://github.com/wimi321/GoAgent'
+
+const locales = {
+  'zh-hant': {
+    lang: 'zh-Hant',
+    title: 'goagent - 本地優先的圍棋 AI 老師',
+    eyebrow: '圍棋智能體',
+    headline: '本地優先的圍棋 AI 老師',
+    body: 'goagent 把 KataGo、棋譜庫、知識庫、多模態 LLM 和品質門禁放進一個桌面工作台，讓 AI 老師帶著證據講棋。',
+    cards: ['KataGo 負責事實', 'LLM 負責講解', '知識庫輔助棋形識別', '棋譜和學生資料預設保存在本機'],
+    download: '下載最新版',
+    docs: '閱讀中文文檔'
+  },
+  en: {
+    lang: 'en',
+    title: 'goagent - Local-first Go AI teacher',
+    eyebrow: 'Go / Weiqi / Baduk AI Agent',
+    headline: 'A local-first AI teacher for Go',
+    body: 'goagent brings KataGo, game records, a local knowledge base, multimodal LLMs, and quality gates into one desktop workbench. The teacher explains with evidence instead of guessing.',
+    cards: ['KataGo provides evidence', 'LLM explains like a teacher', 'Shape recognition supports joseki and tesuji', 'Games and student profiles stay local by default'],
+    download: 'Download latest',
+    docs: 'Read Chinese docs'
+  },
+  ja: {
+    lang: 'ja',
+    title: 'goagent - ローカル優先の囲碁 AI 先生',
+    eyebrow: '囲碁 AI エージェント',
+    headline: 'ローカル優先の囲碁 AI 先生',
+    body: 'goagent は KataGo、棋譜、知識ベース、マルチモーダル LLM、品質チェックをひとつのデスクトップ環境にまとめます。AI 先生は根拠をもとに解説します。',
+    cards: ['KataGo が根拠を出す', 'LLM が人間向けに説明', '定石・手筋・死活の形を認識', '棋譜と学習記録は既定でローカル保存'],
+    download: '最新版をダウンロード',
+    docs: '中国語ドキュメント'
+  },
+  ko: {
+    lang: 'ko',
+    title: 'goagent - 로컬 우선 바둑 AI 선생님',
+    eyebrow: '바둑 AI 에이전트',
+    headline: '로컬 우선 바둑 AI 선생님',
+    body: 'goagent는 KataGo, 기보, 지식 베이스, 멀티모달 LLM, 품질 검사를 하나의 데스크톱 워크벤치로 묶어 근거 있는 복기를 돕습니다.',
+    cards: ['KataGo가 사실 근거 제공', 'LLM이 선생님처럼 설명', '정석·수근·사활 형태 인식', '기보와 학생 프로필은 기본 로컬 저장'],
+    download: '최신 버전 다운로드',
+    docs: '중국어 문서'
+  },
+  th: {
+    lang: 'th',
+    title: 'goagent - ครู AI หมากล้อมแบบ local-first',
+    eyebrow: 'Go / Weiqi / Baduk AI Agent',
+    headline: 'ครู AI หมากล้อมที่ให้ความสำคัญกับข้อมูลในเครื่อง',
+    body: 'goagent รวม KataGo, บันทึกเกม, ฐานความรู้, multimodal LLM และ quality gate ไว้ในเดสก์ท็อปแอปเดียว เพื่ออธิบายเกมด้วยหลักฐานจริง',
+    cards: ['KataGo ให้หลักฐาน', 'LLM อธิบายให้เข้าใจ', 'ช่วยรู้จำ joseki, tesuji และ life-and-death', 'ข้อมูลเกมและโปรไฟล์ผู้เรียนเก็บในเครื่องเป็นค่าเริ่มต้น'],
+    download: 'ดาวน์โหลดเวอร์ชันล่าสุด',
+    docs: 'อ่านเอกสารภาษาจีน'
+  },
+  vi: {
+    lang: 'vi',
+    title: 'goagent - Giáo viên AI cờ vây ưu tiên cục bộ',
+    eyebrow: 'Go / Weiqi / Baduk AI Agent',
+    headline: 'Giáo viên AI cờ vây ưu tiên dữ liệu cục bộ',
+    body: 'goagent kết hợp KataGo, kỳ phổ, kho tri thức, LLM đa phương thức và quality gate trong một ứng dụng desktop, giúp AI giải thích nước đi dựa trên bằng chứng.',
+    cards: ['KataGo cung cấp bằng chứng', 'LLM giải thích như giáo viên', 'Nhận diện joseki, tesuji và sống chết', 'Kỳ phổ và hồ sơ học viên mặc định lưu trên máy'],
+    download: 'Tải bản mới nhất',
+    docs: 'Đọc tài liệu tiếng Trung'
+  }
+}
+
+export function getStaticPaths() {
+  return ['zh-hant', 'en', 'ja', 'ko', 'th', 'vi'].map((locale) => ({ params: { locale } }))
+}
+
+const locale = Astro.params.locale as keyof typeof locales
+const page = locales[locale] ?? locales.en
+---
+<BaseLayout title={page.title} description={page.body} lang={page.lang} canonical={`https://goagent.top/${locale}`}>
+  <section class="page-hero">
+    <p class="eyebrow">{page.eyebrow}</p>
+    <h1>goagent</h1>
+    <p class="subtitle">{page.headline}</p>
+    <p class="lead">{page.body}</p>
+    <div class="button-row">
+      <a class="button primary" href={releasesUrl}>{page.download}</a>
+      <a class="button" href={githubUrl}>GitHub</a>
+      <a class="button subtle" href="/docs">{page.docs}</a>
+    </div>
+  </section>
+  <section class="content-stack">
+    <div class="grid two">
+      {page.cards.map((item) => (
+        <article class="card">
+          <h3>{item}</h3>
+          <p>goagent.top</p>
+        </article>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

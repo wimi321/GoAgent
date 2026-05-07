@@ -3,80 +3,145 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 const releasesUrl = 'https://github.com/wimi321/GoAgent/releases'
 const githubUrl = 'https://github.com/wimi321/GoAgent'
+const issuesUrl = 'https://github.com/wimi321/GoAgent/issues'
 
 const features = [
-  ['当前手讲解', '把棋盘截图、KataGo 候选点、PV、目差和知识库证据交给 AI 老师，讲清这一手为什么好或亏。'],
-  ['区间复盘', '选中一段棋局后聚焦讲解，不再被整盘噪音淹没，适合中盘战、转换和官子专题复盘。'],
-  ['棋形识别', '本地知识库和棋形匹配帮助识别定式、手筋、死活型和常见形状问题。'],
-  ['学生适配', '支持学生水平、年龄和老师风格设置，让解释深度、术语密度和语气更贴近学习者。'],
-  ['来源策略', '知识库保留来源策略，质量门禁检查坐标、定式名、胜率和 PV，减少 AI 编造。'],
-  ['本地优先隐私', '棋谱、学生画像、分析缓存默认保存在本机。LLM 和自定义 TTS 只有用户配置后才会调用。']
+  ['当前手讲解', '棋盘图、KataGo 候选点、PV、目差和知识库证据一起进入老师会话，讲清这一手的目的、变化和损失。', 'accent-teal'],
+  ['区间复盘', '选择一段手数聚焦复盘，把中盘战、转换、官子和胜负手从整盘噪音里拎出来。', 'accent-blue'],
+  ['棋形识别', '本地定式、死活、手筋和棋形匹配引擎给出证据边界，强匹配才明确命名。', 'accent-gold'],
+  ['学生适配', '按水平、年龄和老师风格调节讲解深度，让低段、小朋友和高段棋手听到不同的解释。', 'accent-teal'],
+  ['质量门禁', '坐标、定式名、胜率差、PV 和知识来源都要接受检查，减少 AI 自信乱讲。', 'accent-blue'],
+  ['本地优先隐私', '棋谱、画像、会话和缓存默认留在本机。LLM 和自定义 TTS 只在用户配置并发起任务时调用。', 'accent-gold']
 ]
 
 const downloads = [
-  ['Windows x64 标准版', '普通 Windows 用户首选，OpenCL 推荐包。'],
-  ['Windows x64 NVIDIA 版', '适合 NVIDIA 显卡和 CUDA 运行环境。'],
-  ['macOS Apple Silicon', '适合 M 系列芯片 Mac。'],
-  ['macOS Intel', '适合 Intel Mac。']
+  ['Windows x64 标准版', '普通 Windows 用户首选', 'OpenCL 推荐包'],
+  ['Windows x64 NVIDIA 版', 'NVIDIA 显卡用户', 'CUDA 专用包'],
+  ['macOS Apple Silicon', 'M 系列 Mac', 'arm64'],
+  ['macOS Intel', 'Intel Mac', 'x64']
 ]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'goagent',
+  alternateName: '围棋智能体',
+  applicationCategory: 'EducationalApplication',
+  operatingSystem: 'Windows, macOS',
+  description: '本地优先的围棋智能体：KataGo 负责事实，多模态 LLM 负责讲解，质量门禁负责防止编造。',
+  url: 'https://goagent.top/',
+  codeRepository: githubUrl,
+  license: `${githubUrl}/blob/main/LICENSE`,
+  downloadUrl: releasesUrl
+}
 ---
-<BaseLayout>
+<BaseLayout jsonLd={jsonLd}>
   <section class="hero">
     <div>
       <p class="eyebrow">Go / Weiqi / Baduk AI Agent</p>
       <h1>goagent</h1>
       <p class="subtitle">本地优先的围棋 AI 老师</p>
       <p class="lead">
-        goagent 把 KataGo 的结构化分析、多模态 LLM 老师、棋形识别、区间复盘、学生画像和老师风格适配放在一个桌面工作台里。目标不是替代人类老师，而是让每一次复盘更清楚、更可验证。
+        goagent 把 KataGo、棋谱库、知识库、多模态 LLM、质量门禁和学生画像放进一个桌面工作台。它不是把棋谱丢给聊天机器人，而是让 AI 老师带着证据讲棋。
       </p>
-      <ul class="pill-list" aria-label="核心能力">
-        <li>KataGo 结构化分析</li>
-        <li>多模态 LLM 老师</li>
-        <li>棋形识别</li>
-        <li>区间复盘</li>
-        <li>学生画像</li>
-        <li>老师风格与年龄/水平适配</li>
-        <li>本地离线 TTS 规划</li>
-      </ul>
+      <div class="trust-row" aria-label="核心能力">
+        <span>KataGo 结构化分析</span>
+        <span>多模态 LLM 老师</span>
+        <span>棋形识别</span>
+        <span>区间复盘</span>
+        <span>学生画像</span>
+        <span>本地离线 TTS 规划</span>
+      </div>
       <div class="button-row">
         <a class="button primary" href={releasesUrl}>下载最新版</a>
         <a class="button" href={githubUrl}>查看 GitHub</a>
-        <a class="button" href="/docs">阅读文档</a>
+        <a class="button subtle" href="/docs">阅读文档</a>
+      </div>
+      <div class="status-row" aria-label="发布状态">
+        <span class="status-pill ready">Windows / macOS</span>
+        <span class="status-pill ready">MIT License</span>
+        <span class="status-pill experimental">Kokoro TTS 规划中</span>
+        <span class="status-pill">QQ 1030632742</span>
       </div>
     </div>
-    <div class="hero-card" aria-label="goagent product preview">
-      <div class="board-preview">
-        <span class="stone black"></span>
-        <span class="stone white"></span>
-        <svg class="spark" viewBox="0 0 80 80" aria-hidden="true">
-          <path d="M40 4C45 26 54 35 76 40C54 45 45 54 40 76C35 54 26 45 4 40C26 35 35 26 40 4Z" fill="currentColor" />
-          <circle cx="40" cy="40" r="7" fill="white" />
-        </svg>
+
+    <aside class="hero-visual" aria-label="goagent product preview">
+      <div class="window-preview">
+        <div class="window-bar">
+          <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+          <span>Current move analysis</span>
+        </div>
+        <div class="preview-body">
+          <div>
+            <div class="preview-board" aria-hidden="true">
+              <span class="stone black"></span>
+              <span class="stone white"></span>
+              <span class="candidate one">1<br />58%</span>
+              <span class="candidate two">2<br />54%</span>
+              <svg class="spark" viewBox="0 0 80 80" aria-hidden="true">
+                <path d="M40 4C45 26 54 35 76 40C54 45 45 54 40 76C35 54 26 45 4 40C26 35 35 26 40 4Z" fill="currentColor" />
+                <circle cx="40" cy="40" r="7" fill="white" />
+              </svg>
+            </div>
+            <div class="mini-chart" aria-hidden="true">
+              <svg viewBox="0 0 320 80" preserveAspectRatio="none">
+                <path d="M0 42 C38 34 58 38 84 30 C122 18 145 60 178 48 C212 36 238 30 267 46 C292 59 304 42 320 36" fill="none" stroke="#0b766e" stroke-width="3" />
+                <path d="M0 55 C46 52 78 62 116 44 C154 25 178 26 208 34 C244 43 272 49 320 30" fill="none" stroke="#275b8f" stroke-width="2" opacity="0.78" />
+              </svg>
+            </div>
+          </div>
+          <div class="preview-chat">
+            <span class="tool-chip">KataGo 当前局面</span>
+            <span class="tool-chip">知识库棋形匹配</span>
+            <div class="chat-line">
+              <strong>AI 老师</strong>
+              <p>这手方向能理解：你想压住上边。但一选更先手，因为它同时看住白棋断点和右上角实地。</p>
+            </div>
+            <div class="chat-line">
+              <strong>训练建议</strong>
+              <p>下次遇到这种局部，先问自己：对方最强反击点在哪里。</p>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="metric-strip">
         <div><strong>KataGo</strong><span>事实证据</span></div>
         <div><strong>LLM</strong><span>人类讲解</span></div>
         <div><strong>QA</strong><span>防止编造</span></div>
       </div>
+    </aside>
+  </section>
+
+  <section>
+    <div class="feature-panel">
+      <div>
+        <p class="eyebrow">Why it matters</p>
+        <h2>像专业老师一样控制讲解火候</h2>
+        <p>
+          常规定式少讲，出现分支再列关键变化；中盘战、攻杀、转换和明显损失才展开讲目的、应手和后续。goagent 的目标是让学生下一盘棋真的多看一步。
+        </p>
+      </div>
+      <ul class="feature-list">
+        <li>事实判断交给 KataGo，不让 LLM 猜胜率、坐标和 PV。</li>
+        <li>强匹配才明确说定式、死活型或手筋；相似局面只说“像”。</li>
+        <li>老师回答可引用棋盘手数和坐标，帮助用户快速回到局面。</li>
+        <li>学生画像记录高频问题，让后续复盘越来越贴近个人弱点。</li>
+      </ul>
     </div>
   </section>
 
   <section>
     <div class="section-head">
-      <h2>为认真复盘设计</h2>
-      <p>不是普通聊天，也不是单纯胜率图。goagent 把引擎证据、知识库和老师表达连接起来。</p>
+      <h2>功能亮点</h2>
+      <p>不是普通 AI 聊天，也不是单纯胜率图。goagent 把引擎证据、知识库和老师表达连接起来。</p>
     </div>
     <div class="grid three">
-      {features.map(([title, text]) => (
-        <article class="card">
+      {features.map(([title, text, accent]) => (
+        <article class={`card ${accent}`}>
           <h3>{title}</h3>
           <p>{text}</p>
         </article>
       ))}
-      <article class="card">
-        <h3>多平台发布</h3>
-        <p>提供 Windows 标准版、Windows NVIDIA 版和 macOS 版。下载文件托管在 GitHub Releases。</p>
-      </article>
     </div>
   </section>
 
@@ -104,15 +169,33 @@ const downloads = [
   <section>
     <div class="section-head">
       <h2>产品截图</h2>
-      <p>第一版官网先保留轻量占位卡片，不提交大图。正式截图会随后放入 `website/public/screenshots/`。</p>
+      <p>官网先用轻量产品 mock 展示核心体验，不提交大型截图。正式截图可后续放入 `website/public/screenshots/`。</p>
     </div>
-    <div class="grid four grid two">
-      {['棋盘与胜率图', '右侧 AI 老师会话', '区间复盘', '棋形识别证据'].map((item) => (
-        <article class="card screenshot-card">
-          <h3>{item}</h3>
-          <p>Screenshot placeholder</p>
-        </article>
-      ))}
+    <div class="grid four">
+      <article class="product-shot">
+        <div class="shot-toolbar"><span>Board</span><span>候选点</span></div>
+        <div class="shot-content"><div class="shot-board"></div></div>
+      </article>
+      <article class="product-shot">
+        <div class="shot-toolbar"><span>Teacher</span><span>tool trace</span></div>
+        <div class="shot-content shot-chat">
+          <div class="shot-bubble">读取棋谱</div>
+          <div class="shot-bubble">KataGo 当前局面</div>
+          <div class="shot-bubble">这手的问题不是形状，而是先后手。</div>
+        </div>
+      </article>
+      <article class="product-shot">
+        <div class="shot-toolbar"><span>Range Review</span><span>12-48 手</span></div>
+        <div class="shot-content"><div class="shot-timeline"></div><div class="shot-bubble">转折点：第 37 手</div></div>
+      </article>
+      <article class="product-shot">
+        <div class="shot-toolbar"><span>Evidence</span><span>shape</span></div>
+        <div class="shot-content evidence-stack">
+          <span>定式相似：小目低挂</span>
+          <span>死活特征：眼位不足</span>
+          <span>训练题：倒扑 / 接不归</span>
+        </div>
+      </article>
     </div>
   </section>
 
@@ -121,12 +204,13 @@ const downloads = [
       <h2>下载</h2>
       <p>安装包不放在 Cloudflare Pages。请从 GitHub Releases 下载，并使用 SHA256SUMS.txt 校验。</p>
     </div>
-    <div class="grid two">
-      {downloads.map(([title, text]) => (
+    <div class="grid four">
+      {downloads.map(([title, audience, badge]) => (
         <article class="download-card">
           <h3>{title}</h3>
-          <p>{text}</p>
-          <a class="button" href={releasesUrl}>前往 GitHub Releases</a>
+          <p>{audience}</p>
+          <div class="download-meta"><span>{badge}</span><span>GitHub Releases</span></div>
+          <a class="button" href={releasesUrl}>查看下载</a>
         </article>
       ))}
     </div>
@@ -134,13 +218,14 @@ const downloads = [
 
   <section>
     <div class="privacy-panel">
+      <p class="eyebrow">Privacy by default</p>
       <h2>隐私默认站在用户这边</h2>
       <p>
-        棋谱和学生画像默认保存在本机，KataGo 在本机运行。只有当用户配置 LLM 或自定义 TTS API，并主动发起老师任务或朗读任务时，相关文本才会发送到用户配置的服务。默认不会上传用户棋谱。
+        棋谱、学生画像、老师会话和分析缓存默认保存在本机，KataGo 在本机运行。只有当用户配置 LLM 或自定义 TTS API，并主动发起老师任务或朗读任务时，相关文本才会发送到用户配置的服务。
       </p>
       <div class="button-row">
         <a class="button" href="/privacy">阅读隐私说明</a>
-        <a class="button" href="/docs">查看使用文档</a>
+        <a class="button" href={issuesUrl}>反馈问题</a>
       </div>
     </div>
   </section>

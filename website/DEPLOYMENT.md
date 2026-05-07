@@ -89,6 +89,7 @@ website/dist
 curl -I https://goagent.top/
 curl -I https://www.goagent.top/
 curl https://goagent.top/ | grep -i goagent
+curl https://goagent.top/sitemap.xml | grep -i goagent.top
 ```
 
 期望：
@@ -96,3 +97,5 @@ curl https://goagent.top/ | grep -i goagent
 - `https://goagent.top/` 返回 200。
 - `https://www.goagent.top/` 跳转到 `https://goagent.top/` 或正常展示同一站点。
 - 页面中包含 `goagent`、GitHub Releases 链接和隐私说明入口。
+
+如果 `dig goagent.top A` 返回 `198.18.*`，请先删除 Cloudflare DNS 中的占位 A 记录，再回到 Pages 项目的 Custom domains 重新激活 `goagent.top`。如果 `www.goagent.top` 返回 Cloudflare `530`，通常表示 DNS 到了 Cloudflare，但没有指向有效 Pages 部署或 custom domain 还未激活。

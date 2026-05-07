@@ -5,13 +5,21 @@ interface Props {
   title?: string
   description?: string
   canonical?: string
+  lang?: string
+  jsonLd?: Record<string, unknown>
 }
 
 const {
   title = 'goagent - 本地优先的围棋 AI 老师',
   description = 'goagent 是本地优先的围棋智能体：KataGo 负责事实，多模态 LLM 负责讲解，质量门禁负责防止编造。',
-  canonical = new URL(Astro.url.pathname, 'https://goagent.top').toString()
+  canonical = new URL(Astro.url.pathname, 'https://goagent.top').toString(),
+  lang = 'zh-CN',
+  jsonLd
 } = Astro.props
+
+const githubUrl = 'https://github.com/wimi321/GoAgent'
+const releasesUrl = `${githubUrl}/releases`
+const issuesUrl = `${githubUrl}/issues`
 
 const navItems = [
   { href: '/', label: '首页' },
@@ -21,9 +29,19 @@ const navItems = [
   { href: '/faq', label: 'FAQ' },
   { href: '/changelog', label: 'Changelog' }
 ]
+
+const languageItems = [
+  { href: '/', label: '简' },
+  { href: '/zh-hant', label: '繁' },
+  { href: '/en', label: 'EN' },
+  { href: '/ja', label: '日' },
+  { href: '/ko', label: '한' },
+  { href: '/th', label: 'TH' },
+  { href: '/vi', label: 'VI' }
+]
 ---
 <!doctype html>
-<html lang="zh-CN">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -35,36 +53,57 @@ const navItems = [
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content="https://goagent.top/logo.svg" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#f6efe2" />
+    <meta name="theme-color" content="#f7f8f5" />
+    <meta name="color-scheme" content="light" />
+    <link rel="alternate" hreflang="zh-CN" href="https://goagent.top/" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://goagent.top/zh-hant" />
+    <link rel="alternate" hreflang="en" href="https://goagent.top/en" />
+    <link rel="alternate" hreflang="ja" href="https://goagent.top/ja" />
+    <link rel="alternate" hreflang="ko" href="https://goagent.top/ko" />
+    <link rel="alternate" hreflang="th" href="https://goagent.top/th" />
+    <link rel="alternate" hreflang="vi" href="https://goagent.top/vi" />
+    <link rel="alternate" hreflang="x-default" href="https://goagent.top/" />
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/site.webmanifest" />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body>
+    <a class="skip-link" href="#content">跳到主要内容</a>
     <div class="site-shell">
       <header class="site-header">
         <a class="brand" href="/" aria-label="goagent home">
           <img src="/logo.svg" alt="" width="36" height="36" />
           <span>goagent</span>
+          <small>围棋智能体</small>
         </a>
         <nav aria-label="主导航">
           {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
-        <a class="header-cta" href="https://github.com/wimi321/GoAgent/releases">下载最新版</a>
+        <div class="header-actions">
+          <div class="language-switcher" aria-label="Language">
+            {languageItems.map((item) => <a href={item.href}>{item.label}</a>)}
+          </div>
+          <a class="header-cta" href={releasesUrl}>下载最新版</a>
+        </div>
       </header>
-      <main>
+      <main id="content">
         <slot />
       </main>
       <footer class="site-footer">
         <div>
           <strong>goagent</strong>
-          <p>本地优先的围棋 AI 老师。KataGo gives evidence. LLM explains.</p>
+          <p>围棋智能体。KataGo gives evidence. LLM explains. QA keeps it honest.</p>
+          <p class="community-line">QQ 交流群：1030632742</p>
         </div>
         <div class="footer-links">
-          <a href="https://github.com/wimi321/GoAgent">GitHub</a>
-          <a href="https://github.com/wimi321/GoAgent/releases">Releases</a>
-          <a href="https://github.com/wimi321/GoAgent/issues">Issues</a>
+          <a href={githubUrl}>GitHub</a>
+          <a href={releasesUrl}>Releases</a>
+          <a href={issuesUrl}>Issues</a>
           <a href="/privacy">Privacy</a>
-          <a href="https://github.com/wimi321/GoAgent/blob/main/LICENSE">License MIT</a>
+          <a href={`${githubUrl}/blob/main/LICENSE`}>License MIT</a>
         </div>
         <p class="copyright">Copyright © {new Date().getFullYear()} goagent contributors.</p>
       </footer>

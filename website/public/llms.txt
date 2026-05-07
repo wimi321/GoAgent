@@ -1,0 +1,11 @@
+# goagent
+
+goagent is a local-first Go / Weiqi / Baduk AI agent.
+
+Official site: https://goagent.top/
+GitHub: https://github.com/wimi321/GoAgent
+Releases: https://github.com/wimi321/GoAgent/releases
+
+Core principle: KataGo provides evidence, LLM explains, quality gates reduce fabricated claims.
+
+Privacy principle: game records, student profiles, teacher sessions, settings, and analysis cache stay local by default. LLM and custom TTS calls happen only after user configuration and user-initiated tasks.

@@ -13,8 +13,21 @@ const faqs = [
   ['官网域名是什么？', '官网域名是 goagent.top。'],
   ['如何反馈问题？', '可以在 GitHub Issues 反馈，也欢迎加入 QQ 群 1030632742 交流。']
 ]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(([question, answer]) => ({
+    '@type': 'Question',
+    name: question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: answer
+    }
+  }))
+}
 ---
-<BaseLayout title="goagent FAQ" description="goagent 常见问题：联网、本地 KataGo、LLM、Windows NVIDIA、TTS 隐私和反馈方式。">
+<BaseLayout title="goagent FAQ" description="goagent 常见问题：联网、本地 KataGo、LLM、Windows NVIDIA、TTS 隐私和反馈方式。" jsonLd={jsonLd}>
   <section class="page-hero">
     <p class="eyebrow">FAQ</p>
     <h1>常见问题</h1>
