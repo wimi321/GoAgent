@@ -1,6 +1,6 @@
-# goagent
+# GoAgent
 
-goagent is an open-source, free, professional Go / Weiqi / Baduk AI teacher.
+GoAgent is an open-source, free, professional Go / Weiqi / Baduk AI teacher.
 
 Official site: https://goagent.top/
 GitHub: https://github.com/wimi321/GoAgent

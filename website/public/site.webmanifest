@@ -1,6 +1,6 @@
 {
-  "name": "goagent",
-  "short_name": "goagent",
+  "name": "GoAgent",
+  "short_name": "GoAgent",
   "description": "开源免费的专业围棋智能体",
   "start_url": "/",
   "display": "standalone",

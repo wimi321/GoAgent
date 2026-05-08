@@ -1,5 +1,5 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">goagent logo</title>
+  <title id="title">GoAgent logo</title>
   <desc id="desc">A polished Go board tile with black and white stones and an AI sparkle.</desc>
   <defs>
     <linearGradient id="wood" x1="98" y1="72" x2="418" y2="432" gradientUnits="userSpaceOnUse">

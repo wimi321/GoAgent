@@ -3,7 +3,6 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 const releasesUrl = 'https://github.com/wimi321/GoAgent/releases'
 const githubUrl = 'https://github.com/wimi321/GoAgent'
-const issuesUrl = 'https://github.com/wimi321/GoAgent/issues'
 
 const boardMargin = 48
 const boardSpan = 664
@@ -51,11 +50,11 @@ const downloads = [
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'goagent',
+  name: 'GoAgent',
   alternateName: '围棋智能体',
   applicationCategory: 'EducationalApplication',
   operatingSystem: 'Windows, macOS',
-  description: 'goagent 是开源免费的专业围棋 AI 老师，结合 KataGo 和多模态 LLM 帮助用户看懂关键手。',
+  description: 'GoAgent 是开源免费的专业围棋 AI 老师，结合 KataGo 和多模态 LLM 帮助用户看懂关键手。',
   url: 'https://goagent.top/',
   codeRepository: githubUrl,
   license: `${githubUrl}/blob/main/LICENSE`,
@@ -68,8 +67,8 @@ const jsonLd = {
 }
 ---
 <BaseLayout
-  title="goagent - 开源免费的专业围棋 AI 老师"
-  description="goagent 是开源免费的专业围棋 AI 老师：导入棋谱，结合 KataGo 和多模态 LLM，把关键手讲成普通用户听得懂的话。"
+  title="GoAgent - 开源免费的专业围棋 AI 老师"
+  description="GoAgent 是开源免费的专业围棋 AI 老师：导入棋谱，结合 KataGo 和多模态 LLM，把关键手讲成普通用户听得懂的话。"
   jsonLd={jsonLd}
 >
   <section class="hero hero-premium">
@@ -78,7 +77,7 @@ const jsonLd = {
       <h1><span>让 AI 老师</span><span>把棋讲明白</span></h1>
       <p class="subtitle">导入棋谱，看懂关键手。</p>
       <p class="lead">
-        goagent 是一款免费的围棋智能体。它会看棋盘、看候选点、看变化，把“这手为什么亏”“好点好在哪里”“下一次该先看哪里”讲成人能听懂的话。
+        GoAgent 是一款免费的围棋智能体。它会看棋盘、看候选点、看变化，把“这手为什么亏”“好点好在哪里”“下一次该先看哪里”讲成人能听懂的话。
       </p>
       <div class="button-row">
         <a class="button primary" href={releasesUrl}>免费下载</a>
@@ -92,10 +91,10 @@ const jsonLd = {
       </div>
     </div>
 
-    <aside class="hero-visual hero-device" aria-label="goagent product preview">
+    <aside class="hero-visual hero-device" aria-label="GoAgent product preview">
       <div class="device-chrome">
         <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
-        <span>goagent · current move</span>
+        <span>GoAgent · current move</span>
       </div>
       <div class="device-body">
         <div class="board-panel">
@@ -187,7 +186,7 @@ const jsonLd = {
 
   <section>
     <div class="section-head centered">
-      <p class="eyebrow">How it works</p>
+      <p class="eyebrow">运作方式</p>
       <h2>三步看懂一盘棋</h2>
       <p>KataGo 负责事实，AI 老师负责讲解，质量检查负责减少乱讲。</p>
     </div>
@@ -210,10 +209,10 @@ const jsonLd = {
   <section>
     <div class="section-head">
       <div>
-        <p class="eyebrow">Product</p>
+        <p class="eyebrow">产品</p>
         <h2>做给普通棋友用，也给认真学棋的人用。</h2>
       </div>
-      <p>不用被一整盘胜率图淹没。goagent 会把关键手、候选点和老师解释放在同一个工作台里。</p>
+      <p>不用被一整盘胜率图淹没。GoAgent 会把关键手、候选点和老师解释放在同一个工作台里。</p>
     </div>
     <div class="grid three">
       {features.map(([title, text]) => (
@@ -228,7 +227,7 @@ const jsonLd = {
   <section>
     <div class="feature-panel premium-panel">
       <div>
-        <p class="eyebrow">Teacher style</p>
+        <p class="eyebrow">老师风格</p>
         <h2>常规定式少讲，中盘战多讲。</h2>
         <p>
           真正的老师不会每手都长篇大论。正常定式简单点到；出现分支就讲选择条件；进入中盘战、攻杀和转换，才展开说目的、应手、变化和实战损失。
@@ -246,7 +245,7 @@ const jsonLd = {
   <section>
     <div class="section-head">
       <div>
-        <p class="eyebrow">Download</p>
+        <p class="eyebrow">下载</p>
         <h2>免费下载桌面版</h2>
       </div>
       <p>安装包放在 GitHub Releases。官网保持轻量，下载前可查看 SHA256SUMS.txt。</p>
@@ -262,15 +261,4 @@ const jsonLd = {
     </div>
   </section>
 
-  <section class="privacy-panel">
-    <p class="eyebrow">Trust</p>
-    <h2>默认不把你的棋谱上传到项目服务器。</h2>
-    <p>
-      棋谱、学生画像、老师会话和分析缓存默认保存在用户电脑里。只有当你配置 LLM 或自定义 TTS API，并主动发起任务时，相关内容才会发送到你选择的服务。
-    </p>
-    <div class="button-row">
-      <a class="button" href="/privacy">阅读隐私说明</a>
-      <a class="button" href={issuesUrl}>反馈问题</a>
-    </div>
-  </section>
 </BaseLayout>

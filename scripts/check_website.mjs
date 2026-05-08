@@ -49,9 +49,10 @@ const deployment = read('website/DEPLOYMENT.md')
 const sitemap = read('website/public/sitemap.xml')
 const manifest = read('website/public/site.webmanifest')
 
-if (!index.toLowerCase().includes('goagent')) fail('homepage must contain goagent')
+if (!index.includes('GoAgent')) fail('homepage must contain GoAgent')
 if (!index.includes('https://github.com/wimi321/GoAgent/releases')) fail('homepage must link GitHub Releases')
 if (!index.includes('QQ 1030632742')) fail('homepage must expose QQ community')
+if (index.includes('Trust')) fail('homepage should not include Trust section')
 for (const keyword of ['本地', 'LLM', 'TTS']) {
   if (!privacy.includes(keyword)) fail(`privacy page must contain ${keyword}`)
 }
@@ -61,7 +62,7 @@ for (const keyword of ['Cloudflare Pages', 'Spaceship', 'goagent.top']) {
 for (const keyword of ['https://goagent.top/', 'https://goagent.top/en', 'https://goagent.top/zh-hant']) {
   if (!sitemap.includes(keyword)) fail(`sitemap.xml must contain ${keyword}`)
 }
-if (!manifest.includes('"name": "goagent"')) fail('site.webmanifest must name goagent')
+if (!manifest.includes('"name": "GoAgent"')) fail('site.webmanifest must name GoAgent')
 
 for (const path of walk(join(websiteRoot, 'public'))) {
   if (/\.(exe|dmg|zip|tar\.gz)$/i.test(path)) fail(`website public must not contain installer/archive: ${path}`)

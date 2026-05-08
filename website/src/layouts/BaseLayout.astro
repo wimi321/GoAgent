@@ -10,8 +10,8 @@ interface Props {
 }
 
 const {
-  title = 'goagent - 开源免费的专业围棋 AI 老师',
-  description = 'goagent 是开源免费的专业围棋智能体：KataGo 负责事实，多模态 LLM 负责讲解，帮助棋友看懂关键手。',
+  title = 'GoAgent - 开源免费的专业围棋 AI 老师',
+  description = 'GoAgent 是开源免费的专业围棋智能体：KataGo 负责事实，多模态 LLM 负责讲解，帮助棋友看懂关键手。',
   canonical = new URL(Astro.url.pathname, 'https://goagent.top').toString(),
   lang = 'zh-CN',
   jsonLd
@@ -21,14 +21,161 @@ const githubUrl = 'https://github.com/wimi321/GoAgent'
 const releasesUrl = `${githubUrl}/releases`
 const issuesUrl = `${githubUrl}/issues`
 
-const navItems = [
-  { href: '/', label: '首页' },
-  { href: '/download', label: '下载' },
-  { href: '/docs', label: '文档' },
-  { href: '/privacy', label: '隐私' },
-  { href: '/faq', label: 'FAQ' },
-  { href: '/changelog', label: 'Changelog' }
-]
+const homeByLang = {
+  'zh-CN': '/',
+  'zh-Hant': '/zh-hant',
+  en: '/en',
+  ja: '/ja',
+  ko: '/ko',
+  th: '/th',
+  vi: '/vi'
+} as const
+
+const copyByLang = {
+  'zh-CN': {
+    skip: '跳到主要内容',
+    brandSub: '围棋智能体',
+    nav: {
+      home: '首页',
+      download: '下载',
+      docs: '文档',
+      privacy: '隐私',
+      faq: 'FAQ',
+      changelog: '更新'
+    },
+    cta: '下载',
+    footer: '开源免费的围棋智能体。KataGo 给证据，AI 老师讲清楚。',
+    community: 'QQ 交流群：1030632742',
+    privacy: '隐私',
+    copyright: 'GoAgent contributors'
+  },
+  'zh-Hant': {
+    skip: '跳到主要內容',
+    brandSub: '圍棋智能體',
+    nav: {
+      home: '首頁',
+      download: '下載',
+      docs: '文檔',
+      privacy: '隱私',
+      faq: 'FAQ',
+      changelog: '更新'
+    },
+    cta: '下載',
+    footer: '開源免費的圍棋智能體。KataGo 給證據，AI 老師講清楚。',
+    community: 'QQ 交流群：1030632742',
+    privacy: '隱私',
+    copyright: 'GoAgent contributors'
+  },
+  en: {
+    skip: 'Skip to content',
+    brandSub: 'Go AI agent',
+    nav: {
+      home: 'Home',
+      download: 'Download',
+      docs: 'Guide',
+      privacy: 'Privacy',
+      faq: 'FAQ',
+      changelog: 'Updates'
+    },
+    cta: 'Download',
+    footer: 'Open-source and free Go AI teacher. KataGo gives evidence. AI explains clearly.',
+    community: 'QQ community: 1030632742',
+    privacy: 'Privacy',
+    copyright: 'GoAgent contributors'
+  },
+  ja: {
+    skip: '本文へ移動',
+    brandSub: '囲碁 AI エージェント',
+    nav: {
+      home: 'ホーム',
+      download: 'ダウンロード',
+      docs: 'ガイド',
+      privacy: 'プライバシー',
+      faq: 'FAQ',
+      changelog: '更新'
+    },
+    cta: 'ダウンロード',
+    footer: 'オープンソースで無料の囲碁 AI 先生。KataGo が根拠を出し、AI がわかりやすく説明します。',
+    community: 'QQ コミュニティ：1030632742',
+    privacy: 'プライバシー',
+    copyright: 'GoAgent contributors'
+  },
+  ko: {
+    skip: '본문으로 이동',
+    brandSub: '바둑 AI 에이전트',
+    nav: {
+      home: '홈',
+      download: '다운로드',
+      docs: '가이드',
+      privacy: '개인정보',
+      faq: 'FAQ',
+      changelog: '업데이트'
+    },
+    cta: '다운로드',
+    footer: '오픈소스 무료 바둑 AI 선생님. KataGo가 근거를 제시하고 AI가 쉽게 설명합니다.',
+    community: 'QQ 커뮤니티: 1030632742',
+    privacy: '개인정보',
+    copyright: 'GoAgent contributors'
+  },
+  th: {
+    skip: 'ไปยังเนื้อหา',
+    brandSub: 'เอเจนต์ AI หมากล้อม',
+    nav: {
+      home: 'หน้าแรก',
+      download: 'ดาวน์โหลด',
+      docs: 'คู่มือ',
+      privacy: 'ความเป็นส่วนตัว',
+      faq: 'FAQ',
+      changelog: 'อัปเดต'
+    },
+    cta: 'ดาวน์โหลด',
+    footer: 'ครู AI หมากล้อมแบบโอเพนซอร์สและฟรี KataGo ให้หลักฐาน ส่วน AI อธิบายให้เข้าใจง่าย',
+    community: 'ชุมชน QQ: 1030632742',
+    privacy: 'ความเป็นส่วนตัว',
+    copyright: 'GoAgent contributors'
+  },
+  vi: {
+    skip: 'Chuyển tới nội dung',
+    brandSub: 'AI agent cờ vây',
+    nav: {
+      home: 'Trang chủ',
+      download: 'Tải xuống',
+      docs: 'Hướng dẫn',
+      privacy: 'Riêng tư',
+      faq: 'FAQ',
+      changelog: 'Cập nhật'
+    },
+    cta: 'Tải xuống',
+    footer: 'Giáo viên AI cờ vây mã nguồn mở và miễn phí. KataGo đưa bằng chứng, AI giải thích rõ ràng.',
+    community: 'Cộng đồng QQ: 1030632742',
+    privacy: 'Riêng tư',
+    copyright: 'GoAgent contributors'
+  }
+} as const
+
+type SiteLang = keyof typeof copyByLang
+const siteLang = (lang in copyByLang ? lang : 'zh-CN') as SiteLang
+const copy = copyByLang[siteLang]
+const homeHref = homeByLang[siteLang]
+const isChineseMain = siteLang === 'zh-CN'
+
+const navItems = isChineseMain
+  ? [
+      { href: '/', label: copy.nav.home },
+      { href: '/download', label: copy.nav.download },
+      { href: '/docs', label: copy.nav.docs },
+      { href: '/privacy', label: copy.nav.privacy },
+      { href: '/faq', label: copy.nav.faq },
+      { href: '/changelog', label: copy.nav.changelog }
+    ]
+  : [
+      { href: homeHref, label: copy.nav.home },
+      { href: `${homeHref}#download`, label: copy.nav.download },
+      { href: `${homeHref}#how`, label: copy.nav.docs },
+      { href: '/privacy', label: copy.nav.privacy },
+      { href: '/faq', label: copy.nav.faq },
+      { href: '/changelog', label: copy.nav.changelog }
+    ]
 
 const languageItems = [
   { href: '/', label: '简' },
@@ -71,22 +218,22 @@ const languageItems = [
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body>
-    <a class="skip-link" href="#content">跳到主要内容</a>
+    <a class="skip-link" href="#content">{copy.skip}</a>
     <div class="site-shell">
       <header class="site-header">
-        <a class="brand" href="/" aria-label="goagent home">
+        <a class="brand" href={homeHref} aria-label="GoAgent home">
           <img src="/logo.svg" alt="" width="36" height="36" />
-          <span>goagent</span>
-          <small>围棋智能体</small>
+          <span>GoAgent</span>
+          <small>{copy.brandSub}</small>
         </a>
-        <nav aria-label="主导航">
+        <nav aria-label={copy.nav.home}>
           {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
         <div class="header-actions">
           <div class="language-switcher" aria-label="Language">
             {languageItems.map((item) => <a href={item.href}>{item.label}</a>)}
           </div>
-          <a class="header-cta" href={releasesUrl}>下载最新版</a>
+          <a class="header-cta" href={releasesUrl}>{copy.cta}</a>
         </div>
       </header>
       <main id="content">
@@ -94,18 +241,18 @@ const languageItems = [
       </main>
       <footer class="site-footer">
         <div>
-          <strong>goagent</strong>
-          <p>开源免费的围棋智能体。KataGo gives evidence. LLM explains.</p>
-          <p class="community-line">QQ 交流群：1030632742</p>
+          <strong>GoAgent</strong>
+          <p>{copy.footer}</p>
+          <p class="community-line">{copy.community}</p>
         </div>
         <div class="footer-links">
           <a href={githubUrl}>GitHub</a>
           <a href={releasesUrl}>Releases</a>
           <a href={issuesUrl}>Issues</a>
-          <a href="/privacy">Privacy</a>
+          <a href="/privacy">{copy.privacy}</a>
           <a href={`${githubUrl}/blob/main/LICENSE`}>License MIT</a>
         </div>
-        <p class="copyright">Copyright © {new Date().getFullYear()} goagent contributors.</p>
+        <p class="copyright">Copyright © {new Date().getFullYear()} {copy.copyright}.</p>
       </footer>
     </div>
   </body>

@@ -922,7 +922,15 @@ section {
   }
 
   .language-switcher {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .language-switcher a {
+    flex: 0 0 auto;
+    min-width: 26px;
+    padding-inline: 6px;
   }
 
   .hero {

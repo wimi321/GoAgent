@@ -7,63 +7,243 @@ const githubUrl = 'https://github.com/wimi321/GoAgent'
 const locales = {
   'zh-hant': {
     lang: 'zh-Hant',
-    title: 'goagent - 開源免費的專業圍棋 AI 老師',
-    eyebrow: '圍棋智能體',
-    headline: '開源免費的專業圍棋 AI 老師',
-    body: 'goagent 會看棋盤、看候選點、看變化，把關鍵手講成普通棋友聽得懂的話。',
-    cards: ['開源透明', '免費下載', 'KataGo 負責事實', 'LLM 像老師一樣講解'],
-    download: '下載最新版',
-    docs: '閱讀中文文檔'
+    title: 'GoAgent - 開源免費的專業圍棋 AI 老師',
+    description: 'GoAgent 會看棋盤、看候選點、看變化，把關鍵手講成普通棋友聽得懂的話。',
+    eyebrow: '開源 · 免費 · 專業',
+    headline: '讓 AI 老師把棋講明白',
+    body: 'GoAgent 是免費的圍棋智能體。導入棋譜後，它會結合 KataGo 證據和 AI 老師講解，幫你看懂問題手、好點和下一次的判斷順序。',
+    primary: '免費下載',
+    secondary: '查看開源代碼',
+    guide: '快速開始',
+    valueCards: [
+      ['開源', '代碼公開在 GitHub，路線透明，歡迎一起完善。'],
+      ['免費', '桌面安裝包免費下載，普通棋友也能直接試用。'],
+      ['專業', 'KataGo 給證據，AI 老師把關鍵手講清楚。']
+    ],
+    workflowEyebrow: '運作方式',
+    workflowTitle: '三步看懂一盤棋',
+    workflowBody: 'KataGo 負責事實，AI 老師負責講解，品質檢查負責減少亂講。',
+    workflow: [
+      ['導入棋譜', '導入 SGF 或選擇棋譜，定位當前手、關鍵區間和雙方資訊。'],
+      ['找出關鍵手', '用勝率曲線、候選點、目差、PV 和問題手縮小復盤範圍。'],
+      ['聽懂講解', 'AI 老師結合棋盤、KataGo 和知識庫，用人話說清楚。']
+    ],
+    featureTitle: '給普通棋友用，也給認真學棋的人用',
+    productEyebrow: '產品',
+    featureBody: '不要被一整盤勝率圖淹沒。GoAgent 會把關鍵手、候選點和老師解釋放在同一個工作台。',
+    features: [
+      ['當前手講解', '點一手棋，看候選點、勝率差、PV 和老師解釋。'],
+      ['區間復盤', '只看一段關鍵手，快速找出轉折點。'],
+      ['棋形識別', '識別常見定式、死活、手筋和形狀，不硬套名字。']
+    ],
+    teacherEyebrow: '老師風格',
+    teacherTitle: '常規定式少講，中盤戰多講',
+    teacherBody: '正常定式簡單點到；出現分支就講選擇條件；進入中盤戰、攻殺和轉換，才展開說目的、應手、變化和損失。',
+    teacherPoints: ['常見定式正常進行時，只講一句方向。', '局部分支出現時，列關鍵變化。', '明顯虧損時，講實戰想法為什麼能理解，又虧在哪裡。'],
+    downloadEyebrow: '下載',
+    downloadTitle: '免費下載桌面版',
+    downloadBody: '安裝包放在 GitHub Releases。下載前可查看 SHA256SUMS.txt。',
+    downloadCards: [['Windows x64 標準版', '普通 Windows 用戶首選'], ['Windows x64 NVIDIA 版', 'NVIDIA 顯卡用戶'], ['macOS Apple Silicon', 'M 系列 Mac'], ['macOS Intel', 'Intel Mac']]
   },
   en: {
     lang: 'en',
-    title: 'goagent - Open-source professional Go AI teacher',
-    eyebrow: 'Go / Weiqi / Baduk AI Agent',
-    headline: 'An open-source, free, professional Go AI teacher',
-    body: 'goagent reads the board, checks candidate moves and variations, then explains key moves in plain language.',
-    cards: ['Open source', 'Free download', 'KataGo provides evidence', 'LLM explains like a teacher'],
-    download: 'Download latest',
-    docs: 'Read Chinese docs'
+    title: 'GoAgent - Open-source, free, professional Go AI teacher',
+    description: 'GoAgent reads the board, checks candidate moves and variations, then explains key moves in plain language.',
+    eyebrow: 'Open-source · Free · Professional',
+    headline: 'Let an AI teacher explain the game clearly',
+    body: 'GoAgent is a free Go AI agent. Import a game record, and it combines KataGo evidence with an AI teacher so you can understand mistakes, better moves, and what to check next time.',
+    primary: 'Download free',
+    secondary: 'View source',
+    guide: 'Quick start',
+    valueCards: [
+      ['Open source', 'The code is public on GitHub, with a transparent roadmap and community feedback.'],
+      ['Free', 'Desktop builds are free to download for regular players and teachers.'],
+      ['Professional', 'KataGo provides evidence; the AI teacher explains the key move clearly.']
+    ],
+    workflowEyebrow: 'How it works',
+    workflowTitle: 'Understand a game in three steps',
+    workflowBody: 'KataGo judges the facts, the AI teacher explains, and quality checks reduce hallucinations.',
+    workflow: [
+      ['Import a game', 'Load an SGF or pick a record, then locate the current move and key range.'],
+      ['Find key moves', 'Use the winrate graph, candidates, score, PV, and mistake list to narrow the review.'],
+      ['Understand the lesson', 'The teacher combines the board, KataGo evidence, and knowledge base into plain language.']
+    ],
+    featureTitle: 'Simple for casual players, useful for serious study',
+    productEyebrow: 'Product',
+    featureBody: 'Do not drown in a full-game winrate graph. GoAgent puts key moves, candidates, and teacher explanations in one workspace.',
+    features: [
+      ['Current-move explanation', 'Click one move to see candidates, winrate loss, PV, and teacher commentary.'],
+      ['Range review', 'Focus on a segment and quickly find the turning point.'],
+      ['Shape recognition', 'Recognize joseki, life-and-death, tesuji, and shape patterns without overclaiming.']
+    ],
+    teacherEyebrow: 'Teacher style',
+    teacherTitle: 'Brief on normal joseki, detailed in fights',
+    teacherBody: 'A good teacher does not talk equally long on every move. Normal joseki gets a short note; branches get key variations; fights and big losses get purpose, replies, variations, and result.',
+    teacherPoints: ['Keep normal joseki short.', 'Show key variations when a branch appears.', 'Explain why the played idea made sense and where it lost value.'],
+    downloadEyebrow: 'Download',
+    downloadTitle: 'Download the desktop app for free',
+    downloadBody: 'Installers are hosted on GitHub Releases. Check SHA256SUMS.txt before installing.',
+    downloadCards: [['Windows x64 Standard', 'Best for most Windows users'], ['Windows x64 NVIDIA', 'For NVIDIA GPU users'], ['macOS Apple Silicon', 'For M-series Macs'], ['macOS Intel', 'For Intel Macs']]
   },
   ja: {
     lang: 'ja',
-    title: 'goagent - オープンソースで無料の囲碁 AI 先生',
-    eyebrow: '囲碁 AI エージェント',
-    headline: 'オープンソースで無料のプロ向け囲碁 AI 先生',
-    body: 'goagent は盤面、候補手、変化を見て、重要な一手をわかりやすく説明します。',
-    cards: ['オープンソース', '無料ダウンロード', 'KataGo が根拠を出す', 'LLM が先生のように説明'],
-    download: '最新版をダウンロード',
-    docs: '中国語ドキュメント'
+    title: 'GoAgent - オープンソースで無料のプロ向け囲碁 AI 先生',
+    description: 'GoAgent は盤面、候補手、変化を見て、重要な一手をわかりやすく説明します。',
+    eyebrow: 'オープンソース · 無料 · プロ品質',
+    headline: 'AI 先生が一手の意味をわかりやすく説明',
+    body: 'GoAgent は無料の囲碁 AI エージェントです。棋譜を読み込み、KataGo の根拠と AI 先生の解説を組み合わせて、悪手、好手、次に見るべき点を整理します。',
+    primary: '無料ダウンロード',
+    secondary: 'ソースを見る',
+    guide: 'クイックスタート',
+    valueCards: [
+      ['オープンソース', 'コードは GitHub で公開され、改善の流れも見えます。'],
+      ['無料', 'デスクトップ版を無料でダウンロードできます。'],
+      ['プロ品質', 'KataGo が根拠を出し、AI 先生が重要な一手を説明します。']
+    ],
+    workflowEyebrow: '仕組み',
+    workflowTitle: '三つのステップで棋譜を理解',
+    workflowBody: 'KataGo が事実を判断し、AI 先生が説明し、品質チェックが誤った断定を減らします。',
+    workflow: [
+      ['棋譜を読み込む', 'SGF を読み込み、現在の手と重要な区間を確認します。'],
+      ['重要な手を探す', '勝率グラフ、候補手、目差、PV、問題手で復盤範囲を絞ります。'],
+      ['解説を聞く', '盤面、KataGo、知識ベースをもとに、自然な言葉で説明します。']
+    ],
+    featureTitle: '気軽な学習にも、本格的な復盤にも',
+    productEyebrow: 'プロダクト',
+    featureBody: 'GoAgent は重要な手、候補手、先生の説明を一つのワークスペースにまとめます。',
+    features: [
+      ['現在手の解説', '一手を選ぶと、候補手、勝率差、PV、先生の解説を確認できます。'],
+      ['区間復盤', '区間を絞って勝負所を素早く見つけます。'],
+      ['形の認識', '定石、死活、手筋、形を認識し、無理に名前を断定しません。']
+    ],
+    teacherEyebrow: '先生の話し方',
+    teacherTitle: '普通の定石は短く、戦いは詳しく',
+    teacherBody: '普通の定石は一言で十分。分岐では重要な変化を示し、中盤の戦いや大きな損では目的、応手、変化、結果を説明します。',
+    teacherPoints: ['普通の定石は短く説明。', '分岐では重要な変化を示す。', '実戦の狙いと損した理由を分けて説明。'],
+    downloadEyebrow: 'ダウンロード',
+    downloadTitle: 'デスクトップ版を無料ダウンロード',
+    downloadBody: 'インストーラは GitHub Releases で配布します。SHA256SUMS.txt で確認できます。',
+    downloadCards: [['Windows x64 標準版', '多くの Windows ユーザー向け'], ['Windows x64 NVIDIA 版', 'NVIDIA GPU ユーザー向け'], ['macOS Apple Silicon', 'M シリーズ Mac 向け'], ['macOS Intel', 'Intel Mac 向け']]
   },
   ko: {
     lang: 'ko',
-    title: 'goagent - 오픈소스 무료 전문 바둑 AI 선생님',
-    eyebrow: '바둑 AI 에이전트',
-    headline: '오픈소스 무료 전문 바둑 AI 선생님',
-    body: 'goagent는 바둑판, 후보수, 변화도를 보고 핵심 수를 이해하기 쉬운 말로 설명합니다.',
-    cards: ['오픈소스', '무료 다운로드', 'KataGo가 근거 제공', 'LLM이 선생님처럼 설명'],
-    download: '최신 버전 다운로드',
-    docs: '중국어 문서'
+    title: 'GoAgent - 오픈소스 무료 전문 바둑 AI 선생님',
+    description: 'GoAgent는 바둑판, 후보수, 변화도를 보고 핵심 수를 이해하기 쉬운 말로 설명합니다.',
+    eyebrow: '오픈소스 · 무료 · 전문',
+    headline: 'AI 선생님이 바둑을 쉽게 설명합니다',
+    body: 'GoAgent는 무료 바둑 AI 에이전트입니다. 기보를 불러오면 KataGo 근거와 AI 설명을 결합해 실수, 더 좋은 수, 다음에 볼 포인트를 정리합니다.',
+    primary: '무료 다운로드',
+    secondary: '소스 보기',
+    guide: '빠른 시작',
+    valueCards: [
+      ['오픈소스', '코드는 GitHub에 공개되어 있고 로드맵도 투명합니다.'],
+      ['무료', '데스크톱 설치 파일을 무료로 받을 수 있습니다.'],
+      ['전문적', 'KataGo가 근거를 제공하고 AI 선생님이 핵심 수를 설명합니다.']
+    ],
+    workflowEyebrow: '작동 방식',
+    workflowTitle: '세 단계로 한 판을 이해하기',
+    workflowBody: 'KataGo는 사실을 판단하고, AI 선생님은 설명하며, 품질 검사가 허위 설명을 줄입니다.',
+    workflow: [
+      ['기보 불러오기', 'SGF를 불러오거나 기보를 선택해 현재 수와 주요 구간을 찾습니다.'],
+      ['핵심 수 찾기', '승률 그래프, 후보수, 집 차이, PV, 문제수 목록으로 복기 범위를 좁힙니다.'],
+      ['설명 이해하기', '바둑판, KataGo, 지식 베이스를 바탕으로 자연스럽게 설명합니다.']
+    ],
+    featureTitle: '가볍게 배우는 사람에게도, 진지한 복기에도',
+    productEyebrow: '제품',
+    featureBody: 'GoAgent는 핵심 수, 후보수, 선생님의 설명을 하나의 작업 공간에 모읍니다.',
+    features: [
+      ['현재 수 설명', '한 수를 클릭하면 후보수, 승률 손실, PV, 설명을 확인합니다.'],
+      ['구간 복기', '구간을 좁혀 승부처를 빠르게 찾습니다.'],
+      ['형태 인식', '정석, 사활, 수근, 모양을 인식하되 무리하게 단정하지 않습니다.']
+    ],
+    teacherEyebrow: '설명 방식',
+    teacherTitle: '보통 정석은 짧게, 전투는 자세히',
+    teacherBody: '정상적인 정석 진행은 짧게, 분기는 핵심 변화 위주로, 중반 전투와 큰 손실은 목적·응수·변화·결과까지 설명합니다.',
+    teacherPoints: ['일반 정석은 짧게 설명합니다.', '분기가 나오면 핵심 변화를 보여줍니다.', '실전 의도와 손실 이유를 나눠 설명합니다.'],
+    downloadEyebrow: '다운로드',
+    downloadTitle: '데스크톱 앱 무료 다운로드',
+    downloadBody: '설치 파일은 GitHub Releases에서 제공합니다. 설치 전 SHA256SUMS.txt를 확인하세요.',
+    downloadCards: [['Windows x64 Standard', '대부분의 Windows 사용자에게 적합'], ['Windows x64 NVIDIA', 'NVIDIA GPU 사용자용'], ['macOS Apple Silicon', 'M 시리즈 Mac용'], ['macOS Intel', 'Intel Mac용']]
   },
   th: {
     lang: 'th',
-    title: 'goagent - ครู AI หมากล้อมมืออาชีพแบบโอเพนซอร์ส',
-    eyebrow: 'Go / Weiqi / Baduk AI Agent',
-    headline: 'ครู AI หมากล้อมมืออาชีพ ฟรี และโอเพนซอร์ส',
-    body: 'goagent อ่านกระดาน ดูตัวเลือกและลำดับต่อเนื่อง แล้วอธิบายจุดสำคัญด้วยภาษาที่เข้าใจง่าย',
-    cards: ['โอเพนซอร์ส', 'ดาวน์โหลดฟรี', 'KataGo ให้หลักฐาน', 'LLM อธิบายเหมือนครู'],
-    download: 'ดาวน์โหลดเวอร์ชันล่าสุด',
-    docs: 'อ่านเอกสารภาษาจีน'
+    title: 'GoAgent - ครู AI หมากล้อมมืออาชีพ ฟรี และโอเพนซอร์ส',
+    description: 'GoAgent อ่านกระดาน ดูตัวเลือกและลำดับต่อเนื่อง แล้วอธิบายจุดสำคัญด้วยภาษาที่เข้าใจง่าย',
+    eyebrow: 'โอเพนซอร์ส · ฟรี · มืออาชีพ',
+    headline: 'ให้ครู AI อธิบายหมากให้เข้าใจง่าย',
+    body: 'GoAgent คือ AI agent สำหรับหมากล้อมแบบใช้ฟรี นำเข้าคีฟู แล้วใช้หลักฐานจาก KataGo ร่วมกับคำอธิบายของ AI เพื่อช่วยให้เข้าใจจุดพลาด จุดที่ดีกว่า และสิ่งที่ควรดูในครั้งต่อไป',
+    primary: 'ดาวน์โหลดฟรี',
+    secondary: 'ดูซอร์สโค้ด',
+    guide: 'เริ่มต้นเร็ว',
+    valueCards: [
+      ['โอเพนซอร์ส', 'โค้ดเปิดบน GitHub และรับข้อเสนอแนะจากชุมชน'],
+      ['ฟรี', 'ดาวน์โหลดแอปเดสก์ท็อปได้ฟรี'],
+      ['มืออาชีพ', 'KataGo ให้หลักฐาน ส่วน AI ช่วยอธิบายหมากสำคัญ']
+    ],
+    workflowEyebrow: 'วิธีทำงาน',
+    workflowTitle: 'เข้าใจหนึ่งเกมในสามขั้นตอน',
+    workflowBody: 'KataGo ดูข้อเท็จจริง AI อธิบาย และการตรวจคุณภาพช่วยลดการเดา',
+    workflow: [
+      ['นำเข้าคีฟู', 'เปิดไฟล์ SGF หรือเลือกเกม แล้วระบุตำแหน่งหมากและช่วงสำคัญ'],
+      ['หาหมากสำคัญ', 'ใช้กราฟชนะ ตัวเลือก คะแนน PV และรายการปัญหาเพื่อลดขอบเขตการทบทวน'],
+      ['ฟังคำอธิบาย', 'AI รวมกระดาน KataGo และฐานความรู้ แล้วอธิบายให้อ่านง่าย']
+    ],
+    featureTitle: 'ง่ายสำหรับผู้เล่นทั่วไป และมีประโยชน์สำหรับการฝึกจริงจัง',
+    productEyebrow: 'ผลิตภัณฑ์',
+    featureBody: 'GoAgent รวมหมากสำคัญ ตัวเลือก และคำอธิบายของครูไว้ในพื้นที่เดียว',
+    features: [
+      ['อธิบายหมากปัจจุบัน', 'คลิกหมากหนึ่งตาเพื่อดูตัวเลือก การเสียเปอร์เซ็นต์ PV และคำอธิบาย'],
+      ['ทบทวนช่วงเกม', 'เลือกช่วงที่สนใจเพื่อหาจุดเปลี่ยนอย่างรวดเร็ว'],
+      ['รู้จำรูปหมาก', 'ช่วยรู้จำ joseki, life-and-death, tesuji และ shape โดยไม่ฟันธงเกินหลักฐาน']
+    ],
+    teacherEyebrow: 'สไตล์ครู',
+    teacherTitle: 'รูปปกติพูดสั้น เกมต่อสู้พูดละเอียด',
+    teacherBody: 'ถ้าเป็น joseki ปกติจะอธิบายสั้น ๆ ถ้ามีสาขาจะชี้ตัวเลือกสำคัญ และถ้าเป็นการต่อสู้หรือเสียมากจะอธิบายเป้าหมาย คำตอบ ลำดับต่อ และผลลัพธ์',
+    teacherPoints: ['รูปปกติอธิบายสั้นและตรงจุด', 'เมื่อมีสาขาให้ดู variation สำคัญ', 'แยกเจตนาของหมากจริงออกจากเหตุผลที่เสีย'],
+    downloadEyebrow: 'ดาวน์โหลด',
+    downloadTitle: 'ดาวน์โหลดแอปเดสก์ท็อปฟรี',
+    downloadBody: 'ไฟล์ติดตั้งอยู่บน GitHub Releases และมี SHA256SUMS.txt ให้ตรวจสอบ',
+    downloadCards: [['Windows x64 Standard', 'เหมาะกับผู้ใช้ Windows ส่วนใหญ่'], ['Windows x64 NVIDIA', 'สำหรับผู้ใช้การ์ดจอ NVIDIA'], ['macOS Apple Silicon', 'สำหรับ Mac ชิป M'], ['macOS Intel', 'สำหรับ Intel Mac']]
   },
   vi: {
     lang: 'vi',
-    title: 'goagent - Giáo viên AI cờ vây chuyên nghiệp, miễn phí, mã nguồn mở',
-    eyebrow: 'Go / Weiqi / Baduk AI Agent',
-    headline: 'Giáo viên AI cờ vây chuyên nghiệp, miễn phí, mã nguồn mở',
-    body: 'goagent đọc bàn cờ, xem nước gợi ý và biến hóa, rồi giải thích nước quan trọng bằng ngôn ngữ dễ hiểu.',
-    cards: ['Mã nguồn mở', 'Tải miễn phí', 'KataGo cung cấp bằng chứng', 'LLM giải thích như giáo viên'],
-    download: 'Tải bản mới nhất',
-    docs: 'Đọc tài liệu tiếng Trung'
+    title: 'GoAgent - Giáo viên AI cờ vây chuyên nghiệp, miễn phí, mã nguồn mở',
+    description: 'GoAgent đọc bàn cờ, xem nước gợi ý và biến hóa, rồi giải thích nước quan trọng bằng ngôn ngữ dễ hiểu.',
+    eyebrow: 'Mã nguồn mở · Miễn phí · Chuyên nghiệp',
+    headline: 'Để giáo viên AI giải thích ván cờ rõ ràng',
+    body: 'GoAgent là AI agent cờ vây miễn phí. Nhập kỳ phổ, GoAgent kết hợp bằng chứng từ KataGo với phần giải thích của AI để giúp bạn hiểu sai lầm, nước tốt hơn và điểm cần xem lần sau.',
+    primary: 'Tải miễn phí',
+    secondary: 'Xem mã nguồn',
+    guide: 'Bắt đầu nhanh',
+    valueCards: [
+      ['Mã nguồn mở', 'Mã được công khai trên GitHub, lộ trình rõ ràng và cộng đồng có thể góp ý.'],
+      ['Miễn phí', 'Bản desktop có thể tải miễn phí cho người chơi và giáo viên.'],
+      ['Chuyên nghiệp', 'KataGo cung cấp bằng chứng, AI giải thích nước quan trọng rõ ràng.']
+    ],
+    workflowEyebrow: 'Cách hoạt động',
+    workflowTitle: 'Hiểu một ván cờ trong ba bước',
+    workflowBody: 'KataGo phụ trách sự thật, AI giải thích, kiểm tra chất lượng giúp giảm bịa đặt.',
+    workflow: [
+      ['Nhập kỳ phổ', 'Mở SGF hoặc chọn ván cờ, xác định nước hiện tại và đoạn quan trọng.'],
+      ['Tìm nước then chốt', 'Dùng biểu đồ tỉ lệ thắng, nước gợi ý, điểm, PV và danh sách lỗi để thu hẹp phần cần xem.'],
+      ['Hiểu bài học', 'AI kết hợp bàn cờ, KataGo và kho tri thức để giải thích bằng ngôn ngữ dễ hiểu.']
+    ],
+    featureTitle: 'Dễ dùng cho người chơi thường, hữu ích cho học nghiêm túc',
+    productEyebrow: 'Sản phẩm',
+    featureBody: 'GoAgent đặt nước quan trọng, nước gợi ý và lời giải thích của giáo viên trong cùng một không gian.',
+    features: [
+      ['Giải thích nước hiện tại', 'Bấm một nước để xem gợi ý, mất tỉ lệ thắng, PV và lời giải thích.'],
+      ['Ôn tập theo đoạn', 'Chọn một đoạn để nhanh chóng tìm điểm xoay chuyển.'],
+      ['Nhận diện hình cờ', 'Nhận diện joseki, sống chết, tesuji và shape mà không kết luận quá mức.']
+    ],
+    teacherEyebrow: 'Phong cách giáo viên',
+    teacherTitle: 'Joseki bình thường nói ngắn, trung bàn nói kỹ',
+    teacherBody: 'Một giáo viên tốt không nói dài mọi nước. Joseki bình thường chỉ cần nhắc hướng; nhánh biến hóa thì nêu lựa chọn; chiến đấu hoặc mất lớn thì giải thích mục đích, đáp trả, biến hóa và kết quả.',
+    teacherPoints: ['Joseki bình thường nói ngắn gọn.', 'Khi có nhánh, nêu biến hóa quan trọng.', 'Giải thích vì sao ý tưởng thực chiến hợp lý nhưng vẫn mất giá trị.'],
+    downloadEyebrow: 'Tải xuống',
+    downloadTitle: 'Tải ứng dụng desktop miễn phí',
+    downloadBody: 'Bộ cài nằm trên GitHub Releases. Hãy kiểm tra SHA256SUMS.txt trước khi cài.',
+    downloadCards: [['Windows x64 Standard', 'Phù hợp với hầu hết người dùng Windows'], ['Windows x64 NVIDIA', 'Dành cho người dùng GPU NVIDIA'], ['macOS Apple Silicon', 'Dành cho Mac chip M'], ['macOS Intel', 'Dành cho Intel Mac']]
   }
 }
 
@@ -74,24 +254,91 @@ export function getStaticPaths() {
 const locale = Astro.params.locale as keyof typeof locales
 const page = locales[locale] ?? locales.en
 ---
-<BaseLayout title={page.title} description={page.body} lang={page.lang} canonical={`https://goagent.top/${locale}`}>
-  <section class="page-hero">
+<BaseLayout title={page.title} description={page.description} lang={page.lang} canonical={`https://goagent.top/${locale}`}>
+  <section class="page-hero localized-hero">
     <p class="eyebrow">{page.eyebrow}</p>
-    <h1>goagent</h1>
+    <h1>GoAgent</h1>
     <p class="subtitle">{page.headline}</p>
     <p class="lead">{page.body}</p>
     <div class="button-row">
-      <a class="button primary" href={releasesUrl}>{page.download}</a>
-      <a class="button" href={githubUrl}>GitHub</a>
-      <a class="button subtle" href="/docs">{page.docs}</a>
+      <a class="button primary" href={releasesUrl}>{page.primary}</a>
+      <a class="button" href={githubUrl}>{page.secondary}</a>
+      <a class="button subtle" href="#how">{page.guide}</a>
     </div>
   </section>
-  <section class="content-stack">
-    <div class="grid two">
-      {page.cards.map((item) => (
+
+  <section class="value-section">
+    <div class="grid three">
+      {page.valueCards.map(([title, text]) => (
+        <article class="value-card">
+          <h2>{title}</h2>
+          <p>{text}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="section-head centered">
+      <p class="eyebrow">{page.workflowEyebrow}</p>
+      <h2>{page.workflowTitle}</h2>
+      <p>{page.workflowBody}</p>
+    </div>
+    <div class="grid three workflow">
+      {page.workflow.map(([title, text]) => (
         <article class="card">
-          <h3>{item}</h3>
-          <p>goagent.top</p>
+          <h3>{title}</h3>
+          <p>{text}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">{page.productEyebrow}</p>
+        <h2>{page.featureTitle}</h2>
+      </div>
+      <p>{page.featureBody}</p>
+    </div>
+    <div class="grid three">
+      {page.features.map(([title, text]) => (
+        <article class="card">
+          <h3>{title}</h3>
+          <p>{text}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <div class="feature-panel premium-panel">
+      <div>
+        <p class="eyebrow">{page.teacherEyebrow}</p>
+        <h2>{page.teacherTitle}</h2>
+        <p>{page.teacherBody}</p>
+      </div>
+      <ul class="feature-list">
+        {page.teacherPoints.map((item) => <li>{item}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">{page.downloadEyebrow}</p>
+        <h2>{page.downloadTitle}</h2>
+      </div>
+      <p>{page.downloadBody}</p>
+    </div>
+    <div class="grid four">
+      {page.downloadCards.map(([title, audience]) => (
+        <article class="download-card">
+          <h3>{title}</h3>
+          <p>{audience}</p>
+          <a class="button" href={releasesUrl}>{page.primary}</a>
         </article>
       ))}
     </div>
