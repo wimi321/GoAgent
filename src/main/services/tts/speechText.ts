@@ -1,7 +1,85 @@
 import type { AppSettings, TeacherRunResult, TtsReadMode } from '@main/lib/types'
 
-const COORDINATE_PATTERN = /\b([A-HJ-T])(\d{1,2})\b/g
+const COORDINATE_PATTERN = /\b([A-HJ-T])\s*(\d{1,2})\b/gi
 type SpeechLanguage = AppSettings['reviewLanguage'] | 'unknown'
+
+const COORDINATE_LETTER_SPEECH: Record<string, string> = {
+  A: '诶',
+  B: '比',
+  C: '西',
+  D: '迪',
+  E: '衣',
+  F: '艾弗',
+  G: '吉',
+  H: '艾尺',
+  J: '杰',
+  K: '凯',
+  L: '艾勒',
+  M: '艾姆',
+  N: '恩',
+  O: '欧',
+  P: '批',
+  Q: '丘',
+  R: '阿尔',
+  S: '艾斯',
+  T: '替'
+}
+
+const ENGLISH_TERM_SPEECH: Record<string, string> = {
+  ai: '人工智能',
+  byo: '读秒',
+  byoyomi: '读秒',
+  gpt: '大模型',
+  joseki: '定式',
+  katago: '卡塔狗',
+  komi: '贴目',
+  ko: '劫',
+  llm: '大模型',
+  openai: '欧盆人工智能',
+  pv: '参考变化',
+  scorelead: '目差',
+  scoreloss: '目差损失',
+  sgf: '棋谱文件',
+  sente: '先手',
+  gote: '后手',
+  tesuji: '手筋',
+  winrate: '胜率',
+  winrateloss: '胜率损失'
+}
+
+const LATIN_CHAR_SPEECH: Record<string, string> = {
+  a: '诶',
+  b: '比',
+  c: '西',
+  d: '迪',
+  e: '衣',
+  f: '艾弗',
+  g: '吉',
+  h: '艾尺',
+  i: '艾',
+  j: '杰',
+  k: '凯',
+  l: '艾勒',
+  m: '艾姆',
+  n: '恩',
+  o: '欧',
+  p: '批',
+  q: '丘',
+  r: '阿尔',
+  s: '艾斯',
+  t: '替',
+  u: '优',
+  v: '维',
+  w: '达不溜',
+  x: '艾克斯',
+  y: '歪',
+  z: '贼德',
+  '+': '加',
+  '#': '井号',
+  '.': '点',
+  '-': '杠',
+  '_': '下划线'
+}
 
 const LANGUAGE_LABELS: Record<SpeechLanguage, string> = {
   'zh-CN': '中文',
@@ -51,11 +129,44 @@ export function assertSpeechLanguageMatches(text: string, expected: AppSettings[
 }
 
 export function normalizeGoCoordinatesForSpeech(text: string): string {
-  return text.replace(COORDINATE_PATTERN, (_match, letter: string, number: string) => `${letter} ${number}`)
+  return text.replace(COORDINATE_PATTERN, (_match, letter: string, number: string) => {
+    const letterName = COORDINATE_LETTER_SPEECH[letter.toUpperCase()]
+    return letterName ? `${letterName}${numberToChinese(Number(number))}` : `${letter} ${number}`
+  })
+}
+
+function numberToChinese(value: number): string {
+  const digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
+  if (!Number.isInteger(value) || value < 0 || value > 99) return String(value)
+  if (value < 10) return digits[value]
+  if (value === 10) return '十'
+  if (value < 20) return `十${digits[value % 10]}`
+  const tens = Math.floor(value / 10)
+  const ones = value % 10
+  return ones === 0 ? `${digits[tens]}十` : `${digits[tens]}十${digits[ones]}`
+}
+
+export function normalizeTechnicalTermsForSpeech(text: string): string {
+  return text
+    .replace(/\bwinrateLoss\s*=\s*([0-9.]+)/gi, '胜率损失约 $1 个百分点')
+    .replace(/\bscoreLoss\s*=\s*([0-9.]+)/gi, '目差损失约 $1 目')
+    .replace(/([0-9]+(?:\.[0-9]+)?)\s*%/g, '百分之$1')
+    .replace(/\b([A-HJ-T])(?=\s*[点处位])/g, (_match, letter: string) => COORDINATE_LETTER_SPEECH[letter.toUpperCase()] ?? letter)
+    .replace(/\b[A-Za-z][A-Za-z0-9+#._-]*\b/g, (token) => latinTokenToSpeech(token))
+}
+
+function latinTokenToSpeech(token: string): string {
+  const normalized = token.toLowerCase().replace(/[^a-z0-9]+/g, '')
+  const known = ENGLISH_TERM_SPEECH[normalized]
+  if (known) return known
+  return [...token].map((char) => {
+    if (/\d/.test(char)) return numberToChinese(Number(char))
+    return LATIN_CHAR_SPEECH[char.toLowerCase()] ?? char
+  }).join('')
 }
 
 export function markdownToSpeechText(markdown: string): string {
-  return normalizeGoCoordinatesForSpeech(markdown)
+  const stripped = markdown
     .replace(/```[\s\S]*?```/g, '')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/^#{1,6}\s+/gm, '')
@@ -66,9 +177,7 @@ export function markdownToSpeechText(markdown: string): string {
     .replace(/^\s*\|.*\|\s*$/gm, '')
     .replace(/sourceRefs?:\s*[^\n]+/gi, '')
     .replace(/evidenceRefs?:\s*[^\n]+/gi, '')
-    .replace(/\bPV\b/g, '参考变化')
-    .replace(/winrateLoss\s*=\s*([0-9.]+)/gi, '胜率损失约 $1 个百分点')
-    .replace(/scoreLoss\s*=\s*([0-9.]+)/gi, '目差损失约 $1 目')
+  return normalizeTechnicalTermsForSpeech(normalizeGoCoordinatesForSpeech(stripped))
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
@@ -80,15 +189,9 @@ export function limitSpeechLength(text: string, maxChars = 900): string {
 }
 
 export function teacherResultToSpeechText(result: TeacherRunResult | undefined, markdown: string, mode: TtsReadMode): string {
-  if (mode === 'full') return limitSpeechLength(markdownToSpeechText(markdown), 2400)
-  const structured = result?.structuredResult ?? result?.structured
-  const parts = [
-    structured?.headline,
-    structured?.summary,
-    structured?.keyMistakes?.slice(0, 2).map((item) => item.explanation).join('。'),
-    structured?.correctThinking?.slice(0, 2).join('。'),
-    structured?.drills?.slice(0, 1).join('。')
-  ].filter((part): part is string => Boolean(part && part.trim()))
-  const base = parts.length ? parts.join('。') : markdown
-  return limitSpeechLength(markdownToSpeechText(base), 900)
+  void result
+  const cleaned = markdownToSpeechText(markdown)
+  if (mode === 'full') return limitSpeechLength(cleaned, 12000)
+  if (mode === 'selection') return limitSpeechLength(cleaned, 6000)
+  return limitSpeechLength(cleaned, 5000)
 }

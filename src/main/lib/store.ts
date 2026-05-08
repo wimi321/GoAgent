@@ -45,7 +45,7 @@ const defaults: AppSettings = {
   ttsRate: 1,
   ttsPitch: 1,
   ttsVolume: 1,
-  ttsReadMode: 'summary',
+  ttsReadMode: 'full',
   ttsCacheEnabled: true,
   ttsKokoroDType: 'q8',
   ttsKokoroDevice: 'cpu',

@@ -39,14 +39,14 @@ GoAgent は、KataGo、棋盤スクリーンショット、ローカル知識カ
 
 公開リリース：
 
-[GoAgent v0.3.16](https://github.com/wimi321/GoAgent/releases/tag/v0.3.16)
+[GoAgent v0.3.18](https://github.com/wimi321/GoAgent/releases/tag/v0.3.18)
 
 | プラットフォーム | ダウンロード |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.16/GoAgent-0.3.16-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.16/GoAgent-0.3.16-mac-x64.dmg) |
-| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.3.16/GoAgent-0.3.16-win-x64-portable.zip) |
-| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.3.16/GoAgent-0.3.16-win-x64.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.18/GoAgent-0.3.18-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.3.18/GoAgent-0.3.18-mac-x64.dmg) |
+| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.3.18/GoAgent-0.3.18-win-x64-portable.zip) |
+| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.3.18/GoAgent-0.3.18-win-x64.exe) |
 
 注意：現在のリリースは未署名です。macOS Gatekeeper や Windows SmartScreen の警告が表示される場合があります。
 

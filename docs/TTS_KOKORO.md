@@ -42,12 +42,24 @@ GOAGENT_TTS_SMOKE_STRICT=1 pnpm smoke:tts
 Strict smoke performs a real offline synthesis with the selected local zh-CN
 voice. It does not call a system voice, Web Speech, or a custom API.
 
-For the bundled zh-CN pack, GoAgent sends Chinese text directly through the
-Kokoro tokenizer and `generate_from_ids`. It must not pass Chinese teacher text
-through the English phonemizer path. The runtime also checks that the detected
-text language matches the selected voice pack; if the text is clearly a
-different language, playback fails with a readable error instead of producing a
-mismatched voice.
+For the bundled zh-CN pack, GoAgent follows the official Chinese frontend route:
+
+```text
+teacher text -> misaki[zh] ZHG2P(version="1.1") -> Kokoro tokenizer -> generate_from_ids
+```
+
+Chinese teacher text must not be passed to `tts.generate(text)` because that can
+route through the wrong upstream text frontend. GoAgent uses `misaki[zh]` only
+for local Chinese G2P and then keeps inference inside the bundled Kokoro ONNX
+runtime. The runtime also checks that the detected text language matches the
+selected voice pack; if the text is clearly a different language, playback fails
+with a readable error instead of producing a mismatched voice.
+
+The Misaki bridge needs a local Python 3.10-3.13 runtime. GoAgent creates an
+isolated TTS virtual environment under the app data directory and installs
+`scripts/requirements-tts.txt` into that environment. If no suitable Python is
+found, the bundled provider fails clearly instead of switching to a system voice
+or custom API.
 
 ## Custom API providers
 

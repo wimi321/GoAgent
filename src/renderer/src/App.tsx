@@ -19,7 +19,6 @@ import type {
   StudentAgeRange,
   StudentRank,
   StudentProfile,
-  ReleaseReadinessResult,
   MoveRangeReviewSummary,
   TeacherRunRequest,
   TeacherRunProgress,
@@ -43,7 +42,6 @@ import { WinrateTimelineV2 } from './features/board/WinrateTimelineV2'
 import { boardPointLabel, parseBoardPoint, type BoardPoint, type RenderKeyMove } from './features/board/boardGeometry'
 import { DiagnosticsGate } from './features/diagnostics/DiagnosticsGate'
 import { UiGallery } from './features/gallery/UiGallery'
-import { BetaAcceptancePanel, type BetaAcceptanceItem } from './features/release/BetaAcceptancePanel'
 import { StudentBindingDialog } from './features/student/StudentBindingDialog'
 import { StudentRailCard } from './features/student/StudentRailCard'
 import { KataGoAssetsPanel } from './features/settings/KataGoAssetsPanel'
@@ -91,7 +89,7 @@ const emptyDashboard: DashboardData = {
     ttsRate: 1,
     ttsPitch: 1,
     ttsVolume: 1,
-    ttsReadMode: 'summary',
+    ttsReadMode: 'full',
     ttsCacheEnabled: true,
     ttsKokoroDType: 'q8',
     ttsKokoroDevice: 'cpu',
@@ -3131,7 +3129,8 @@ function TeacherInlineResponse({
   totalMoves,
   onAnalyzeMove,
   ttsEnabled,
-  ttsAutoPlay
+  ttsAutoPlay,
+  ttsReadMode
 }: {
   message: ChatMessage
   t: UiTranslator
@@ -3142,6 +3141,7 @@ function TeacherInlineResponse({
   onAnalyzeMove: (moveNumber: number) => void
   ttsEnabled: boolean
   ttsAutoPlay: boolean
+  ttsReadMode: AppSettings['ttsReadMode']
 }): ReactElement {
   const keyMoves = teacherResultKeyMoves(message.result, t)
   const toolLogs = message.toolLogs ?? message.result?.toolLogs ?? []
@@ -3206,6 +3206,7 @@ function TeacherInlineResponse({
             <TeacherSpeechControls
               markdown={message.content}
               result={message.result}
+              readMode={ttsReadMode}
               autoPlay={ttsEnabled && ttsAutoPlay && !isRunning && message.status !== 'error'}
               disabled={!ttsEnabled || isRunning || message.status === 'error' || !message.content.trim()}
             />
@@ -3703,6 +3704,7 @@ function TeacherPanel({
                   onAnalyzeMove={onAnalyzeMove}
                   ttsEnabled={dashboard.settings.ttsEnabled}
                   ttsAutoPlay={dashboard.settings.ttsAutoPlay}
+                  ttsReadMode={dashboard.settings.ttsReadMode}
                 />
               </div>
             </article>
@@ -3771,8 +3773,6 @@ function SettingsDrawer({
   onRefreshKataGoAssets: () => void
   onDashboardUpdated: (dashboard: DashboardData) => void
 }): ReactElement {
-  const [releaseReadiness, setReleaseReadiness] = useState<ReleaseReadinessResult | null>(null)
-  const [releaseReadinessError, setReleaseReadinessError] = useState('')
   const [refreshedLlmModels, setRefreshedLlmModels] = useState<string[]>([])
   const [llmModelsFetched, setLlmModelsFetched] = useState(false)
   const [llmModelsRefreshing, setLlmModelsRefreshing] = useState(false)
@@ -3811,60 +3811,6 @@ function SettingsDrawer({
       return (leftIndex === -1 ? 99 : leftIndex) - (rightIndex === -1 ? 99 : rightIndex)
     })
   }, [modelPresets, t])
-  const betaItems = useMemo<BetaAcceptanceItem[]>(() => {
-    if (releaseReadiness) {
-      return releaseReadiness.items.map((item) => ({
-        id: item.id,
-        label: item.label,
-        status: item.status,
-        detail: item.detail
-      }))
-    }
-    return [
-      {
-        id: 'katago-assets',
-        label: t('katagoBundledAssets'),
-        status: katagoAssets?.ready ? 'pass' : katagoAssets?.manifestFound ? 'warn' : 'fail',
-        detail: katagoAssets?.detail ?? localizeKataGoStatus(
-          dashboard.systemProfile.katagoStatus,
-          dashboard.systemProfile.katagoModelPresets,
-          dashboard.systemProfile.katagoModelPreset,
-          t
-        )
-      },
-      {
-        id: 'llm-provider',
-        label: t('claudeProxy'),
-        status: dashboard.systemProfile.hasLlmApiKey ? 'pass' : 'warn',
-        detail: dashboard.systemProfile.hasLlmApiKey ? t('llmModelDetail', { model: dashboard.settings.llmModel }) : t('llmApiMissingDetail')
-      },
-      {
-        id: 'knowledge',
-        label: t('localKnowledgeBase'),
-        status: 'pass',
-        detail: t('knowledgePackaged')
-      },
-      {
-        id: 'teacher-ui',
-        label: t('teacherAgentUi'),
-        status: 'pass',
-        detail: t('teacherUiReadyDetail')
-      }
-    ]
-  }, [dashboard.settings.llmModel, dashboard.systemProfile.hasLlmApiKey, dashboard.systemProfile.katagoStatus, katagoAssets, releaseReadiness, t])
-
-  async function refreshReleaseReadiness(): Promise<void> {
-    try {
-      setReleaseReadinessError('')
-      if (!window.goagent.getReleaseReadiness) {
-        return
-      }
-      setReleaseReadiness(await window.goagent.getReleaseReadiness())
-    } catch (cause) {
-      setReleaseReadinessError(t('releaseReadinessFailed', { error: String(cause) }))
-    }
-  }
-
   async function refreshLlmModels(form: HTMLFormElement | null): Promise<void> {
     setLlmModelsRefreshing(true)
     setLlmModelRefreshMessage('')
@@ -3897,10 +3843,6 @@ function SettingsDrawer({
       setLlmModelsRefreshing(false)
     }
   }
-
-  useEffect(() => {
-    void refreshReleaseReadiness()
-  }, [])
 
   useEffect(() => {
     setSelectedPresetId(dashboard.settings.katagoModelPreset)
@@ -3982,16 +3924,6 @@ function SettingsDrawer({
         onRun={onBenchmark}
         t={t}
       />
-      <BetaAcceptancePanel
-        items={betaItems}
-        flags={releaseReadiness?.flags}
-        onRunChecks={() => {
-          void refreshReleaseReadiness()
-          onRefreshKataGoAssets()
-        }}
-        t={t}
-      />
-      {releaseReadinessError ? <div className="test-message">{releaseReadinessError}</div> : null}
       <section className="settings-section settings-section-language">
         <h3>{t('languageLabel')}</h3>
         <p>{t('languageHelp')}</p>

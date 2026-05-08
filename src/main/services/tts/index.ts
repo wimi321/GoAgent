@@ -6,7 +6,7 @@ import { customHttpJsonProvider } from './customHttpJsonProvider'
 import { customOpenAiSpeechProvider } from './customOpenAiSpeechProvider'
 import { externalLocalTtsProvider } from './externalLocalTtsProvider'
 import { kokoroBundledProvider } from './kokoroBundledProvider'
-import { markdownToSpeechText } from './speechText'
+import { limitSpeechLength, markdownToSpeechText } from './speechText'
 import type { TtsProvider } from './ttsTypes'
 
 const providers: Record<TtsProviderId, TtsProvider> = {
@@ -34,7 +34,13 @@ export async function listTtsVoices(): Promise<TtsVoice[]> {
 export async function synthesizeTts(payload: TtsSynthesisRequest): Promise<TtsSynthesisResult> {
   const settings = getSettings()
   if (!settings.ttsEnabled) throw new Error('TTS is disabled in settings.')
-  const text = markdownToSpeechText(payload.text ?? '')
+  const readMode = payload.readMode ?? settings.ttsReadMode
+  const cleaned = markdownToSpeechText(payload.text ?? '')
+  const text = readMode === 'full'
+    ? limitSpeechLength(cleaned, 12000)
+    : readMode === 'selection'
+      ? limitSpeechLength(cleaned, 6000)
+      : limitSpeechLength(cleaned, 5000)
   if (!text) throw new Error('TTS text is empty after speech cleanup.')
   return selectedProvider(settings).synthesize({ ...payload, text }, settings)
 }
