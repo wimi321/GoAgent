@@ -447,8 +447,122 @@ export interface KataGoCandidate {
   ownership?: number[]
   ownershipStdev?: number[]
   humanPrior?: number
+  humanPolicy?: number
   humanScoreMean?: number
   pv: string[]
+}
+
+export type KataGoTraceConfidence = 'high' | 'medium' | 'low'
+export type KataGoTraceTeachingRole =
+  | 'best'
+  | 'actual'
+  | 'natural-but-refuted'
+  | 'low-policy-but-strong-search'
+  | 'human-likely-mistake'
+  | 'uncertain'
+
+export interface KataGoTraceCandidate {
+  move: string
+  rank: number
+  visits: number
+  edgeVisits?: number
+  prior?: number
+  priorRank?: number
+  searchRank: number
+  winrate: number
+  scoreLead: number
+  scoreStdev?: number
+  utility?: number
+  lcb?: number
+  humanPrior?: number
+  humanPolicy?: number
+  pv: string[]
+  pvVisits?: number[]
+  teachingRole: KataGoTraceTeachingRole
+  interpretation: string
+  warnings: string[]
+}
+
+export interface KataGoPolicySearchDelta {
+  move: string
+  prior?: number
+  priorRank?: number
+  searchRank: number
+  visits: number
+  interpretation:
+    | 'policy-and-search-agree'
+    | 'search-overturned-policy'
+    | 'natural-move-refuted-by-search'
+    | 'non-obvious-search-favorite'
+    | 'insufficient-policy-evidence'
+  note: string
+}
+
+export interface KataGoPvSupport {
+  candidate: string
+  pv: string[]
+  pvVisits?: number[]
+  support: 'strong' | 'medium' | 'weak'
+  warning?: string
+}
+
+export interface KataGoOwnershipRegionSummary {
+  region: string
+  avgSwing: number
+  points: string[]
+  explanation: string
+}
+
+export interface KataGoHumanPolicySignals {
+  actualHumanPrior?: number
+  bestHumanPrior?: number
+  actualHumanPolicy?: number
+  bestHumanPolicy?: number
+  levelAppropriateMistake: boolean
+  interpretation: string
+}
+
+export interface KataGoTraceTreeNode {
+  move: string
+  depth: number
+  visits?: number
+  winrate?: number
+  scoreLead?: number
+  prior?: number
+  pvSupport?: KataGoPvSupport['support']
+  children: KataGoTraceTreeNode[]
+}
+
+export interface KataGoTracePacket {
+  position: {
+    moveNumber: number
+    phase: AnalysisQuality['phase']
+    actualMove?: string
+  }
+  searchSummary: {
+    bestMove?: string
+    actualMove?: string
+    winrateLoss: number
+    scoreLoss: number
+    confidence: KataGoTraceConfidence
+    safeWording: string
+    reason: string
+  }
+  candidateComparison: KataGoTraceCandidate[]
+  policySearchDelta: KataGoPolicySearchDelta[]
+  pvSupport: KataGoPvSupport[]
+  ownershipSummary?: {
+    mode: 'best-vs-actual' | 'best-ownership' | 'unavailable'
+    note: string
+    affectedRegions: KataGoOwnershipRegionSummary[]
+  }
+  humanPolicySignals?: KataGoHumanPolicySignals
+  shallowSearchTree: KataGoTraceTreeNode
+  teachingGuidance: {
+    mainPoint: string
+    safeWording: string
+    forbiddenClaims: string[]
+  }
 }
 
 export type AnalysisConfidence = 'high' | 'medium' | 'low'
@@ -524,6 +638,7 @@ export interface KataGoMoveAnalysis {
   humanCalibration?: HumanWinrateCalibration
   ownershipSummary?: OwnershipDeltaSummary
   tacticalSignals?: TacticalSignal[]
+  tracePacket?: KataGoTracePacket
 }
 
 export interface StudentProfile {

@@ -29,6 +29,7 @@ import { formatMoveRangeSummaryForPrompt, selectMoveNumbersForRangeRefine } from
 import { searchKnowledge, searchKnowledgeMatches } from './knowledge'
 import { recommendedProblemsFromMatches, type BoardSnapshotStone, type LocalWindow } from './knowledge/matchEngine'
 import { buildBoardState, boardStateToSnapshot } from './go/boardState'
+import { formatKataGoTraceForPrompt } from './teacher/katagoTraceTranslator'
 import { detectTacticalSignals } from './knowledge/tacticalDetectors'
 import { readGameRecord } from './sgf'
 import { ensureFoxGameDownloaded } from './fox'
@@ -324,6 +325,9 @@ function systemPrompt(level: CoachUserLevel): string {
     '需要信息时调用工具；不要靠印象猜局面。',
     '分析当前手或整盘复盘时必须先看棋盘图片，再调用 KataGo 工具核对当前手、一选、胜率差、目差、搜索数和 PV，然后调用知识库工具匹配棋形、定式、死活、手筋或常见错误类型。',
     '工具结果和 KataGo 是事实依据。',
+    '如果 KataGo 结果包含 tracePacket，优先使用 tracePacket.searchSummary、candidateComparison、policySearchDelta、pvSupport、ownershipSummary、humanPolicySignals 和 shallowSearchTree 来解释“为什么”。',
+    'tracePacket 是给老师的搜索证据摘要，不要把原始 MCTS/搜索字段生硬堆给学生；请翻译成“自然但被搜索否定”“不直观但搜索支持”“PV 支撑弱所以只能参考”等教学语言。',
+    '如果 tracePacket 的置信度或 PV 支撑不足，必须降级措辞，不能说唯一、必杀、必败或绝对。',
     '不要编造坐标、胜率、PV、定式名或来源。',
     '每个关键结论都应能回指到工具证据；数字、坐标、PV、定式名、死活结论和先后手判断没有证据时必须降级成假设。',
     '当 analysisQuality.confidence 不是 high，必须使用“AI 更倾向 / 更像 / 不宜下绝对结论”等低风险措辞。',
@@ -331,7 +335,6 @@ function systemPrompt(level: CoachUserLevel): string {
     '把握讲解火候：常规定式少讲，分支列变化，中盘战详细讲目的和后续。',
     '如果工具结果给出 teachingDensity，就按它控制详略：minimal 很短，branch 讲 1-2 个关键变化，detailed 讲目的、应手、后续变化和实战评价，caution 只说倾向。',
     '像老师讲棋：先帮学生看懂棋形和判断方法，再自然引用必要证据；不要按固定栏目或机器报告口吻堆字段。',
-    '当你已经有足够证据时，可以调用 artifact.createTeachingArtifact 输出结构化 TeachingArtifact JSON；不要把 HTML、脚本、远程图片、base64 图片、本地路径或 API key 放进 artifact。',
     '区间复盘要先讲区间走势，再聚焦 3-5 个关键手；不要逐手流水账；每个关键手必须引用 KataGo、analysisQuality、棋形识别或战术信号。',
     '区间过长或证据不足时要建议缩小范围或只做抽样总结，不能把低 visits 区间分析说成最终结论。',
     `学生水平：${level}。`,
@@ -724,7 +727,7 @@ function initialAgentUserMessage(state: TeacherAgentSessionState): ChatMessage {
     moveRange: state.request.moveRange,
     moveRangeSummary: state.request.moveRangeSummary,
     prefetchedAnalysisAvailable: Boolean(state.request.prefetchedAnalysis),
-    note: '请按需要调用工具取得事实；没有工具证据时不要猜坐标、胜率、PV、定式名或来源；默认使用 responseLanguage 回答。可在最后调用 artifact.createTeachingArtifact 提交结构化教学产物，GoAgent 会验证并渲染成讲解卡片。'
+    note: '请按需要调用工具取得事实；没有工具证据时不要猜坐标、胜率、PV、定式名或来源；默认使用 responseLanguage 回答。'
   }
   const text = [
     '任务说明：请根据 intent 完成用户请求。',
@@ -739,6 +742,8 @@ function initialAgentUserMessage(state: TeacherAgentSessionState): ChatMessage {
     'moveRangeSummary 是 renderer/cache 预先提取的区间关键手摘要；如证据不足，可调用 katago.analyzeMoveRangeKeyMoves 精读这些关键手。',
     '区间摘要：',
     formatMoveRangeSummaryForPrompt(state.request.moveRangeSummary),
+    'KataGo 搜索证据摘要：',
+    formatKataGoTraceForPrompt(state.request.prefetchedAnalysis?.tracePacket ?? state.lastAnalysis?.tracePacket),
     'prefetchedAnalysisAvailable=true 表示 katago.analyzePosition 可复用已缓存的 KataGo 分析结果。',
     '上下文JSON：',
     JSON.stringify(context)
@@ -856,6 +861,7 @@ function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
     },
     playedMove: compactPlayedMoveForColor(analysis.playedMove, playerColor),
     analysisQuality: analysis.analysisQuality,
+    tracePacket: analysis.tracePacket,
     humanCalibration: analysis.humanCalibration,
     ownershipSummary: analysis.ownershipSummary,
     tacticalSignals: analysis.tacticalSignals,
@@ -1430,7 +1436,13 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
           }
         })
         if (!validation.ok || !validation.artifact) {
-          throw new Error(`TeachingArtifact 无效：${validation.errors.join('；')}`)
+          return {
+            accepted: false,
+            skipped: true,
+            reason: 'TeachingArtifact did not contain enough evidence-backed fields and was ignored.',
+            errors: validation.errors,
+            note: '老师正文会继续作为主要讲解；GoAgent 会在运行结束时从已验证证据自动生成内部结构化记录。'
+          }
         }
         state.agentArtifact = validation.artifact
         return {

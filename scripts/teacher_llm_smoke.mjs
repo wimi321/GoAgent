@@ -294,11 +294,21 @@ async function main() {
           throw new Error(label + ' timed out');
         }
         await waitForUi('board render', () => document.querySelector('.board-table--v2 svg'));
-        const analyzeButton = await waitForUi('analyze current button', () =>
-          [...document.querySelectorAll('button')]
-            .find((button) => button.textContent?.trim() === '分析当前手' && !button.disabled && button.getClientRects().length > 0)
-        );
-        analyzeButton.click();
+        const composer = await waitForUi('teacher composer', () => {
+          const textarea = document.querySelector('.ks-composer-pro textarea');
+          return textarea && textarea.getClientRects().length > 0 ? textarea : null;
+        });
+        composer.focus();
+        const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+        if (!valueSetter) throw new Error('Cannot set composer textarea value');
+        valueSetter.call(composer, '分析当前手');
+        composer.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '分析当前手' }));
+        composer.dispatchEvent(new Event('change', { bubbles: true }));
+        const sendButton = await waitForUi('teacher send button', () => {
+          const button = document.querySelector('.ks-composer-pro__send');
+          return button && !button.disabled && button.getClientRects().length > 0 ? button : null;
+        });
+        sendButton.click();
         const uiAnalyze = await waitForUi('UI current-move analysis', () => {
           const body = document.body.innerText || '';
           const errorLine = document.querySelector('.error-line')?.textContent || '';

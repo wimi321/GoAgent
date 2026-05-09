@@ -7,6 +7,7 @@ import { resolveKataGoRuntime } from './katagoRuntime'
 import { ensureFoxGameDownloaded } from './fox'
 import { beginKataGoEngineTask } from './katagoEnginePool'
 import { cancelPersistentKataGoAnalysis, persistentKataGoEngineEnabled, queryKataGoPersistentBatch } from './katagoPersistentEngine'
+import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
 
 interface KataGoResponse {
   id?: string
@@ -32,6 +33,7 @@ interface KataGoResponse {
     utility?: number
     scoreStdev?: number
     humanPrior?: number
+    humanPolicy?: number
     humanScoreMean?: number
     pv?: string[]
     pvVisits?: number[]
@@ -211,6 +213,7 @@ function candidates(response: KataGoResponse, sideToMove: GameMove['color']): Ka
     utility: typeof move.utility === 'number' ? move.utility : undefined,
     scoreStdev: typeof move.scoreStdev === 'number' ? move.scoreStdev : undefined,
     humanPrior: typeof move.humanPrior === 'number' ? move.humanPrior * 100 : undefined,
+    humanPolicy: typeof move.humanPolicy === 'number' ? move.humanPolicy * 100 : undefined,
     humanScoreMean: typeof move.humanScoreMean === 'number' ? move.humanScoreMean : undefined,
     pvVisits: Array.isArray(move.pvVisits) ? move.pvVisits.map(Number).slice(0, 12) : undefined,
     ownership: Array.isArray(move.ownership) ? move.ownership.map(Number) : undefined,
@@ -727,6 +730,7 @@ export async function analyzePosition(
       initialPlayer: rootInitialPlayer,
       includeOwnership: deepEvidence,
       includeMovesOwnership: deepEvidence,
+      includePolicy: true,
       includePVVisits: true,
       komi,
       maxVisits
@@ -738,6 +742,7 @@ export async function analyzePosition(
       initialStones: rootInitialStones,
       initialPlayer: rootInitialPlayer,
       includeOwnership: deepEvidence,
+      includePolicy: true,
       includePVVisits: true,
       komi,
       maxVisits: afterVisits
@@ -757,6 +762,7 @@ export async function analyzePosition(
   )
   if (actualQuery) {
     actualQuery.includePVVisits = true
+    actualQuery.includePolicy = true
     queries.push(actualQuery)
   }
   const responses = await queryKataGoBatch(queries, undefined, {
@@ -802,7 +808,7 @@ function buildMoveAnalysis(
   const actual = playedMoveValue(currentMove, searchMoves, afterRoot, forcedActual)
   const { winrateLoss, scoreLoss } = playedLoss(currentMove, best, actual)
 
-  return {
+  const analysis: KataGoMoveAnalysis = {
     gameId,
     moveNumber,
     boardSize,
@@ -832,6 +838,8 @@ function buildMoveAnalysis(
     judgement: judgement(winrateLoss, scoreLoss),
     analysisQuality: buildAnalysisQuality(moveNumber, currentMove, searchMoves, forcedActual)
   }
+  analysis.tracePacket = buildKataGoTracePacket(analysis)
+  return analysis
 }
 
 export async function analyzePositionWithProgress(
@@ -875,6 +883,7 @@ export async function analyzePositionWithProgress(
         initialPlayer: rootInitialPlayer,
         includeOwnership: deepEvidence,
         includeMovesOwnership: deepEvidence,
+        includePolicy: true,
         includePVVisits: true,
         komi,
         maxVisits,
@@ -887,6 +896,7 @@ export async function analyzePositionWithProgress(
         initialStones: rootInitialStones,
         initialPlayer: rootInitialPlayer,
         includeOwnership: deepEvidence,
+        includePolicy: true,
         includePVVisits: true,
         komi,
         maxVisits: afterVisits,
@@ -907,6 +917,7 @@ export async function analyzePositionWithProgress(
     )
     if (actualQuery) {
       actualQuery.includePVVisits = true
+      actualQuery.includePolicy = true
       queries.push(actualQuery)
     }
     responses = await queryKataGoBatch(queries, (response) => {

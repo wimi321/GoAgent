@@ -133,7 +133,8 @@ test('Current-move teacher screenshot has procedural asset fallback', () => {
   assert.doesNotMatch(app, /await Promise\.all\(\[\s*loadCanvasImage\(lizzieBoardUrl\)/s)
 
   const smoke = read('scripts/teacher_llm_smoke.mjs')
-  assert.match(smoke, /analyzeButton\.click\(\)/)
+  assert.match(smoke, /teacher composer/)
+  assert.match(smoke, /ks-composer-pro__send/)
   assert.match(smoke, /无法加载棋盘素材/)
   assert.match(smoke, /UI current-move analysis should render the teacher answer/)
 })
