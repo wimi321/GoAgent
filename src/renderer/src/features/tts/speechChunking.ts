@@ -132,12 +132,32 @@ function splitParagraphSpeech(text: string, maxChars: number): string[] {
   return chunks
 }
 
+function packSpeechItems(items: string[], maxChars: number): string[] {
+  const chunks: string[] = []
+  let current = ''
+  const push = (): void => {
+    const trimmed = current.trim()
+    if (trimmed) chunks.push(trimmed)
+    current = ''
+  }
+  for (const item of items) {
+    const parts = splitLongSpeechItem(item, maxChars)
+    for (const part of parts) {
+      const separator = current ? '\n' : ''
+      if (current && current.length + separator.length + part.length > maxChars) push()
+      current = current ? `${current}\n${part}` : part
+    }
+  }
+  push()
+  return chunks
+}
+
 export function splitProgressiveSpeech(text: string, maxChars = 220): string[] {
   const prepared = stripMarkdownForSpeechChunking(text.replace(/\r/g, ''))
   if (!prepared) return []
   const lines = prepared.split(/\n+/).map((line) => line.trim()).filter(Boolean)
   const lineItems = lines.flatMap(splitEvidenceItems).map(finishSpeechItem).filter(Boolean)
   const hasEvidenceList = lines.length > 1 || lines.some((line) => splitEvidenceItems(line).length > 1)
-  if (hasEvidenceList) return lineItems.flatMap((item) => splitLongSpeechItem(item, maxChars))
+  if (hasEvidenceList) return packSpeechItems(lineItems, maxChars)
   return splitParagraphSpeech(prepared, maxChars)
 }

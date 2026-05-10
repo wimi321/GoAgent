@@ -131,6 +131,7 @@ test('Kokoro zh-CN synthesis does not route Chinese text through the English pho
   assert.match(speechChunking, /KataGo 数据/)
   assert.match(speechChunking, /splitEvidenceItems/)
   assert.match(speechChunking, /finishSpeechItem/)
+  assert.match(speechChunking, /packSpeechItems/)
   assert.match(speechChunking, /replace\(\/#\/g, ''\)/)
   assert.match(controls, /speechSourceText/)
   assert.match(controls, /summarySpeechSourceText/)
