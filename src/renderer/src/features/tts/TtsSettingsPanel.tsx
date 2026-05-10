@@ -52,6 +52,65 @@ function defaultVoiceForProvider(provider: TtsProviderId, settings: AppSettings)
   return settings.ttsCustomVoice || settings.ttsVoiceId || 'default'
 }
 
+interface SecretFieldProps {
+  name: string
+  label: string
+  placeholder: string
+  loadSaved?: () => Promise<{ hasKey: boolean; value: string }>
+  onMessage?: (message: string) => void
+}
+
+function SecretField({ name, label, placeholder, loadSaved, onMessage }: SecretFieldProps): ReactElement {
+  const [visible, setVisible] = useState(false)
+  const [value, setValue] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function toggleVisible(): Promise<void> {
+    if (visible) {
+      setVisible(false)
+      return
+    }
+    if (!value.trim() && loadSaved) {
+      setLoading(true)
+      try {
+        const saved = await loadSaved()
+        if (saved.hasKey && saved.value) {
+          setValue(saved.value)
+          onMessage?.(`${label} 已从本机安全存储读取，可以核对后保存。`)
+        } else {
+          onMessage?.(`本机还没有保存 ${label}。`)
+        }
+      } catch (cause) {
+        onMessage?.(`${label} 读取失败：${String(cause)}`)
+      } finally {
+        setLoading(false)
+      }
+    }
+    setVisible(true)
+  }
+
+  return (
+    <label className="ga-tts-secret-field">
+      <span>{label}</span>
+      <div className="ga-tts-secret-input">
+        <input
+          name={name}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder={placeholder}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+        <button type="button" onClick={() => void toggleVisible()} disabled={loading} aria-label={`${visible ? '隐藏' : '显示'}${label}`}>
+          {loading ? '读取中' : visible ? '隐藏' : '显示'}
+        </button>
+      </div>
+    </label>
+  )
+}
+
 export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettingsPanelProps): ReactElement {
   const [assetStatus, setAssetStatus] = useState<TtsAssetStatus | null>(null)
   const [voices, setVoices] = useState<TtsVoice[]>([])
@@ -312,11 +371,29 @@ export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettings
             <div className="ga-tts-grid">
               <label><span>Endpoint</span><input name="ttsVolcengineEndpoint" defaultValue={settings.ttsVolcengineEndpoint} placeholder="https://openspeech.bytedance.com/api/v3/tts/unidirectional" /></label>
               {selectedVolcengineAuthMode === 'api-key' ? (
-                <label><span>API Key</span><input name="ttsVolcengineApiKey" type="password" placeholder="留空表示不修改已保存 API Key" /></label>
+                <SecretField
+                  name="ttsVolcengineApiKey"
+                  label="API Key"
+                  placeholder="留空表示不修改已保存 API Key"
+                  onMessage={setMessage}
+                  loadSaved={async () => {
+                    const saved = await window.goagent.getSavedVolcengineTtsApiKey()
+                    return { hasKey: saved.hasKey, value: saved.apiKey }
+                  }}
+                />
               ) : (
                 <>
                   <label><span>APP ID</span><input name="ttsVolcengineAppId" defaultValue={settings.ttsVolcengineAppId} placeholder="火山控制台 APP ID" /></label>
-                  <label><span>Access Token</span><input name="ttsVolcengineAccessToken" type="password" placeholder="留空表示不修改已保存 Access Token" /></label>
+                  <SecretField
+                    name="ttsVolcengineAccessToken"
+                    label="Access Token"
+                    placeholder="留空表示不修改已保存 Access Token"
+                    onMessage={setMessage}
+                    loadSaved={async () => {
+                      const saved = await window.goagent.getSavedVolcengineTtsAccessToken()
+                      return { hasKey: saved.hasKey, value: saved.accessToken }
+                    }}
+                  />
                 </>
               )}
               <label><span>Resource ID</span><input name="ttsVolcengineResourceId" defaultValue={settings.ttsVolcengineResourceId} placeholder="seed-tts-2.0" /></label>
@@ -335,7 +412,16 @@ export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettings
             <summary>自定义 API</summary>
             <div className="ga-tts-grid">
               <label><span>Base URL / Endpoint</span><input name="ttsCustomBaseUrl" defaultValue={settings.ttsCustomBaseUrl} placeholder="https://example.com/v1" /></label>
-              <label><span>API Key</span><input name="ttsCustomApiKey" type="password" placeholder="留空表示不修改已保存密钥" /></label>
+              <SecretField
+                name="ttsCustomApiKey"
+                label="API Key"
+                placeholder="留空表示不修改已保存密钥"
+                onMessage={setMessage}
+                loadSaved={async () => {
+                  const saved = await window.goagent.getSavedTtsApiKey()
+                  return { hasKey: saved.hasKey, value: saved.apiKey }
+                }}
+              />
               <label><span>Model</span><input name="ttsCustomModel" defaultValue={settings.ttsCustomModel} placeholder="tts-model" /></label>
               <label><span>Voice</span><input name="ttsCustomVoice" defaultValue={settings.ttsCustomVoice} placeholder="voice-id" /></label>
               <label><span>Response</span><select name="ttsCustomResponseType" defaultValue={settings.ttsCustomResponseType}><option value="audio-bytes">audio bytes</option><option value="json-audio-url">json audio url</option><option value="json-base64">json base64</option></select></label>

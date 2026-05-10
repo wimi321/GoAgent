@@ -154,6 +154,45 @@
   width: 100%;
 }
 
+.ga-tts-secret-field {
+  display: grid;
+  gap: 0;
+}
+
+.ga-tts-secret-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--ks-border-soft);
+  border-radius: var(--ks-radius-sm);
+  background: rgb(255 255 255 / 0.7);
+}
+
+.ga-tts-secret-input:focus-within {
+  border-color: color-mix(in srgb, var(--ks-gold) 58%, var(--ks-border-strong));
+  box-shadow: 0 0 0 3px rgb(185 150 81 / 0.12);
+}
+
+.ga-tts-secret-input input {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.ga-tts-secret-input button {
+  border: 0;
+  border-left: 1px solid var(--ks-border-soft);
+  border-radius: 0;
+  padding: 0 10px;
+  color: var(--ks-text-main);
+  background: rgb(255 255 255 / 0.42);
+  font-size: 12px;
+}
+
 .ga-tts-provider-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
