@@ -12,6 +12,8 @@ test('KataGo Trace Translator defines the full evidence packet', () => {
     'buildKataGoTracePacket',
     'buildShallowSearchTree',
     'candidateComparison',
+    'scorePerspective',
+    'scoreSummaryFromBlackLead',
     'policySearchDelta',
     'pvSupport',
     'ownershipSummary',
@@ -25,7 +27,9 @@ test('KataGo Trace Translator defines the full evidence packet', () => {
 test('KataGo trace types are exposed on KataGoMoveAnalysis', () => {
   const types = read('src/main/lib/types.ts')
   assert.match(types, /export interface KataGoTracePacket/)
+  assert.match(types, /export interface KataGoScoreSummary/)
   assert.match(types, /export interface KataGoTraceTreeNode/)
+  assert.match(types, /scoreLeadPerspective\?: 'black-positive'/)
   assert.match(types, /tracePacket\?: KataGoTracePacket/)
   assert.match(types, /humanPolicy\?: number/)
 })
@@ -44,6 +48,7 @@ test('Teacher prompt references trace packet as teaching evidence', () => {
   assert.match(teacherAgent, /formatKataGoTraceForPrompt/)
   assert.match(teacherAgent, /tracePacket\.searchSummary/)
   assert.match(teacherAgent, /tracePacket:\s*analysis\.tracePacket/)
+  assert.match(teacherAgent, /scoreSummary\.leadPoints/)
   assert.match(teacherAgent, /policySearchDelta/)
   assert.match(teacherAgent, /humanPolicySignals/)
 })

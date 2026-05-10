@@ -12,6 +12,7 @@ import type {
   KataGoTraceTeachingRole,
   KataGoTraceTreeNode
 } from '@main/lib/types'
+import { scoreSummaryFromBlackLead } from './scorePerspective'
 
 const GTP_LETTERS = 'ABCDEFGHJKLMNOPQRSTUVWXYZ'
 
@@ -146,6 +147,9 @@ function buildCandidateComparison(analysis: KataGoMoveAnalysis): KataGoTraceCand
       searchRank,
       winrate: round(candidate.winrate, 2),
       scoreLead: round(candidate.scoreLead, 2),
+      blackScoreLead: round(candidate.scoreLead, 2),
+      scoreLeadPerspective: 'black-positive',
+      scoreSummary: scoreSummaryFromBlackLead(candidate.scoreLead),
       scoreStdev: candidate.scoreStdev,
       utility: candidate.utility,
       lcb: candidate.lcb,
@@ -294,6 +298,8 @@ export function buildShallowSearchTree(analysis: KataGoMoveAnalysis): KataGoTrac
     depth: 0,
     winrate: round(analysis.before.winrate, 2),
     scoreLead: round(analysis.before.scoreLead, 2),
+    scoreLeadPerspective: 'black-positive',
+    scoreSummary: scoreSummaryFromBlackLead(analysis.before.scoreLead),
     children: analysis.before.topMoves.slice(0, 5).map((candidate) => {
       const support = pvSupports.get(key(candidate.move)) ?? pvSupportForCandidate(candidate)
       return {
@@ -302,6 +308,8 @@ export function buildShallowSearchTree(analysis: KataGoMoveAnalysis): KataGoTrac
         visits: candidate.visits,
         winrate: round(candidate.winrate, 2),
         scoreLead: round(candidate.scoreLead, 2),
+        scoreLeadPerspective: 'black-positive' as const,
+        scoreSummary: scoreSummaryFromBlackLead(candidate.scoreLead),
         prior: candidate.prior,
         pvSupport: support.support,
         children: pvLineAsTree(candidate, support)
@@ -358,6 +366,10 @@ export function buildKataGoTracePacket(analysis: KataGoMoveAnalysis, level: Coac
       reason: analysis.analysisQuality?.reason ?? 'KataGo trace built from candidate visits, prior, PV and ownership fields.'
     },
     candidateComparison: buildCandidateComparison(analysis),
+    scorePerspective: {
+      scoreLeadFields: 'black-positive',
+      note: 'tracePacket scoreLead/blackScoreLead are black-positive: positive means Black leads, negative means White leads. Use scoreSummary.text/leader/leadPoints for spoken winner and margin.'
+    },
     policySearchDelta,
     pvSupport,
     ownershipSummary: buildOwnershipSummary(analysis),
@@ -376,10 +388,13 @@ export function buildKataGoTracePacket(analysis: KataGoMoveAnalysis, level: Coac
 
 export function formatKataGoTraceForPrompt(packet: KataGoTracePacket | undefined): string {
   if (!packet) return 'KataGo Trace Packet: 未生成。请只引用原始 KataGo 数据，且谨慎表达。'
+  const scorePerspectiveNote = packet.scorePerspective?.note
+    ?? 'tracePacket scoreLead is black-positive: positive means Black leads, negative means White leads.'
   return [
     '【KataGo Trace Packet】',
     `局面：第 ${packet.position.moveNumber} 手，阶段 ${packet.position.phase}。`,
     `搜索摘要：首选 ${packet.searchSummary.bestMove ?? '未知'}，实战 ${packet.searchSummary.actualMove ?? '未知'}，胜率损失 ${packet.searchSummary.winrateLoss}%，目差损失 ${packet.searchSummary.scoreLoss}，置信度 ${packet.searchSummary.confidence}。`,
+    `目差口径：${scorePerspectiveNote}`,
     `安全措辞：${packet.searchSummary.safeWording}`,
     `主讲重点：${packet.teachingGuidance.mainPoint}`,
     `policy-vs-search：${packet.policySearchDelta.slice(0, 4).map((delta) => `${delta.move}: ${delta.note}`).join('；') || '无'}`,
