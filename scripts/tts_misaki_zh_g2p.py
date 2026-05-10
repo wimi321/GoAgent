@@ -123,6 +123,8 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"\b([A-HJ-T])\s*(\d{1,2})\b", coord, text)
     text = re.sub(r"(\d+(?:\.\d+)?)\s*%", r"百分之\1", text)
     text = re.sub(r"\b([A-HJ-T])(?=\s*[点处位])", lambda match: COORD_LETTER_SPEECH.get(match.group(1).upper(), match.group(1)), text)
+    text = re.sub(r"(^|\s)#{1,6}(?=\s|$)", r"\1", text)
+    text = text.replace("#", "")
     text = re.sub(r"\b[A-Za-z][A-Za-z0-9+#._-]*\b", latin_token_to_speech, text)
     return text.strip()
 

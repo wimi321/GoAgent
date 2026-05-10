@@ -36,6 +36,8 @@ function stripMarkdownForSpeechChunking(text: string): string {
     .replace(/^\s*[-*+]\s+/gm, '')
     .replace(/^\s*\d+[.)、]\s+/gm, '')
     .replace(/^\s*\|.*\|\s*$/gm, '')
+    .replace(/(^|\s)#{1,6}(?=\s|$)/g, '$1')
+    .replace(/#/g, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim()

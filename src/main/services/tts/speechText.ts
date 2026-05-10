@@ -206,6 +206,8 @@ export function markdownToSpeechText(markdown: string, options: SpeechTextOption
     .replace(/^\s*\|.*\|\s*$/gm, '')
     .replace(/sourceRefs?:\s*[^\n]+/gi, '')
     .replace(/evidenceRefs?:\s*[^\n]+/gi, '')
+    .replace(/(^|\s)#{1,6}(?=\s|$)/g, '$1')
+    .replace(/#/g, '')
   return normalizeTechnicalTermsForSpeech(normalizeGoCoordinatesForSpeech(stripped, normalizedOptions), normalizedOptions)
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')

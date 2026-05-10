@@ -50,3 +50,12 @@ test('TTS evidence labels remain separated even when copied as one line', async 
   assert.ok(chunks.includes('AI 首选：F2。'))
   assert.doesNotMatch(chunks.join('\n'), /实战：黑 F6 AI 首选/)
 })
+
+test('TTS chunking strips markdown hash markers before playback', async () => {
+  const { splitProgressiveSpeech } = await importSpeechChunkingModule()
+  const chunks = splitProgressiveSpeech('# 当前手讲解\n\n## KataGo 数据\nAI 首选：F2 #重点')
+  assert.ok(chunks.some((chunk) => chunk.includes('当前手讲解')))
+  assert.ok(chunks.some((chunk) => chunk.includes('KataGo 数据')))
+  assert.ok(chunks.some((chunk) => chunk.includes('AI 首选：F2 重点')))
+  assert.doesNotMatch(chunks.join('\n'), /#|井号/)
+})

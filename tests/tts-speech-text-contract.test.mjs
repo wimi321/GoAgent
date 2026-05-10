@@ -39,6 +39,15 @@ test('TTS keeps normal English words and AI terms instead of spelling every lett
   assert.doesNotMatch(text, /艾斯替阿尔欧恩吉|维艾艾斯艾替艾斯/)
 })
 
+test('TTS removes markdown heading hash markers from spoken text', async () => {
+  const { markdownToSpeechText } = await importSpeechTextModule()
+  const text = markdownToSpeechText('# 当前手讲解\n\n## KataGo 数据\nAI 首选：F2 #重点')
+  assert.match(text, /当前手讲解/)
+  assert.match(text, /卡塔狗 数据/)
+  assert.match(text, /AI 首选：F 二 重点/)
+  assert.doesNotMatch(text, /井号|#/)
+})
+
 test('Kokoro localized coordinate mode remains available for Chinese G2P', async () => {
   const { markdownToSpeechText } = await importSpeechTextModule()
   const text = markdownToSpeechText('建议下在 Q16，实战 K5 稍亏。', { coordinateLetterMode: 'localized' })
