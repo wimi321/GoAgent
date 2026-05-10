@@ -21,6 +21,7 @@ test('KataGo candidate ranking uses before-position choices and current-player l
   assert.match(katago, /function initialPlayerFromRecord/)
   assert.match(katago, /function blackWinrateFromSideToMove/)
   assert.match(katago, /function blackScoreLeadFromSideToMove/)
+  assert.match(katago, /match LizzieYzy by storing it as black-positive/)
   assert.match(katago, /reportAnalysisWinratesAs: 'SIDETOMOVE'/)
   assert.match(katago, /initialPlayer: rootInitialPlayer/)
   assert.match(katago, /move\.pass \? 'pass' : move\.gtp/)
@@ -83,25 +84,32 @@ test('Board overlays display candidate values from the side-to-move perspective'
   assert.match(board, /candidate\.scoreValue/)
 })
 
-test('Teacher agent sends board-display winrates while preserving black-perspective evidence', () => {
+test('Teacher agent sends board-display winrates and unambiguous score summaries', () => {
   const agent = read('src/main/services/teacherAgent.ts')
   const evidence = read('src/main/services/teacher/teachingEvidence.ts')
+  const scorePerspective = read('src/main/services/teacher/scorePerspective.ts')
   const main = read('src/main/index.ts')
   const types = read('src/main/lib/types.ts')
 
   assert.match(agent, /winratePerspective/)
   assert.match(agent, /primaryFields: 'board-display\/player perspective'/)
+  assert.match(agent, /scoreSummary\.leader/)
+  assert.match(agent, /scoreSummaryFromBlackLead/)
   assert.match(agent, /compactCandidateForColor/)
   assert.match(agent, /displayWinrateForColor\(candidate\.winrate, color\)/)
   assert.match(agent, /blackWinrate: roundMetric\(candidate\.winrate, 2\)/)
   assert.match(agent, /playedMove\.playerWinrate/)
-  assert.match(agent, /Use winrate\/scoreLead for teacher-visible claims; they match the board display/)
+  assert.match(agent, /For score winner\/margin, use scoreSummary\.text\/leader\/leadPoints/)
 
   assert.match(evidence, /perspectiveColor/)
   assert.match(evidence, /blackWinrate/)
+  assert.match(evidence, /scoreSummaryFromBlackLead/)
   assert.match(evidence, /displayWinrateForColor\(move\.winrate, perspectiveColor\)/)
   assert.match(evidence, /analysis\.playedMove\.playerWinrate/)
+  assert.match(scorePerspective, /signConvention: 'black-positive'/)
+  assert.match(scorePerspective, /leader === 'B' \? '黑' : '白'/)
 
+  assert.match(types, /export interface KataGoScoreSummary/)
   assert.match(types, /'teacher'/)
   assert.match(main, /group: payload\.runId \? 'teacher' : 'single'/)
 })

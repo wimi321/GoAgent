@@ -94,11 +94,23 @@ function verifyNumericText(text: string, evidence: TeachingEvidence, warnings: s
   }
 
   const scoreMentions = Array.from(text.matchAll(/(?:目差|亏|领先|落后|score|points?).{0,8}?(-?\d+(?:\.\d+)?)/gi)).map((match) => Number(match[1]))
+  const scoreSummaries = [
+    evidence.before.scoreSummary,
+    evidence.afterActual.scoreSummary,
+    evidence.playedMove?.scoreSummary,
+    ...evidence.bestCandidates.map((candidate) => candidate.scoreSummary)
+  ].filter(Boolean)
   const knownScores = [
     evidence.before.scoreLead,
     evidence.afterActual.scoreLead,
     evidence.loss.scoreLoss,
-    ...evidence.bestCandidates.map((candidate) => candidate.scoreLead)
+    ...evidence.bestCandidates.map((candidate) => candidate.scoreLead),
+    ...scoreSummaries.flatMap((summary) => [
+      summary?.perspectiveScoreLead,
+      summary?.blackScoreLead,
+      summary?.whiteScoreLead,
+      summary?.leadPoints
+    ])
   ].map((value) => round(value, 1))
   for (const score of scoreMentions) {
     if (!knownScores.some((target) => near(score, target, 0.8))) {

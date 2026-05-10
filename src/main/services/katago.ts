@@ -185,6 +185,7 @@ function blackWinrateFromSideToMove(rawWinrate: number, sideToMove: GameMove['co
 }
 
 function blackScoreLeadFromSideToMove(rawScoreLead: number, sideToMove: GameMove['color']): number {
+  // KataGo reports scoreLead from the side to move under SIDETOMOVE; match LizzieYzy by storing it as black-positive.
   return sideToMove === 'B' ? rawScoreLead : -rawScoreLead
 }
 

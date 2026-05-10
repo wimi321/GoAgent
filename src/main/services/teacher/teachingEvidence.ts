@@ -2,6 +2,7 @@ import type {
   CoachUserLevel,
   KataGoCandidate,
   KataGoMoveAnalysis,
+  KataGoScoreSummary,
   KnowledgeMatch,
   KnowledgePacket,
   RecommendedProblem,
@@ -13,6 +14,7 @@ import type {
   TeacherRunRequest
 } from '@main/lib/types'
 import type { RecognizedTeachingMotif } from '../knowledge/motifRecognizer'
+import { scoreLeadForColor, scoreSummaryFromBlackLead } from './scorePerspective'
 
 export type TeachingPhase = 'opening' | 'middle' | 'endgame'
 export type TeachingSeverity = 'good' | 'inaccuracy' | 'mistake' | 'blunder' | 'uncertain'
@@ -25,6 +27,7 @@ export interface TeachingEvidenceCandidate extends Pick<KataGoCandidate, 'move' 
   perspectiveColor?: StoneColor
   blackWinrate?: number
   blackScoreLead?: number
+  scoreSummary?: KataGoScoreSummary
 }
 
 export interface TeachingEvidence {
@@ -42,6 +45,7 @@ export interface TeachingEvidence {
     perspectiveColor?: StoneColor
     blackWinrate?: number
     blackScoreLead?: number
+    scoreSummary?: KataGoScoreSummary
   }
   afterActual: {
     winrate: number
@@ -49,6 +53,7 @@ export interface TeachingEvidence {
     perspectiveColor?: StoneColor
     blackWinrate?: number
     blackScoreLead?: number
+    scoreSummary?: KataGoScoreSummary
   }
   playedMove?: {
     move: string
@@ -57,6 +62,7 @@ export interface TeachingEvidence {
     perspectiveColor?: StoneColor
     blackWinrate?: number
     blackScoreLead?: number
+    scoreSummary?: KataGoScoreSummary
     visits?: number
     rank?: number
     source?: string
@@ -134,8 +140,7 @@ function displayWinrateForColor(blackWinrate: number | undefined, color: StoneCo
 }
 
 function displayScoreLeadForColor(blackScoreLead: number | undefined, color: StoneColor): number {
-  const value = typeof blackScoreLead === 'number' && Number.isFinite(blackScoreLead) ? blackScoreLead : 0
-  return color === 'B' ? value : -value
+  return scoreLeadForColor(blackScoreLead, color)
 }
 
 function inferPhase(moveNumber: number): TeachingPhase {
@@ -278,6 +283,7 @@ function uniqueHintCandidates(analysis: KataGoMoveAnalysis): TeachingEvidenceCan
     perspectiveColor,
     blackWinrate: round(move.winrate, 2),
     blackScoreLead: round(move.scoreLead, 2),
+    scoreSummary: scoreSummaryFromBlackLead(move.scoreLead, perspectiveColor),
     visits: move.visits ?? 0,
     order: move.order,
     pv: (move.pv ?? []).slice(0, 8),
@@ -331,7 +337,7 @@ export function buildTeachingPacingAdvice(
       purpose: hintPurpose(candidate.humanLabel, focus, isActual),
       expectedReply,
       pv: candidate.pv.slice(0, 6),
-      result: `胜率 ${round(candidate.winrate, 1)}%，目差 ${round(candidate.scoreLead, 1)}，搜索 ${candidate.visits}。`,
+      result: `胜率 ${round(candidate.winrate, 1)}%，${candidate.scoreSummary?.text ?? `目差 ${round(candidate.scoreLead, 1)}`}，搜索 ${candidate.visits}。`,
       confidence: candidateConfidence(candidate.visits)
     }
   })
@@ -393,6 +399,7 @@ export function buildTeachingEvidence(
     perspectiveColor,
     blackWinrate: round(move.winrate, 2),
     blackScoreLead: round(move.scoreLead, 2),
+    scoreSummary: scoreSummaryFromBlackLead(move.scoreLead, perspectiveColor),
     visits: move.visits ?? 0,
     order: move.order,
     pv: (move.pv ?? []).slice(0, 8),
@@ -414,14 +421,16 @@ export function buildTeachingEvidence(
       scoreLead: round(displayScoreLeadForColor(analysis.before.scoreLead, perspectiveColor), 2),
       perspectiveColor,
       blackWinrate: round(analysis.before.winrate, 2),
-      blackScoreLead: round(analysis.before.scoreLead, 2)
+      blackScoreLead: round(analysis.before.scoreLead, 2),
+      scoreSummary: scoreSummaryFromBlackLead(analysis.before.scoreLead, perspectiveColor)
     },
     afterActual: {
       winrate: round(displayWinrateForColor(analysis.after.winrate, perspectiveColor), 2),
       scoreLead: round(displayScoreLeadForColor(analysis.after.scoreLead, perspectiveColor), 2),
       perspectiveColor,
       blackWinrate: round(analysis.after.winrate, 2),
-      blackScoreLead: round(analysis.after.scoreLead, 2)
+      blackScoreLead: round(analysis.after.scoreLead, 2),
+      scoreSummary: scoreSummaryFromBlackLead(analysis.after.scoreLead, perspectiveColor)
     },
     playedMove: analysis.playedMove
       ? {
@@ -431,6 +440,7 @@ export function buildTeachingEvidence(
           perspectiveColor,
           blackWinrate: round(analysis.playedMove.winrate, 2),
           blackScoreLead: round(analysis.playedMove.scoreLead, 2),
+          scoreSummary: scoreSummaryFromBlackLead(analysis.playedMove.scoreLead, perspectiveColor),
           visits: analysis.playedMove.visits,
           rank: analysis.playedMove.rank,
           source: analysis.playedMove.source
@@ -483,6 +493,7 @@ export function buildTeachingEvidence(
     constraints: [
       'Only use coordinates and candidate moves present in this evidence or in the attached board image.',
       'Do not invent winrate, scoreLead, joseki names, pro-player references, source citations, or PV lines.',
+      'For winner and margin claims, use scoreSummary.text/leader/leadPoints. blackScoreLead is black-positive; negative means White leads.',
       'Only name a joseki when recognizedMotifs contains a joseki:* motif with medium/strong confidence; otherwise describe it as an opening/corner pattern.',
       'When a motif has sourceRefs, treat them as traceability labels, not as quoted sources. Do not claim a source says something unless source text is present.',
       'If confidence is medium/low, speak as preference or hypothesis, not as a final verdict.',

@@ -39,6 +39,7 @@ import { parseStructuredTeacherResult } from './teacher/structuredResultParser'
 import { classifyTeacherIntent, type TeacherIntent } from './teacher/intentClassifier'
 import { buildTeachingPacingAdvice } from './teacher/teachingEvidence'
 import { buildTeacherArtifact, validateTeachingArtifact } from './teacher/teachingArtifact'
+import { scoreLeadForColor, scoreSummaryFromBlackLead } from './teacher/scorePerspective'
 import {
   buildTeacherPersonaInstruction,
   normalizeCoachLevel,
@@ -328,6 +329,7 @@ function systemPrompt(level: CoachUserLevel): string {
     '如果 KataGo 结果包含 tracePacket，优先使用 tracePacket.searchSummary、candidateComparison、policySearchDelta、pvSupport、ownershipSummary、humanPolicySignals 和 shallowSearchTree 来解释“为什么”。',
     'tracePacket 是给老师的搜索证据摘要，不要把原始 MCTS/搜索字段生硬堆给学生；请翻译成“自然但被搜索否定”“不直观但搜索支持”“PV 支撑弱所以只能参考”等教学语言。',
     '如果 tracePacket 的置信度或 PV 支撑不足，必须降级措辞，不能说唯一、必杀、必败或绝对。',
+    '讲胜负、领先、落后和目数时，优先使用工具结果里的 scoreSummary.leader、scoreSummary.leadPoints 和 scoreSummary.text；blackScoreLead 是黑棋为正，负数表示白棋领先，不要自己用裸 scoreLead 符号猜胜负。',
     '不要编造坐标、胜率、PV、定式名或来源。',
     '每个关键结论都应能回指到工具证据；数字、坐标、PV、定式名、死活结论和先后手判断没有证据时必须降级成假设。',
     '当 analysisQuality.confidence 不是 high，必须使用“AI 更倾向 / 更像 / 不宜下绝对结论”等低风险措辞。',
@@ -786,8 +788,7 @@ function displayWinrateForColor(blackWinrate: number | undefined, color: StoneCo
 }
 
 function displayScoreLeadForColor(blackScoreLead: number | undefined, color: StoneColor): number {
-  const value = typeof blackScoreLead === 'number' && Number.isFinite(blackScoreLead) ? blackScoreLead : 0
-  return color === 'B' ? value : -value
+  return scoreLeadForColor(blackScoreLead, color)
 }
 
 function roundMetric(value: number | undefined, digits = 2): number {
@@ -805,7 +806,8 @@ function compactCandidateForColor(candidate: KataGoMoveAnalysis['before']['topMo
     winrate: roundMetric(displayWinrateForColor(candidate.winrate, color), 2),
     scoreLead: roundMetric(displayScoreLeadForColor(candidate.scoreLead, color), 2),
     blackWinrate: roundMetric(candidate.winrate, 2),
-    blackScoreLead: roundMetric(candidate.scoreLead, 2)
+    blackScoreLead: roundMetric(candidate.scoreLead, 2),
+    scoreSummary: scoreSummaryFromBlackLead(candidate.scoreLead, color)
   }
 }
 
@@ -821,6 +823,7 @@ function compactPlayedMoveForColor(
     scoreLead: roundMetric(playedMove.playerScoreLead ?? displayScoreLeadForColor(playedMove.scoreLead, color), 2),
     blackWinrate: roundMetric(playedMove.winrate, 2),
     blackScoreLead: roundMetric(playedMove.scoreLead, 2),
+    scoreSummary: scoreSummaryFromBlackLead(playedMove.scoreLead, color),
     playerWinrate: roundMetric(playedMove.playerWinrate ?? displayWinrateForColor(playedMove.winrate, color), 2),
     playerScoreLead: roundMetric(playedMove.playerScoreLead ?? displayScoreLeadForColor(playedMove.scoreLead, color), 2)
   }
@@ -842,7 +845,8 @@ function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
       beforePerspectiveColor: playerColor,
       afterActualPerspectiveColor: playerColor,
       afterTopMovesPerspectiveColor: afterSideToMoveColor,
-      note: 'Use winrate/scoreLead for teacher-visible claims; they match the board display. Use blackWinrate/blackScoreLead only when explicitly discussing black perspective.'
+      scorePerspective: 'Use scoreSummary for winner and margin claims. scoreLead is perspectiveColor-relative; blackScoreLead is black-positive.',
+      note: 'Use winrate for teacher-visible winrate claims. For score winner/margin, use scoreSummary.text/leader/leadPoints; use blackWinrate/blackScoreLead only when explicitly discussing black perspective.'
     },
     before: {
       perspectiveColor: playerColor,
@@ -850,6 +854,7 @@ function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
       scoreLead: roundMetric(displayScoreLeadForColor(analysis.before.scoreLead, playerColor), 2),
       blackWinrate: roundMetric(analysis.before.winrate, 2),
       blackScoreLead: roundMetric(analysis.before.scoreLead, 2),
+      scoreSummary: scoreSummaryFromBlackLead(analysis.before.scoreLead, playerColor),
       topMoves: analysis.before.topMoves.slice(0, 8).map((candidate, index) => compactCandidateForColor(candidate, playerColor, index + 1))
     },
     after: {
@@ -859,6 +864,7 @@ function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
       scoreLead: roundMetric(displayScoreLeadForColor(analysis.after.scoreLead, playerColor), 2),
       blackWinrate: roundMetric(analysis.after.winrate, 2),
       blackScoreLead: roundMetric(analysis.after.scoreLead, 2),
+      scoreSummary: scoreSummaryFromBlackLead(analysis.after.scoreLead, playerColor),
       topMoves: analysis.after.topMoves.slice(0, 5).map((candidate, index) => compactCandidateForColor(candidate, afterSideToMoveColor, index + 1))
     },
     playedMove: compactPlayedMoveForColor(analysis.playedMove, playerColor),

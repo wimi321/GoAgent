@@ -198,6 +198,17 @@ export interface LibraryDeleteResult {
 
 export type StoneColor = 'B' | 'W'
 
+export interface KataGoScoreSummary {
+  signConvention: 'black-positive'
+  perspectiveColor?: StoneColor
+  perspectiveScoreLead?: number
+  blackScoreLead: number
+  whiteScoreLead: number
+  leader: StoneColor | 'even'
+  leadPoints: number
+  text: string
+}
+
 export interface GameMove {
   moveNumber: number
   color: StoneColor
@@ -481,6 +492,9 @@ export interface KataGoTraceCandidate {
   searchRank: number
   winrate: number
   scoreLead: number
+  blackScoreLead: number
+  scoreLeadPerspective: 'black-positive'
+  scoreSummary: KataGoScoreSummary
   scoreStdev?: number
   utility?: number
   lcb?: number
@@ -538,6 +552,8 @@ export interface KataGoTraceTreeNode {
   visits?: number
   winrate?: number
   scoreLead?: number
+  scoreLeadPerspective?: 'black-positive'
+  scoreSummary?: KataGoScoreSummary
   prior?: number
   pvSupport?: KataGoPvSupport['support']
   children: KataGoTraceTreeNode[]
@@ -559,6 +575,10 @@ export interface KataGoTracePacket {
     reason: string
   }
   candidateComparison: KataGoTraceCandidate[]
+  scorePerspective: {
+    scoreLeadFields: 'black-positive'
+    note: string
+  }
   policySearchDelta: KataGoPolicySearchDelta[]
   pvSupport: KataGoPvSupport[]
   ownershipSummary?: {

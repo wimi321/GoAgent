@@ -20,6 +20,8 @@ const requiredTranslatorFragments = [
   'buildKataGoTracePacket',
   'buildShallowSearchTree',
   'policySearchDelta',
+  'scorePerspective',
+  'scoreSummaryFromBlackLead',
   'pvSupport',
   'ownershipSummary',
   'humanPolicySignals',
@@ -35,6 +37,7 @@ for (const fragment of requiredTranslatorFragments) {
 
 const requiredTypeFragments = [
   'KataGoTracePacket',
+  'KataGoScoreSummary',
   'KataGoTraceCandidate',
   'KataGoPolicySearchDelta',
   'KataGoPvSupport',
@@ -64,6 +67,7 @@ for (const fragment of [
   'formatKataGoTraceForPrompt',
   'tracePacket.searchSummary',
   'tracePacket: analysis.tracePacket',
+  'scoreSummary.leadPoints',
   'policySearchDelta',
   'pvSupport',
   'ownershipSummary',
@@ -76,5 +80,5 @@ for (const fragment of [
 console.log(JSON.stringify({
   ok: true,
   checked: 'katago trace translator contract',
-  features: ['tracePacket', 'shallowSearchTree', 'policySearchDelta', 'pvSupport', 'ownershipSummary', 'humanPolicySignals']
+  features: ['tracePacket', 'shallowSearchTree', 'policySearchDelta', 'scorePerspective', 'pvSupport', 'ownershipSummary', 'humanPolicySignals']
 }, null, 2))
