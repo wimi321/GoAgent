@@ -23,11 +23,31 @@ export function TeacherSpeechControls({ markdown, result, readMode = 'full', aut
   const synthLockRef = useRef(false)
   const playbackDoneRef = useRef<(() => void) | null>(null)
 
+  function summarySpeechSourceText(text: string): string {
+    const cleaned = text
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/^#{1,6}\s+/gm, '')
+      .replace(/^\s*[-*+]\s+/gm, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter((line) => line && !/^工具|^tool|^debug|^trace/i.test(line))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    const sentences = cleaned.match(/[^。！？!?；;]+[。！？!?；;]?/g) ?? (cleaned ? [cleaned] : [])
+    const summary = sentences.slice(0, 4).join('').trim()
+    return summary.length > 720 ? `${summary.slice(0, 720).trimEnd()}。` : summary
+  }
+
   function speechSourceText(): string {
     if (readMode === 'selection') {
       const selected = window.getSelection()?.toString().trim()
       if (selected) return selected
+      return ''
     }
+    if (readMode === 'summary') return summarySpeechSourceText(markdown)
     return markdown
   }
 
@@ -77,7 +97,13 @@ export function TeacherSpeechControls({ markdown, result, readMode = 'full', aut
   async function synthesizeAndPlay(): Promise<void> {
     if (synthLockRef.current || state === 'synthesizing' || state === 'playing') return
     const text = speechSourceText()
-    if (!text.trim() || disabled) return
+    if (!text.trim() || disabled) {
+      if (readMode === 'selection' && !disabled) {
+        setState('error')
+        setMessage('请先选中要朗读的文字，或在设置里切回“完整讲解”。')
+      }
+      return
+    }
     synthLockRef.current = true
     const runId = runIdRef.current + 1
     runIdRef.current = runId
@@ -88,7 +114,7 @@ export function TeacherSpeechControls({ markdown, result, readMode = 'full', aut
       return
     }
     setState('synthesizing')
-    setMessage(chunks.length > 1 ? `正在生成第 1 / ${chunks.length} 段语音…` : '正在生成本地语音…')
+    setMessage(chunks.length > 1 ? `正在生成第 1 / ${chunks.length} 段语音…` : '正在生成语音…')
     try {
       const firstAudio = await synthesizeChunk(chunks[0], runId, 0, chunks.length)
       if (runIdRef.current !== runId) return

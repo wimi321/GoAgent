@@ -55,7 +55,7 @@ const defaults: AppSettings = {
   ttsVolcengineAppId: '',
   ttsVolcengineAccessToken: '',
   ttsVolcengineResourceId: 'seed-tts-2.0',
-  ttsVolcengineSpeaker: 'zh_female_vv_uranus_bigtts',
+  ttsVolcengineSpeaker: 'zh_female_xiaohe_uranus_bigtts',
   ttsVolcengineModel: 'seed-tts-2.0-standard',
   ttsVolcengineSampleRate: 24000,
   ttsCustomBaseUrl: '',

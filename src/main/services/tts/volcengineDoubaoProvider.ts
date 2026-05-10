@@ -7,10 +7,10 @@ import { assertSelectedProvider, type TtsProvider } from './ttsTypes'
 const VOLCENGINE_ENDPOINT = 'https://openspeech.bytedance.com/api/v3/tts/unidirectional'
 
 const VOLCENGINE_VOICES: TtsVoice[] = [
-  { id: 'zh_female_vv_uranus_bigtts', label: '中文女声 · 清亮自然', language: 'zh-CN', provider: 'volcengine-doubao' },
-  { id: 'zh_female_xiaohe_uranus_bigtts', label: '中文女声 · 温和讲解', language: 'zh-CN', provider: 'volcengine-doubao' },
-  { id: 'zh_male_bvlazysheep', label: '中文男声 · 沉稳口语', language: 'zh-CN', provider: 'volcengine-doubao' },
-  { id: 'zh_male_ahu_conversation_wvae_bigtts', label: '中文男声 · 对话讲解', language: 'zh-CN', provider: 'volcengine-doubao' }
+  { id: 'zh_female_xiaohe_uranus_bigtts', label: '小何 2.0 · 温和讲解女声', language: 'zh-CN', provider: 'volcengine-doubao' },
+  { id: 'zh_female_vv_uranus_bigtts', label: 'Vivi 2.0 · 清亮自然女声', language: 'zh-CN', provider: 'volcengine-doubao' },
+  { id: 'zh_male_m191_uranus_bigtts', label: '云舟 2.0 · 沉稳男声', language: 'zh-CN', provider: 'volcengine-doubao' },
+  { id: 'zh_male_taocheng_uranus_bigtts', label: '小天 2.0 · 年轻男声', language: 'zh-CN', provider: 'volcengine-doubao' }
 ]
 
 function clamp(value: number, min: number, max: number): number {

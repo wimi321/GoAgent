@@ -54,7 +54,14 @@ GoAgent 会读取火山流式返回的 JSON，把 `data` 字段里的 base64 音
 - Format: `mp3`
 - Sample rate: `24000`
 
-预置音色仅作为便捷入口。若火山控制台给出的 speaker ID 与预置不同，可以在“自定义 speaker”里直接填入控制台音色 ID。
+GoAgent 设置页内置了一组适合讲棋的火山大模型音色：
+
+- 小何 2.0: `zh_female_xiaohe_uranus_bigtts`
+- Vivi 2.0: `zh_female_vv_uranus_bigtts`
+- 云舟 2.0: `zh_male_m191_uranus_bigtts`
+- 小天 2.0: `zh_male_taocheng_uranus_bigtts`
+
+这些音色来自火山“语音合成大模型”音色列表。预置音色仅作为便捷入口；若火山控制台给出的 speaker ID 与预置不同，可以在“自定义 speaker”里直接填入控制台音色 ID。
 
 如果报错包含 `requested resource not granted`，说明当前账号没有开通这个 Resource ID。请在火山控制台查看已授权资源，并把 GoAgent 的 Resource ID 改成已授权值；常见错误是把未授权的 `volc.seedtts.default` 填进来。
 

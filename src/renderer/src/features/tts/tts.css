@@ -148,6 +148,14 @@
   font-weight: 900;
 }
 
+.ga-tts-field-note {
+  display: block;
+  margin-top: 5px;
+  color: var(--ks-text-faint);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .ga-tts-settings input,
 .ga-tts-settings select,
 .ga-tts-settings textarea {

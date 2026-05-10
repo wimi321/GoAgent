@@ -18,10 +18,10 @@ const PROVIDERS: Array<{ id: TtsProviderId; label: string; badge: string; note: 
 ]
 
 const VOLCENGINE_VOICES: TtsVoice[] = [
-  { id: 'zh_female_vv_uranus_bigtts', label: '中文女声 · 清亮自然', language: 'zh-CN', provider: 'volcengine-doubao' },
-  { id: 'zh_female_xiaohe_uranus_bigtts', label: '中文女声 · 温和讲解', language: 'zh-CN', provider: 'volcengine-doubao' },
-  { id: 'zh_male_bvlazysheep', label: '中文男声 · 沉稳口语', language: 'zh-CN', provider: 'volcengine-doubao' },
-  { id: 'zh_male_ahu_conversation_wvae_bigtts', label: '中文男声 · 对话讲解', language: 'zh-CN', provider: 'volcengine-doubao' }
+  { id: 'zh_female_xiaohe_uranus_bigtts', label: '小何 2.0 · 温和讲解女声', language: 'zh-CN', provider: 'volcengine-doubao' },
+  { id: 'zh_female_vv_uranus_bigtts', label: 'Vivi 2.0 · 清亮自然女声', language: 'zh-CN', provider: 'volcengine-doubao' },
+  { id: 'zh_male_m191_uranus_bigtts', label: '云舟 2.0 · 沉稳男声', language: 'zh-CN', provider: 'volcengine-doubao' },
+  { id: 'zh_male_taocheng_uranus_bigtts', label: '小天 2.0 · 年轻男声', language: 'zh-CN', provider: 'volcengine-doubao' }
 ]
 
 const LANGUAGES: Array<{ value: AppSettings['ttsLanguage']; label: string; note: string }> = [
@@ -120,6 +120,7 @@ export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettings
   const [selectedLanguage, setSelectedLanguage] = useState<AppSettings['ttsLanguage']>(settings.ttsLanguage)
   const [selectedVoiceId, setSelectedVoiceId] = useState(defaultVoiceForProvider(settings.ttsProvider, settings))
   const [selectedVolcengineAuthMode, setSelectedVolcengineAuthMode] = useState<AppSettings['ttsVolcengineAuthMode']>(settings.ttsVolcengineAuthMode || 'api-key')
+  const [selectedReadMode, setSelectedReadMode] = useState<AppSettings['ttsReadMode']>(settings.ttsReadMode || 'full')
   const [enabled, setEnabled] = useState(settings.ttsEnabled)
   const [rate, setRate] = useState(settings.ttsRate || 1)
   const [volume, setVolume] = useState(settings.ttsVolume || 1)
@@ -155,6 +156,7 @@ export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettings
     setSelectedLanguage(settings.ttsLanguage)
     setSelectedVoiceId(defaultVoiceForProvider(settings.ttsProvider, settings))
     setSelectedVolcengineAuthMode(settings.ttsVolcengineAuthMode || 'api-key')
+    setSelectedReadMode(settings.ttsReadMode || 'full')
     setEnabled(settings.ttsEnabled)
     setRate(settings.ttsRate || 1)
     setVolume(settings.ttsVolume || 1)
@@ -178,7 +180,7 @@ export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettings
       ttsRate: Number(data.get('ttsRate') || 1),
       ttsPitch: settings.ttsPitch,
       ttsVolume: Number(data.get('ttsVolume') || 1),
-      ttsReadMode: String(data.get('ttsReadMode')) as AppSettings['ttsReadMode']
+      ttsReadMode: selectedReadMode
     }
     if (showVolcengineApi) {
       next.ttsVolcengineEndpoint = String(data.get('ttsVolcengineEndpoint') || '')
@@ -303,8 +305,9 @@ export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettings
           <label>
             <span>声音</span>
             <select name="ttsVoiceId" value={selectedVoiceId} onChange={(event) => setSelectedVoiceId(event.target.value)}>
-              {visibleVoices.length ? visibleVoices.map((voice) => <option key={voice.id} value={voice.id}>{voice.label}</option>) : <option value={settings.ttsVoiceId}>{settings.ttsVoiceId || '未加载声音'}</option>}
+              {visibleVoices.length ? visibleVoices.map((voice) => <option key={voice.id} value={voice.id}>{voice.label} · {voice.id}</option>) : <option value={settings.ttsVoiceId}>{settings.ttsVoiceId || '未加载声音'}</option>}
             </select>
+            {showVolcengineApi ? <small className="ga-tts-field-note">下拉项后半段是火山 speaker ID，方便和控制台核对。</small> : null}
           </label>
         </div>
       </section>
@@ -333,7 +336,13 @@ export function TtsSettingsPanel({ settings, busy = false, onSave }: TtsSettings
               ['summary', '精简内容']
             ].map(([value, label]) => (
               <label key={value}>
-                <input name="ttsReadMode" type="radio" value={value} defaultChecked={settings.ttsReadMode === value} />
+                <input
+                  name="ttsReadMode"
+                  type="radio"
+                  value={value}
+                  checked={selectedReadMode === value}
+                  onChange={() => setSelectedReadMode(value as AppSettings['ttsReadMode'])}
+                />
                 <span>{label}</span>
               </label>
             ))}
