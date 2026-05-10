@@ -7,6 +7,7 @@
 }
 
 .ga-tts-controls button {
+  position: relative;
   border: 1px solid var(--ks-border-soft);
   border-radius: var(--ks-radius-sm);
   padding: 5px 9px;
@@ -17,9 +18,40 @@
   transition: transform var(--ks-motion-fast), border-color var(--ks-motion-fast);
 }
 
+.ga-tts-controls button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
 .ga-tts-controls button:not(:disabled):hover {
   border-color: color-mix(in srgb, var(--ks-gold) 55%, var(--ks-border-strong));
   transform: translateY(-1px);
+}
+
+.ga-tts-controls button[data-tooltip]:hover::after,
+.ga-tts-controls button[data-tooltip]:focus-visible::after {
+  position: absolute;
+  right: 50%;
+  bottom: calc(100% + 8px);
+  z-index: var(--ks-z-tooltip, 30);
+  min-width: max-content;
+  max-width: 220px;
+  padding: 6px 8px;
+  border: 1px solid var(--ks-border-soft);
+  border-radius: var(--ks-radius-sm);
+  background: rgb(255 253 247 / 0.96);
+  box-shadow:
+    0 10px 22px rgb(42 32 18 / 0.12),
+    inset 0 1px 0 rgb(255 255 255 / 0.78);
+  color: var(--ks-text-main);
+  content: attr(data-tooltip);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  pointer-events: none;
+  text-align: center;
+  transform: translateX(50%);
+  white-space: normal;
 }
 
 .ga-tts-controls small {

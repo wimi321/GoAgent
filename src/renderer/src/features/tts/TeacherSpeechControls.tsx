@@ -13,6 +13,14 @@ interface TeacherSpeechControlsProps {
 
 type PlaybackState = 'idle' | 'synthesizing' | 'playing' | 'paused' | 'error'
 
+const TTS_PROVIDER_LABELS: Record<string, string> = {
+  'kokoro-bundled': '内置语音',
+  'volcengine-doubao': '火山豆包',
+  'custom-openai-compatible': '自定义语音',
+  'custom-http-json': 'HTTP 语音',
+  'external-local-service': '本地语音服务'
+}
+
 export function TeacherSpeechControls({ markdown, result, readMode = 'full', autoPlay = false, disabled = false }: TeacherSpeechControlsProps): ReactElement {
   const [state, setState] = useState<PlaybackState>('idle')
   const [message, setMessage] = useState('')
@@ -96,6 +104,10 @@ export function TeacherSpeechControls({ markdown, result, readMode = 'full', aut
 
   async function synthesizeAndPlay(): Promise<void> {
     if (synthLockRef.current || state === 'synthesizing' || state === 'playing') return
+    if (state === 'paused') {
+      setMessage('语音已暂停，请点击“继续”。')
+      return
+    }
     const text = speechSourceText()
     if (!text.trim() || disabled) {
       if (readMode === 'selection' && !disabled) {
@@ -208,22 +220,31 @@ export function TeacherSpeechControls({ markdown, result, readMode = 'full', aut
   }
 
   function stopAudio(): void {
+    const wasActive = state !== 'idle'
     runIdRef.current += 1
     synthLockRef.current = false
     disposeAudio()
     setState('idle')
-    setMessage(lastAudio ? '语音播放已停止' : '')
+    setMessage(wasActive || lastAudio ? '语音播放已停止' : '')
   }
 
   function pauseAudio(): void {
+    if (state !== 'playing') return
     audioRef.current?.pause()
     setState('paused')
+    setMessage('语音已暂停')
   }
 
   async function resumeAudio(): Promise<void> {
-    if (!audioRef.current) return
-    setState('playing')
-    await audioRef.current.play()
+    if (state !== 'paused' || !audioRef.current) return
+    try {
+      setState('playing')
+      setMessage('继续播放语音')
+      await audioRef.current.play()
+    } catch (cause) {
+      setState('error')
+      setMessage(String(cause))
+    }
   }
 
   useEffect(() => {
@@ -234,13 +255,50 @@ export function TeacherSpeechControls({ markdown, result, readMode = 'full', aut
     return () => stopAudio()
   }, [autoPlay, disabled, result?.id, markdown])
 
+  const playDisabled = disabled || state === 'synthesizing' || state === 'playing' || state === 'paused'
+  const pauseDisabled = state !== 'playing'
+  const resumeDisabled = state !== 'paused'
+  const stopDisabled = state === 'idle' && !message
+  const providerLabel = lastAudio ? (TTS_PROVIDER_LABELS[lastAudio.provider] ?? lastAudio.provider) : ''
+  const cacheLabel = lastAudio ? (lastAudio.cached ? '缓存' : '新生成') : ''
+  const playHint = disabled
+    ? '老师回复完成后可以播放'
+    : state === 'synthesizing'
+      ? '正在生成语音，生成后会自动播放'
+      : state === 'playing'
+        ? '正在播放，先暂停或停止'
+        : state === 'paused'
+          ? '语音已暂停，请点继续'
+          : '播放老师讲解'
+  const pauseHint = state === 'playing'
+    ? '暂停当前朗读'
+    : state === 'paused'
+      ? '已经暂停'
+      : state === 'synthesizing'
+        ? '正在生成语音，可点停止取消'
+        : '没有正在播放的语音'
+  const resumeHint = state === 'paused'
+    ? '继续播放已暂停的语音'
+    : state === 'playing'
+      ? '正在播放中'
+      : state === 'synthesizing'
+        ? '正在生成语音'
+        : '没有可继续的语音'
+  const stopHint = state === 'synthesizing'
+    ? '停止生成语音'
+    : state === 'playing' || state === 'paused'
+      ? '停止本次朗读'
+      : state === 'error'
+        ? '清除语音错误状态'
+        : '当前没有语音任务'
+
   return (
     <div className="ga-tts-controls" aria-label="老师语音朗读">
-      <button type="button" onClick={() => void synthesizeAndPlay()} disabled={disabled || state === 'synthesizing' || state === 'playing'}>播放</button>
-      <button type="button" onClick={pauseAudio} disabled={disabled || state !== 'playing'}>暂停</button>
-      <button type="button" onClick={() => void resumeAudio()} disabled={disabled || state !== 'paused'}>继续</button>
-      <button type="button" onClick={stopAudio} disabled={disabled || state === 'idle'}>停止</button>
-      {lastAudio ? <small>{lastAudio.provider} · {lastAudio.cached ? '缓存' : '新语音'}</small> : null}
+      <button type="button" onClick={() => void synthesizeAndPlay()} disabled={playDisabled} aria-label={playHint} data-tooltip={playHint}>播放</button>
+      <button type="button" onClick={pauseAudio} disabled={pauseDisabled} aria-label={pauseHint} data-tooltip={pauseHint}>暂停</button>
+      <button type="button" onClick={() => void resumeAudio()} disabled={resumeDisabled} aria-label={resumeHint} data-tooltip={resumeHint}>继续</button>
+      <button type="button" onClick={stopAudio} disabled={stopDisabled} aria-label={stopHint} data-tooltip={stopHint}>停止</button>
+      {lastAudio ? <small>{providerLabel} · {cacheLabel}</small> : null}
       {message ? <small className={state === 'error' ? 'is-error' : ''}>{message}</small> : null}
     </div>
   )
