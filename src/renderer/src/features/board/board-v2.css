@@ -786,6 +786,36 @@
   max-width: min(46%, 520px);
 }
 
+.ks-timeline-record-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--ks-gold, #d8b567) 30%, var(--ks-border-soft, rgba(255,255,255,.08)));
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgb(216 181 103 / 0.13), rgb(216 181 103 / 0.045)),
+    rgb(255 255 255 / 0.028);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.07);
+  white-space: nowrap;
+}
+
+.ks-timeline-record-score span,
+.ks-timeline-record-score small {
+  color: color-mix(in srgb, var(--ks-text-muted, #a9b2bb) 86%, var(--ks-gold, #d8b567));
+  font-size: 10.5px;
+  font-weight: 760;
+}
+
+.ks-timeline-record-score strong {
+  color: var(--ks-gold, #d8b567);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.7px;
+  font-weight: 900;
+}
+
 .ks-timeline-canvas {
   width: 100%;
   height: 100%;

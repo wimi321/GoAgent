@@ -1025,6 +1025,10 @@ label,
   min-width: 128px;
 }
 
+.board-contextbar__metric--score {
+  min-width: 92px;
+}
+
 .board-contextbar__metric--speed {
   min-width: 48px;
 }
@@ -1044,6 +1048,16 @@ label,
   color: var(--text-main);
   font-size: 11.5px;
   font-weight: 900;
+  white-space: nowrap;
+}
+
+.board-contextbar__metric small {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 9px;
+  font-weight: 750;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

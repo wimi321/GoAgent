@@ -74,10 +74,27 @@ function sgfToGtp(raw, size) {
   return `${GTP_COLUMNS[x]}${size - yFromTop}`
 }
 
+function normalizeSgfKomi(raw, fallback = 7.5) {
+  const parsed = Number.parseFloat(String(raw || fallback))
+  if (!Number.isFinite(parsed)) return fallback
+  if (Math.abs(parsed) <= 20 || !Number.isInteger(parsed)) return parsed
+  const candidates = [parsed / 50, parsed / 100]
+    .filter((value) => Number.isFinite(value) && value >= 0 && value <= 20)
+    .map((value) => {
+      const commonDistance = Math.min(...[7.5, 6.5, 5.5, 0.5, 0].map((komi) => Math.abs(komi - value)))
+      const fractional = Math.abs(value - Math.floor(value))
+      const halfPointBonus = Math.abs(fractional - 0.5) < 0.001 ? -2 : 0
+      const highKomiPenalty = value > 10 ? 4 : 0
+      return { value, score: commonDistance + halfPointBonus + highKomiPenalty }
+    })
+    .sort((left, right) => left.score - right.score)
+  return candidates[0]?.value ?? parsed
+}
+
 function parseSgf(input) {
   const rootText = input.slice(0, Math.min(input.indexOf(';', 2) > 0 ? input.indexOf(';', 2) : input.length, input.length))
   const size = Number((input.match(/SZ\[(\d+)\]/)?.[1]) ?? 19)
-  const komi = Number((input.match(/KM\[([^\]]+)\]/)?.[1]) ?? 7.5)
+  const komi = normalizeSgfKomi((input.match(/KM\[([^\]]+)\]/)?.[1]) ?? 7.5)
   const initialStones = []
   for (const prop of ['AB', 'AW']) {
     const color = prop === 'AB' ? 'B' : 'W'

@@ -2370,6 +2370,7 @@ export function App(): ReactElement {
     }
   ]
   const liveAnalysisDisabled = busy === 'katago-install' || busy === 'katago-benchmark'
+  const timelineFinalRecordScore = record && moveNumber === record.moves.length ? gameResultLeadForUi(record.game, t) : null
 
   return (
     <DiagnosticsGate>
@@ -2467,6 +2468,15 @@ export function App(): ReactElement {
                   onRangeClear={handleTimelineRangeClear}
                   rangeStart={moveRange?.start ?? null}
                   rangeEnd={moveRange?.end ?? null}
+                  summary={timelineFinalRecordScore ? (
+                    <div className="ks-timeline-record-score">
+                      <span>{t('recordScoreLead')}</span>
+                      <strong>{timelineFinalRecordScore.displayLead}</strong>
+                      {currentAnalysis?.after.scoreLead !== undefined ? (
+                        <small>{t('katagoScoreLead')}: {formatScoreLead(currentAnalysis.after.scoreLead, t)}</small>
+                      ) : null}
+                    </div>
+                  ) : null}
                   t={t}
                 />
               </>
@@ -2666,7 +2676,7 @@ function LibraryPanel({
                 )}
               </div>
               <small className="game-row__meta">
-                {game.date || t('unknownDate')} · {game.moveCount ? `${game.moveCount}${t('movesSuffix')} · ` : ''}{game.result || t('unknownResult')}
+                {game.date || t('unknownDate')} · {game.moveCount ? `${game.moveCount}${t('movesSuffix')} · ` : ''}{gameResultForList(game, t('unknownResult'), t)}
               </small>
             </button>
             <button
@@ -4269,6 +4279,7 @@ function BoardContextBar({
   const isCurrentLiveTarget = liveAnalysis.targetMoveNumber === moveNumber
   const totalVisits = isCurrentLiveTarget ? liveAnalysis.visits : candidateVisitsTotal(analysis)
   const bestVisits = isCurrentLiveTarget ? liveAnalysis.bestVisits : candidateBestVisits(analysis)
+  const finalRecordScore = moveNumber === record.moves.length ? gameResultLeadForUi(record.game, t) : null
   const status = isCurrentLiveTarget
     ? liveAnalysis.status
     : (analysis ? t('analysisSearched', { visits: formatVisits(totalVisits) }) : t('analysisWaiting'))
@@ -4287,9 +4298,12 @@ function BoardContextBar({
           <span>{t('timelineBlackWinrate')}</span>
           <strong>{typeof winrate === 'number' ? `${winrate.toFixed(1)}%` : t('toAnalyze')}</strong>
         </div>
-        <div className="board-contextbar__metric">
-          <span>{t('timelineScoreLead')}</span>
-          <strong>{formatScoreLead(scoreLead, t)}</strong>
+        <div className="board-contextbar__metric board-contextbar__metric--score">
+          <span>{finalRecordScore ? t('recordScoreLead') : t('timelineScoreLead')}</span>
+          <strong>{finalRecordScore?.displayLead ?? formatScoreLead(scoreLead, t)}</strong>
+          {finalRecordScore && typeof scoreLead === 'number' ? (
+            <small>{t('katagoScoreLead')}: {formatScoreLead(scoreLead, t)}</small>
+          ) : null}
         </div>
         <div className="board-contextbar__metric board-contextbar__metric--search">
           <span>{status}</span>
@@ -4331,6 +4345,32 @@ function formatScoreLead(scoreLead: number | undefined, t?: UiTranslator): strin
     return t ? t('even') : '均势'
   }
   return `${scoreLead > 0 ? (t ? t('black') : '黑') : (t ? t('white') : '白')}+${Math.abs(scoreLead).toFixed(1)}`
+}
+
+function trimScoreNumber(value: number): string {
+  return value.toFixed(2).replace(/\.?0+$/, '')
+}
+
+function gameResultLeadForUi(game: LibraryGame | undefined, t?: UiTranslator): { displayLead: string; raw: string } | null {
+  const raw = String(game?.result ?? '').trim()
+  const match = raw.match(/^([BW])\+(\d+(?:\.\d+)?)$/i)
+  if (!match) {
+    return null
+  }
+  const winner = match[1].toUpperCase() === 'B' ? (t ? t('black') : '黑') : (t ? t('white') : '白')
+  const rawMargin = Number.parseFloat(match[2])
+  if (!Number.isFinite(rawMargin)) {
+    return null
+  }
+  const displayMargin = game?.source === 'fox' ? rawMargin * 2 : rawMargin
+  return {
+    displayLead: `${winner}+${trimScoreNumber(displayMargin)}`,
+    raw
+  }
+}
+
+function gameResultForList(game: LibraryGame, fallback: string, t?: UiTranslator): string {
+  return gameResultLeadForUi(game, t)?.displayLead ?? (game.result || fallback)
 }
 
 function formatVisits(visits: number): string {

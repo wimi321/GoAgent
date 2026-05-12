@@ -33,6 +33,7 @@ import { formatKataGoTraceForPrompt } from './teacher/katagoTraceTranslator'
 import { detectTacticalSignals } from './knowledge/tacticalDetectors'
 import { readGameRecord } from './sgf'
 import { ensureFoxGameDownloaded } from './fox'
+import { gameResultSummary, komiSummary } from './sgfScoring'
 import { getStudentProfile, readStudentForGame, updateStudentProfile } from './studentProfile'
 import { applyDetectedDefaults, detectSystemProfile } from './systemProfile'
 import { parseStructuredTeacherResult } from './teacher/structuredResultParser'
@@ -329,7 +330,11 @@ function systemPrompt(level: CoachUserLevel): string {
     '如果 KataGo 结果包含 tracePacket，优先使用 tracePacket.searchSummary、candidateComparison、policySearchDelta、pvSupport、ownershipSummary、humanPolicySignals 和 shallowSearchTree 来解释“为什么”。',
     'tracePacket 是给老师的搜索证据摘要，不要把原始 MCTS/搜索字段生硬堆给学生；请翻译成“自然但被搜索否定”“不直观但搜索支持”“PV 支撑弱所以只能参考”等教学语言。',
     '如果 tracePacket 的置信度或 PV 支撑不足，必须降级措辞，不能说唯一、必杀、必败或绝对。',
-    '讲胜负、领先、落后和目数时，优先使用工具结果里的 scoreSummary.leader、scoreSummary.leadPoints 和 scoreSummary.text；blackScoreLead 是黑棋为正，负数表示白棋领先，不要自己用裸 scoreLead 符号猜胜负。',
+    '讲胜负、领先、落后和目数时，优先使用工具结果里的 teacherScore.text；没有 teacherScore 时再使用 scoreSummary.text/leader/leadPoints。blackScoreLead 是黑棋为正，负数表示白棋领先，不要自己用裸 scoreLead 符号猜胜负。',
+    '内部核验时仍可用 scoreSummary.leader 和 scoreSummary.leadPoints 判断方向和数字，但对学生优先输出 teacherScore.text 这种简洁说法。',
+    '棋谱的 result / game.result / rawResult 是终局记录，不是 KataGo 当前目差；Fox 数字结果还有平台口径换算，只有 resultSummary.displayLeadPoints / comparisonLeadPoints 才能和 KataGo/LizzieYzy 风格的目差比较。',
+    '如果当前手是终局，且工具返回 resultSummary.confidence=recorded-result，请把 resultSummary.teacherText 当作终局目数来源。',
+    '对学生输出时保持简洁：直接说“黑领先 X 目”或“白领先 X 目”；不要主动解释“棋谱记录、KataGo估值、Fox平台口径、换算口径”，除非用户追问来源。',
     '不要编造坐标、胜率、PV、定式名或来源。',
     '每个关键结论都应能回指到工具证据；数字、坐标、PV、定式名、死活结论和先后手判断没有证据时必须降级成假设。',
     '当 analysisQuality.confidence 不是 high，必须使用“AI 更倾向 / 更像 / 不宜下绝对结论”等低风险措辞。',
@@ -708,10 +713,12 @@ function initialAgentUserMessage(state: TeacherAgentSessionState): ChatMessage {
   if (!visionValidation.ok) {
     throw new Error(`棋盘图证据不完整：${visionValidation.blockingIssues.join('；')}`)
   }
+  const currentGame = state.request.gameId ? getGames().find((game) => game.id === state.request.gameId) : undefined
   const context = {
     userPrompt: state.request.prompt,
     intent: state.intent,
     gameId: state.request.gameId,
+    game: currentGame ? summarizeGames([currentGame])[0] : undefined,
     moveNumber: state.request.moveNumber,
     playerName: state.request.playerName || state.studentName,
     coachLevel: state.request.coachLevel ?? state.profile.userLevel,
@@ -731,7 +738,7 @@ function initialAgentUserMessage(state: TeacherAgentSessionState): ChatMessage {
     moveRange: state.request.moveRange,
     moveRangeSummary: state.request.moveRangeSummary,
     prefetchedAnalysisAvailable: Boolean(state.request.prefetchedAnalysis),
-    note: '请按需要调用工具取得事实；没有工具证据时不要猜坐标、胜率、PV、定式名或来源；默认使用 responseLanguage 回答。'
+    note: '请按需要调用工具取得事实；没有工具证据时不要猜坐标、胜率、PV、定式名或来源；默认使用 responseLanguage 回答。讲目数优先使用 teacherScore.text；对学生不要主动解释内部口径。'
   }
   const text = [
     '任务说明：请根据 intent 完成用户请求。',
@@ -762,13 +769,14 @@ function initialAgentUserMessage(state: TeacherAgentSessionState): ChatMessage {
   return { role: 'user', content: text }
 }
 
-function summarizeGames(games: LibraryGame[]): Array<Pick<LibraryGame, 'id' | 'title' | 'black' | 'white' | 'result' | 'date' | 'source' | 'downloadStatus' | 'moveCount'>> {
+function summarizeGames(games: LibraryGame[]): JsonObject[] {
   return games.map((game) => ({
     id: game.id,
     title: game.title,
     black: game.black,
     white: game.white,
-    result: game.result,
+    rawResult: game.result,
+    resultSummary: gameResultSummary(game),
     date: game.date,
     source: game.source,
     downloadStatus: game.downloadStatus,
@@ -829,7 +837,32 @@ function compactPlayedMoveForColor(
   }
 }
 
-function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
+function teacherScoreForAnalysis(
+  analysis: KataGoMoveAnalysis,
+  record?: ReturnType<typeof readGameRecord>
+): JsonObject {
+  const finalResult = record && analysis.moveNumber === record.moves.length ? gameResultSummary(record.game) : undefined
+  if (finalResult?.confidence === 'recorded-result' && finalResult.teacherText) {
+    return {
+      text: finalResult.teacherText,
+      source: 'game-record',
+      resultSummary: finalResult,
+      note: '终局手使用棋谱记录结果；对学生直接讲 text。'
+    }
+  }
+  const scoreSummary = scoreSummaryFromBlackLead(analysis.after.scoreLead)
+  return {
+    text: scoreSummary.text,
+    source: 'katago-current-position',
+    scoreSummary,
+    note: '中盘和当前局面使用 KataGo 当前估值；对学生直接讲 text。'
+  }
+}
+
+function compactAnalysis(
+  analysis: KataGoMoveAnalysis,
+  record?: ReturnType<typeof readGameRecord>
+): JsonObject {
   const teachingPacing = buildTeachingPacingAdvice(analysis)
   const playerColor = analysis.currentMove?.color ?? 'B'
   const afterSideToMoveColor = analysis.currentMove ? oppositeColor(analysis.currentMove.color) : playerColor
@@ -839,6 +872,7 @@ function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
     boardSize: analysis.boardSize,
     currentMove: analysis.currentMove,
     judgement: analysis.judgement,
+    teacherScore: teacherScoreForAnalysis(analysis, record),
     winratePerspective: {
       primaryFields: 'board-display/player perspective',
       rawFields: 'blackWinrate/blackScoreLead',
@@ -846,7 +880,7 @@ function compactAnalysis(analysis: KataGoMoveAnalysis): JsonObject {
       afterActualPerspectiveColor: playerColor,
       afterTopMovesPerspectiveColor: afterSideToMoveColor,
       scorePerspective: 'Use scoreSummary for winner and margin claims. scoreLead is perspectiveColor-relative; blackScoreLead is black-positive.',
-      note: 'Use winrate for teacher-visible winrate claims. For score winner/margin, use scoreSummary.text/leader/leadPoints; use blackWinrate/blackScoreLead only when explicitly discussing black perspective.'
+      note: 'Use winrate for teacher-visible winrate claims. For score winner/margin, use scoreSummary.text/leader/leadPoints for internal verification, but prefer teacherScore.text for student-facing wording; do not explain internal score-source details unless asked.'
     },
     before: {
       perspectiveColor: playerColor,
@@ -1066,7 +1100,8 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         return {
           game: summarizeGames([record.game])[0],
           boardSize: record.boardSize,
-          komi: record.komi,
+          komi: komiSummary(record.komi).normalized,
+          komiSummary: komiSummary(record.komi),
           handicap: record.handicap,
           totalMoves: record.moves.length,
           moves: record.moves.slice(0, maxMoves)
@@ -1099,7 +1134,7 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         assertTeacherRunActive(state.context)
         state.lastAnalysis = analysis
         state.teachingPacing = buildTeachingPacingAdvice(analysis)
-        return compactAnalysis(analysis)
+        return compactAnalysis(analysis, record)
       }
     },
     {
@@ -1204,7 +1239,7 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         return {
           moveRange: state.request.moveRange,
           refinedMoveCount: analyses.length,
-          analyses: analyses.map(compactAnalysis)
+          analyses: analyses.map((analysis) => compactAnalysis(analysis))
         }
       }
     },
@@ -1331,7 +1366,7 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
           runId: state.id,
           group: 'teacher'
         })
-        return compactAnalysis(analysis)
+        return compactAnalysis(analysis, record)
       }
     },
     {

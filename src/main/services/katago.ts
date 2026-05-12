@@ -7,6 +7,7 @@ import { resolveKataGoRuntime } from './katagoRuntime'
 import { ensureFoxGameDownloaded } from './fox'
 import { beginKataGoEngineTask } from './katagoEnginePool'
 import { cancelPersistentKataGoAnalysis, persistentKataGoEngineEnabled, queryKataGoPersistentBatch } from './katagoPersistentEngine'
+import { normalizeSgfKomi } from './sgfScoring'
 import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
 
 interface KataGoResponse {
@@ -115,14 +116,6 @@ export function cancelKataGoAnalysis(filter: { runId?: string; group?: KataGoAna
 
 function moveHistory(moves: GameMove[]): Array<[string, string]> {
   return moves.map((move) => [move.color, move.pass ? 'pass' : move.gtp])
-}
-
-function normalizeKomi(raw: string): number {
-  const parsed = Number.parseFloat(raw || '7.5')
-  if (!Number.isFinite(parsed)) {
-    return 7.5
-  }
-  return Math.abs(parsed) > 150 && Number.isInteger(parsed) ? parsed / 50 : parsed
 }
 
 function initialStonesFromRecord(record: ReturnType<typeof readGameRecord>): Array<[GameMove['color'], string]> {
@@ -713,7 +706,7 @@ export async function analyzePosition(
   const currentMove = moveNumber > 0 ? record.moves[moveNumber - 1] : undefined
   const beforeMoves = record.moves.slice(0, Math.max(0, moveNumber - 1))
   const afterMoves = record.moves.slice(0, Math.max(0, moveNumber))
-  const komi = normalizeKomi(record.komi)
+  const komi = normalizeSgfKomi(record.komi)
   const rootInitialStones = initialStonesFromRecord(record)
   const rootInitialPlayer = initialPlayerFromRecord(record)
   const deepEvidence = maxVisits >= 500
@@ -859,7 +852,7 @@ export async function analyzePositionWithProgress(
   const currentMove = moveNumber > 0 ? record.moves[moveNumber - 1] : undefined
   const beforeMoves = record.moves.slice(0, Math.max(0, moveNumber - 1))
   const afterMoves = record.moves.slice(0, Math.max(0, moveNumber))
-  const komi = normalizeKomi(record.komi)
+  const komi = normalizeSgfKomi(record.komi)
   const rootInitialStones = initialStonesFromRecord(record)
   const rootInitialPlayer = initialPlayerFromRecord(record)
   const deepEvidence = maxVisits >= 500
@@ -985,7 +978,7 @@ export async function analyzeGameQuick(
   const game = await ensureFoxGameDownloaded(indexedGame)
 
   const record = readGameRecord(game)
-  const normalizedKomi = normalizeKomi(record.komi)
+  const normalizedKomi = normalizeSgfKomi(record.komi)
   const moves = record.moves
   const rootInitialStones = initialStonesFromRecord(record)
   const rootInitialPlayer = initialPlayerFromRecord(record)
