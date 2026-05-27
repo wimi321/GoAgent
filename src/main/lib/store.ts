@@ -32,6 +32,8 @@ const defaults: AppSettings = {
   katagoBenchmarkThreads: 0,
   katagoBenchmarkVisitsPerSecond: 0,
   katagoBenchmarkUpdatedAt: '',
+  katagoEngineMode: 'auto',
+  katagoAnalysisSpeedMode: 'auto',
   pythonBin: defaultPythonBin(),
   llmBaseUrl: 'https://api.openai.com/v1',
   llmApiKey: '',

@@ -45,6 +45,7 @@ import type {
   TtsVoice
 } from '@main/lib/types'
 import type { DiagnosticsReport } from '@main/services/diagnostics/types'
+import type { AnalysisSchedulerStats } from '@main/services/analysis/scheduler'
 import type { KnowledgeSearchQuery, KnowledgeSearchResult } from '@main/services/knowledge/schema'
 
 export type DesktopCommand =
@@ -70,6 +71,7 @@ const api = {
   analyzePositionStream: (payload: AnalyzePositionRequest): Promise<KataGoMoveAnalysis> => ipcRenderer.invoke('katago:analyze-position-stream', payload),
   analyzeGameQuick: (payload: AnalyzeGameQuickRequest): Promise<KataGoMoveAnalysis[]> => ipcRenderer.invoke('katago:analyze-game-quick', payload),
   cancelKataGoAnalysis: (payload: KataGoCancelAnalysisRequest): Promise<KataGoCancelAnalysisResult> => ipcRenderer.invoke('katago:cancel-analysis', payload),
+  getAnalysisSchedulerStats: (): Promise<AnalysisSchedulerStats> => ipcRenderer.invoke('analysis-scheduler:stats'),
   benchmarkKataGo: (payload?: KataGoBenchmarkRequest): Promise<KataGoBenchmarkResult> => ipcRenderer.invoke('katago:benchmark', payload ?? {}),
   onAnalyzePositionProgress: (handler: (payload: AnalyzePositionProgress) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: AnalyzePositionProgress): void => handler(payload)

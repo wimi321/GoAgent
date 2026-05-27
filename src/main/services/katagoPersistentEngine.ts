@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import type { KataGoAnalysisGroup } from '@main/lib/types'
+import { getSettings } from '@main/lib/store'
 
 export type PersistentKataGoResponse = Record<string, unknown> & {
   id?: string
@@ -43,8 +44,29 @@ const engines = new Map<string, PersistentEngine>()
 let batchCounter = 0
 
 export function persistentKataGoEngineEnabled(): boolean {
-  return process.env.GOAGENT_KATAGO_ENGINE_POOL === '1' ||
-    process.env.GOAGENT_KATAGO_PERSISTENT_ENGINE === '1'
+  if (process.env.GOAGENT_KATAGO_ENGINE_POOL === '0' || process.env.GOAGENT_KATAGO_PERSISTENT_ENGINE === '0') {
+    return false
+  }
+  if (process.env.GOAGENT_KATAGO_ENGINE_POOL === '1' || process.env.GOAGENT_KATAGO_PERSISTENT_ENGINE === '1') {
+    return true
+  }
+  try {
+    const mode = getSettings().katagoEngineMode ?? 'auto'
+    if (mode === 'spawn') return false
+    // Auto mode now tries the persistent engine first, then falls back to the
+    // spawn-per-batch path when the engine cannot start or parse a response.
+    return mode === 'auto' || mode === 'persistent'
+  } catch {
+    return false
+  }
+}
+
+export function persistentKataGoFallbackEnabled(): boolean {
+  try {
+    return (getSettings().katagoEngineMode ?? 'auto') !== 'persistent'
+  } catch {
+    return true
+  }
 }
 
 export function stopPersistentKataGoEngines(): void {
@@ -236,4 +258,3 @@ function restartEngine(engine: PersistentEngine, error: Error): void {
     child.kill()
   }
 }
-

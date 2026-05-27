@@ -11,6 +11,8 @@ import type {
   KataGoAssetInstallProgress,
   KataGoAssetStatus,
   KataGoBenchmarkResult,
+  KataGoAnalysisSpeedMode,
+  KataGoEngineMode,
   KataGoMoveAnalysis,
   KataGoModelPresetId,
   LibraryGame,
@@ -77,6 +79,8 @@ const emptyDashboard: DashboardData = {
     katagoBenchmarkThreads: 0,
     katagoBenchmarkVisitsPerSecond: 0,
     katagoBenchmarkUpdatedAt: '',
+    katagoEngineMode: 'auto',
+    katagoAnalysisSpeedMode: 'auto',
     pythonBin: 'python',
     llmBaseUrl: 'https://api.openai.com/v1',
     llmApiKey: '',
@@ -1383,6 +1387,8 @@ export function App(): ReactElement {
       const formData = new FormData(form)
       const next = await window.goagent.updateSettings({
         katagoModelPreset: String(formData.get('katagoModelPreset') ?? dashboard.settings.katagoModelPreset) as KataGoModelPresetId,
+        katagoEngineMode: String(formData.get('katagoEngineMode') ?? dashboard.settings.katagoEngineMode) as KataGoEngineMode,
+        katagoAnalysisSpeedMode: String(formData.get('katagoAnalysisSpeedMode') ?? dashboard.settings.katagoAnalysisSpeedMode) as KataGoAnalysisSpeedMode,
         reviewLanguage: normalizeUiLocale(String(formData.get('reviewLanguage') ?? dashboard.settings.reviewLanguage)),
         llmBaseUrl: String(formData.get('llmBaseUrl') ?? ''),
         llmApiKey: String(formData.get('llmApiKey') ?? ''),
@@ -4081,6 +4087,35 @@ function SettingsDrawer({
         onRun={onBenchmark}
         t={t}
       />
+      <section className="settings-section settings-section-analysis-engine">
+        <h3>分析引擎</h3>
+        <p>默认使用自动模式：优先常驻 KataGo 引擎，失败时回退到传统 spawn 流程。遇到兼容性问题可强制使用传统流程。</p>
+        <label>
+          <span>引擎模式</span>
+          <select
+            name="katagoEngineMode"
+            defaultValue={dashboard.settings.katagoEngineMode}
+            onChange={(event) => autoSave({ katagoEngineMode: event.target.value as KataGoEngineMode }, 0)}
+          >
+            <option value="auto">自动：常驻优先，失败回退</option>
+            <option value="persistent">常驻引擎：低延迟，失败不回退</option>
+            <option value="spawn">传统流程：每批分析单独启动</option>
+          </select>
+        </label>
+        <label>
+          <span>分析速度</span>
+          <select
+            name="katagoAnalysisSpeedMode"
+            defaultValue={dashboard.settings.katagoAnalysisSpeedMode}
+            onChange={(event) => autoSave({ katagoAnalysisSpeedMode: event.target.value as KataGoAnalysisSpeedMode }, 0)}
+          >
+            <option value="auto">自动</option>
+            <option value="fast">快速</option>
+            <option value="balanced">均衡</option>
+            <option value="deep">精读</option>
+          </select>
+        </label>
+      </section>
       <section className="settings-section settings-section-language">
         <h3>{t('languageLabel')}</h3>
         <p>{t('languageHelp')}</p>

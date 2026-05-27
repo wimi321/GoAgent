@@ -44,6 +44,7 @@ import type {
   TtsVoice
 } from '@main/lib/types'
 import type { DiagnosticsReport } from '@main/services/diagnostics/types'
+import type { AnalysisSchedulerStats } from '@main/services/analysis/scheduler'
 import type { KnowledgeSearchQuery, KnowledgeSearchResult } from '@main/services/knowledge/schema'
 
 type DesktopCommand =
@@ -71,6 +72,7 @@ declare global {
       analyzePositionStream: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis>
       analyzeGameQuick: (payload: AnalyzeGameQuickRequest) => Promise<KataGoMoveAnalysis[]>
       cancelKataGoAnalysis: (payload: KataGoCancelAnalysisRequest) => Promise<KataGoCancelAnalysisResult>
+      getAnalysisSchedulerStats: () => Promise<AnalysisSchedulerStats>
       benchmarkKataGo: (payload?: KataGoBenchmarkRequest) => Promise<KataGoBenchmarkResult>
       onAnalyzePositionProgress: (handler: (payload: AnalyzePositionProgress) => void) => () => void
       onAnalyzeGameQuickProgress: (handler: (payload: AnalyzeGameQuickProgress) => void) => () => void

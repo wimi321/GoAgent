@@ -6,9 +6,16 @@ import { readGameRecord } from './sgf'
 import { resolveKataGoRuntime } from './katagoRuntime'
 import { ensureFoxGameDownloaded } from './fox'
 import { beginKataGoEngineTask } from './katagoEnginePool'
-import { cancelPersistentKataGoAnalysis, persistentKataGoEngineEnabled, queryKataGoPersistentBatch } from './katagoPersistentEngine'
+import {
+  cancelPersistentKataGoAnalysis,
+  persistentKataGoEngineEnabled,
+  persistentKataGoFallbackEnabled,
+  queryKataGoPersistentBatch
+} from './katagoPersistentEngine'
 import { normalizeSgfKomiForAnalysis } from './sgfScoring'
 import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
+import { classifyMoveAnalysis } from './analysis/classifier'
+import { buildPvConfidenceReport } from './analysis/pvConfidence'
 
 interface KataGoResponse {
   id?: string
@@ -94,6 +101,27 @@ const QUICK_ANALYSIS_WIDE_ROOT_NOISE = 0
 const FORCED_ACTUAL_EVIDENCE_MIN_VISITS = 1200
 const QUICK_FORCED_ACTUAL_REFINE_MIN_VISITS = 80
 const activeKataGoProcesses = new Map<string, ActiveKataGoProcess>()
+
+type AnalysisVisitContext = 'position' | 'quick' | 'refine'
+
+function effectiveVisitsForSpeedMode(maxVisits: number, context: AnalysisVisitContext): number {
+  const requested = Math.max(1, Math.round(maxVisits))
+  const mode = getSettings().katagoAnalysisSpeedMode ?? 'auto'
+  if (mode === 'auto') return requested
+  if (context === 'quick') {
+    if (mode === 'fast') return Math.min(Math.max(requested, QUICK_ANALYSIS_FAST_VISITS), 48)
+    if (mode === 'balanced') return Math.min(Math.max(requested, 60), QUICK_ANALYSIS_REFINE_VISITS)
+    return Math.max(requested, 160)
+  }
+  if (context === 'refine') {
+    if (mode === 'fast') return Math.min(Math.max(requested, QUICK_FORCED_ACTUAL_REFINE_MIN_VISITS), 160)
+    if (mode === 'balanced') return Math.max(requested, 240)
+    return Math.max(requested, 600)
+  }
+  if (mode === 'fast') return Math.min(Math.max(requested, 80), 240)
+  if (mode === 'balanced') return Math.max(requested, 500)
+  return Math.max(requested, 1000)
+}
 
 function isKataGoTimeoutError(error: unknown): boolean {
   return /KataGo 分析超时|timed out|timeout/i.test(String(error))
@@ -495,8 +523,12 @@ async function queryKataGoBatch(
       engineLease.finish('done')
       return results as Map<string, KataGoResponse>
     } catch (error) {
-      engineLease.finish(String(error).includes('已取消') || String(error).includes('cancel') ? 'cancelled' : 'error')
-      throw error
+      const status = String(error).includes('已取消') || String(error).includes('cancel') ? 'cancelled' : 'error'
+      if (status === 'cancelled' || !persistentKataGoFallbackEnabled()) {
+        engineLease.finish(status)
+        throw error
+      }
+      console.warn('Persistent KataGo engine failed; falling back to spawn-per-batch mode.', error)
     }
   }
 
@@ -715,6 +747,7 @@ export async function analyzePosition(
     group?: KataGoAnalysisGroup
   } = {}
 ): Promise<KataGoMoveAnalysis> {
+  maxVisits = effectiveVisitsForSpeedMode(maxVisits, 'position')
   const indexedGame = findGame(gameId)
   if (!indexedGame) {
     throw new Error(`找不到棋谱: ${gameId}`)
@@ -850,6 +883,8 @@ function buildMoveAnalysis(
     judgement: judgement(winrateLoss, scoreLoss),
     analysisQuality: buildAnalysisQuality(moveNumber, currentMove, searchMoves, forcedActual)
   }
+  analysis.moveClassification = classifyMoveAnalysis(analysis)
+  analysis.pvConfidence = buildPvConfidenceReport(analysis)
   analysis.tracePacket = buildKataGoTracePacket(analysis)
   return analysis
 }
@@ -861,6 +896,7 @@ export async function analyzePositionWithProgress(
   onProgress?: (analysis: KataGoMoveAnalysis, isFinal: boolean) => void,
   reportDuringSearchEvery = 0.2
 ): Promise<KataGoMoveAnalysis> {
+  maxVisits = effectiveVisitsForSpeedMode(maxVisits, 'position')
   const indexedGame = findGame(gameId)
   if (!indexedGame) {
     throw new Error(`找不到棋谱: ${gameId}`)
@@ -1001,7 +1037,11 @@ export async function analyzeGameQuick(
   const rootInitialStones = initialStonesFromRecord(record)
   const rootInitialPlayer = initialPlayerFromRecord(record)
   const queries: AnalysisQuery[] = []
-  const quickVisits = Math.max(QUICK_ANALYSIS_FAST_VISITS, Math.min(QUICK_ANALYSIS_MAX_SWEEP_VISITS, Math.round(maxVisits)))
+  const requestedQuickVisits = Math.min(QUICK_ANALYSIS_MAX_SWEEP_VISITS, Math.round(maxVisits))
+  const quickVisits = Math.max(
+    QUICK_ANALYSIS_FAST_VISITS,
+    Math.min(QUICK_ANALYSIS_MAX_SWEEP_VISITS, effectiveVisitsForSpeedMode(requestedQuickVisits, 'quick'))
+  )
   const quickOverrideSettings = { wideRootNoise: QUICK_ANALYSIS_WIDE_ROOT_NOISE }
   const rootPositionCount = moves.length + 1
 
@@ -1043,7 +1083,7 @@ export async function analyzeGameQuick(
     const best = beforeTopMoves[0] ?? displayBeforeMoves[0]
     const actual = playedMoveValue(currentMove, beforeTopMoves, after, forcedActual)
     const { winrateLoss, scoreLoss } = playedLoss(currentMove, best, actual)
-    return {
+    const analysis: KataGoMoveAnalysis = {
       gameId,
       moveNumber,
       boardSize: record.boardSize,
@@ -1070,6 +1110,10 @@ export async function analyzeGameQuick(
       },
       judgement: judgement(winrateLoss, scoreLoss)
     }
+    analysis.moveClassification = classifyMoveAnalysis(analysis)
+    analysis.pvConfidence = buildPvConfidenceReport(analysis)
+    analysis.tracePacket = buildKataGoTracePacket(analysis)
+    return analysis
   }
 
   function evaluationProgressQuality(evaluation: KataGoMoveAnalysis): number {
@@ -1191,7 +1235,7 @@ export async function analyzeGameQuick(
 
   const evaluations = buildReadyEvaluations()
 
-  const refineVisits = Math.max(quickVisits, Math.round(options.refineVisits ?? QUICK_ANALYSIS_REFINE_VISITS))
+  const refineVisits = Math.max(quickVisits, effectiveVisitsForSpeedMode(options.refineVisits ?? QUICK_ANALYSIS_REFINE_VISITS, 'refine'))
   const refineTopN = Math.max(0, Math.round(options.refineTopN ?? QUICK_ANALYSIS_REFINE_TOP_N))
   const refineMoveNumbers = refineVisits > quickVisits && refineTopN > 0
     ? evaluations

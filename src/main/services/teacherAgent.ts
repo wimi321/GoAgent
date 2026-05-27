@@ -47,6 +47,7 @@ import { parseStructuredTeacherResult } from './teacher/structuredResultParser'
 import { classifyTeacherIntent, type TeacherIntent } from './teacher/intentClassifier'
 import { buildTeachingPacingAdvice } from './teacher/teachingEvidence'
 import { buildTeacherArtifact, validateTeachingArtifact } from './teacher/teachingArtifact'
+import { buildTeachingEvidenceBundle, formatTeachingEvidenceBundleForPrompt } from './teacher/evidenceBundle'
 import { scoreLeadForColor, scoreSummaryFromBlackLead } from './teacher/scorePerspective'
 import {
   buildTeacherPersonaInstruction,
@@ -980,6 +981,7 @@ function compactAnalysis(
   record?: ReturnType<typeof readGameRecord>
 ): JsonObject {
   const teachingPacing = buildTeachingPacingAdvice(analysis)
+  const teachingEvidenceBundle = buildTeachingEvidenceBundle({ analysis })
   const playerColor = analysis.currentMove?.color ?? 'B'
   const afterSideToMoveColor = analysis.currentMove ? oppositeColor(analysis.currentMove.color) : playerColor
   return {
@@ -1019,7 +1021,11 @@ function compactAnalysis(
     },
     playedMove: compactPlayedMoveForColor(analysis.playedMove, playerColor),
     analysisQuality: analysis.analysisQuality,
+    moveClassification: analysis.moveClassification,
+    pvConfidence: analysis.pvConfidence,
     tracePacket: analysis.tracePacket,
+    teachingEvidenceBundle,
+    teachingEvidenceSummary: formatTeachingEvidenceBundleForPrompt(teachingEvidenceBundle),
     humanCalibration: analysis.humanCalibration,
     ownershipSummary: analysis.ownershipSummary,
     tacticalSignals: analysis.tacticalSignals,

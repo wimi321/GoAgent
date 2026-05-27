@@ -12,6 +12,7 @@ import { listLlmModels, testLlmSettings } from './services/llm'
 import { analyzeGameQuick, analyzePosition, analyzePositionWithProgress, cancelKataGoAnalysis } from './services/katago'
 import { benchmarkKataGo } from './services/katagoBenchmark'
 import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
+import { getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
 import { collectDiagnostics } from './services/diagnostics'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
 import { inspectKataGoAssets, installOfficialKataGoModel } from './services/katago/katagoAssets'
@@ -369,14 +370,23 @@ app.whenReady().then(() => {
   ipcMain.handle('teacher-sessions:delete', async (_event, sessionId: string) => deleteTeacherSession(sessionId))
   ipcMain.handle('review:start', async (_event, payload: ReviewRequest) => runReview(payload))
   ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) =>
-    analyzePosition(payload.gameId, payload.moveNumber, payload.maxVisits ?? 500, {
+    runScheduledAnalysis({
       runId: payload.runId,
-      group: payload.runId ? 'teacher' : 'single'
-    })
+      group: payload.runId ? 'teacher' : 'single',
+      priority: payload.runId ? 'teacher' : 'live',
+      description: `Analyze position ${payload.gameId}#${payload.moveNumber}`,
+      replaceGroup: !payload.runId
+    }, () => analyzePosition(payload.gameId, payload.moveNumber, payload.maxVisits ?? 500, { runId: payload.runId, group: payload.runId ? 'teacher' : 'single' }))
   )
   ipcMain.handle('katago:analyze-position-stream', async (event, payload: AnalyzePositionRequest) => {
     try {
-      return await analyzePositionWithProgress(
+      return await runScheduledAnalysis({
+        runId: payload.runId,
+        group: payload.runId ? 'teacher' : 'live',
+        priority: payload.runId ? 'teacher' : 'live',
+        description: `Stream position ${payload.gameId}#${payload.moveNumber}`,
+        replaceGroup: !payload.runId
+      }, () => analyzePositionWithProgress(
         payload.gameId,
         payload.moveNumber,
         payload.maxVisits ?? 500,
@@ -390,14 +400,20 @@ app.whenReady().then(() => {
           })
         },
         payload.reportDuringSearchEvery ?? 0.2
-      )
+      ))
     } catch (error) {
       if (String(error).includes('已取消')) return null
       throw error
     }
   })
   ipcMain.handle('katago:analyze-game-quick', async (event, payload: AnalyzeGameQuickRequest) =>
-    analyzeGameQuick(payload.gameId, payload.maxVisits, (progress) => {
+    runScheduledAnalysis({
+      runId: payload.runId,
+      group: 'quick',
+      priority: 'quick',
+      description: `Quick game sweep ${payload.gameId}`,
+      replaceGroup: true
+    }, () => analyzeGameQuick(payload.gameId, payload.maxVisits, (progress) => {
       safeSendToRenderer(event, 'katago:analyze-game-quick-progress', {
         ...progress,
         runId: payload.runId,
@@ -407,11 +423,12 @@ app.whenReady().then(() => {
       refineVisits: payload.refineVisits,
       refineTopN: payload.refineTopN,
       runId: payload.runId
-    })
+    }))
   )
   ipcMain.handle('katago:cancel-analysis', async (_event, payload: KataGoCancelAnalysisRequest) =>
     cancelKataGoAnalysis(payload)
   )
+  ipcMain.handle('analysis-scheduler:stats', async () => getAnalysisSchedulerStats())
   ipcMain.handle('katago:engine-pool-stats', async () => getKataGoEnginePoolStats())
   ipcMain.handle('katago:benchmark', async (_event, payload: KataGoBenchmarkRequest | undefined) => benchmarkKataGo(payload ?? {}))
   ipcMain.handle('teacher:run', async (event, payload: TeacherRunRequest) =>
