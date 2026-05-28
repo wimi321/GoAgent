@@ -60,7 +60,7 @@ Release 前应记录：
 - manifest 指向不存在的文件
 - Windows 打包没有 `katago.exe`
 - NVIDIA 专版没有 `GoAgent-<version>-win-x64-nvidia.exe`
-- NVIDIA 专版没有 `GoAgent-<version>-win-x64-nvidia-portable.zip`
+- NVIDIA 专版没有 `GoAgent-<version>-win-x64-nvidia-portable.7z`
 - NVIDIA 专版没有复制 `katago.exe` 同目录 runtime 文件
 - 生成或上传了 `win-arm64` beta 产物
 - macOS 打包没有可执行权限

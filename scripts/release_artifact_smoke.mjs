@@ -22,7 +22,7 @@ function classify(file) {
   if (/mac-arm64\.dmg$/.test(name)) return 'mac-arm64-dmg'
   if (/mac-x64\.dmg$/.test(name)) return 'mac-x64-dmg'
   if (/win-x64-nvidia\.exe$/.test(name)) return 'win-nvidia-exe'
-  if (/win-x64-nvidia-portable\.zip$/.test(name)) return 'win-nvidia-zip'
+  if (/win-x64-nvidia-portable\.7z$/.test(name)) return 'win-nvidia-archive'
   if (/win-x64\.exe$/.test(name)) return 'win-standard-exe'
   if (/win-x64-portable\.zip$/.test(name)) return 'win-standard-zip'
   return ''
@@ -39,7 +39,7 @@ for (const file of files) {
   const key = classify(file)
   if (key) found.set(key, file)
 }
-const required = ['mac-arm64-dmg', 'mac-x64-dmg', 'win-standard-exe', 'win-standard-zip', 'win-nvidia-exe', 'win-nvidia-zip']
+const required = ['mac-arm64-dmg', 'mac-x64-dmg', 'win-standard-exe', 'win-standard-zip', 'win-nvidia-exe', 'win-nvidia-archive']
 const missing = required.filter((key) => !found.has(key))
 const tiny = [...found.entries()].filter(([, file]) => statSync(file).size < 1024 * 1024).map(([key, file]) => `${key}:${file}`)
 if (strict && (missing.length || tiny.length)) {

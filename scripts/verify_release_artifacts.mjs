@@ -34,7 +34,7 @@ function isPackagedArtifact(file) {
   ) {
     return false
   }
-  return /\.(dmg|zip|exe|AppImage|deb|tar\.gz)$/i.test(file)
+  return /\.(dmg|zip|7z|exe|AppImage|deb|tar\.gz)$/i.test(file)
 }
 
 const artifacts = files.filter(isPackagedArtifact)
@@ -45,7 +45,7 @@ const macX64Dmg = currentArtifacts.filter((file) => /mac-x64\.dmg$/i.test(file))
 const winX64Installer = currentArtifacts.filter((file) => /win-x64\.exe$/i.test(file) && !/portable/i.test(file))
 const winX64PortableZip = currentArtifacts.filter((file) => /win-x64-portable\.zip$/i.test(file))
 const winX64NvidiaInstaller = currentArtifacts.filter((file) => /win-x64-nvidia\.exe$/i.test(file))
-const winX64NvidiaPortableZip = currentArtifacts.filter((file) => /win-x64-nvidia-portable\.zip$/i.test(file))
+const winX64NvidiaPortableArchive = currentArtifacts.filter((file) => /win-x64-nvidia-portable\.7z$/i.test(file))
 const winPortableExe = currentArtifacts.filter((file) => /win-x64-portable\.exe$/i.test(file))
 const winArm64 = currentArtifacts.filter((file) => /win-arm64/i.test(file))
 const tiny = currentArtifacts.filter((file) => statSync(file).size < minSizeBytes)
@@ -72,7 +72,7 @@ if (mode === 'release') {
   if (winX64Installer.length === 0) failures.push('No Windows x64 installer found')
   if (winX64PortableZip.length === 0) failures.push('No Windows x64 portable ZIP found')
   if (winX64NvidiaInstaller.length === 0) failures.push('No Windows NVIDIA x64 installer found')
-  if (winX64NvidiaPortableZip.length === 0) failures.push('No Windows NVIDIA x64 portable ZIP found')
+  if (winX64NvidiaPortableArchive.length === 0) failures.push('No Windows NVIDIA x64 portable 7z archive found')
   if (winPortableExe.length > 0) failures.push(`Windows portable artifact must be a ZIP, not an EXE: ${winPortableExe.map((file) => file.replace(root + '/', '')).join(', ')}`)
   if (winArm64.length > 0) failures.push(`Windows ARM64 artifacts are not supported for P0 beta: ${winArm64.map((file) => file.replace(root + '/', '')).join(', ')}`)
   if (tiny.length > 0) failures.push(`Artifact too small: ${tiny.map((file) => file.replace(root + '/', '')).join(', ')}`)

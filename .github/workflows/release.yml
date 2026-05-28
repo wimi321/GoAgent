@@ -488,15 +488,15 @@ jobs:
           if (-not $installer) { throw "Missing NVIDIA installer EXE before rename." }
           if (-not (Test-Path $unpackedDir)) { throw "Missing win-unpacked directory for NVIDIA portable recompression." }
           Push-Location $releaseDir
-          & 7z a -tzip -mx=9 "GoAgent-$version-win-x64-nvidia-portable.zip" ".\win-unpacked\*" | Out-Host
+          & 7z a -t7z -m0=LZMA2 -mx=5 -mmt=on "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
           Pop-Location
           Rename-Item -LiteralPath $installer.FullName -NewName "GoAgent-$version-win-x64-nvidia.exe" -Force
-          $nvidiaPortable = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia-portable.zip")
+          $nvidiaPortable = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia-portable.7z")
           $nvidiaInstaller = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia.exe")
-          Write-Host "NVIDIA portable ZIP bytes: $($nvidiaPortable.Length)"
+          Write-Host "NVIDIA portable 7z bytes: $($nvidiaPortable.Length)"
           Write-Host "NVIDIA installer EXE bytes: $($nvidiaInstaller.Length)"
           if ($nvidiaPortable.Length -ge 2147483648) {
-            throw "NVIDIA portable ZIP exceeds GitHub's 2 GiB asset limit: $($nvidiaPortable.Length)"
+            throw "NVIDIA portable archive exceeds GitHub's 2 GiB asset limit: $($nvidiaPortable.Length)"
           }
 
       - name: Upload NVIDIA packaged artifacts
@@ -505,7 +505,7 @@ jobs:
           name: GoAgent-Windows-NVIDIA
           path: |
             release/**/*nvidia*.exe
-            release/**/*nvidia*.zip
+            release/**/*nvidia*.7z
           if-no-files-found: error
 
   github-release:
@@ -536,7 +536,7 @@ jobs:
             artifacts/**/GoAgent-*-mac-x64.dmg
             artifacts/**/GoAgent-*-win-x64-portable.zip
             artifacts/**/GoAgent-*-win-x64.exe
-            artifacts/**/GoAgent-*-win-x64-nvidia-portable.zip
+            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z
             artifacts/**/GoAgent-*-win-x64-nvidia.exe
           )
           if [[ ${#files[@]} -eq 0 ]]; then
@@ -555,7 +555,7 @@ jobs:
             artifacts/**/GoAgent-*-mac-x64.dmg
             artifacts/**/GoAgent-*-win-x64-portable.zip
             artifacts/**/GoAgent-*-win-x64.exe
-            artifacts/**/GoAgent-*-win-x64-nvidia-portable.zip
+            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z
             artifacts/**/GoAgent-*-win-x64-nvidia.exe
             artifacts/SHA256SUMS.txt
           body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md

@@ -29,7 +29,7 @@ The workflow builds on native runners:
 
 - macOS: DMG and ZIP.
 - Windows: x64 NSIS installer and x64 portable ZIP.
-- Windows NVIDIA: x64 NSIS installer and x64 portable ZIP with a dedicated NVIDIA KataGo runtime directory.
+- Windows NVIDIA: x64 NSIS installer and x64 portable 7z archive with a dedicated NVIDIA KataGo runtime directory.
 - Linux: AppImage, DEB, and tar.gz.
 
 Windows ARM64 is not supported in `v0.2.0-beta.1`.
@@ -58,7 +58,7 @@ The job scans the extracted archive, finds `katago.exe`, copies the whole runtim
 
 ```text
 GoAgent-<version>-win-x64-nvidia.exe
-GoAgent-<version>-win-x64-nvidia-portable.zip
+GoAgent-<version>-win-x64-nvidia-portable.7z
 ```
 
 This keeps the NVIDIA package honest: it is not the standard Windows package with a new filename.

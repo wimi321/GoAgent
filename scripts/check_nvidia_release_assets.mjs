@@ -24,7 +24,7 @@ const requiredWorkflowFragments = [
   '--preserve-model-name',
   'RUNNER_OS',
   'select_default_katago_model.mjs',
-  'GoAgent-*-win-x64-nvidia-portable.zip',
+  'GoAgent-*-win-x64-nvidia-portable.7z',
   'GoAgent-*-win-x64-nvidia.exe',
   'GoAgent-*-mac-arm64.dmg',
   'GoAgent-*-mac-x64.dmg',

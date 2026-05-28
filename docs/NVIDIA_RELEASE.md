@@ -28,7 +28,7 @@ This matters because CUDA builds normally need neighboring DLL/runtime files nex
 
 ```text
 GoAgent-<version>-win-x64-nvidia.exe
-GoAgent-<version>-win-x64-nvidia-portable.zip
+GoAgent-<version>-win-x64-nvidia-portable.7z
 ```
 
 The standard Windows package remains:

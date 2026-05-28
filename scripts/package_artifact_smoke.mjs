@@ -26,7 +26,7 @@ function collectFiles(directory) {
 }
 
 const files = collectFiles(scanRoot)
-const artifactPatterns = [/\.dmg$/i, /\.zip$/i, /\.exe$/i, /\.AppImage$/i, /\.deb$/i, /\.tar\.gz$/i]
+const artifactPatterns = [/\.dmg$/i, /\.zip$/i, /\.7z$/i, /\.exe$/i, /\.AppImage$/i, /\.deb$/i, /\.tar\.gz$/i]
 const currentArtifactPrefix = `GoAgent-${packageVersion}-`
 const artifacts = files.filter((file) => basename(file).startsWith(currentArtifactPrefix) && artifactPatterns.some((pattern) => pattern.test(file)))
 const hasMacArm64Dmg = artifacts.some((file) => /mac-arm64\.dmg$/i.test(file))

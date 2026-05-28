@@ -29,7 +29,7 @@ test('release workflow publishes a real Windows NVIDIA edition', () => {
   assert.match(workflow, /--copy-runtime-dir/)
   assert.match(workflow, /--preserve-model-name/)
   assert.match(workflow, /RUNNER_OS.*Windows/)
-  assert.match(workflow, /GoAgent-\*-win-x64-nvidia-portable\.zip/)
+  assert.match(workflow, /GoAgent-\*-win-x64-nvidia-portable\.7z/)
   assert.match(workflow, /GoAgent-\*-win-x64-nvidia\.exe/)
 })
 
