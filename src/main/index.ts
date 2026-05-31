@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type ContextMenuParams, type IpcMainEvent, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { isAbsolute, relative, resolve, join } from 'node:path'
-import { appHome, findGame, getGames, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
+import { appHome, findGame, getGames, getIkatagoPassword, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, hasIkatagoPassword, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, replaceSettings, setSettings, upsertGames } from './lib/store'
 import { BRAND_NAME } from '@shared/brand'
 import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
@@ -263,7 +263,7 @@ function buildApplicationMenu(): void {
 async function dashboard(): Promise<DashboardData> {
   const hydratedSettings = await applyDetectedDefaults(getSettings())
   replaceSettings(hydratedSettings)
-  const publicSettings = { ...hydratedSettings, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '' }
+  const publicSettings = { ...hydratedSettings, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '' }
   const detectedProfile = await detectSystemProfile(hydratedSettings)
   return {
     settings: publicSettings,
@@ -454,6 +454,10 @@ app.whenReady().then(() => {
       apiKey: settings.llmApiKey
     }
   })
+  ipcMain.handle('ikatago:get-saved-password', async () => ({
+    hasPassword: hasIkatagoPassword(),
+    password: getIkatagoPassword()
+  }))
   ipcMain.handle('tts:inspect-assets', async () => inspectTtsAssets())
   ipcMain.handle('tts:list-voices', async () => listTtsVoices())
   ipcMain.handle('tts:synthesize', async (_event, payload) => synthesizeTts(payload))

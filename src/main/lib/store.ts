@@ -34,6 +34,14 @@ const defaults: AppSettings = {
   katagoBenchmarkUpdatedAt: '',
   katagoEngineMode: 'auto',
   katagoAnalysisSpeedMode: 'auto',
+  ikatagoClientBin: '',
+  ikatagoPlatform: 'all',
+  ikatagoUsername: '',
+  ikatagoPassword: '',
+  ikatagoWorldUrl: '',
+  ikatagoExtraArgs: '',
+  ikatagoUseWhenLocalSlow: false,
+  ikatagoSlowThresholdVisitsPerSecond: 120,
   pythonBin: defaultPythonBin(),
   llmBaseUrl: 'https://api.openai.com/v1',
   llmApiKey: '',
@@ -90,7 +98,7 @@ type SecretValue =
   | { mode: 'local-v1'; value: string; iv: string; tag: string }
   | { mode: 'plain'; value: string }
 
-export const secretStore = new Store<{ llmApiKey?: SecretValue; ttsCustomApiKey?: SecretValue; ttsVolcengineApiKey?: SecretValue; ttsVolcengineAccessToken?: SecretValue }>({
+export const secretStore = new Store<{ llmApiKey?: SecretValue; ttsCustomApiKey?: SecretValue; ttsVolcengineApiKey?: SecretValue; ttsVolcengineAccessToken?: SecretValue; ikatagoPassword?: SecretValue }>({
   name: 'secrets',
   cwd: appHome,
   defaults: {}
@@ -171,6 +179,10 @@ export function hasTtsVolcengineAccessToken(): boolean {
   return decryptSecret(secretStore.get('ttsVolcengineAccessToken')).trim().length > 0
 }
 
+export function hasIkatagoPassword(): boolean {
+  return decryptSecret(secretStore.get('ikatagoPassword')).trim().length > 0
+}
+
 function saveLlmApiKey(value: string): void {
   const trimmed = value.trim()
   if (trimmed) {
@@ -199,6 +211,13 @@ function saveTtsVolcengineAccessToken(value: string): void {
   }
 }
 
+function saveIkatagoPassword(value: string): void {
+  const trimmed = value.trim()
+  if (trimmed) {
+    secretStore.set('ikatagoPassword', encryptSecret(trimmed))
+  }
+}
+
 function migratePlaintextSecrets(settings: AppSettings): AppSettings {
   const sanitized: AppSettings = { ...settings }
   let changed = false
@@ -222,6 +241,11 @@ function migratePlaintextSecrets(settings: AppSettings): AppSettings {
     sanitized.ttsVolcengineAccessToken = ''
     changed = true
   }
+  if (sanitized.ikatagoPassword.trim()) {
+    saveIkatagoPassword(sanitized.ikatagoPassword)
+    sanitized.ikatagoPassword = ''
+    changed = true
+  }
   if (changed) {
     settingsStore.store = sanitized
   }
@@ -235,7 +259,8 @@ export function getSettings(): AppSettings {
     llmApiKey: decryptSecret(secretStore.get('llmApiKey')),
     ttsCustomApiKey: decryptSecret(secretStore.get('ttsCustomApiKey')),
     ttsVolcengineApiKey: decryptSecret(secretStore.get('ttsVolcengineApiKey')),
-    ttsVolcengineAccessToken: decryptSecret(secretStore.get('ttsVolcengineAccessToken'))
+    ttsVolcengineAccessToken: decryptSecret(secretStore.get('ttsVolcengineAccessToken')),
+    ikatagoPassword: decryptSecret(secretStore.get('ikatagoPassword'))
   }
 }
 
@@ -252,11 +277,15 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
   if (typeof next.ttsVolcengineAccessToken === 'string') {
     saveTtsVolcengineAccessToken(next.ttsVolcengineAccessToken)
   }
+  if (typeof next.ikatagoPassword === 'string') {
+    saveIkatagoPassword(next.ikatagoPassword)
+  }
   const {
     llmApiKey: _llmApiKey,
     ttsCustomApiKey: _ttsCustomApiKey,
     ttsVolcengineApiKey: _ttsVolcengineApiKey,
     ttsVolcengineAccessToken: _ttsVolcengineAccessToken,
+    ikatagoPassword: _ikatagoPassword,
     ...safeNext
   } = next
   settingsStore.set(safeNext)
@@ -276,7 +305,10 @@ export function replaceSettings(next: AppSettings): AppSettings {
   if (next.ttsVolcengineAccessToken.trim()) {
     saveTtsVolcengineAccessToken(next.ttsVolcengineAccessToken)
   }
-  settingsStore.store = { ...next, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '' }
+  if (next.ikatagoPassword.trim()) {
+    saveIkatagoPassword(next.ikatagoPassword)
+  }
+  settingsStore.store = { ...next, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '' }
   return getSettings()
 }
 
@@ -290,6 +322,10 @@ export function getTtsVolcengineApiKey(): string {
 
 export function getTtsVolcengineAccessToken(): string {
   return decryptSecret(secretStore.get('ttsVolcengineAccessToken'))
+}
+
+export function getIkatagoPassword(): string {
+  return decryptSecret(secretStore.get('ikatagoPassword'))
 }
 
 export function getGames(): LibraryGame[] {

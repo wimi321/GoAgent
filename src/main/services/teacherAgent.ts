@@ -741,6 +741,8 @@ async function safeSystemProfileForAgent(): Promise<JsonObject> {
 function safeSettingsSummaryForAgent(settings: ReturnType<typeof getSettings>): JsonObject {
   return {
     katagoModelPreset: settings.katagoModelPreset,
+    katagoEngineMode: settings.katagoEngineMode,
+    ikatagoConfigured: Boolean(settings.ikatagoClientBin && settings.ikatagoUsername && settings.ikatagoPassword),
     katagoBinaryConfigured: Boolean(settings.katagoBin),
     katagoConfigConfigured: Boolean(settings.katagoConfig),
     katagoModelConfigured: Boolean(settings.katagoModel),

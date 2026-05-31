@@ -80,6 +80,7 @@ Release caveats:
 - Analysis remains stopped only after the user explicitly clicks pause.
 - Candidate points show rank, winrate, score lead, and visits.
 - Played moves are compared against KataGo candidates, and problem moves are judged by winrate/score loss.
+- Slow local machines can connect to a user-owned iKataGo remote compute client from Settings.
 
 ### Agentic teacher runtime
 
@@ -122,6 +123,8 @@ Requirements:
 - Python 3.10+
 - KataGo binary and model
 - Optional OpenAI-compatible multimodal LLM API
+
+For remote compute, see [iKataGo Remote Engine](./docs/IKATAGO_REMOTE_ENGINE.md). GoAgent uses a local `ikatago-client -- analysis` process and does not send positions remotely unless the user explicitly enables that engine path.
 
 ```bash
 pnpm install

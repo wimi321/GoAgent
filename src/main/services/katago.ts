@@ -12,6 +12,11 @@ import {
   persistentKataGoFallbackEnabled,
   queryKataGoPersistentBatch
 } from './katagoPersistentEngine'
+import {
+  cancelIKataGoAnalysis,
+  queryIKataGoAnalysisBatch,
+  shouldPreferIKataGoEngine
+} from './ikatagoClientEngine'
 import { normalizeSgfKomiForAnalysis } from './sgfScoring'
 import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
 import { classifyMoveAnalysis } from './analysis/classifier'
@@ -130,6 +135,7 @@ function isKataGoTimeoutError(error: unknown): boolean {
 export function cancelKataGoAnalysis(filter: { runId?: string; group?: KataGoAnalysisGroup }): { cancelled: number } {
   let cancelled = 0
   cancelled += cancelPersistentKataGoAnalysis(filter).cancelled
+  cancelled += cancelIKataGoAnalysis(filter).cancelled
   for (const [id, entry] of activeKataGoProcesses.entries()) {
     const matchesRun = filter.runId ? id === filter.runId : true
     const matchesGroup = filter.group ? entry.group === filter.group : true
@@ -491,9 +497,6 @@ async function queryKataGoBatch(
   }
   const settings = getSettings()
   const runtime = resolveKataGoRuntime(settings)
-  if (!runtime.ready) {
-    throw new Error(`${runtime.status}: ${runtime.notes.join('；')}`)
-  }
   if (options.replaceGroup && options.group) {
     cancelKataGoAnalysis({ group: options.group })
   }
@@ -501,6 +504,32 @@ async function queryKataGoBatch(
     group: options.group,
     queryCount: queries.length
   })
+  const ikatagoPreferred = shouldPreferIKataGoEngine(settings, runtime.ready)
+  if (ikatagoPreferred) {
+    try {
+      const results = await queryIKataGoAnalysisBatch({
+        settings,
+        queries: queries.map(buildKataGoPayload),
+        runId: options.runId,
+        group: options.group,
+        timeoutMs: Math.max(180_000, queries.length * 5000),
+        resolvePartialAfterMs: options.resolvePartialAfterMs,
+        onResponse: onResponse as ((response: Record<string, unknown>) => void) | undefined
+      })
+      engineLease.finish('done')
+      return results as Map<string, KataGoResponse>
+    } catch (error) {
+      const status = String(error).includes('已取消') || String(error).includes('cancel') ? 'cancelled' : 'error'
+      if (status === 'cancelled' || settings.katagoEngineMode === 'ikatago' || !runtime.ready) {
+        engineLease.finish(status)
+        throw error
+      }
+      console.warn('iKataGo remote engine failed; falling back to local KataGo.', error)
+    }
+  }
+  if (!runtime.ready) {
+    throw new Error(`${runtime.status}: ${runtime.notes.join('；')}`)
+  }
   const command = [
     runtime.katagoBin,
     'analysis',

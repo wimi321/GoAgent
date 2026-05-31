@@ -17,7 +17,7 @@ test('top3 development adds analysis scheduler and persistent engine settings', 
   const store = await text('src/main/lib/store.ts')
   const main = await text('src/main/index.ts')
 
-  assert.match(types, /KataGoEngineMode = 'auto' \| 'persistent' \| 'spawn'/)
+  assert.match(types, /KataGoEngineMode = 'auto' \| 'persistent' \| 'spawn' \| 'ikatago'/)
   assert.match(types, /katagoEngineMode: KataGoEngineMode/)
   assert.match(store, /katagoEngineMode: 'auto'/)
   assert.match(scheduler, /runScheduledAnalysis/)

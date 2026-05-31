@@ -99,15 +99,22 @@ function runtimeFingerprints(): { modelFingerprint: string; configFingerprint: s
   const settings = getSettings()
   return {
     modelFingerprint: sha256([
+      settings.katagoEngineMode,
       settings.katagoModelPreset,
       basename(settings.katagoModel || 'no-model'),
-      fileFingerprint(settings.katagoModel)
+      fileFingerprint(settings.katagoModel),
+      settings.ikatagoClientBin,
+      settings.ikatagoPlatform,
+      settings.ikatagoUsername,
+      settings.ikatagoExtraArgs
     ].join('\n')),
     configFingerprint: sha256([
       settings.katagoAnalysisThreads,
       settings.katagoSearchThreadsPerAnalysisThread,
       settings.katagoMaxBatchSize,
       settings.katagoCacheSizePowerOfTwo,
+      settings.ikatagoUseWhenLocalSlow,
+      settings.ikatagoSlowThresholdVisitsPerSecond,
       fileFingerprint(settings.katagoConfig, { readSmallFiles: true })
     ].join('\n'))
   }

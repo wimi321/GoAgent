@@ -95,6 +95,14 @@ export interface AppSettings {
   katagoBenchmarkUpdatedAt: string
   katagoEngineMode: KataGoEngineMode
   katagoAnalysisSpeedMode: KataGoAnalysisSpeedMode
+  ikatagoClientBin: string
+  ikatagoPlatform: string
+  ikatagoUsername: string
+  ikatagoPassword: string
+  ikatagoWorldUrl: string
+  ikatagoExtraArgs: string
+  ikatagoUseWhenLocalSlow: boolean
+  ikatagoSlowThresholdVisitsPerSecond: number
   pythonBin: string
   llmBaseUrl: string
   llmApiKey: string
@@ -140,7 +148,7 @@ export interface AppSettings {
   teacherVariationDetail: TeacherVariationDetail
 }
 
-export type KataGoEngineMode = 'auto' | 'persistent' | 'spawn'
+export type KataGoEngineMode = 'auto' | 'persistent' | 'spawn' | 'ikatago'
 export type KataGoAnalysisSpeedMode = 'auto' | 'fast' | 'balanced' | 'deep'
 export type KataGoModelPresetId = string
 

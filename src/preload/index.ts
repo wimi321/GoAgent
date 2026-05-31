@@ -132,6 +132,7 @@ const api = {
   testLlmSettings: (payload: LlmSettingsTestRequest): Promise<LlmSettingsTestResult> => ipcRenderer.invoke('llm:test', payload),
   listLlmModels: (payload: LlmModelsListRequest): Promise<LlmModelsListResult> => ipcRenderer.invoke('llm:list-models', payload),
   getSavedLlmApiKey: (): Promise<{ hasKey: boolean; apiKey: string }> => ipcRenderer.invoke('llm:get-saved-api-key'),
+  getSavedIkatagoPassword: (): Promise<{ hasPassword: boolean; password: string }> => ipcRenderer.invoke('ikatago:get-saved-password'),
   inspectTtsAssets: (): Promise<TtsAssetStatus> => ipcRenderer.invoke('tts:inspect-assets'),
   listTtsVoices: (): Promise<TtsVoice[]> => ipcRenderer.invoke('tts:list-voices'),
   synthesizeTts: (payload: TtsSynthesisRequest): Promise<TtsSynthesisResult> => ipcRenderer.invoke('tts:synthesize', payload),

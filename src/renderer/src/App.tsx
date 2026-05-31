@@ -81,6 +81,14 @@ const emptyDashboard: DashboardData = {
     katagoBenchmarkUpdatedAt: '',
     katagoEngineMode: 'auto',
     katagoAnalysisSpeedMode: 'auto',
+    ikatagoClientBin: '',
+    ikatagoPlatform: 'all',
+    ikatagoUsername: '',
+    ikatagoPassword: '',
+    ikatagoWorldUrl: '',
+    ikatagoExtraArgs: '',
+    ikatagoUseWhenLocalSlow: false,
+    ikatagoSlowThresholdVisitsPerSecond: 120,
     pythonBin: 'python',
     llmBaseUrl: 'https://api.openai.com/v1',
     llmApiKey: '',
@@ -1389,6 +1397,14 @@ export function App(): ReactElement {
         katagoModelPreset: String(formData.get('katagoModelPreset') ?? dashboard.settings.katagoModelPreset) as KataGoModelPresetId,
         katagoEngineMode: String(formData.get('katagoEngineMode') ?? dashboard.settings.katagoEngineMode) as KataGoEngineMode,
         katagoAnalysisSpeedMode: String(formData.get('katagoAnalysisSpeedMode') ?? dashboard.settings.katagoAnalysisSpeedMode) as KataGoAnalysisSpeedMode,
+        ikatagoClientBin: String(formData.get('ikatagoClientBin') ?? dashboard.settings.ikatagoClientBin),
+        ikatagoPlatform: String(formData.get('ikatagoPlatform') ?? dashboard.settings.ikatagoPlatform),
+        ikatagoUsername: String(formData.get('ikatagoUsername') ?? dashboard.settings.ikatagoUsername),
+        ikatagoPassword: String(formData.get('ikatagoPassword') ?? ''),
+        ikatagoWorldUrl: String(formData.get('ikatagoWorldUrl') ?? dashboard.settings.ikatagoWorldUrl),
+        ikatagoExtraArgs: String(formData.get('ikatagoExtraArgs') ?? dashboard.settings.ikatagoExtraArgs),
+        ikatagoUseWhenLocalSlow: formData.get('ikatagoUseWhenLocalSlow') === 'on',
+        ikatagoSlowThresholdVisitsPerSecond: Number(formData.get('ikatagoSlowThresholdVisitsPerSecond') ?? dashboard.settings.ikatagoSlowThresholdVisitsPerSecond),
         reviewLanguage: normalizeUiLocale(String(formData.get('reviewLanguage') ?? dashboard.settings.reviewLanguage)),
         llmBaseUrl: String(formData.get('llmBaseUrl') ?? ''),
         llmApiKey: String(formData.get('llmApiKey') ?? ''),
@@ -3895,6 +3911,9 @@ function SettingsDrawer({
   const [savedLlmApiKey, setSavedLlmApiKey] = useState('')
   const [showLlmApiKey, setShowLlmApiKey] = useState(false)
   const [llmKeyMessage, setLlmKeyMessage] = useState('')
+  const [savedIkatagoPassword, setSavedIkatagoPassword] = useState('')
+  const [showIkatagoPassword, setShowIkatagoPassword] = useState(false)
+  const [ikatagoPasswordMessage, setIkatagoPasswordMessage] = useState('')
   const [autoSaveBusy, setAutoSaveBusy] = useState(false)
   const [autoSaveTick, setAutoSaveTick] = useState(0)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -4029,6 +4048,23 @@ function SettingsDrawer({
     }
   }
 
+  async function revealSavedIkatagoPassword(): Promise<void> {
+    setIkatagoPasswordMessage('')
+    try {
+      const result = await window.goagent.getSavedIkatagoPassword()
+      if (!result.hasPassword || !result.password) {
+        setSavedIkatagoPassword('')
+        setShowIkatagoPassword(false)
+        setIkatagoPasswordMessage('还没有保存 iKataGo 密码。')
+        return
+      }
+      setSavedIkatagoPassword(result.password)
+      setShowIkatagoPassword(true)
+    } catch (cause) {
+      setIkatagoPasswordMessage(`读取 iKataGo 密码失败：${String(cause)}`)
+    }
+  }
+
   async function saveTtsSettings(next: Partial<AppSettings>): Promise<void> {
     const updated = await window.goagent.updateSettings(next)
     onDashboardUpdated(updated)
@@ -4100,6 +4136,7 @@ function SettingsDrawer({
             <option value="auto">自动：常驻优先，失败回退</option>
             <option value="persistent">常驻引擎：低延迟，失败不回退</option>
             <option value="spawn">传统流程：每批分析单独启动</option>
+            <option value="ikatago">iKataGo 远程算力：连接云端 GPU</option>
           </select>
         </label>
         <label>
@@ -4115,6 +4152,115 @@ function SettingsDrawer({
             <option value="deep">精读</option>
           </select>
         </label>
+        <div className="settings-subsection">
+          <h4>iKataGo 远程算力</h4>
+          <p>适合本机速度慢时连接自己的 iKataGo server。GoAgent 会通过本地 ikatago-client 运行远端 KataGo analysis；只有选择 iKataGo 模式，或开启“本地慢时自动使用”，才会把局面发送到远程。</p>
+          <label>
+            <span>客户端路径</span>
+            <input
+              name="ikatagoClientBin"
+              defaultValue={dashboard.settings.ikatagoClientBin}
+              placeholder={navigator.platform.toLowerCase().includes('win') ? 'D:\\ikatago\\ikatago.exe' : '/usr/local/bin/ikatago'}
+              onBlur={(event) => autoSave({ ikatagoClientBin: event.target.value }, 0)}
+            />
+          </label>
+          <label>
+            <span>Platform</span>
+            <input
+              name="ikatagoPlatform"
+              defaultValue={dashboard.settings.ikatagoPlatform}
+              placeholder="all / aistudio / colab"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onBlur={(event) => autoSave({ ikatagoPlatform: event.target.value || 'all' }, 0)}
+            />
+          </label>
+          <label>
+            <span>用户名</span>
+            <input
+              name="ikatagoUsername"
+              defaultValue={dashboard.settings.ikatagoUsername}
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onBlur={(event) => autoSave({ ikatagoUsername: event.target.value }, 0)}
+            />
+          </label>
+          <div className="llm-api-key-field">
+            <label>
+              <span>密码</span>
+              <div className="llm-secret-input-row">
+                <input
+                  name="ikatagoPassword"
+                  type={showIkatagoPassword ? 'text' : 'password'}
+                  defaultValue={showIkatagoPassword ? savedIkatagoPassword : ''}
+                  placeholder="已保存则无需重复输入"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onBlur={(event) => {
+                    const value = event.target.value
+                    if (value.trim()) autoSave({ ikatagoPassword: value }, 0)
+                  }}
+                />
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => showIkatagoPassword ? setShowIkatagoPassword(false) : void revealSavedIkatagoPassword()}
+                  disabled={busy !== ''}
+                >
+                  {showIkatagoPassword ? t('hide') : t('showKey')}
+                </button>
+              </div>
+            </label>
+            {ikatagoPasswordMessage ? <small>{ikatagoPasswordMessage}</small> : <small>密码保存在 GoAgent 本地加密存储中，不使用系统钥匙串。</small>}
+          </div>
+          <label>
+            <span>World URL</span>
+            <input
+              name="ikatagoWorldUrl"
+              defaultValue={dashboard.settings.ikatagoWorldUrl}
+              placeholder="留空使用 iKataGo 默认 world"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onBlur={(event) => autoSave({ ikatagoWorldUrl: event.target.value }, 0)}
+            />
+          </label>
+          <label>
+            <span>附加参数</span>
+            <input
+              name="ikatagoExtraArgs"
+              defaultValue={dashboard.settings.ikatagoExtraArgs}
+              placeholder="例如 --kata-weight 40b --gpu-type 3090"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onBlur={(event) => autoSave({ ikatagoExtraArgs: event.target.value }, 0)}
+            />
+          </label>
+          <label className="settings-inline-toggle">
+            <input
+              name="ikatagoUseWhenLocalSlow"
+              type="checkbox"
+              defaultChecked={dashboard.settings.ikatagoUseWhenLocalSlow}
+              onChange={(event) => autoSave({ ikatagoUseWhenLocalSlow: event.target.checked }, 0)}
+            />
+            <span>自动模式下，本机测速低于阈值时使用 iKataGo</span>
+          </label>
+          <label>
+            <span>慢速阈值 visits/s</span>
+            <input
+              name="ikatagoSlowThresholdVisitsPerSecond"
+              type="number"
+              min="1"
+              step="1"
+              defaultValue={dashboard.settings.ikatagoSlowThresholdVisitsPerSecond}
+              onBlur={(event) => autoSave({ ikatagoSlowThresholdVisitsPerSecond: Number(event.target.value || 120) }, 0)}
+            />
+          </label>
+        </div>
       </section>
       <section className="settings-section settings-section-language">
         <h3>{t('languageLabel')}</h3>

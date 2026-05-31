@@ -103,6 +103,7 @@ declare global {
       testLlmSettings: (payload: LlmSettingsTestRequest) => Promise<LlmSettingsTestResult>
       listLlmModels: (payload: LlmModelsListRequest) => Promise<LlmModelsListResult>
       getSavedLlmApiKey: () => Promise<{ hasKey: boolean; apiKey: string }>
+      getSavedIkatagoPassword: () => Promise<{ hasPassword: boolean; password: string }>
       inspectTtsAssets: () => Promise<TtsAssetStatus>
       listTtsVoices: () => Promise<TtsVoice[]>
       synthesizeTts: (payload: TtsSynthesisRequest) => Promise<TtsSynthesisResult>

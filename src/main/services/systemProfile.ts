@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import type { AppSettings, SystemProfile } from '@main/lib/types'
 import { hydrateKataGoSettings, KATAGO_MODEL_PRESETS, resolveKataGoRuntime } from './katagoRuntime'
+import { ikatagoClientConfigured, shouldPreferIKataGoEngine } from './ikatagoClientEngine'
 
 const execFileAsync = promisify(execFile)
 
@@ -100,13 +101,14 @@ async function detectCliproxy(): Promise<Pick<SystemProfile, 'proxyBaseUrl' | 'p
 
 export async function detectSystemProfile(settings?: AppSettings): Promise<SystemProfile> {
   const katago = resolveKataGoRuntime(settings)
+  const ikatagoReady = settings ? shouldPreferIKataGoEngine(settings, katago.ready) && ikatagoClientConfigured(settings) : false
   const proxy = await detectCliproxy()
   return {
-    katagoBin: katago.katagoBin,
+    katagoBin: ikatagoReady && settings ? settings.ikatagoClientBin : katago.katagoBin,
     katagoConfig: katago.katagoConfig,
     katagoModel: katago.katagoModel,
-    katagoReady: katago.ready,
-    katagoStatus: katago.status,
+    katagoReady: ikatagoReady || katago.ready,
+    katagoStatus: ikatagoReady ? 'iKataGo Remote Ready' : katago.status,
     katagoModelPreset: katago.modelPreset.id,
     katagoModelPresets: KATAGO_MODEL_PRESETS,
     proxyBaseUrl: proxy.proxyBaseUrl,

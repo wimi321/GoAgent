@@ -3,6 +3,7 @@ import { access, mkdir, unlink, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { appHome, getSettings, hasLlmApiKey } from '@main/lib/store'
 import { resolveKataGoRuntime } from '../katagoRuntime'
+import { ikatagoClientConfigured, shouldPreferIKataGoEngine } from '../ikatagoClientEngine'
 import { probeOpenAICompatibleProvider } from '../llm/openaiCompatibleProvider'
 import { inspectKataGoAssets } from '../katago/katagoAssets'
 import type { DiagnosticCheck, DiagnosticsReport, DiagnosticsOverall } from './types'
@@ -38,7 +39,17 @@ async function checkWritableHome(): Promise<DiagnosticCheck> {
 }
 
 async function checkKatagoBinary(): Promise<DiagnosticCheck> {
-  const runtime = resolveKataGoRuntime(getSettings())
+  const settings = getSettings()
+  const runtime = resolveKataGoRuntime(settings)
+  if (shouldPreferIKataGoEngine(settings, runtime.ready) && ikatagoClientConfigured(settings)) {
+    return {
+      id: 'katago-binary',
+      title: 'KataGo 引擎',
+      status: 'pass',
+      required: false,
+      detail: `使用 iKataGo 远程算力: ${basename(settings.ikatagoClientBin)}`
+    }
+  }
   const required = isReleaseRuntime()
   if (!runtime.katagoBin) {
     return {
@@ -78,7 +89,17 @@ async function checkKatagoBinary(): Promise<DiagnosticCheck> {
 }
 
 async function checkKatagoModel(): Promise<DiagnosticCheck> {
-  const runtime = resolveKataGoRuntime(getSettings())
+  const settings = getSettings()
+  const runtime = resolveKataGoRuntime(settings)
+  if (shouldPreferIKataGoEngine(settings, runtime.ready) && ikatagoClientConfigured(settings)) {
+    return {
+      id: 'katago-model',
+      title: 'KataGo 默认模型',
+      status: 'pass',
+      required: false,
+      detail: 'iKataGo 远程服务负责模型和配置，GoAgent 不要求本机模型。'
+    }
+  }
   const required = isReleaseRuntime()
   if (!runtime.katagoModel) {
     return {
@@ -102,6 +123,17 @@ async function checkKatagoModel(): Promise<DiagnosticCheck> {
 }
 
 async function checkBundledKataGoAssets(): Promise<DiagnosticCheck> {
+  const settings = getSettings()
+  const runtime = resolveKataGoRuntime(settings)
+  if (shouldPreferIKataGoEngine(settings, runtime.ready) && ikatagoClientConfigured(settings)) {
+    return {
+      id: 'katago-assets',
+      title: '内置 KataGo 资源',
+      status: 'pass',
+      required: false,
+      detail: '当前使用 iKataGo 远程算力，本机内置资源不是必需项。'
+    }
+  }
   const status = await inspectKataGoAssets()
   const required = isReleaseRuntime()
   if (status.ready) {
