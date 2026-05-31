@@ -22,6 +22,10 @@ test('official KataGo model installer is wired through main preload and settings
   assert.match(service, /katagotraining\.org/)
   assert.match(service, /Readable\.fromWeb/)
   assert.match(service, /copyPlatformBinaryIfAvailable/)
+  assert.match(service, /WINDOWS_OPENCL_RUNTIME_URL/)
+  assert.match(service, /downloadPlatformRuntimeIfAvailable/)
+  assert.match(service, /Expand-Archive/)
+  assert.match(types, /downloading-binary/)
 
   const runtime = read('src/main/services/katagoRuntime.ts')
   assert.match(runtime, /official-b40-latest/)

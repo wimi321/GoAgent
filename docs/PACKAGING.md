@@ -29,6 +29,7 @@ The workflow builds on native runners:
 
 - macOS: DMG and ZIP.
 - Windows: x64 NSIS installer and x64 portable ZIP.
+- Lite: smaller macOS and Windows packages without bundled KataGo binaries or model files.
 - Windows NVIDIA: x64 NSIS installer and x64 portable 7z archive with a dedicated NVIDIA KataGo runtime directory.
 - Linux: AppImage, DEB, and tar.gz.
 
@@ -64,6 +65,19 @@ GoAgent-<version>-win-x64-nvidia-portable.7z.003
 ```
 
 This keeps the NVIDIA package honest: it is not the standard Windows package with a new filename.
+
+## Lite Packages
+
+The release workflow also builds:
+
+```text
+GoAgent-<version>-mac-arm64-lite.dmg
+GoAgent-<version>-mac-x64-lite.dmg
+GoAgent-<version>-win-x64-lite.exe
+GoAgent-<version>-win-x64-lite-portable.zip
+```
+
+Lite packages keep the app, local knowledge base, settings UI, and bundled Chinese Kokoro TTS, but intentionally do not bundle `data/katago/bin` or `data/katago/models`. This keeps the first download much smaller. On Windows x64, applying an official model from Settings also installs the OpenCL KataGo runtime if no local engine exists.
 
 ## Signing
 

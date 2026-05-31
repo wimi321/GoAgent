@@ -1,10 +1,12 @@
 import { createHash } from 'node:crypto'
+import { execFile } from 'node:child_process'
 import { constants } from 'node:fs'
-import { access, chmod, copyFile, mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promises'
+import { access, chmod, copyFile, cp, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { createWriteStream } from 'node:fs'
 import { Transform, Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { basename, dirname, join } from 'node:path'
+import { promisify } from 'node:util'
 import { app } from 'electron'
 import { getKataGoModelPreset } from '../katagoRuntime'
 import type { KataGoAssetInstallProgress, KataGoAssetInstallRequest, KataGoAssetInstallResult } from '@main/lib/types'
@@ -50,6 +52,9 @@ interface KataGoEditionMetadata {
   binaryPath?: string
   flavor?: string
 }
+
+const execFileAsync = promisify(execFile)
+const WINDOWS_OPENCL_RUNTIME_URL = 'https://github.com/wimi321/lizzieyzy-next/releases/download/1.0.0-next-2026-05-02.3/2026-05-02-windows64.opencl.portable.zip'
 
 function platformKey(): string {
   return `${process.platform}-${process.arch}`
@@ -170,11 +175,17 @@ function progressPercent(receivedBytes: number, totalBytes?: number): number | u
 async function downloadFile(
   url: string,
   target: string,
-  onProgress?: (progress: KataGoAssetInstallProgress) => void
+  onProgress?: (progress: KataGoAssetInstallProgress) => void,
+  stage: KataGoAssetInstallProgress['stage'] = 'downloading-model',
+  messages: { exists: string; active: string; done: string } = {
+    exists: '官方权重已存在，跳过下载。',
+    active: '正在下载 KataGo 官方权重。',
+    done: '官方权重下载完成。'
+  }
 ): Promise<boolean> {
   const targetExists = await exists(target)
   if (targetExists) {
-    onProgress?.({ stage: 'downloading-model', message: '官方权重已存在，跳过下载。', percent: 100 })
+    onProgress?.({ stage, message: messages.exists, percent: 100 })
     return false
   }
   const tmp = `${target}.download`
@@ -192,8 +203,8 @@ async function downloadFile(
     transform(chunk: Buffer, _encoding, callback) {
       receivedBytes += chunk.length
       onProgress?.({
-        stage: 'downloading-model',
-        message: '正在下载 KataGo 官方权重。',
+        stage,
+        message: messages.active,
         receivedBytes,
         totalBytes,
         percent: progressPercent(receivedBytes, totalBytes)
@@ -203,11 +214,86 @@ async function downloadFile(
   })
   await pipeline(Readable.fromWeb(response.body as never), progressStream, createWriteStream(tmp))
   await rename(tmp, target)
-  onProgress?.({ stage: 'downloading-model', message: '官方权重下载完成。', receivedBytes, totalBytes, percent: 100 })
+  onProgress?.({ stage, message: messages.done, receivedBytes, totalBytes, percent: 100 })
   return true
 }
 
-async function copyPlatformBinaryIfAvailable(root: string, manifest: KataGoAssetManifest, key: string): Promise<{ path: string; copied: boolean }> {
+async function runPowerShell(command: string): Promise<void> {
+  await execFileAsync('powershell.exe', ['-NoProfile', '-Command', command], { windowsHide: true, maxBuffer: 1024 * 1024 })
+}
+
+function psQuote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`
+}
+
+async function findFileByName(root: string, fileName: string): Promise<string> {
+  const stack = [root]
+  while (stack.length) {
+    const current = stack.pop()
+    if (!current) continue
+    for (const entry of await readdir(current, { withFileTypes: true }).catch(() => [])) {
+      const full = join(current, entry.name)
+      if (entry.isDirectory()) {
+        stack.push(full)
+      } else if (entry.isFile() && entry.name.toLowerCase() === fileName.toLowerCase()) {
+        return full
+      }
+    }
+  }
+  return ''
+}
+
+async function downloadPlatformRuntimeIfAvailable(
+  root: string,
+  manifest: KataGoAssetManifest,
+  key: string,
+  onProgress?: (progress: KataGoAssetInstallProgress) => void
+): Promise<{ path: string; copied: boolean }> {
+  const platform = manifest.supportedPlatforms[key]
+  if (!platform) {
+    return { path: '', copied: false }
+  }
+
+  const target = join(root, platform.binaryPath)
+  if (await exists(target)) {
+    return { path: target, copied: false }
+  }
+  if (key !== 'win32-x64') {
+    return { path: target, copied: false }
+  }
+
+  const archivePath = join(root, 'downloads', 'katago-win32-x64-opencl.zip')
+  await downloadFile(WINDOWS_OPENCL_RUNTIME_URL, archivePath, onProgress, 'downloading-binary', {
+    exists: 'KataGo Windows OpenCL 运行库已下载，跳过下载。',
+    active: '正在下载 KataGo Windows OpenCL 运行库。',
+    done: 'KataGo Windows OpenCL 运行库下载完成。'
+  })
+
+  const extractionDir = join(root, 'runtime-downloads', 'win32-x64-opencl')
+  await rm(extractionDir, { recursive: true, force: true })
+  await mkdir(extractionDir, { recursive: true })
+  onProgress?.({ stage: 'copying-binary', message: '正在解压 KataGo Windows OpenCL 运行库。' })
+  await runPowerShell(`Expand-Archive -LiteralPath ${psQuote(archivePath)} -DestinationPath ${psQuote(extractionDir)} -Force`)
+
+  const sourceBinary = await findFileByName(extractionDir, 'katago.exe')
+  if (!sourceBinary) {
+    throw new Error('KataGo Windows OpenCL 运行库下载完成，但没有找到 katago.exe。')
+  }
+  const sourceDir = dirname(sourceBinary)
+  const targetDir = dirname(target)
+  await rm(targetDir, { recursive: true, force: true })
+  await mkdir(dirname(targetDir), { recursive: true })
+  await cp(sourceDir, targetDir, { recursive: true, force: true })
+  onProgress?.({ stage: 'copying-binary', message: 'KataGo Windows OpenCL 引擎已安装。', percent: 100 })
+  return { path: target, copied: true }
+}
+
+async function copyPlatformBinaryIfAvailable(
+  root: string,
+  manifest: KataGoAssetManifest,
+  key: string,
+  onProgress?: (progress: KataGoAssetInstallProgress) => void
+): Promise<{ path: string; copied: boolean }> {
   const platform = manifest.supportedPlatforms[key]
   if (!platform) {
     return { path: '', copied: false }
@@ -223,7 +309,7 @@ async function copyPlatformBinaryIfAvailable(root: string, manifest: KataGoAsset
     .filter((candidateRoot) => candidateRoot !== root)
     .map((candidateRoot) => join(candidateRoot, platform.binaryPath)))
   if (!source) {
-    return { path: target, copied: false }
+    return downloadPlatformRuntimeIfAvailable(root, manifest, key, onProgress)
   }
   await mkdir(dirname(target), { recursive: true })
   await copyFile(source, target)
@@ -363,7 +449,7 @@ export async function installOfficialKataGoModel(
       modelPath: `models/${preset.fileName}`,
       modelSha256: await sha256(bundledMatch).catch(() => '')
     }
-    const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key)
+    const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress)
     onProgress?.({ stage: 'writing-manifest', message: '正在写入本机 KataGo 资源配置。' })
     await mkdir(userRoot, { recursive: true })
     await writeFile(join(userRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
@@ -397,7 +483,7 @@ export async function installOfficialKataGoModel(
     modelPath: `models/${preset.fileName}`,
     modelSha256: await sha256(modelPath).catch(() => '')
   }
-  const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key)
+  const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress)
   onProgress?.({ stage: 'writing-manifest', message: '正在写入本机 KataGo 资源配置。' })
   await mkdir(userRoot, { recursive: true })
   await writeFile(join(userRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')

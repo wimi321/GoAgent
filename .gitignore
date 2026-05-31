@@ -3,6 +3,7 @@ out
 dist
 website/.astro
 release
+.release
 .DS_Store
 *.log
 .goagent

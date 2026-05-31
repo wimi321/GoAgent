@@ -321,7 +321,7 @@ export interface KataGoAssetInstallRequest {
   presetId?: KataGoModelPresetId
 }
 
-export type KataGoAssetInstallStage = 'discovering' | 'downloading-model' | 'copying-binary' | 'writing-manifest' | 'done' | 'error'
+export type KataGoAssetInstallStage = 'discovering' | 'downloading-binary' | 'downloading-model' | 'copying-binary' | 'writing-manifest' | 'done' | 'error'
 
 export interface KataGoAssetInstallProgress {
   stage: KataGoAssetInstallStage

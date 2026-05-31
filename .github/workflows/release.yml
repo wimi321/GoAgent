@@ -345,6 +345,115 @@ jobs:
             release/**/*.yml
           if-no-files-found: error
 
+  package-lite:
+    name: Package Lite ${{ matrix.name }}
+    needs: release-preflight
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            command: pnpm dist:lite:mac
+          - name: Windows
+            os: windows-latest
+            command: pnpm dist:lite:win
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Python for Kokoro zh G2P
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Kokoro zh G2P Python dependencies
+        run: python -m pip install -r scripts/requirements-tts.txt
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Prepare Kokoro TTS assets
+        shell: bash
+        env:
+          GOAGENT_TTS_ASSETS_STRICT: "1"
+          GOAGENT_TTS_SMOKE_STRICT: "1"
+          GOAGENT_TTS_PYTHON: python
+        run: |
+          pnpm prepare:tts-assets
+          pnpm check:tts-assets
+          pnpm smoke:tts
+
+      - name: Package Lite desktop app
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' && 'true' || 'false' }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEYCHAIN: ${{ secrets.APPLE_KEYCHAIN }}
+          APPLE_KEYCHAIN_PROFILE: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
+        run: |
+          for name in \
+            CSC_LINK \
+            CSC_KEY_PASSWORD \
+            WIN_CSC_LINK \
+            WIN_CSC_KEY_PASSWORD \
+            APPLE_API_KEY \
+            APPLE_API_KEY_ID \
+            APPLE_API_ISSUER \
+            APPLE_ID \
+            APPLE_APP_SPECIFIC_PASSWORD \
+            APPLE_TEAM_ID \
+            APPLE_KEYCHAIN \
+            APPLE_KEYCHAIN_PROFILE
+          do
+            if [[ -z "${!name:-}" ]]; then
+              unset "${name}"
+            fi
+          done
+          if [[ "${RUNNER_OS}" == "macOS" && -z "${CSC_LINK:-}" ]]; then
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          ${{ matrix.command }}
+
+      - name: Upload Lite packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoAgent-Lite-${{ matrix.name }}
+          path: |
+            release/**/*-lite.AppImage
+            release/**/*-lite.deb
+            release/**/*-lite.dmg
+            release/**/*-lite.exe
+            release/**/*-lite-portable.zip
+            release/**/*-lite.tar.gz
+            release/**/*.yml
+          if-no-files-found: error
+
   package-nvidia-windows:
     name: Package Windows NVIDIA
     needs: release-preflight
@@ -519,9 +628,10 @@ jobs:
     needs:
       - release-preflight
       - package
+      - package-lite
       - package-nvidia-windows
     runs-on: ubuntu-latest
-    if: always() && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
+    if: always() && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-lite.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout release notes
@@ -540,6 +650,10 @@ jobs:
           files=(
             artifacts/**/GoAgent-*-mac-arm64.dmg
             artifacts/**/GoAgent-*-mac-x64.dmg
+            artifacts/**/GoAgent-*-mac-arm64-lite.dmg
+            artifacts/**/GoAgent-*-mac-x64-lite.dmg
+            artifacts/**/GoAgent-*-win-x64-lite-portable.zip
+            artifacts/**/GoAgent-*-win-x64-lite.exe
             artifacts/**/GoAgent-*-win-x64-portable.zip
             artifacts/**/GoAgent-*-win-x64.exe
             artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z*
@@ -559,6 +673,10 @@ jobs:
           files: |
             artifacts/**/GoAgent-*-mac-arm64.dmg
             artifacts/**/GoAgent-*-mac-x64.dmg
+            artifacts/**/GoAgent-*-mac-arm64-lite.dmg
+            artifacts/**/GoAgent-*-mac-x64-lite.dmg
+            artifacts/**/GoAgent-*-win-x64-lite-portable.zip
+            artifacts/**/GoAgent-*-win-x64-lite.exe
             artifacts/**/GoAgent-*-win-x64-portable.zip
             artifacts/**/GoAgent-*-win-x64.exe
             artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z*
