@@ -43,8 +43,12 @@ import type {
   TtsSynthesisRequest,
   TtsSynthesisResult,
   TtsVoice,
+  ZhiziCloudConnectionTestResult,
+  ZhiziCloudLoginCodeRequest,
   ZhiziCloudLoginRequest,
-  ZhiziCloudLoginResult
+  ZhiziCloudLoginResult,
+  ZhiziCloudSendCodeRequest,
+  ZhiziCloudSendCodeResult
 } from '@main/lib/types'
 import type { DiagnosticsReport } from '@main/services/diagnostics/types'
 import type { AnalysisSchedulerStats } from '@main/services/analysis/scheduler'
@@ -137,6 +141,10 @@ const api = {
   getSavedIkatagoPassword: (): Promise<{ hasPassword: boolean; password: string }> => ipcRenderer.invoke('ikatago:get-saved-password'),
   getSavedZhiziToken: (): Promise<{ hasToken: boolean; token: string }> => ipcRenderer.invoke('zhizi:get-saved-token'),
   loginZhiziCloudPassword: (payload: ZhiziCloudLoginRequest): Promise<ZhiziCloudLoginResult> => ipcRenderer.invoke('zhizi:login-password', payload),
+  sendZhiziCloudLoginCode: (payload: ZhiziCloudSendCodeRequest): Promise<ZhiziCloudSendCodeResult> => ipcRenderer.invoke('zhizi:send-code', payload),
+  loginZhiziCloudCode: (payload: ZhiziCloudLoginCodeRequest): Promise<ZhiziCloudLoginResult> => ipcRenderer.invoke('zhizi:login-code', payload),
+  logoutZhiziCloud: (): Promise<ZhiziCloudLoginResult> => ipcRenderer.invoke('zhizi:logout'),
+  testZhiziCloudConnection: (): Promise<ZhiziCloudConnectionTestResult> => ipcRenderer.invoke('zhizi:test-connection'),
   inspectTtsAssets: (): Promise<TtsAssetStatus> => ipcRenderer.invoke('tts:inspect-assets'),
   listTtsVoices: (): Promise<TtsVoice[]> => ipcRenderer.invoke('tts:list-voices'),
   synthesizeTts: (payload: TtsSynthesisRequest): Promise<TtsSynthesisResult> => ipcRenderer.invoke('tts:synthesize', payload),

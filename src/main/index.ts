@@ -2,7 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type Conte
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getIkatagoPassword, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, getZhiziToken, hasIkatagoPassword, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, hasZhiziToken, replaceSettings, setSettings, upsertGames } from './lib/store'
 import { BRAND_NAME } from '@shared/brand'
-import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest, ZhiziCloudLoginRequest, ZhiziCloudLoginResult } from './lib/types'
+import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest, ZhiziCloudConnectionTestResult, ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudLoginResult, ZhiziCloudSendCodeRequest, ZhiziCloudSendCodeResult } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
 import { runReview } from './services/review'
@@ -30,7 +30,8 @@ import {
 } from './services/studentProfile'
 import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 import { clearTtsCache, inspectTtsAssets, listTtsVoices, synthesizeTts, testTtsSettings } from './services/tts'
-import { loginZhiziCloudByPassword } from './services/zhiziCloudAuth'
+import { loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode } from './services/zhiziCloudAuth'
+import { queryZhiziGtpAnalysisBatch } from './services/zhiziGtpEngine'
 
 let mainWindow: BrowserWindow | null = null
 type DesktopCommand =
@@ -105,6 +106,23 @@ function requestTeacherBoardImages(event: IpcMainInvokeEvent, request: TeacherBo
       reject(new Error('无法向渲染窗口请求棋盘截图。'))
     }
   })
+}
+
+function humanizeZhiziConnectionError(error: unknown): string {
+  const text = error instanceof Error ? error.message : String(error)
+  if (/not_enough_credit|余额不足|not enough credit|没有可用算力/i.test(text)) {
+    return '智子云 token 有效，但远程 worker 分配失败：当前账号没有可用算力或额度不足。请在智子云确认套餐/余额后重试。'
+  }
+  if (/invalid_status|NoSuchKey|ssh\.json|colab/i.test(text)) {
+    return '智子云远程平台没有找到当前账号的可用 worker 配置。请确认该账号已开通对应远程算力。'
+  }
+  if (/token 已失效|401|invalid.*token|auth/i.test(text)) {
+    return '智子云 token 已失效，请退出后重新登录智子云。'
+  }
+  if (/websocket error|Socket 连接失败|Socket 已断开|transport error|xhr poll error|timeout|超时/i.test(text)) {
+    return `智子云 Socket 连接失败：${text.slice(0, 260)}`
+  }
+  return `智子云连接检测失败：${text.slice(0, 320)}`
 }
 
 function attachTextEditingContextMenu(window: BrowserWindow): void {
@@ -371,29 +389,31 @@ app.whenReady().then(() => {
   ipcMain.handle('teacher-sessions:archive', async (_event, sessionId: string) => archiveTeacherSession(sessionId))
   ipcMain.handle('teacher-sessions:delete', async (_event, sessionId: string) => deleteTeacherSession(sessionId))
   ipcMain.handle('review:start', async (_event, payload: ReviewRequest) => runReview(payload))
-  ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) =>
-    runScheduledAnalysis({
+  ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) => {
+    const group = payload.group ?? (payload.runId ? 'teacher' : 'single')
+    return runScheduledAnalysis({
       runId: payload.runId,
-      group: payload.runId ? 'teacher' : 'single',
-      priority: payload.runId ? 'teacher' : 'live',
+      group,
+      priority: group === 'live' || group === 'single' ? 'live' : group === 'quick' ? 'quick' : 'teacher',
       description: `Analyze position ${payload.gameId}#${payload.moveNumber}`,
-      replaceGroup: !payload.runId
-    }, () => analyzePositionRuntime({ gameId: payload.gameId, moveNumber: payload.moveNumber, maxVisits: payload.maxVisits, runId: payload.runId, group: payload.runId ? 'teacher' : 'single' }))
-  )
+      replaceGroup: group === 'live' || !payload.runId
+    }, () => analyzePositionRuntime({ gameId: payload.gameId, moveNumber: payload.moveNumber, maxVisits: payload.maxVisits, runId: payload.runId, group }))
+  })
   ipcMain.handle('katago:analyze-position-stream', async (event, payload: AnalyzePositionRequest) => {
+    const group = payload.group ?? (payload.runId ? 'teacher' : 'live')
     try {
       return await runScheduledAnalysis({
         runId: payload.runId,
-        group: payload.runId ? 'teacher' : 'live',
-        priority: payload.runId ? 'teacher' : 'live',
+        group,
+        priority: group === 'live' || group === 'single' ? 'live' : group === 'quick' ? 'quick' : 'teacher',
         description: `Stream position ${payload.gameId}#${payload.moveNumber}`,
-        replaceGroup: !payload.runId
+        replaceGroup: group === 'live' || !payload.runId
       }, () => analyzePositionWithProgressRuntime({
         gameId: payload.gameId,
         moveNumber: payload.moveNumber,
         maxVisits: payload.maxVisits,
         runId: payload.runId,
-        group: payload.runId ? 'teacher' : 'live',
+        group,
         reportDuringSearchEvery: payload.reportDuringSearchEvery ?? 0.2,
         onProgress: (analysis, isFinal) => safeSendToRenderer(event, 'katago:analyze-position-progress', {
           runId: payload.runId,
@@ -404,7 +424,7 @@ app.whenReady().then(() => {
         })
       }))
     } catch (error) {
-      if (String(error).includes('已取消')) return null
+      if (/已取消|cancel|replaced|替换|停止/i.test(String(error))) return null
       throw error
     }
   })
@@ -467,13 +487,107 @@ app.whenReady().then(() => {
     const result = await loginZhiziCloudByPassword(payload)
     setSettings({
       zhiziUsername: payload.phone.trim(),
-      zhiziToken: result.token
+      zhiziToken: result.token,
+      katagoEngineMode: 'zhizi'
     })
     return {
       ok: true,
       message: `${result.message} GoAgent 可直接连接智子云。`,
       hasToken: true,
       dashboard: await dashboard()
+    }
+  })
+  ipcMain.handle('zhizi:send-code', async (_event, payload: ZhiziCloudSendCodeRequest): Promise<ZhiziCloudSendCodeResult> => {
+    const result = await sendZhiziCloudLoginCode(payload)
+    return {
+      ok: true,
+      message: result.message
+    }
+  })
+  ipcMain.handle('zhizi:login-code', async (_event, payload: ZhiziCloudLoginCodeRequest): Promise<ZhiziCloudLoginResult> => {
+    const result = await loginZhiziCloudByCode(payload)
+    setSettings({
+      zhiziUsername: payload.phone.trim(),
+      zhiziToken: result.token,
+      katagoEngineMode: 'zhizi'
+    })
+    return {
+      ok: true,
+      message: `${result.message} GoAgent 可直接连接智子云。`,
+      hasToken: true,
+      dashboard: await dashboard()
+    }
+  })
+  ipcMain.handle('zhizi:logout', async (): Promise<ZhiziCloudLoginResult> => {
+    cancelKataGoAnalysis({})
+    setSettings({
+      zhiziToken: '',
+      katagoEngineMode: 'auto',
+      zhiziUseWhenLocalSlow: false
+    })
+    return {
+      ok: true,
+      message: '已退出智子云登录，已清除本地 token，并切回自动分析模式。重新登录后会自动连接智子云。',
+      hasToken: false,
+      dashboard: await dashboard()
+    }
+  })
+  ipcMain.handle('zhizi:test-connection', async (): Promise<ZhiziCloudConnectionTestResult> => {
+    const settings = getSettings()
+    if (!settings.zhiziToken.trim()) {
+      return {
+        ok: false,
+        message: '智子云未登录：请先用账号密码或短信验证码登录。'
+      }
+    }
+    try {
+      const results = await queryZhiziGtpAnalysisBatch({
+        settings: {
+          ...settings,
+          katagoEngineMode: 'zhizi',
+          zhiziClientBin: ''
+        },
+        runId: `zhizi-smoke-${Date.now()}`,
+        group: 'quick',
+        timeoutMs: 120_000,
+        queries: [
+          {
+            id: 'zhizi-smoke',
+            boardXSize: 19,
+            boardYSize: 19,
+            komi: 7.5,
+            initialPlayer: 'B',
+            moves: [
+              ['B', 'D4'],
+              ['W', 'Q16'],
+              ['B', 'Q4']
+            ],
+            maxVisits: 48
+          }
+        ]
+      })
+      const result = results.get('zhizi-smoke')
+      const best = result?.moveInfos?.[0]
+      if (!best) {
+        return {
+          ok: false,
+          message: '智子云已连接，但没有返回候选点。请稍后重试。'
+        }
+      }
+      return {
+        ok: true,
+        message: '智子云连接成功，远程 KataGo 已返回候选点。',
+        candidateCount: result?.moveInfos?.length ?? 0,
+        topMove: typeof best.move === 'string' ? best.move : undefined,
+        visits: typeof best.visits === 'number' ? best.visits : undefined,
+        winrate: typeof best.winrate === 'number' ? best.winrate : undefined,
+        scoreMean: typeof best.scoreMean === 'number' ? best.scoreMean : typeof best.scoreLead === 'number' ? best.scoreLead : undefined
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        message: humanizeZhiziConnectionError(error)
+      }
     }
   })
   ipcMain.handle('tts:inspect-assets', async () => inspectTtsAssets())

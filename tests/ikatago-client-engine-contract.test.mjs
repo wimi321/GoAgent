@@ -27,16 +27,16 @@ test('iKataGo remote engine is a first-class KataGo engine mode', async () => {
   assert.match(persistent, /mode === 'auto' \|\| mode === 'persistent'/)
 })
 
-test('iKataGo settings are exposed without using system keychain', async () => {
+test('iKataGo remains a backend compatibility engine but is hidden from the remote compute UI', async () => {
   const renderer = await text('src/renderer/src/App.tsx')
   const preload = await text('src/preload/index.ts')
   const main = await text('src/main/index.ts')
   const docs = await text('docs/IKATAGO_REMOTE_ENGINE.md')
 
-  assert.match(renderer, /iKataGo 远程算力/)
-  assert.match(renderer, /ikatagoClientBin/)
-  assert.match(renderer, /ikatagoExtraArgs/)
-  assert.match(renderer, /getSavedIkatagoPassword/)
+  assert.match(renderer, /智子云算力/)
+  assert.match(renderer, /智子云直连/)
+  assert.doesNotMatch(renderer, /iKataGo 远程算力/)
+  assert.doesNotMatch(renderer, /getSavedIkatagoPassword/)
   assert.match(preload, /ikatago:get-saved-password/)
   assert.match(main, /hasIkatagoPassword/)
   assert.doesNotMatch(main, /safeStorage\.encryptString/)

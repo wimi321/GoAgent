@@ -114,7 +114,9 @@ test('Teacher agent sends board-display winrates and unambiguous score summaries
 
   assert.match(types, /export interface KataGoScoreSummary/)
   assert.match(types, /'teacher'/)
-  assert.match(main, /group: payload\.runId \? 'teacher' : 'single'/)
+  assert.match(types, /group\?: KataGoAnalysisGroup/)
+  assert.match(main, /const group = payload\.group \?\? \(payload\.runId \? 'teacher' : 'single'\)/)
+  assert.match(main, /const group = payload\.group \?\? \(payload\.runId \? 'teacher' : 'live'\)/)
 })
 
 test('Timeline and issue list treat KataGo winrate loss as percentage points', () => {
@@ -147,6 +149,7 @@ test('Quick winrate graph uses KaTrain-style fast visits and refines suspected m
   assert.match(katago, /Build the visible winrate line first/)
   assert.match(katago, /only for suspected mistakes during the refine pass/)
   assert.match(katago, /resolvePartialAfterMs/)
+  assert.doesNotMatch(katago, /resolvePartialAfterMs:\s*8_000/)
   assert.match(katago, /schedulePartialResolve/)
   assert.match(katago, /playedMoveValue\(currentMove, beforeTopMoves, after, forcedActual\)/)
   assert.doesNotMatch(katago, /!playedCandidate && !forcedActual\) \{\n\s+return null/)

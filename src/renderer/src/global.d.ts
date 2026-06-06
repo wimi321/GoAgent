@@ -42,8 +42,12 @@ import type {
   TtsSynthesisRequest,
   TtsSynthesisResult,
   TtsVoice,
+  ZhiziCloudConnectionTestResult,
+  ZhiziCloudLoginCodeRequest,
   ZhiziCloudLoginRequest,
-  ZhiziCloudLoginResult
+  ZhiziCloudLoginResult,
+  ZhiziCloudSendCodeRequest,
+  ZhiziCloudSendCodeResult
 } from '@main/lib/types'
 import type { DiagnosticsReport } from '@main/services/diagnostics/types'
 import type { AnalysisSchedulerStats } from '@main/services/analysis/scheduler'
@@ -108,6 +112,10 @@ declare global {
       getSavedIkatagoPassword: () => Promise<{ hasPassword: boolean; password: string }>
       getSavedZhiziToken: () => Promise<{ hasToken: boolean; token: string }>
       loginZhiziCloudPassword: (payload: ZhiziCloudLoginRequest) => Promise<ZhiziCloudLoginResult>
+      sendZhiziCloudLoginCode: (payload: ZhiziCloudSendCodeRequest) => Promise<ZhiziCloudSendCodeResult>
+      loginZhiziCloudCode: (payload: ZhiziCloudLoginCodeRequest) => Promise<ZhiziCloudLoginResult>
+      logoutZhiziCloud: () => Promise<ZhiziCloudLoginResult>
+      testZhiziCloudConnection: () => Promise<ZhiziCloudConnectionTestResult>
       inspectTtsAssets: () => Promise<TtsAssetStatus>
       listTtsVoices: () => Promise<TtsVoice[]>
       synthesizeTts: (payload: TtsSynthesisRequest) => Promise<TtsSynthesisResult>

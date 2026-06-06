@@ -84,6 +84,8 @@ const ZH_CN = {
   katagoMissing: 'KataGo 缺失',
   katagoEngine: 'KataGo 引擎',
   localCompatibleModel: '本机兼容模型',
+  zhiziCloudLoginRequired: '智子云需登录',
+  zhiziCloudDirectReady: '智子云直连',
   llmReady: 'LLM 就绪',
   llmMissing: 'LLM 未配置',
   visionLlm: '多模态 LLM',
@@ -480,6 +482,8 @@ const ZH_TW: Record<TranslationKey, string> = {
   toAnalyze: '待分析',
   katagoEngine: 'KataGo 引擎',
   localCompatibleModel: '本機相容模型',
+  zhiziCloudLoginRequired: '智子雲需登入',
+  zhiziCloudDirectReady: '智子雲直連',
   llmReady: 'LLM 就緒',
   llmMissing: 'LLM 未設定',
   visionLlm: '多模態 LLM',
@@ -644,6 +648,8 @@ const EN_US: Record<TranslationKey, string> = {
   katagoMissing: 'KataGo missing',
   katagoEngine: 'KataGo engine',
   localCompatibleModel: 'Local-compatible model',
+  zhiziCloudLoginRequired: 'Zhizi Cloud login required',
+  zhiziCloudDirectReady: 'Zhizi Cloud direct',
   llmReady: 'LLM ready',
   llmMissing: 'LLM not configured',
   visionLlm: 'Vision LLM',
@@ -1236,6 +1242,15 @@ export function localizeKataGoStatus(
   selectedPresetId: string | undefined,
   t: UiTranslator
 ): string {
+  if (/Zhizi Cloud Login Required/i.test(rawStatus)) {
+    return t('zhiziCloudLoginRequired')
+  }
+  if (/Zhizi Cloud Direct Ready/i.test(rawStatus)) {
+    return `${t('zhiziCloudDirectReady')} · ${t('ready')}`
+  }
+  if (/iKataGo Remote Ready/i.test(rawStatus)) {
+    return `iKataGo · ${t('ready')}`
+  }
   if (!rawStatus || /missing/i.test(rawStatus)) {
     return t('katagoMissing')
   }

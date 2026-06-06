@@ -168,6 +168,30 @@ function firstExisting(paths: string[]): string {
   return unique(paths).find((path) => existsSync(path)) ?? ''
 }
 
+function platformCompatibleBinaryPath(path: string): boolean {
+  if (!path) {
+    return false
+  }
+  const normalized = path.replace(/\\/g, '/')
+  if (process.platform !== 'win32' && (/\/win32-[^/]+\//.test(normalized) || /\.exe$/i.test(normalized))) {
+    return false
+  }
+  if (process.platform === 'win32') {
+    return !/\/(darwin|linux)-[^/]+\//.test(normalized)
+  }
+  if (process.platform === 'darwin') {
+    return !/\/linux-[^/]+\//.test(normalized)
+  }
+  if (process.platform === 'linux') {
+    return !/\/darwin-[^/]+\//.test(normalized)
+  }
+  return true
+}
+
+function firstExistingBinary(paths: string[]): string {
+  return unique(paths).find((path) => platformCompatibleBinaryPath(path) && existsSync(path)) ?? ''
+}
+
 function globModelFiles(directory: string, pattern: RegExp): string[] {
   if (!existsSync(directory)) {
     return []
@@ -221,6 +245,7 @@ export function getKataGoModelPreset(id?: string): KataGoModelPreset {
 function resourceRoots(): string[] {
   const roots = [
     join(process.cwd(), 'data', 'katago'),
+    join(__dirname, '../../data/katago'),
     join(appHome, 'katago')
   ]
   if (process.resourcesPath) {
@@ -336,7 +361,7 @@ function ensureAnalysisConfig(settings?: AppSettings): string {
 
 export function resolveKataGoRuntime(settings?: AppSettings): KataGoRuntime {
   const modelPreset = getKataGoModelPreset(settings?.katagoModelPreset)
-  const katagoBin = firstExisting([...binaryCandidates(), settings?.katagoBin ?? ''])
+  const katagoBin = firstExistingBinary([...binaryCandidates(), settings?.katagoBin ?? ''])
   const katagoConfig = ensureAnalysisConfig(settings)
   const katagoModel = firstExisting(modelCandidates(modelPreset, settings))
   const notes: string[] = []

@@ -162,10 +162,35 @@ export interface ZhiziCloudLoginRequest {
   password: string
 }
 
+export interface ZhiziCloudSendCodeRequest {
+  phone: string
+}
+
+export interface ZhiziCloudLoginCodeRequest {
+  phone: string
+  verificationCode: string
+}
+
+export interface ZhiziCloudSendCodeResult {
+  ok: boolean
+  message: string
+}
+
 export interface ZhiziCloudLoginResult {
   ok: boolean
   message: string
   hasToken: boolean
+  dashboard?: DashboardData
+}
+
+export interface ZhiziCloudConnectionTestResult {
+  ok: boolean
+  message: string
+  candidateCount?: number
+  topMove?: string
+  visits?: number
+  winrate?: number
+  scoreMean?: number
   dashboard?: DashboardData
 }
 
@@ -1079,6 +1104,7 @@ export interface AnalyzePositionRequest {
   moveNumber: number
   maxVisits?: number
   runId?: string
+  group?: KataGoAnalysisGroup
   reportDuringSearchEvery?: number
 }
 

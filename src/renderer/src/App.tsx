@@ -433,6 +433,27 @@ const ANALYSIS_CACHE_INDEX_KEY = `goagent.analysisCache.${ANALYSIS_CACHE_SCHEMA_
 const ANALYSIS_CACHE_MAX_GAMES = 8
 const ANALYSIS_CACHE_COMPLETE_RATIO = 0.9
 
+function isAnalysisCancellationMessage(text: string): boolean {
+  return /cancel|取消|replaced|替换|停止/i.test(text)
+}
+
+function kataGoRuntimeErrorMessage(error: unknown): string {
+  const text = String(error)
+  if (isAnalysisCancellationMessage(text)) {
+    return ''
+  }
+  if (/not_enough_credit|余额不足|没有可用算力|not enough credit/i.test(text)) {
+    return '智子云余额不足或当前没有可用算力，请在智子云确认额度后重试。'
+  }
+  if (/智子云未登录|Zhizi Cloud Login Required/i.test(text)) {
+    return '智子云未登录：请先在设置里用账号密码或短信验证码登录智子云。'
+  }
+  if (/连接令牌获取失败|fetch failed|ECONNRESET|websocket error|Socket 连接失败|Socket 已断开|transport error|xhr poll error/i.test(text)) {
+    return '智子云连接失败或网络不稳定，请稍后重试；如果反复出现，可以切换本地 KataGo 或检查智子云账号状态。'
+  }
+  return text
+}
+
 function safePlayerName(name: string | undefined, fallback: string): string {
   const value = (name ?? '').trim()
   return value || fallback
@@ -1237,7 +1258,10 @@ export function App(): ReactElement {
       setAnalysis((current) => preferAnalysis(current, preferred))
     } catch (cause) {
       if (graphRunId.current === runId) {
-        setError(t('graphFailed', { error: String(cause) }))
+        const message = String(cause)
+        if (!/cancel|取消|replaced|停止/i.test(message)) {
+          setError(t('graphFailed', { error: message }))
+        }
       }
     } finally {
       disposeProgress()
@@ -1900,20 +1924,30 @@ export function App(): ReactElement {
     let lastEffectiveVisitSample = 0
     const benchmarkSpeed = dashboard.settings.katagoBenchmarkVisitsPerSecond
     let lastSpeedSample = benchmarkSpeed
-    await cancelKataGoWork({ group: 'live' })
     liveAnalysisRunId.current = runId
     setError('')
     setMoveNumber(targetMove)
     setAnalysis(cachedAnalysis)
     setLiveAnalysis({
       running: true,
-      status: `精读第 ${targetMove} 手`,
+      status: `连接分析引擎 · 第 ${targetMove} 手`,
       visits: cachedVisitSeed,
       bestVisits: forceManualRefresh ? 0 : candidateBestVisits(cachedAnalysis),
       visitsPerSecond: benchmarkSpeed,
       targetMoveNumber: targetMove,
       round: 0
     })
+    await cancelKataGoWork({ group: 'quick' })
+    await cancelKataGoWork({ group: 'live' })
+    if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
+      return
+    }
+    setLiveAnalysis((current) => ({
+      ...current,
+      running: true,
+      status: `精读第 ${targetMove} 手`,
+      targetMoveNumber: targetMove
+    }))
 
     if (typeof window.goagent.analyzePositionStream === 'function') {
       const disposeProgress = window.goagent.onAnalyzePositionProgress((progress) => {
@@ -1963,9 +1997,13 @@ export function App(): ReactElement {
           moveNumber: targetMove,
           maxVisits: LIVE_ANALYSIS_TOTAL_VISIT_LIMIT,
           runId,
+          group: 'live',
           reportDuringSearchEvery: LIVE_ANALYSIS_REPORT_INTERVAL_SECONDS
         })
         if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
+          return
+        }
+        if (!finalAnalysis) {
           return
         }
         const displayedFinal = forceManualRefresh
@@ -1985,9 +2023,15 @@ export function App(): ReactElement {
           bestVisits,
           targetMoveNumber: targetMove
         }))
+        if (!hasCompleteEvaluationGraph(cachedEvaluationsForGame(gameId), targetRecord.moves.length)) {
+          void warmupEvaluationGraph(gameId, targetMove)
+        }
       } catch (cause) {
         if (liveAnalysisRunId.current === runId) {
-          const message = String(cause)
+          const message = kataGoRuntimeErrorMessage(cause)
+          if (!message) {
+            return
+          }
           const hasUsablePartial = lastVisitSample > 0 || analysisHasCandidates(cachedAnalysis)
           if (message.includes('KataGo 分析超时') && hasUsablePartial) {
             setLiveAnalysis((current) => ({
@@ -2000,7 +2044,9 @@ export function App(): ReactElement {
               const quickAnalysis = await window.goagent.analyzePosition({
                 gameId,
                 moveNumber: targetMove,
-                maxVisits: 120
+                maxVisits: 120,
+                runId,
+                group: 'live'
               })
               if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
                 return
@@ -2023,11 +2069,12 @@ export function App(): ReactElement {
                 targetMoveNumber: targetMove
               }))
             } catch (fallbackCause) {
-              setError(`KataGo 暂时没有返回分析，请稍后重试或先运行一键测速。${String(fallbackCause)}`)
+              const fallbackMessage = kataGoRuntimeErrorMessage(fallbackCause) || String(fallbackCause)
+              setError(`KataGo 暂时没有返回分析：${fallbackMessage}`)
               setLiveAnalysis((current) => ({
                 ...current,
                 running: false,
-                status: '等待重试'
+                status: fallbackMessage
               }))
             }
           } else {
@@ -2035,7 +2082,7 @@ export function App(): ReactElement {
             setLiveAnalysis((current) => ({
               ...current,
               running: false,
-              status: '实时分析失败'
+              status: message
             }))
           }
         }
@@ -2060,7 +2107,9 @@ export function App(): ReactElement {
         const nextAnalysis = await window.goagent.analyzePosition({
           gameId,
           moveNumber: targetMove,
-          maxVisits
+          maxVisits,
+          runId,
+          group: 'live'
         })
         if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
           return
@@ -2112,15 +2161,22 @@ export function App(): ReactElement {
             targetMoveNumber: targetMove,
             round: index + 1
           })
+          if (!hasCompleteEvaluationGraph(cachedEvaluationsForGame(gameId), targetRecord.moves.length)) {
+            void warmupEvaluationGraph(gameId, targetMove)
+          }
           return
         }
       } catch (cause) {
         if (liveAnalysisRunId.current === runId) {
-          setError(`KataGo 精读失败: ${String(cause)}`)
+          const message = kataGoRuntimeErrorMessage(cause)
+          if (!message) {
+            return
+          }
+          setError(`KataGo 精读失败: ${message}`)
           setLiveAnalysis((current) => ({
             ...current,
             running: false,
-            status: '精读失败'
+            status: message
           }))
         }
         return
@@ -2379,14 +2435,12 @@ export function App(): ReactElement {
 
   const statusItems: StatusPill[] = [
     {
-      label: dashboard.systemProfile.katagoReady
-        ? localizeKataGoStatus(
-          dashboard.systemProfile.katagoStatus,
-          dashboard.systemProfile.katagoModelPresets,
-          dashboard.systemProfile.katagoModelPreset,
-          t
-        )
-        : t('katagoMissing'),
+      label: localizeKataGoStatus(
+        dashboard.systemProfile.katagoStatus,
+        dashboard.systemProfile.katagoModelPresets,
+        dashboard.systemProfile.katagoModelPreset,
+        t
+      ),
       tone: dashboard.systemProfile.katagoReady ? 'good' : 'warn'
     },
     {
@@ -3921,16 +3975,18 @@ function SettingsDrawer({
   const [savedLlmApiKey, setSavedLlmApiKey] = useState('')
   const [showLlmApiKey, setShowLlmApiKey] = useState(false)
   const [llmKeyMessage, setLlmKeyMessage] = useState('')
-  const [savedIkatagoPassword, setSavedIkatagoPassword] = useState('')
-  const [showIkatagoPassword, setShowIkatagoPassword] = useState(false)
-  const [ikatagoPasswordMessage, setIkatagoPasswordMessage] = useState('')
   const [savedZhiziToken, setSavedZhiziToken] = useState('')
   const [showZhiziToken, setShowZhiziToken] = useState(false)
   const [zhiziTokenMessage, setZhiziTokenMessage] = useState('')
   const [zhiziUsernameInput, setZhiziUsernameInput] = useState(dashboard.settings.zhiziUsername)
   const [zhiziLoginPassword, setZhiziLoginPassword] = useState('')
+  const [zhiziLoginCode, setZhiziLoginCode] = useState('')
   const [zhiziLoginBusy, setZhiziLoginBusy] = useState(false)
+  const [zhiziCodeBusy, setZhiziCodeBusy] = useState(false)
+  const [zhiziCodeCooldown, setZhiziCodeCooldown] = useState(0)
   const [zhiziLoginMessage, setZhiziLoginMessage] = useState('')
+  const [zhiziTestBusy, setZhiziTestBusy] = useState(false)
+  const [zhiziTestMessage, setZhiziTestMessage] = useState('')
   const [autoSaveBusy, setAutoSaveBusy] = useState(false)
   const [autoSaveTick, setAutoSaveTick] = useState(0)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -4033,6 +4089,12 @@ function SettingsDrawer({
   }, [dashboard.settings.zhiziUsername])
 
   useEffect(() => {
+    if (zhiziCodeCooldown <= 0) return
+    const timer = window.setTimeout(() => setZhiziCodeCooldown((value) => Math.max(0, value - 1)), 1000)
+    return () => window.clearTimeout(timer)
+  }, [zhiziCodeCooldown])
+
+  useEffect(() => {
     setSelectedLlmModel(dashboard.settings.llmModel)
   }, [dashboard.settings.llmModel])
 
@@ -4069,23 +4131,6 @@ function SettingsDrawer({
     }
   }
 
-  async function revealSavedIkatagoPassword(): Promise<void> {
-    setIkatagoPasswordMessage('')
-    try {
-      const result = await window.goagent.getSavedIkatagoPassword()
-      if (!result.hasPassword || !result.password) {
-        setSavedIkatagoPassword('')
-        setShowIkatagoPassword(false)
-        setIkatagoPasswordMessage('还没有保存 iKataGo 密码。')
-        return
-      }
-      setSavedIkatagoPassword(result.password)
-      setShowIkatagoPassword(true)
-    } catch (cause) {
-      setIkatagoPasswordMessage(`读取 iKataGo 密码失败：${String(cause)}`)
-    }
-  }
-
   async function revealSavedZhiziToken(): Promise<void> {
     setZhiziTokenMessage('')
     try {
@@ -4105,6 +4150,7 @@ function SettingsDrawer({
 
   async function loginZhiziCloud(): Promise<void> {
     setZhiziLoginMessage('')
+    setZhiziTestMessage('')
     const phone = zhiziUsernameInput.trim()
     const password = zhiziLoginPassword.trim()
     if (!phone || !password) {
@@ -4128,206 +4174,369 @@ function SettingsDrawer({
     }
   }
 
+  async function sendZhiziLoginCode(): Promise<void> {
+    setZhiziLoginMessage('')
+    const phone = zhiziUsernameInput.trim()
+    if (!phone) {
+      setZhiziLoginMessage('请输入智子云手机号。')
+      return
+    }
+    setZhiziCodeBusy(true)
+    try {
+      const result = await window.goagent.sendZhiziCloudLoginCode({ phone })
+      setZhiziCodeCooldown(60)
+      setZhiziLoginMessage(result.message)
+    } catch (cause) {
+      setZhiziLoginMessage(`智子云验证码发送失败：${String(cause).replace(/^Error:\s*/, '')}`)
+    } finally {
+      setZhiziCodeBusy(false)
+    }
+  }
+
+  async function loginZhiziCloudWithCode(): Promise<void> {
+    setZhiziLoginMessage('')
+    setZhiziTestMessage('')
+    const phone = zhiziUsernameInput.trim()
+    const verificationCode = zhiziLoginCode.trim()
+    if (!phone || !verificationCode) {
+      setZhiziLoginMessage('请输入智子云手机号和短信验证码。')
+      return
+    }
+    setZhiziLoginBusy(true)
+    try {
+      const result = await window.goagent.loginZhiziCloudCode({ phone, verificationCode })
+      if (result.dashboard) {
+        onDashboardUpdated(result.dashboard)
+      }
+      setZhiziLoginPassword('')
+      setZhiziLoginCode('')
+      setSavedZhiziToken('')
+      setShowZhiziToken(false)
+      setZhiziLoginMessage(result.message)
+    } catch (cause) {
+      setZhiziLoginMessage(`智子云验证码登录失败：${String(cause).replace(/^Error:\s*/, '')}`)
+    } finally {
+      setZhiziLoginBusy(false)
+    }
+  }
+
+  async function logoutZhiziCloud(): Promise<void> {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+      autoSaveTimerRef.current = null
+    }
+    setZhiziLoginMessage('')
+    setZhiziTokenMessage('')
+    setZhiziTestMessage('')
+    setZhiziLoginBusy(true)
+    try {
+      const result = await window.goagent.logoutZhiziCloud()
+      if (result.dashboard) {
+        onDashboardUpdated(result.dashboard)
+      }
+      setSavedZhiziToken('')
+      setShowZhiziToken(false)
+      setZhiziLoginPassword('')
+      setZhiziLoginCode('')
+      setZhiziLoginMessage(result.message)
+      setZhiziTokenMessage('本地智子云 token 已清除。')
+    } catch (cause) {
+      setZhiziLoginMessage(`智子云退出失败：${String(cause).replace(/^Error:\s*/, '')}`)
+    } finally {
+      setZhiziLoginBusy(false)
+    }
+  }
+
+  async function testZhiziCloudConnection(): Promise<void> {
+    setZhiziTestMessage('')
+    setZhiziTestBusy(true)
+    try {
+      const result = await window.goagent.testZhiziCloudConnection()
+      if (result.dashboard) {
+        onDashboardUpdated(result.dashboard)
+      }
+      const detail = result.ok && result.topMove
+        ? `首选 ${result.topMove}${typeof result.visits === 'number' ? ` · ${result.visits} visits` : ''}`
+        : ''
+      setZhiziTestMessage(`${result.message}${detail ? `（${detail}）` : ''}`)
+    } catch (cause) {
+      setZhiziTestMessage(`智子云连接检测失败：${String(cause).replace(/^Error:\s*/, '')}`)
+    } finally {
+      setZhiziTestBusy(false)
+    }
+  }
+
   async function saveTtsSettings(next: Partial<AppSettings>): Promise<void> {
     const updated = await window.goagent.updateSettings(next)
     onDashboardUpdated(updated)
   }
 
+  const katagoEngineModeForSettings: KataGoEngineMode =
+    dashboard.settings.katagoEngineMode === 'ikatago' ? 'auto' : dashboard.settings.katagoEngineMode
+  const zhiziRawStatus = dashboard.systemProfile.katagoStatus ?? ''
+  const zhiziEnabled = dashboard.settings.katagoEngineMode === 'zhizi'
+  const zhiziReady = /Zhizi Cloud Direct Ready|智子云直连/i.test(zhiziRawStatus)
+    || (zhiziEnabled && dashboard.systemProfile.katagoReady && /智子|Zhizi/i.test(zhiziRawStatus))
+  const zhiziNeedsLogin = /Zhizi Cloud Login Required|智子云需登录|智子云未登录/i.test(zhiziRawStatus)
+  const zhiziStatusLabel = zhiziReady ? '已连接' : zhiziEnabled && zhiziNeedsLogin ? '需登录' : zhiziEnabled ? '连接中' : '未启用'
+  const zhiziStatusClassName = zhiziReady ? 'settings-status-chip is-ready' : zhiziNeedsLogin ? 'settings-status-chip is-warning' : 'settings-status-chip'
+
   return (
     <div className="settings-drawer">
-      <form
-        className="settings-drawer__form"
-        onSubmit={(event) => {
-          event.preventDefault()
-          onSave(event.currentTarget)
-        }}
-      >
-      <label className="katago-preset-select">
-        {t('katagoWeights')}
-        <select
-          name="katagoModelPreset"
-          value={selectedPresetId}
-          onChange={(event) => {
-            const next = event.target.value as KataGoModelPresetId
-            setSelectedPresetId(next)
-            autoSave({ katagoModelPreset: next }, 0)
+      <aside className="settings-drawer__nav" aria-label="Settings sections">
+        <a href="#settings-ai"><span>⌘</span><strong>AI 模型</strong><small>Base URL · Key · Model</small></a>
+        <a href="#settings-katago"><span>●</span><strong>KataGo</strong><small>权重 · 测速 · 引擎</small></a>
+        <a href="#settings-remote"><span>◇</span><strong>智子云算力</strong><small>登录 · 远程分析</small></a>
+        <a href="#settings-voice"><span>♪</span><strong>语音</strong><small>TTS · 音色 · 播放</small></a>
+        <a href="#settings-general"><span>◎</span><strong>通用</strong><small>语言 · 自动保存</small></a>
+      </aside>
+      <div className="settings-drawer__content">
+        <form
+          className="settings-drawer__form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onSave(event.currentTarget)
           }}
         >
-          {groupedModelPresets.map(([group, presets]) => (
-            <optgroup key={group} label={group}>
-              {presets.map((preset) => {
-                const presetCopy = translateKataGoPreset(preset, t)
-                return (
-                  <option key={preset.id} value={preset.id}>
-                    {presetCopy.label} · {presetCopy.badge} · {presetCopy.sizeHint}
-                  </option>
-                )
-              })}
-            </optgroup>
-          ))}
-        </select>
-        {selectedPreset ? <small>{translateKataGoPreset(selectedPreset, t).description}</small> : null}
-      </label>
-      <KataGoAssetsPanel
-        status={katagoAssets}
-        selectedPreset={selectedPreset}
-        busy={busy === 'katago-install'}
-        installProgress={katagoInstallProgress}
-        installMessage={katagoInstallMessage}
-        onInstall={() => onInstallOfficialModel(selectedPreset?.id ?? dashboard.settings.katagoModelPreset)}
-        onRefresh={onRefreshKataGoAssets}
-        t={t}
-      />
-      <KataGoBenchmarkPanel
-        settings={dashboard.settings}
-        result={katagoBenchmark}
-        message={katagoBenchmarkMessage}
-        busy={busy === 'katago-benchmark'}
-        onRun={onBenchmark}
-        t={t}
-      />
-      <section className="settings-section settings-section-analysis-engine">
-        <h3>分析引擎</h3>
-        <p>默认使用自动模式：优先常驻 KataGo 引擎，失败时回退到传统 spawn 流程。遇到兼容性问题可强制使用传统流程。</p>
-        <label>
-          <span>引擎模式</span>
-          <select
-            name="katagoEngineMode"
-            defaultValue={dashboard.settings.katagoEngineMode}
-            onChange={(event) => autoSave({ katagoEngineMode: event.target.value as KataGoEngineMode }, 0)}
-          >
-            <option value="auto">自动：常驻优先，失败回退</option>
-            <option value="persistent">常驻引擎：低延迟，失败不回退</option>
-            <option value="spawn">传统流程：每批分析单独启动</option>
-            <option value="ikatago">iKataGo 远程算力：连接云端 GPU</option>
-            <option value="zhizi">智子云远程算力：直连</option>
-          </select>
-        </label>
-        <label>
-          <span>分析速度</span>
-          <select
-            name="katagoAnalysisSpeedMode"
-            defaultValue={dashboard.settings.katagoAnalysisSpeedMode}
-            onChange={(event) => autoSave({ katagoAnalysisSpeedMode: event.target.value as KataGoAnalysisSpeedMode }, 0)}
-          >
-            <option value="auto">自动</option>
-            <option value="fast">快速</option>
-            <option value="balanced">均衡</option>
-            <option value="deep">精读</option>
-          </select>
-        </label>
-        <div className="settings-subsection">
-          <h4>iKataGo 远程算力</h4>
-          <p>适合本机速度慢时连接自己的 iKataGo server。GoAgent 会通过本地 ikatago-client 运行远端 KataGo analysis；只有选择 iKataGo 模式，或开启“本地慢时自动使用”，才会把局面发送到远程。</p>
-          <label>
-            <span>客户端路径</span>
-            <input
-              name="ikatagoClientBin"
-              defaultValue={dashboard.settings.ikatagoClientBin}
-              placeholder={navigator.platform.toLowerCase().includes('win') ? 'D:\\ikatago\\ikatago.exe' : '/usr/local/bin/ikatago'}
-              onBlur={(event) => autoSave({ ikatagoClientBin: event.target.value }, 0)}
-            />
-          </label>
-          <label>
-            <span>Platform</span>
-            <input
-              name="ikatagoPlatform"
-              defaultValue={dashboard.settings.ikatagoPlatform}
-              placeholder="all / aistudio / colab"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onBlur={(event) => autoSave({ ikatagoPlatform: event.target.value || 'all' }, 0)}
-            />
-          </label>
-          <label>
-            <span>用户名</span>
-            <input
-              name="ikatagoUsername"
-              defaultValue={dashboard.settings.ikatagoUsername}
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onBlur={(event) => autoSave({ ikatagoUsername: event.target.value }, 0)}
-            />
-          </label>
-          <div className="llm-api-key-field">
-            <label>
-              <span>密码</span>
-              <div className="llm-secret-input-row">
-                <input
-                  name="ikatagoPassword"
-                  type={showIkatagoPassword ? 'text' : 'password'}
-                  defaultValue={showIkatagoPassword ? savedIkatagoPassword : ''}
-                  placeholder="已保存则无需重复输入"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  onBlur={(event) => {
-                    const value = event.target.value
-                    if (value.trim()) autoSave({ ikatagoPassword: value }, 0)
-                  }}
-                />
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() => showIkatagoPassword ? setShowIkatagoPassword(false) : void revealSavedIkatagoPassword()}
-                  disabled={busy !== ''}
-                >
-                  {showIkatagoPassword ? t('hide') : t('showKey')}
-                </button>
-              </div>
-            </label>
-            {ikatagoPasswordMessage ? <small>{ikatagoPasswordMessage}</small> : <small>密码保存在 GoAgent 本地加密存储中，不使用系统钥匙串。</small>}
+      <section id="settings-ai" className="settings-section settings-section-llm">
+        <header className="settings-section__head">
+          <div>
+            <h3>多模态大模型</h3>
+            <p>用于围棋老师对话、看棋盘图和解释 KataGo 证据。普通用户只需要填兼容 API 和模型。</p>
           </div>
+          <span className={dashboard.systemProfile.hasLlmApiKey ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{dashboard.systemProfile.hasLlmApiKey ? t('ready') : t('pendingConfig')}</span>
+        </header>
+        <label>
+          {t('llmBaseUrl')}
+          <input
+            className="llm-config-input"
+            name="llmBaseUrl"
+            value={llmBaseUrlInput}
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            onChange={(event) => {
+              setLlmBaseUrlInput(event.target.value)
+              autoSave({ llmBaseUrl: event.target.value })
+            }}
+          />
+          <small>{t('currentApi', { url: dashboard.settings.llmBaseUrl || t('apiNotSet') })}</small>
+        </label>
+        <div className="llm-api-key-field">
           <label>
-            <span>World URL</span>
-            <input
-              name="ikatagoWorldUrl"
-              defaultValue={dashboard.settings.ikatagoWorldUrl}
-              placeholder="留空使用 iKataGo 默认 world"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onBlur={(event) => autoSave({ ikatagoWorldUrl: event.target.value }, 0)}
-            />
+        {t('llmApiKey')}
+            <div className="llm-secret-input-row">
+              <input
+                className="llm-config-input"
+                name="llmApiKey"
+                type={showLlmApiKey ? 'text' : 'password'}
+                defaultValue={showLlmApiKey ? savedLlmApiKey : ''}
+                placeholder={dashboard.systemProfile.hasLlmApiKey ? t('apiKeySavedPlaceholder') : t('apiKeyNeededPlaceholder')}
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                onBlur={(event) => {
+                  const value = event.target.value
+                  if (value.trim()) {
+                    autoSave({ llmApiKey: value }, 0)
+                  }
+                }}
+              />
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => showLlmApiKey ? setShowLlmApiKey(false) : void revealSavedLlmApiKey()}
+                disabled={busy !== ''}
+              >
+                {showLlmApiKey ? t('hide') : t('showKey')}
+              </button>
+            </div>
+          </label>
+          <small>{showLlmApiKey ? t('apiKeyShownHelp') : dashboard.systemProfile.hasLlmApiKey ? t('apiKeySavedHelp') : t('apiKeyMissingHelp')}</small>
+          {llmKeyMessage ? <small>{llmKeyMessage}</small> : null}
+        </div>
+        <label>
+          {t('multimodalModel')}
+          <div className="llm-model-picker">
+            <select
+              className="llm-model-select"
+              name="llmModel"
+              value={selectedLlmModel}
+              onChange={(event) => {
+                const next = event.target.value
+                setSelectedLlmModel(next)
+                autoSave({ llmModel: next }, 0)
+              }}
+              aria-label={t('selectMultimodalModel')}
+            >
+              {llmModelOptions.length ? (
+                llmModelOptions.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>
+                  {dashboard.settings.llmBaseUrl && dashboard.systemProfile.hasLlmApiKey ? t('noModelReturned') : t('modelPickerEmpty')}
+                </option>
+              )}
+            </select>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => void refreshLlmModels()}
+              disabled={busy !== '' || llmModelsRefreshing}
+            >
+              {llmModelsRefreshing ? t('refreshing') : t('refreshModels')}
+            </button>
+          </div>
+          <small>{t('modelPickerHelp')}</small>
+          {llmModelRefreshMessage ? <small>{llmModelRefreshMessage}</small> : null}
+        </label>
+        <div className="settings-actions">
+          <button className="ghost-button" type="button" onClick={(event) => onTest(event.currentTarget.form!)} disabled={busy !== ''}>
+            {t('imageTest')}
+          </button>
+          <span className="settings-autosave-status" aria-live="polite" data-tick={autoSaveTick}>
+            {autoSaveBusy ? t('autoSaving') : t('autoSaved')}
+          </span>
+        </div>
+        {llmTestMessage ? <div className="test-message">{llmTestMessage}</div> : null}
+      </section>
+
+      <section id="settings-katago" className="settings-section settings-section-katago">
+        <header className="settings-section__head">
+          <div>
+            <h3>KataGo 分析</h3>
+            <p>选择官方权重、检查本地资源，并用一键测速让分析速度更稳定。</p>
+          </div>
+          <span className={katagoAssets?.ready || dashboard.systemProfile.katagoReady ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{katagoAssets?.ready || dashboard.systemProfile.katagoReady ? t('ready') : t('pendingConfig')}</span>
+        </header>
+        <label className="katago-preset-select">
+          {t('katagoWeights')}
+          <select
+            name="katagoModelPreset"
+            value={selectedPresetId}
+            onChange={(event) => {
+              const next = event.target.value as KataGoModelPresetId
+              setSelectedPresetId(next)
+              autoSave({ katagoModelPreset: next }, 0)
+            }}
+          >
+            {groupedModelPresets.map(([group, presets]) => (
+              <optgroup key={group} label={group}>
+                {presets.map((preset) => {
+                  const presetCopy = translateKataGoPreset(preset, t)
+                  return (
+                    <option key={preset.id} value={preset.id}>
+                      {presetCopy.label} · {presetCopy.badge} · {presetCopy.sizeHint}
+                    </option>
+                  )
+                })}
+              </optgroup>
+            ))}
+          </select>
+          {selectedPreset ? <small>{translateKataGoPreset(selectedPreset, t).description}</small> : null}
+        </label>
+        <KataGoAssetsPanel
+          status={katagoAssets}
+          selectedPreset={selectedPreset}
+          busy={busy === 'katago-install'}
+          installProgress={katagoInstallProgress}
+          installMessage={katagoInstallMessage}
+          onInstall={() => onInstallOfficialModel(selectedPreset?.id ?? dashboard.settings.katagoModelPreset)}
+          onRefresh={onRefreshKataGoAssets}
+          t={t}
+        />
+        <KataGoBenchmarkPanel
+          settings={dashboard.settings}
+          result={katagoBenchmark}
+          message={katagoBenchmarkMessage}
+          busy={busy === 'katago-benchmark'}
+          onRun={onBenchmark}
+          t={t}
+        />
+      </section>
+
+      <section id="settings-remote" className="settings-section settings-section-analysis-engine">
+        <header className="settings-section__head">
+          <div>
+            <h3>智子云远程算力</h3>
+            <p>远程算力只保留智子云直连。登录后 GoAgent 会直接连接智子云 KataGo，不需要安装或启动其它客户端。</p>
+          </div>
+          <span className={zhiziStatusClassName}>{zhiziStatusLabel}</span>
+        </header>
+        <div className="zhizi-remote-card">
+          <div>
+            <strong>普通用户流程</strong>
+            <p>登录智子云账号，点击启用直连，然后回到棋盘开始分析。GoAgent 会把当前局面发送到智子云远程 KataGo，并返回候选点、胜率、目差和 PV。</p>
+          </div>
+          <ol className="zhizi-flow">
+            <li><span>1</span>登录账号</li>
+            <li><span>2</span>启用直连</li>
+            <li><span>3</span>开始分析</li>
+          </ol>
+        </div>
+        <div className="settings-grid-two">
+          <label>
+            <span>运行模式</span>
+            <select
+              name="katagoEngineMode"
+              value={katagoEngineModeForSettings}
+              onChange={(event) => autoSave({ katagoEngineMode: event.target.value as KataGoEngineMode }, 0)}
+            >
+              <option value="auto">本地优先：自动选择最佳本地引擎</option>
+              <option value="persistent">本地常驻：低延迟分析</option>
+              <option value="spawn">本地兼容：传统启动方式</option>
+              <option value="zhizi">智子云直连：使用远程算力</option>
+            </select>
+            <small>如果选择智子云直连，分析会走智子云远程 KataGo；其它模式不会上传局面到智子云。</small>
           </label>
           <label>
-            <span>附加参数</span>
-            <input
-              name="ikatagoExtraArgs"
-              defaultValue={dashboard.settings.ikatagoExtraArgs}
-              placeholder="例如 --kata-weight 40b --gpu-type 3090"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onBlur={(event) => autoSave({ ikatagoExtraArgs: event.target.value }, 0)}
-            />
-          </label>
-          <label className="settings-inline-toggle">
-            <input
-              name="ikatagoUseWhenLocalSlow"
-              type="checkbox"
-              defaultChecked={dashboard.settings.ikatagoUseWhenLocalSlow}
-              onChange={(event) => autoSave({ ikatagoUseWhenLocalSlow: event.target.checked }, 0)}
-            />
-            <span>自动模式下，本机测速低于阈值时使用 iKataGo</span>
-          </label>
-          <label>
-            <span>慢速阈值 visits/s</span>
-            <input
-              name="ikatagoSlowThresholdVisitsPerSecond"
-              type="number"
-              min="1"
-              step="1"
-              defaultValue={dashboard.settings.ikatagoSlowThresholdVisitsPerSecond}
-              onBlur={(event) => autoSave({ ikatagoSlowThresholdVisitsPerSecond: Number(event.target.value || 120) }, 0)}
-            />
+            <span>分析速度</span>
+            <select
+              name="katagoAnalysisSpeedMode"
+              defaultValue={dashboard.settings.katagoAnalysisSpeedMode}
+              onChange={(event) => autoSave({ katagoAnalysisSpeedMode: event.target.value as KataGoAnalysisSpeedMode }, 0)}
+            >
+              <option value="auto">自动</option>
+              <option value="fast">快速</option>
+              <option value="balanced">均衡</option>
+              <option value="deep">精读</option>
+            </select>
           </label>
         </div>
-        <div className="settings-subsection">
-          <h4>智子云远程算力</h4>
-          <p>不需要单独安装或启动智子围棋电脑版。输入智子云账号密码后，GoAgent 会直连智子云远程 KataGo GTP，用 kata-analyze 生成候选点、胜率、目差和 PV；只有选择智子云模式，或开启“本地慢时自动使用”，才会把局面发送到智子云。</p>
+        <div className="zhizi-connection-actions">
+          <button
+            className="primary-button"
+            type="button"
+            disabled={busy !== '' || zhiziEnabled}
+            onClick={() => autoSave({ katagoEngineMode: 'zhizi', zhiziUseWhenLocalSlow: false }, 0)}
+          >
+            启用智子云直连
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            disabled={busy !== '' || !zhiziEnabled}
+            onClick={() => autoSave({ katagoEngineMode: 'auto', zhiziUseWhenLocalSlow: false }, 0)}
+          >
+            回到本地分析
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            disabled={busy !== '' || zhiziLoginBusy || zhiziTestBusy}
+            onClick={() => void testZhiziCloudConnection()}
+          >
+            {zhiziTestBusy ? '检测中...' : '检测连接'}
+          </button>
+          <small>{zhiziEnabled ? '当前已选择智子云。若分析提示需登录，请先完成下面的账号登录。' : '当前不会使用智子云；启用后才会连接远程算力。'}</small>
+        </div>
+        {zhiziTestMessage ? <div className="test-message">{zhiziTestMessage}</div> : null}
+        <div className="settings-subsection zhizi-login-panel">
+          <h4>登录智子云</h4>
+          <p>推荐使用账号密码或短信验证码登录。登录成功后会保存本地 token；后续只启动 GoAgent 即可。</p>
           <label>
             <span>智子云账号</span>
             <input
@@ -4365,76 +4574,119 @@ function SettingsDrawer({
             >
               {zhiziLoginBusy ? '正在登录智子云...' : '登录并连接智子云'}
             </button>
+            <small>密码只用于本次登录。如果提示密码不正确，可以改用下面的短信验证码登录。</small>
+          </div>
+          <label>
+            <span>短信验证码</span>
+            <div className="llm-secret-input-row">
+              <input
+                value={zhiziLoginCode}
+                placeholder="4 位验证码"
+                inputMode="numeric"
+                maxLength={4}
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                onChange={(event) => setZhiziLoginCode(event.target.value.replace(/\D/g, '').slice(0, 4))}
+              />
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={busy !== '' || zhiziCodeBusy || zhiziCodeCooldown > 0 || !zhiziUsernameInput.trim()}
+                onClick={() => void sendZhiziLoginCode()}
+              >
+                {zhiziCodeBusy ? '发送中...' : zhiziCodeCooldown > 0 ? `${zhiziCodeCooldown}s` : '发送验证码'}
+              </button>
+            </div>
+          </label>
+          <div className="settings-actions settings-actions--compact">
+            <button
+              className="primary-button"
+              type="button"
+              disabled={busy !== '' || zhiziLoginBusy || !zhiziUsernameInput.trim() || !zhiziLoginCode.trim()}
+              onClick={() => void loginZhiziCloudWithCode()}
+            >
+              {zhiziLoginBusy ? '正在登录智子云...' : '验证码登录'}
+            </button>
             <small>登录成功后，GoAgent 会保存 token；后续只需要打开 GoAgent，不需要启动其它应用。</small>
           </div>
           {zhiziLoginMessage ? <div className="test-message">{zhiziLoginMessage}</div> : null}
-          <div className="llm-api-key-field">
-            <label>
-              <span>高级：Token（可选）</span>
-              <div className="llm-secret-input-row">
-                <input
-                  name="zhiziToken"
-                  type={showZhiziToken ? 'text' : 'password'}
-                  defaultValue={showZhiziToken ? savedZhiziToken : ''}
-                  placeholder="已登录智子客户端时通常无需填写"
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  onBlur={(event) => {
-                    const value = event.target.value
-                    if (value.trim()) autoSave({ zhiziToken: value }, 0)
-                  }}
-                />
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() => showZhiziToken ? setShowZhiziToken(false) : void revealSavedZhiziToken()}
-                  disabled={busy !== ''}
-                >
-                  {showZhiziToken ? t('hide') : t('showKey')}
-                </button>
-              </div>
-            </label>
-            {zhiziTokenMessage ? <small>{zhiziTokenMessage}</small> : <small>Token 保存在 GoAgent 本地加密存储中；普通用户只需要上面的账号密码登录。</small>}
+          <div className="settings-actions settings-actions--compact">
+            <button
+              className="ghost-button"
+              type="button"
+              disabled={busy !== '' || zhiziLoginBusy}
+              onClick={() => void logoutZhiziCloud()}
+            >
+              退出智子云登录
+            </button>
+            <small>充值、购买套餐或账号状态变化后，如果仍提示额度不足，可以先退出再重新登录，让 GoAgent 刷新远程会话。</small>
           </div>
-          <label>
-            <span>高级：zz-ikatago 路径（兼容旧连接器，可不填）</span>
-            <input
-              name="zhiziClientBin"
-              defaultValue={dashboard.settings.zhiziClientBin}
-              placeholder={navigator.platform.toLowerCase().includes('win') ? 'D:\\Zhizi\\zz-ikatago.exe' : '/Applications/智子围棋电脑版.app/Contents/Resources/data/zz-ikatago'}
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onBlur={(event) => autoSave({ zhiziClientBin: event.target.value }, 0)}
-            />
-          </label>
-          <label>
-            <span>附加参数</span>
-            <input
-              name="zhiziExtraArgs"
-              defaultValue={dashboard.settings.zhiziExtraArgs}
-              placeholder="例如 --platform all；留空使用智子客户端默认远程配置"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onBlur={(event) => autoSave({ zhiziExtraArgs: event.target.value }, 0)}
-            />
-          </label>
-          <label className="settings-inline-toggle">
-            <input
-              name="zhiziUseWhenLocalSlow"
-              type="checkbox"
-              defaultChecked={dashboard.settings.zhiziUseWhenLocalSlow}
-              onChange={(event) => autoSave({ zhiziUseWhenLocalSlow: event.target.checked }, 0)}
-            />
-            <span>自动模式下，本机测速低于阈值时使用智子云</span>
-          </label>
         </div>
+        <details className="settings-advanced">
+          <summary>高级兼容选项</summary>
+          <div className="settings-advanced__body">
+            <p>普通用户不需要填写这里。只有在账号登录不可用、或需要兼容旧智子连接器时才使用。</p>
+            <div className="llm-api-key-field">
+              <label>
+                <span>Token（可选）</span>
+                <div className="llm-secret-input-row">
+                  <input
+                    name="zhiziToken"
+                    type={showZhiziToken ? 'text' : 'password'}
+                    defaultValue={showZhiziToken ? savedZhiziToken : ''}
+                    placeholder="已通过账号登录时无需填写"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    onBlur={(event) => {
+                      const value = event.target.value
+                      if (value.trim()) autoSave({ zhiziToken: value }, 0)
+                    }}
+                  />
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => showZhiziToken ? setShowZhiziToken(false) : void revealSavedZhiziToken()}
+                    disabled={busy !== ''}
+                  >
+                    {showZhiziToken ? t('hide') : t('showKey')}
+                  </button>
+                </div>
+              </label>
+              {zhiziTokenMessage ? <small>{zhiziTokenMessage}</small> : <small>Token 保存在 GoAgent 本地加密存储中，不使用系统钥匙串。</small>}
+            </div>
+            <label>
+              <span>附加参数</span>
+              <input
+                name="zhiziExtraArgs"
+                defaultValue={dashboard.settings.zhiziExtraArgs}
+                placeholder="例如 --platform all；留空使用默认远程配置"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                onBlur={(event) => autoSave({ zhiziExtraArgs: event.target.value }, 0)}
+              />
+            </label>
+            <label className="settings-inline-toggle">
+              <input
+                name="zhiziUseWhenLocalSlow"
+                type="checkbox"
+                defaultChecked={dashboard.settings.zhiziUseWhenLocalSlow}
+                onChange={(event) => autoSave({ zhiziUseWhenLocalSlow: event.target.checked }, 0)}
+              />
+              <span>自动模式下，本机测速低于阈值时使用智子云</span>
+            </label>
+          </div>
+        </details>
       </section>
-      <section className="settings-section settings-section-language">
-        <h3>{t('languageLabel')}</h3>
-        <p>{t('languageHelp')}</p>
+      <section id="settings-general" className="settings-section settings-section-language">
+        <header className="settings-section__head">
+          <div>
+            <h3>{t('languageLabel')}</h3>
+            <p>{t('languageHelp')}</p>
+          </div>
+        </header>
         <label>
           <span>{t('reviewLanguage')}</span>
           <select
@@ -4450,108 +4702,22 @@ function SettingsDrawer({
           </select>
         </label>
       </section>
-      <label>
-        {t('llmBaseUrl')}
-        <input
-          className="llm-config-input"
-          name="llmBaseUrl"
-          value={llmBaseUrlInput}
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-          onChange={(event) => {
-            setLlmBaseUrlInput(event.target.value)
-            autoSave({ llmBaseUrl: event.target.value })
-          }}
-        />
-        <small>{t('currentApi', { url: dashboard.settings.llmBaseUrl || t('apiNotSet') })}</small>
-      </label>
-      <div className="llm-api-key-field">
-        <label>
-        {t('llmApiKey')}
-          <div className="llm-secret-input-row">
-            <input
-              className="llm-config-input"
-              name="llmApiKey"
-              type={showLlmApiKey ? 'text' : 'password'}
-              defaultValue={showLlmApiKey ? savedLlmApiKey : ''}
-              placeholder={dashboard.systemProfile.hasLlmApiKey ? t('apiKeySavedPlaceholder') : t('apiKeyNeededPlaceholder')}
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              onBlur={(event) => {
-                const value = event.target.value
-                if (value.trim()) {
-                  autoSave({ llmApiKey: value }, 0)
-                }
-              }}
-            />
-            <button
-              className="ghost-button"
-              type="button"
-              onClick={() => showLlmApiKey ? setShowLlmApiKey(false) : void revealSavedLlmApiKey()}
-              disabled={busy !== ''}
-            >
-              {showLlmApiKey ? t('hide') : t('showKey')}
-            </button>
-          </div>
-        </label>
-        <small>{showLlmApiKey ? t('apiKeyShownHelp') : dashboard.systemProfile.hasLlmApiKey ? t('apiKeySavedHelp') : t('apiKeyMissingHelp')}</small>
-        {llmKeyMessage ? <small>{llmKeyMessage}</small> : null}
+        </form>
+        <section id="settings-voice" className="settings-section settings-section-voice">
+          <header className="settings-section__head">
+            <div>
+              <h3>语音讲解</h3>
+              <p>选择离线 Kokoro 或云端 TTS，控制讲解朗读、音色和播放节奏。</p>
+            </div>
+            <span className={dashboard.settings.ttsEnabled ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{dashboard.settings.ttsEnabled ? t('ready') : t('pendingConfig')}</span>
+          </header>
+          <TtsSettingsPanel
+            settings={dashboard.settings}
+            busy={busy !== ''}
+            onSave={(next) => void saveTtsSettings(next)}
+          />
+        </section>
       </div>
-      <label>
-        {t('multimodalModel')}
-        <div className="llm-model-picker">
-          <select
-            className="llm-model-select"
-            name="llmModel"
-            value={selectedLlmModel}
-            onChange={(event) => {
-              const next = event.target.value
-              setSelectedLlmModel(next)
-              autoSave({ llmModel: next }, 0)
-            }}
-            aria-label={t('selectMultimodalModel')}
-          >
-            {llmModelOptions.length ? (
-              llmModelOptions.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))
-            ) : (
-              <option value="" disabled>
-                {dashboard.settings.llmBaseUrl && dashboard.systemProfile.hasLlmApiKey ? t('noModelReturned') : t('modelPickerEmpty')}
-              </option>
-            )}
-          </select>
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => void refreshLlmModels()}
-            disabled={busy !== '' || llmModelsRefreshing}
-          >
-            {llmModelsRefreshing ? t('refreshing') : t('refreshModels')}
-          </button>
-        </div>
-        <small>{t('modelPickerHelp')}</small>
-        {llmModelRefreshMessage ? <small>{llmModelRefreshMessage}</small> : null}
-      </label>
-      <div className="settings-actions">
-        <button className="ghost-button" type="button" onClick={(event) => onTest(event.currentTarget.form!)} disabled={busy !== ''}>
-          {t('imageTest')}
-        </button>
-        <span className="settings-autosave-status" aria-live="polite" data-tick={autoSaveTick}>
-          {autoSaveBusy ? t('autoSaving') : t('autoSaved')}
-        </span>
-      </div>
-      {llmTestMessage ? <div className="test-message">{llmTestMessage}</div> : null}
-      </form>
-      <TtsSettingsPanel
-        settings={dashboard.settings}
-        busy={busy !== ''}
-        onSave={(next) => void saveTtsSettings(next)}
-      />
     </div>
   )
 }

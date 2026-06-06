@@ -231,7 +231,9 @@ function saveZhiziToken(value: string): void {
   const trimmed = value.trim()
   if (trimmed) {
     secretStore.set('zhiziToken', encryptSecret(trimmed))
+    return
   }
+  secretStore.delete('zhiziToken')
 }
 
 function migratePlaintextSecrets(settings: AppSettings): AppSettings {

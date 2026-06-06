@@ -37,6 +37,11 @@ test('official KataGo model installer is wired through main preload and settings
   assert.match(runtime, /downloadUrl: officialNetworkUrl/)
   assert.match(runtime, /blockSize: 'b40'/)
   assert.match(runtime, /blockSize: 'b20'/)
+  assert.match(runtime, /join\(__dirname, '\.\.\/\.\.\/data\/katago'\)/)
+  assert.match(runtime, /platformCompatibleBinaryPath/)
+  assert.match(runtime, /firstExistingBinary/)
+  assert.match(runtime, /\\\/win32-\[\^\/\]\+\\\//)
+  assert.match(runtime, /\\.exe/)
 
   const main = read('src/main/index.ts')
   assert.match(main, /katago-assets:install-official-model/)

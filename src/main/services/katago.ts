@@ -20,7 +20,8 @@ import {
 import {
   cancelZhiziGtpAnalysis,
   queryZhiziGtpAnalysisBatch,
-  shouldPreferZhiziGtpEngine
+  shouldPreferZhiziGtpEngine,
+  zhiziGtpConfigured
 } from './zhiziGtpEngine'
 import { normalizeSgfKomiForAnalysis } from './sgfScoring'
 import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
@@ -511,17 +512,36 @@ async function queryKataGoBatch(
     queryCount: queries.length
   })
   const zhiziPreferred = shouldPreferZhiziGtpEngine(settings, runtime.ready)
+  async function queryZhiziRemote(): Promise<Map<string, KataGoResponse>> {
+    const results = await queryZhiziGtpAnalysisBatch({
+      settings,
+      queries: queries.map(buildKataGoPayload),
+      runId: options.runId,
+      group: options.group,
+      timeoutMs: Math.max(240_000, queries.length * 9000),
+      resolvePartialAfterMs: options.resolvePartialAfterMs,
+      onResponse: onResponse as ((response: Record<string, unknown>) => void) | undefined
+    })
+    return results as Map<string, KataGoResponse>
+  }
+  function canUseZhiziAutoFallback(error: unknown): boolean {
+    const text = String(error)
+    return Boolean(
+      !/cancel|取消/i.test(text) &&
+      !zhiziPreferred &&
+      settings.katagoEngineMode === 'auto' &&
+      zhiziGtpConfigured(settings)
+    )
+  }
+  async function queryZhiziAfterLocalFailure(error: unknown): Promise<Map<string, KataGoResponse>> {
+    console.warn('Local KataGo analysis failed in auto mode; falling back to Zhizi cloud.', error)
+    const results = await queryZhiziRemote()
+    engineLease.finish('done')
+    return results
+  }
   if (zhiziPreferred) {
     try {
-      const results = await queryZhiziGtpAnalysisBatch({
-        settings,
-        queries: queries.map(buildKataGoPayload),
-        runId: options.runId,
-        group: options.group,
-        timeoutMs: Math.max(240_000, queries.length * 9000),
-        resolvePartialAfterMs: options.resolvePartialAfterMs,
-        onResponse: onResponse as ((response: Record<string, unknown>) => void) | undefined
-      })
+      const results = await queryZhiziRemote()
       engineLease.finish('done')
       return results as Map<string, KataGoResponse>
     } catch (error) {
@@ -582,6 +602,9 @@ async function queryKataGoBatch(
       return results as Map<string, KataGoResponse>
     } catch (error) {
       const status = String(error).includes('已取消') || String(error).includes('cancel') ? 'cancelled' : 'error'
+      if (canUseZhiziAutoFallback(error)) {
+        return queryZhiziAfterLocalFailure(error)
+      }
       if (status === 'cancelled' || !persistentKataGoFallbackEnabled()) {
         engineLease.finish(status)
         throw error
@@ -590,9 +613,17 @@ async function queryKataGoBatch(
     }
   }
 
-  const child = spawn(command[0], command.slice(1), {
-    stdio: ['pipe', 'pipe', 'pipe']
-  })
+  let child: ChildProcessWithoutNullStreams
+  try {
+    child = spawn(command[0], command.slice(1), {
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+  } catch (error) {
+    if (canUseZhiziAutoFallback(error)) {
+      return queryZhiziAfterLocalFailure(error)
+    }
+    throw error
+  }
 
   let stderr = ''
   const processRunId = options.runId || randomUUID()
@@ -614,7 +645,7 @@ async function queryKataGoBatch(
     stderr += String(chunk)
   })
 
-  return new Promise((resolve, reject) => {
+  const localSpawnPromise = new Promise<Map<string, KataGoResponse>>((resolve, reject) => {
     let settled = false
     let stdout = ''
     const results = new Map<string, KataGoResponse>()
@@ -778,6 +809,12 @@ async function queryKataGoBatch(
       child.stdin.write(`${JSON.stringify(payload)}\n`)
     }
     child.stdin.end()
+  })
+  return localSpawnPromise.catch(async (error) => {
+    if (!canUseZhiziAutoFallback(error)) {
+      throw error
+    }
+    return queryZhiziAfterLocalFailure(error)
   })
 }
 
@@ -1249,8 +1286,7 @@ export async function analyzeGameQuick(
     }, {
       runId: `${runId}-root`,
       group,
-      replaceGroup: group === 'quick',
-      resolvePartialAfterMs: 8_000
+      replaceGroup: group === 'quick'
     })
   } catch (error) {
     if (isKataGoTimeoutError(error)) {
