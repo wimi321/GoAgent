@@ -668,7 +668,7 @@ jobs:
           if (-not $installer) { throw "Missing NVIDIA installer EXE before rename." }
           if (-not (Test-Path $unpackedDir)) { throw "Missing win-unpacked directory for NVIDIA portable recompression." }
           Push-Location $releaseDir
-          & 7z a -t7z -m0=LZMA2 -mx=5 -mmt=on -v1900m "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
+          & 7z a -t7z -m0=LZMA2 -mx=1 -ms=off -mmt=on -v1900m "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
           Pop-Location
           Rename-Item -LiteralPath $installer.FullName -NewName "GoAgent-$version-win-x64-nvidia.exe" -Force
           $nvidiaPortableParts = Get-ChildItem -Path $releaseDir -Filter "GoAgent-$version-win-x64-nvidia-portable.7z.*" -File | Sort-Object Name

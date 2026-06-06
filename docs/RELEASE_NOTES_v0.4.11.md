@@ -19,7 +19,7 @@ This release keeps the broader v0.4 foundation: grounded shape recognition engin
 | Windows x64 安装版，普通用户推荐 | GoAgent-0.4.11-win-x64.exe |
 | Windows x64 免安装版 | GoAgent-0.4.11-win-x64-portable.zip |
 | Windows x64 NVIDIA 专版安装版 | GoAgent-0.4.11-win-x64-nvidia.exe |
-| Windows x64 NVIDIA 专版免安装包 | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 / .002 / .003 |
+| Windows x64 NVIDIA 专版免安装包 | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 and all following split parts |
 | 校验文件 | SHA256SUMS.txt |
 
 ### 本版重点
@@ -50,7 +50,7 @@ This release keeps the broader v0.4 foundation: grounded shape recognition engin
 | Windows x64 安裝版 | GoAgent-0.4.11-win-x64.exe |
 | Windows x64 免安裝版 | GoAgent-0.4.11-win-x64-portable.zip |
 | Windows x64 NVIDIA 專版 | GoAgent-0.4.11-win-x64-nvidia.exe |
-| Windows x64 NVIDIA 免安裝包 | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 / .002 / .003 |
+| Windows x64 NVIDIA 免安裝包 | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 and all following split parts |
 | 校驗檔 | SHA256SUMS.txt |
 
 ### 本版重點
@@ -71,7 +71,7 @@ This release keeps the broader v0.4 foundation: grounded shape recognition engin
 | Windows x64 installer | GoAgent-0.4.11-win-x64.exe |
 | Windows x64 portable ZIP | GoAgent-0.4.11-win-x64-portable.zip |
 | Windows x64 NVIDIA installer | GoAgent-0.4.11-win-x64-nvidia.exe |
-| Windows x64 NVIDIA portable package | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 / .002 / .003 |
+| Windows x64 NVIDIA portable package | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 and all following split parts |
 | Checksums | SHA256SUMS.txt |
 
 ### Highlights
@@ -102,7 +102,7 @@ This release keeps the broader v0.4 foundation: grounded shape recognition engin
 | Windows x64 インストーラー | GoAgent-0.4.11-win-x64.exe |
 | Windows x64 ポータブル ZIP | GoAgent-0.4.11-win-x64-portable.zip |
 | Windows x64 NVIDIA 版 | GoAgent-0.4.11-win-x64-nvidia.exe |
-| Windows x64 NVIDIA ポータブル | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 / .002 / .003 |
+| Windows x64 NVIDIA ポータブル | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 and all following split parts |
 | チェックサム | SHA256SUMS.txt |
 
 ### 主な変更
@@ -122,7 +122,7 @@ This release keeps the broader v0.4 foundation: grounded shape recognition engin
 | Windows x64 설치 프로그램 | GoAgent-0.4.11-win-x64.exe |
 | Windows x64 포터블 ZIP | GoAgent-0.4.11-win-x64-portable.zip |
 | Windows x64 NVIDIA 설치 프로그램 | GoAgent-0.4.11-win-x64-nvidia.exe |
-| Windows x64 NVIDIA 포터블 | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 / .002 / .003 |
+| Windows x64 NVIDIA 포터블 | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 and all following split parts |
 | 체크섬 | SHA256SUMS.txt |
 
 ### 이번 버전
@@ -142,7 +142,7 @@ This release keeps the broader v0.4 foundation: grounded shape recognition engin
 | Windows x64 installer | GoAgent-0.4.11-win-x64.exe |
 | Windows x64 portable ZIP | GoAgent-0.4.11-win-x64-portable.zip |
 | Windows x64 NVIDIA installer | GoAgent-0.4.11-win-x64-nvidia.exe |
-| Windows x64 NVIDIA portable | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 / .002 / .003 |
+| Windows x64 NVIDIA portable | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 and all following split parts |
 | Checksums | SHA256SUMS.txt |
 
 ### จุดสำคัญของรุ่นนี้
@@ -162,7 +162,7 @@ This release keeps the broader v0.4 foundation: grounded shape recognition engin
 | Windows x64 installer | GoAgent-0.4.11-win-x64.exe |
 | Windows x64 portable ZIP | GoAgent-0.4.11-win-x64-portable.zip |
 | Windows x64 NVIDIA installer | GoAgent-0.4.11-win-x64-nvidia.exe |
-| Windows x64 NVIDIA portable | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 / .002 / .003 |
+| Windows x64 NVIDIA portable | GoAgent-0.4.11-win-x64-nvidia-portable.7z.001 and all following split parts |
 | Checksums | SHA256SUMS.txt |
 
 ### Điểm mới
