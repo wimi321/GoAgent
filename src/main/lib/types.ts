@@ -95,6 +95,7 @@ export interface AppSettings {
   katagoBenchmarkUpdatedAt: string
   katagoEngineMode: KataGoEngineMode
   katagoAnalysisSpeedMode: KataGoAnalysisSpeedMode
+  localAnalysisDefaultApplied: boolean
   ikatagoClientBin: string
   ikatagoPlatform: string
   ikatagoUsername: string

@@ -91,6 +91,7 @@ const emptyDashboard: DashboardData = {
     katagoBenchmarkUpdatedAt: '',
     katagoEngineMode: 'auto',
     katagoAnalysisSpeedMode: 'auto',
+    localAnalysisDefaultApplied: true,
     ikatagoClientBin: '',
     ikatagoPlatform: 'all',
     ikatagoUsername: '',
@@ -4713,14 +4714,14 @@ function SettingsDrawer({
         <header className="settings-section__head">
           <div>
             <h3>智子云远程算力</h3>
-            <p>远程算力只保留智子云直连。登录后 GoAgent 会直接连接智子云 KataGo，不需要安装或启动其它客户端。</p>
+            <p>GoAgent 默认使用本机 KataGo。只有你手动启用智子云直连时，当前局面才会发送到远程算力。</p>
           </div>
           <span className={zhiziStatusClassName}>{zhiziStatusLabel}</span>
         </header>
         <div className="zhizi-remote-card">
           <div>
-            <strong>普通用户流程</strong>
-            <p>登录智子云账号，点击启用直连，然后回到棋盘开始分析。GoAgent 会把当前局面发送到智子云远程 KataGo，并返回候选点、胜率、目差和 PV。</p>
+            <strong>默认本机，远程手动启用</strong>
+            <p>本机分析不上传棋谱。需要智子云时，先登录账号，再点击启用直连；不用时点“回到本地分析”。</p>
           </div>
           <ol className="zhizi-flow">
             <li><span>1</span>登录账号</li>
@@ -4736,12 +4737,12 @@ function SettingsDrawer({
               value={katagoEngineModeForSettings}
               onChange={(event) => autoSave({ katagoEngineMode: event.target.value as KataGoEngineMode }, 0)}
             >
-              <option value="auto">本地优先：自动选择最佳本地引擎</option>
+              <option value="auto">默认本机：自动选择最佳本地引擎</option>
               <option value="persistent">本地常驻：低延迟分析</option>
               <option value="spawn">本地兼容：传统启动方式</option>
-              <option value="zhizi">智子云直连：使用远程算力</option>
+              <option value="zhizi">手动远程：智子云直连</option>
             </select>
-            <small>如果选择智子云直连，分析会走智子云远程 KataGo；其它模式不会上传局面到智子云。</small>
+            <small>默认本机不会上传局面；只有选择或启用智子云直连时才会使用远程算力。</small>
           </label>
           <label>
             <span>分析速度</span>
@@ -4782,7 +4783,7 @@ function SettingsDrawer({
           >
             {zhiziTestBusy ? '检测中...' : '检测连接'}
           </button>
-          <small>{zhiziEnabled ? '当前已选择智子云。若分析提示需登录，请先完成下面的账号登录。' : '当前不会使用智子云；启用后才会连接远程算力。'}</small>
+          <small>{zhiziEnabled ? '当前已选择智子云。若分析提示需登录，请先完成下面的账号登录。' : '当前使用本机 KataGo，不会连接智子云。'}</small>
         </div>
         {zhiziTestMessage ? <div className="test-message">{zhiziTestMessage}</div> : null}
         <div className="settings-subsection zhizi-login-panel">
@@ -4926,7 +4927,7 @@ function SettingsDrawer({
                 defaultChecked={dashboard.settings.zhiziUseWhenLocalSlow}
                 onChange={(event) => autoSave({ zhiziUseWhenLocalSlow: event.target.checked }, 0)}
               />
-              <span>自动模式下，本机测速低于阈值时使用智子云</span>
+              <span>高级：允许本机测速低于阈值时使用智子云</span>
             </label>
           </div>
         </details>

@@ -4,6 +4,18 @@ All notable changes to GoAgent will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.4.12 - Local KataGo Default Hotfix
+
+### Fixed
+
+- Changed analysis defaults back to the local computer: upgraded users who previously saved a remote Zhizi/iKataGo mode are migrated once to the local `auto` mode.
+- Stopped `auto` mode from silently falling back to Zhizi cloud when local KataGo is missing or fails. Remote compute is now used only when explicitly enabled.
+- Updated the settings copy so users can clearly tell that GoAgent is using local KataGo unless they manually choose Zhizi cloud.
+
+### Verified
+
+- `node --test tests/local-analysis-default-contract.test.mjs tests/zhizi-cloud-engine-contract.test.mjs tests/real-teaching-engine-pool-v2-contract.test.mjs`
+
 ## 0.4.11 - Try Move Trial Branches
 
 ### Added

@@ -302,10 +302,11 @@ export function shouldPreferZhiziGtpEngine(settings: AppSettings, localReady: bo
   const mode = settings.katagoEngineMode ?? 'auto'
   if (mode === 'zhizi') return true
   if (mode !== 'auto' || !zhiziGtpConfigured(settings)) return false
-  if (!localReady) return true
+  if (!settings.zhiziUseWhenLocalSlow) return false
+  if (!localReady) return false
   const speed = Number(settings.katagoBenchmarkVisitsPerSecond || 0)
   const threshold = Number(settings.ikatagoSlowThresholdVisitsPerSecond || 0)
-  return Boolean(settings.zhiziUseWhenLocalSlow && speed > 0 && threshold > 0 && speed < threshold)
+  return Boolean(speed > 0 && threshold > 0 && speed < threshold)
 }
 
 export function buildZhiziGtpCommand(settings: AppSettings): string[] {

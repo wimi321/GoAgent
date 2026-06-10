@@ -76,10 +76,11 @@ export function shouldPreferIKataGoEngine(settings: AppSettings, localReady: boo
   const mode = settings.katagoEngineMode ?? 'auto'
   if (mode === 'ikatago') return true
   if (mode !== 'auto' || !ikatagoClientConfigured(settings)) return false
-  if (!localReady) return true
+  if (!settings.ikatagoUseWhenLocalSlow) return false
+  if (!localReady) return false
   const speed = Number(settings.katagoBenchmarkVisitsPerSecond || 0)
   const threshold = Number(settings.ikatagoSlowThresholdVisitsPerSecond || 0)
-  return Boolean(settings.ikatagoUseWhenLocalSlow && speed > 0 && threshold > 0 && speed < threshold)
+  return Boolean(speed > 0 && threshold > 0 && speed < threshold)
 }
 
 export function buildIKataGoAnalysisCommand(settings: AppSettings): string[] {

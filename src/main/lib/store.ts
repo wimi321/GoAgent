@@ -34,6 +34,7 @@ const defaults: AppSettings = {
   katagoBenchmarkUpdatedAt: '',
   katagoEngineMode: 'auto',
   katagoAnalysisSpeedMode: 'auto',
+  localAnalysisDefaultApplied: false,
   ikatagoClientBin: '',
   ikatagoPlatform: 'all',
   ikatagoUsername: '',
@@ -275,8 +276,28 @@ function migratePlaintextSecrets(settings: AppSettings): AppSettings {
   return sanitized
 }
 
+function migrateLocalAnalysisDefault(settings: AppSettings): AppSettings {
+  if (settings.localAnalysisDefaultApplied) {
+    return settings
+  }
+  const migrated: AppSettings = {
+    ...settings,
+    katagoEngineMode: settings.katagoEngineMode === 'zhizi' || settings.katagoEngineMode === 'ikatago' ? 'auto' : settings.katagoEngineMode,
+    ikatagoUseWhenLocalSlow: false,
+    zhiziUseWhenLocalSlow: false,
+    localAnalysisDefaultApplied: true
+  }
+  settingsStore.set({
+    katagoEngineMode: migrated.katagoEngineMode,
+    ikatagoUseWhenLocalSlow: false,
+    zhiziUseWhenLocalSlow: false,
+    localAnalysisDefaultApplied: true
+  })
+  return migrated
+}
+
 export function getSettings(): AppSettings {
-  const persisted = migratePlaintextSecrets({ ...defaults, ...settingsStore.store })
+  const persisted = migrateLocalAnalysisDefault(migratePlaintextSecrets({ ...defaults, ...settingsStore.store }))
   return {
     ...persisted,
     llmApiKey: decryptSecret(secretStore.get('llmApiKey')),
@@ -316,7 +337,11 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
     zhiziToken: _zhiziToken,
     ...safeNext
   } = next
-  settingsStore.set(safeNext)
+  const shouldMarkLocalDefaultApplied =
+    Object.prototype.hasOwnProperty.call(safeNext, 'katagoEngineMode') ||
+    Object.prototype.hasOwnProperty.call(safeNext, 'ikatagoUseWhenLocalSlow') ||
+    Object.prototype.hasOwnProperty.call(safeNext, 'zhiziUseWhenLocalSlow')
+  settingsStore.set(shouldMarkLocalDefaultApplied ? { ...safeNext, localAnalysisDefaultApplied: true } : safeNext)
   return getSettings()
 }
 
@@ -339,7 +364,7 @@ export function replaceSettings(next: AppSettings): AppSettings {
   if (next.zhiziToken.trim()) {
     saveZhiziToken(next.zhiziToken)
   }
-  settingsStore.store = { ...next, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
+  settingsStore.store = { ...next, localAnalysisDefaultApplied: true, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
   return getSettings()
 }
 

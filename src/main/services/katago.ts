@@ -550,11 +550,12 @@ async function queryKataGoBatch(
       !/cancel|取消/i.test(text) &&
       !zhiziPreferred &&
       settings.katagoEngineMode === 'auto' &&
+      settings.zhiziUseWhenLocalSlow &&
       zhiziGtpConfigured(settings)
     )
   }
   async function queryZhiziAfterLocalFailure(error: unknown): Promise<Map<string, KataGoResponse>> {
-    console.warn('Local KataGo analysis failed in auto mode; falling back to Zhizi cloud.', error)
+    console.warn('Local KataGo analysis failed in opt-in slow-machine mode; falling back to Zhizi cloud.', error)
     const results = await queryZhiziRemote()
     engineLease.finish('done')
     return results

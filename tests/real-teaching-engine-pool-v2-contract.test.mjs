@@ -35,7 +35,7 @@ test('persistent KataGo engine pool can be enabled without removing spawn fallba
   assert.match(katago, /persistentKataGoEngineEnabled/)
   assert.match(katago, /queryKataGoPersistentBatch/)
   assert.match(katago, /child = spawn\(command\[0\], command\.slice\(1\)/)
-  assert.match(katago, /Local KataGo analysis failed in auto mode; falling back to Zhizi cloud/)
+  assert.match(katago, /Local KataGo analysis failed in opt-in slow-machine mode; falling back to Zhizi cloud/)
 })
 
 test('real teaching fixtures exist', () => {
