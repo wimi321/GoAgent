@@ -103,8 +103,15 @@ const emptyDashboard: DashboardData = {
     zhiziClientBin: '',
     zhiziUsername: '',
     zhiziToken: '',
+    zhiziGpuTier: 'standard',
+    zhiziPlatform: 'all',
+    zhiziGpuType: '',
+    zhiziKataName: 'katago-TENSORRT',
+    zhiziKataWeight: '28bnbt',
     zhiziExtraArgs: '',
     zhiziUseWhenLocalSlow: false,
+    zhiziLastStatus: 'logged-out',
+    zhiziLastCheckedAt: '',
     pythonBin: 'python',
     llmBaseUrl: 'https://api.openai.com/v1',
     llmApiKey: '',
@@ -1480,6 +1487,11 @@ export function App(): ReactElement {
         zhiziClientBin: String(formData.get('zhiziClientBin') ?? dashboard.settings.zhiziClientBin),
         zhiziUsername: String(formData.get('zhiziUsername') ?? dashboard.settings.zhiziUsername),
         zhiziToken: String(formData.get('zhiziToken') ?? ''),
+        zhiziGpuTier: String(formData.get('zhiziGpuTier') ?? dashboard.settings.zhiziGpuTier) as AppSettings['zhiziGpuTier'],
+        zhiziPlatform: String(formData.get('zhiziPlatform') ?? dashboard.settings.zhiziPlatform),
+        zhiziGpuType: String(formData.get('zhiziGpuType') ?? dashboard.settings.zhiziGpuType),
+        zhiziKataName: String(formData.get('zhiziKataName') ?? dashboard.settings.zhiziKataName),
+        zhiziKataWeight: String(formData.get('zhiziKataWeight') ?? dashboard.settings.zhiziKataWeight),
         zhiziExtraArgs: String(formData.get('zhiziExtraArgs') ?? dashboard.settings.zhiziExtraArgs),
         zhiziUseWhenLocalSlow: formData.get('zhiziUseWhenLocalSlow') === 'on',
         reviewLanguage: normalizeUiLocale(String(formData.get('reviewLanguage') ?? dashboard.settings.reviewLanguage)),
@@ -4518,6 +4530,49 @@ function SettingsDrawer({
     }
   }
 
+  async function inspectZhiziCloudAccount(): Promise<void> {
+    setZhiziTestMessage('')
+    setZhiziTestBusy(true)
+    try {
+      const result = await window.goagent.inspectZhiziCloudAccount()
+      if (result.dashboard) {
+        onDashboardUpdated(result.dashboard)
+      }
+      setZhiziTestMessage(result.message)
+    } catch (cause) {
+      setZhiziTestMessage(`智子云账号检测失败：${String(cause).replace(/^Error:\s*/, '')}`)
+    } finally {
+      setZhiziTestBusy(false)
+    }
+  }
+
+  async function refreshZhiziCloudSession(): Promise<void> {
+    setZhiziTestMessage('')
+    setZhiziTestBusy(true)
+    try {
+      const result = await window.goagent.refreshZhiziCloudSession()
+      if (result.dashboard) {
+        onDashboardUpdated(result.dashboard)
+      }
+      const detail = result.ok && result.topMove
+        ? `首选 ${result.topMove}${typeof result.visits === 'number' ? ` · ${result.visits} visits` : ''}`
+        : ''
+      setZhiziTestMessage(`${result.message}${detail ? `（${detail}）` : ''}`)
+    } catch (cause) {
+      setZhiziTestMessage(`智子云远程会话刷新失败：${String(cause).replace(/^Error:\s*/, '')}`)
+    } finally {
+      setZhiziTestBusy(false)
+    }
+  }
+
+  async function openZhiziBillingHelp(): Promise<void> {
+    try {
+      await window.goagent.openZhiziBillingHelp()
+    } catch (cause) {
+      setZhiziTestMessage(`无法打开智子官方开通说明：${String(cause).replace(/^Error:\s*/, '')}`)
+    }
+  }
+
   async function saveTtsSettings(next: Partial<AppSettings>): Promise<void> {
     const updated = await window.goagent.updateSettings(next)
     onDashboardUpdated(updated)
@@ -4530,8 +4585,22 @@ function SettingsDrawer({
   const zhiziReady = /Zhizi Cloud Direct Ready|智子云直连/i.test(zhiziRawStatus)
     || (zhiziEnabled && dashboard.systemProfile.katagoReady && /智子|Zhizi/i.test(zhiziRawStatus))
   const zhiziNeedsLogin = /Zhizi Cloud Login Required|智子云需登录|智子云未登录/i.test(zhiziRawStatus)
-  const zhiziStatusLabel = zhiziReady ? '已连接' : zhiziEnabled && zhiziNeedsLogin ? '需登录' : zhiziEnabled ? '连接中' : '未启用'
-  const zhiziStatusClassName = zhiziReady ? 'settings-status-chip is-ready' : zhiziNeedsLogin ? 'settings-status-chip is-warning' : 'settings-status-chip'
+  const zhiziLastStatus = dashboard.settings.zhiziLastStatus
+  const zhiziStatusLabel =
+    zhiziReady || zhiziLastStatus === 'ready' ? '算力可用'
+      : zhiziLastStatus === 'no-credit' ? '需开通'
+        : zhiziLastStatus === 'token-expired' || (zhiziEnabled && zhiziNeedsLogin) ? '需登录'
+          : zhiziLastStatus === 'network-error' ? '网络异常'
+            : zhiziLastStatus === 'worker-unavailable' ? '暂无 worker'
+              : zhiziLastStatus === 'logged-in' ? '已登录'
+                : zhiziEnabled ? '待检测' : '未启用'
+  const zhiziStatusClassName =
+    zhiziReady || zhiziLastStatus === 'ready' ? 'settings-status-chip is-ready'
+      : zhiziLastStatus === 'no-credit' || zhiziLastStatus === 'token-expired' || zhiziNeedsLogin ? 'settings-status-chip is-warning'
+        : 'settings-status-chip'
+  const zhiziLastCheckedText = dashboard.settings.zhiziLastCheckedAt
+    ? new Date(dashboard.settings.zhiziLastCheckedAt).toLocaleString()
+    : '尚未检测'
 
   return (
     <div className="settings-drawer">
@@ -4721,12 +4790,12 @@ function SettingsDrawer({
         <div className="zhizi-remote-card">
           <div>
             <strong>默认本机，远程手动启用</strong>
-            <p>本机分析不上传棋谱。需要智子云时，先登录账号，再点击启用直连；不用时点“回到本地分析”。</p>
+            <p>本机分析不上传棋谱。需要智子云时，先登录账号、检测连接，再点击启用直连；不用时点“回到本地分析”。</p>
           </div>
           <ol className="zhizi-flow">
             <li><span>1</span>登录账号</li>
-            <li><span>2</span>启用直连</li>
-            <li><span>3</span>开始分析</li>
+            <li><span>2</span>检测算力</li>
+            <li><span>3</span>启用分析</li>
           </ol>
         </div>
         <div className="settings-grid-two">
@@ -4757,6 +4826,36 @@ function SettingsDrawer({
               <option value="deep">精读</option>
             </select>
           </label>
+          <label>
+            <span>智子算力档位</span>
+            <select
+              name="zhiziGpuTier"
+              defaultValue={dashboard.settings.zhiziGpuTier}
+              onChange={(event) => {
+                const tier = event.target.value as AppSettings['zhiziGpuTier']
+                const gpuType = tier === 'deep' ? '6x' : tier === 'fast' ? '3x' : '1x'
+                autoSave({ zhiziGpuTier: tier, zhiziGpuType: gpuType }, 0)
+              }}
+            >
+              <option value="standard">标准 · 1x · 日常复盘</option>
+              <option value="fast">快速 · 3x · 胜率图和当前手</option>
+              <option value="deep">深度 · 6x · 关键局面精读</option>
+            </select>
+            <small>以智子官方实际可用算力为准；如果账号未开通对应档位，会提示需开通或暂无 worker。</small>
+          </label>
+          <label>
+            <span>远程权重</span>
+            <input
+              name="zhiziKataWeight"
+              defaultValue={dashboard.settings.zhiziKataWeight}
+              placeholder="28bnbt"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              onBlur={(event) => autoSave({ zhiziKataWeight: event.target.value.trim() || '28bnbt' }, 0)}
+            />
+            <small>默认使用官方文档示例 `28bnbt`。如果智子给出新权重名，可在这里替换。</small>
+          </label>
         </div>
         <div className="zhizi-connection-actions">
           <button
@@ -4783,8 +4882,36 @@ function SettingsDrawer({
           >
             {zhiziTestBusy ? '检测中...' : '检测连接'}
           </button>
-          <small>{zhiziEnabled ? '当前已选择智子云。若分析提示需登录，请先完成下面的账号登录。' : '当前使用本机 KataGo，不会连接智子云。'}</small>
+          <button
+            className="ghost-button"
+            type="button"
+            disabled={busy !== '' || zhiziLoginBusy || zhiziTestBusy}
+            onClick={() => void inspectZhiziCloudAccount()}
+          >
+            检测账号
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            disabled={busy !== '' || zhiziLoginBusy || zhiziTestBusy}
+            onClick={() => void refreshZhiziCloudSession()}
+          >
+            刷新远程会话
+          </button>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => void openZhiziBillingHelp()}
+          >
+            官方开通说明
+          </button>
+          <small>{zhiziEnabled ? `当前已选择智子云。上次检测：${zhiziLastCheckedText}` : '当前使用本机 KataGo，不会连接智子云。'}</small>
         </div>
+        {dashboard.settings.zhiziLastStatus === 'no-credit' ? (
+          <div className="test-message">
+            智子云账号没有可用算力或额度不足。请先查看智子官方开通说明，完成购买/开通后回到这里点击“刷新远程会话”。
+          </div>
+        ) : null}
         {zhiziTestMessage ? <div className="test-message">{zhiziTestMessage}</div> : null}
         <div className="settings-subsection zhizi-login-panel">
           <h4>登录智子云</h4>
@@ -4879,6 +5006,44 @@ function SettingsDrawer({
           <summary>高级兼容选项</summary>
           <div className="settings-advanced__body">
             <p>普通用户不需要填写这里。只有在账号登录不可用、或需要兼容旧智子连接器时才使用。</p>
+            <div className="settings-grid-two">
+              <label>
+                <span>Platform</span>
+                <input
+                  name="zhiziPlatform"
+                  defaultValue={dashboard.settings.zhiziPlatform}
+                  placeholder="all"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onBlur={(event) => autoSave({ zhiziPlatform: event.target.value.trim() || 'all' }, 0)}
+                />
+              </label>
+              <label>
+                <span>GPU Type</span>
+                <input
+                  name="zhiziGpuType"
+                  defaultValue={dashboard.settings.zhiziGpuType}
+                  placeholder="1x / 3x / 6x / 12x"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onBlur={(event) => autoSave({ zhiziGpuType: event.target.value.trim() }, 0)}
+                />
+              </label>
+              <label>
+                <span>Kata Name</span>
+                <input
+                  name="zhiziKataName"
+                  defaultValue={dashboard.settings.zhiziKataName}
+                  placeholder="katago-TENSORRT"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  onBlur={(event) => autoSave({ zhiziKataName: event.target.value.trim() || 'katago-TENSORRT' }, 0)}
+                />
+              </label>
+            </div>
             <div className="llm-api-key-field">
               <label>
                 <span>Token（可选）</span>

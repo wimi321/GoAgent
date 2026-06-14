@@ -107,8 +107,15 @@ export interface AppSettings {
   zhiziClientBin: string
   zhiziUsername: string
   zhiziToken: string
+  zhiziGpuTier: ZhiziCloudGpuTier
+  zhiziPlatform: string
+  zhiziGpuType: string
+  zhiziKataName: string
+  zhiziKataWeight: string
   zhiziExtraArgs: string
   zhiziUseWhenLocalSlow: boolean
+  zhiziLastStatus: ZhiziCloudStatus
+  zhiziLastCheckedAt: string
   pythonBin: string
   llmBaseUrl: string
   llmApiKey: string
@@ -157,6 +164,15 @@ export interface AppSettings {
 export type KataGoEngineMode = 'auto' | 'persistent' | 'spawn' | 'ikatago' | 'zhizi'
 export type KataGoAnalysisSpeedMode = 'auto' | 'fast' | 'balanced' | 'deep'
 export type KataGoModelPresetId = string
+export type ZhiziCloudGpuTier = 'standard' | 'fast' | 'deep'
+export type ZhiziCloudStatus =
+  | 'logged-out'
+  | 'logged-in'
+  | 'ready'
+  | 'no-credit'
+  | 'token-expired'
+  | 'network-error'
+  | 'worker-unavailable'
 
 export interface ZhiziCloudLoginRequest {
   phone: string
@@ -181,11 +197,21 @@ export interface ZhiziCloudLoginResult {
   ok: boolean
   message: string
   hasToken: boolean
+  status?: ZhiziCloudStatus
+  dashboard?: DashboardData
+}
+
+export interface ZhiziCloudAccountStatusResult {
+  ok: boolean
+  status: ZhiziCloudStatus
+  message: string
+  account?: Record<string, unknown>
   dashboard?: DashboardData
 }
 
 export interface ZhiziCloudConnectionTestResult {
   ok: boolean
+  status?: ZhiziCloudStatus
   message: string
   candidateCount?: number
   topMove?: string

@@ -1,8 +1,11 @@
-import type { ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudSendCodeRequest } from '@main/lib/types'
+import type { ZhiziCloudAccountStatusResult, ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudSendCodeRequest } from '@main/lib/types'
 
 const ZHIZI_LOGIN_URL = 'https://www.zhizigo.com/api/cluster/account/login'
 const ZHIZI_SEND_CODE_URL = 'https://www.zhizigo.com/api/cluster/account/send-code'
 const ZHIZI_FAST_LOGIN_URL = 'https://www.zhizigo.com/api/cluster/account/fast-login'
+const ZHIZI_ME_URL = 'https://www.zhizigo.com/api/cluster/account/me'
+
+export const ZHIZI_BILLING_HELP_URL = 'http://www.zhizigo.cn/faq#pricing'
 
 function findToken(value: unknown): string {
   if (!value || typeof value !== 'object') return ''
@@ -74,6 +77,36 @@ async function postZhiziJson(url: string, body: Record<string, unknown>, timeout
   }
 }
 
+async function getZhiziJson(url: string, token: string, timeoutMs = 15_000): Promise<{ status: number; ok: boolean; json: unknown; rawText: string }> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token.trim()}`
+      },
+      signal: controller.signal
+    })
+    const rawText = await response.text()
+    let json: unknown = undefined
+    try {
+      json = rawText ? JSON.parse(rawText) : undefined
+    } catch {
+      json = undefined
+    }
+    return { status: response.status, ok: response.ok, json, rawText }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('智子云账号状态检测超时，请检查网络后重试。')
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export async function loginZhiziCloudByPassword(request: ZhiziCloudLoginRequest): Promise<{ token: string; message: string }> {
   const phone = request.phone.trim()
   const password = request.password.trim()
@@ -119,4 +152,35 @@ export async function loginZhiziCloudByCode(request: ZhiziCloudLoginCodeRequest)
     throw new Error('智子云验证码登录成功但没有返回 token，请稍后重试。')
   }
   return { token, message: '智子云验证码登录成功，已保存 token。' }
+}
+
+export async function inspectZhiziCloudAccount(token: string): Promise<ZhiziCloudAccountStatusResult> {
+  if (!token.trim()) {
+    return {
+      ok: false,
+      status: 'logged-out',
+      message: '智子云未登录：请先用账号密码或短信验证码登录。'
+    }
+  }
+  const response = await getZhiziJson(ZHIZI_ME_URL, token)
+  if (response.ok) {
+    return {
+      ok: true,
+      status: 'logged-in',
+      message: '智子云账号登录有效。下一步可以检测远程算力。',
+      account: response.json && typeof response.json === 'object' ? response.json as Record<string, unknown> : undefined
+    }
+  }
+  if (response.status === 401 || response.status === 403) {
+    return {
+      ok: false,
+      status: 'token-expired',
+      message: '智子云 token 已失效，请退出后重新登录。'
+    }
+  }
+  return {
+    ok: false,
+    status: response.status >= 500 ? 'worker-unavailable' : 'network-error',
+    message: `智子云账号状态检测失败：HTTP ${response.status}${response.rawText ? ` · ${response.rawText.slice(0, 160)}` : ''}`
+  }
 }
