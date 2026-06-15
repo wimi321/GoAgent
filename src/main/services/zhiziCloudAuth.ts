@@ -5,7 +5,7 @@ const ZHIZI_SEND_CODE_URL = 'https://www.zhizigo.com/api/cluster/account/send-co
 const ZHIZI_FAST_LOGIN_URL = 'https://www.zhizigo.com/api/cluster/account/fast-login'
 const ZHIZI_ME_URL = 'https://www.zhizigo.com/api/cluster/account/me'
 
-export const ZHIZI_BILLING_HELP_URL = 'http://www.zhizigo.cn/faq#pricing'
+export const ZHIZI_OFFICIAL_APP_DOWNLOAD_URL = 'https://zhizigo.com/download'
 
 function findToken(value: unknown): string {
   if (!value || typeof value !== 'object') return ''

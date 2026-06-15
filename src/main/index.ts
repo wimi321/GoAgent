@@ -30,7 +30,7 @@ import {
 } from './services/studentProfile'
 import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 import { clearTtsCache, inspectTtsAssets, listTtsVoices, synthesizeTts, testTtsSettings } from './services/tts'
-import { inspectZhiziCloudAccount, loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode, ZHIZI_BILLING_HELP_URL } from './services/zhiziCloudAuth'
+import { inspectZhiziCloudAccount, loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode, ZHIZI_OFFICIAL_APP_DOWNLOAD_URL } from './services/zhiziCloudAuth'
 import { queryZhiziGtpAnalysisBatch } from './services/zhiziGtpEngine'
 
 let mainWindow: BrowserWindow | null = null
@@ -113,7 +113,7 @@ function classifyZhiziConnectionError(error: unknown): { status: ZhiziCloudStatu
   if (/not_enough_credit|余额不足|not enough credit|没有可用算力/i.test(text)) {
     return {
       status: 'no-credit',
-      message: '智子云 token 有效，但远程 worker 分配失败：当前账号没有可用算力或额度不足。请查看智子官方开通说明，完成后回到 GoAgent 重新检测。'
+      message: '智子云 token 有效，但远程 worker 分配失败：当前账号没有可用算力或额度不足。请下载智子官方 App，在 App 内充值/开通后回到 GoAgent 重新检测。'
     }
   }
   if (/invalid_status|NoSuchKey|ssh\.json|colab/i.test(text)) {
@@ -602,9 +602,9 @@ app.whenReady().then(() => {
       dashboard: await dashboard()
     }
   })
-  ipcMain.handle('zhizi:open-billing-help', async () => {
-    await shell.openExternal(ZHIZI_BILLING_HELP_URL)
-    return { ok: true, url: ZHIZI_BILLING_HELP_URL }
+  ipcMain.handle('zhizi:open-official-app-download', async () => {
+    await shell.openExternal(ZHIZI_OFFICIAL_APP_DOWNLOAD_URL)
+    return { ok: true, url: ZHIZI_OFFICIAL_APP_DOWNLOAD_URL }
   })
   async function runZhiziConnectionTest(): Promise<ZhiziCloudConnectionTestResult> {
     const settings = getSettings()

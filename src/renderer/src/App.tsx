@@ -4565,11 +4565,11 @@ function SettingsDrawer({
     }
   }
 
-  async function openZhiziBillingHelp(): Promise<void> {
+  async function openZhiziOfficialAppDownload(): Promise<void> {
     try {
-      await window.goagent.openZhiziBillingHelp()
+      await window.goagent.openZhiziOfficialAppDownload()
     } catch (cause) {
-      setZhiziTestMessage(`无法打开智子官方开通说明：${String(cause).replace(/^Error:\s*/, '')}`)
+      setZhiziTestMessage(`无法打开智子官方 App 下载页：${String(cause).replace(/^Error:\s*/, '')}`)
     }
   }
 
@@ -4901,15 +4901,15 @@ function SettingsDrawer({
           <button
             className="ghost-button"
             type="button"
-            onClick={() => void openZhiziBillingHelp()}
+            onClick={() => void openZhiziOfficialAppDownload()}
           >
-            官方开通说明
+            下载智子官方 App
           </button>
           <small>{zhiziEnabled ? `当前已选择智子云。上次检测：${zhiziLastCheckedText}` : '当前使用本机 KataGo，不会连接智子云。'}</small>
         </div>
         {dashboard.settings.zhiziLastStatus === 'no-credit' ? (
           <div className="test-message">
-            智子云账号没有可用算力或额度不足。请先查看智子官方开通说明，完成购买/开通后回到这里点击“刷新远程会话”。
+            智子云账号没有可用算力或额度不足。请先下载智子官方 App，并在 App 内充值/开通远程算力；完成后回到这里点击“刷新远程会话”。
           </div>
         ) : null}
         {zhiziTestMessage ? <div className="test-message">{zhiziTestMessage}</div> : null}

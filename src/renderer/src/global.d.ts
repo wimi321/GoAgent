@@ -121,7 +121,7 @@ declare global {
       inspectZhiziCloudAccount: () => Promise<ZhiziCloudAccountStatusResult>
       testZhiziCloudConnection: () => Promise<ZhiziCloudConnectionTestResult>
       refreshZhiziCloudSession: () => Promise<ZhiziCloudConnectionTestResult>
-      openZhiziBillingHelp: () => Promise<{ ok: boolean; url: string }>
+      openZhiziOfficialAppDownload: () => Promise<{ ok: boolean; url: string }>
       inspectTtsAssets: () => Promise<TtsAssetStatus>
       listTtsVoices: () => Promise<TtsVoice[]>
       synthesizeTts: (payload: TtsSynthesisRequest) => Promise<TtsSynthesisResult>
