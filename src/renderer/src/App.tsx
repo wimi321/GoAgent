@@ -462,6 +462,9 @@ function kataGoRuntimeErrorMessage(error: unknown): string {
   if (/连接令牌获取失败|fetch failed|ECONNRESET|websocket error|Socket 连接失败|Socket 已断开|transport error|xhr poll error/i.test(text)) {
     return '智子云连接失败或网络不稳定，请稍后重试；如果反复出现，可以切换本地 KataGo 或检查智子云账号状态。'
   }
+  if (/Unknown system error -86|Bad CPU type in executable|架构与当前 Mac 不匹配/i.test(text)) {
+    return 'KataGo 引擎架构与当前 Mac 不匹配。Apple Silicon 请下载 mac-arm64 版，Intel Mac 请下载 mac-x64 版；如果你手动选择过 KataGo 程序，请在设置里换成同架构版本。'
+  }
   return text
 }
 

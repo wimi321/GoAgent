@@ -150,6 +150,7 @@ export interface KataGoRuntime {
 interface BundledAssetMetadata {
   modelPath?: string
   binaryPath?: string
+  binaryPlatform?: string
 }
 
 function platformBinaryName(): string {
@@ -173,6 +174,10 @@ function platformCompatibleBinaryPath(path: string): boolean {
     return false
   }
   const normalized = path.replace(/\\/g, '/')
+  const expectedKey = platformKey()
+  if (/\/(darwin|win32|linux)-[^/]+\//.test(normalized) && !normalized.includes(`/${expectedKey}/`)) {
+    return false
+  }
   if (process.platform !== 'win32' && (/\/win32-[^/]+\//.test(normalized) || /\.exe$/i.test(normalized))) {
     return false
   }
@@ -224,9 +229,11 @@ function bundledMetadata(root: string): BundledAssetMetadata {
   const manifestModel = typeof manifest?.modelPath === 'string' ? manifest.modelPath : ''
   const editionModel = typeof edition?.modelPath === 'string' ? edition.modelPath : ''
   const editionBinary = typeof edition?.binaryPath === 'string' ? edition.binaryPath : ''
+  const editionPlatform = typeof edition?.platform === 'string' ? edition.platform : ''
   return {
     modelPath: editionModel || manifestModel || '',
-    binaryPath: editionBinary || ''
+    binaryPath: editionPlatform === platformKey() ? editionBinary : '',
+    binaryPlatform: editionPlatform || undefined
   }
 }
 

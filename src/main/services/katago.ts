@@ -514,6 +514,23 @@ function buildKataGoPayload(query: AnalysisQuery): Record<string, unknown> {
   return payload
 }
 
+function normalizeLocalKataGoProcessError(error: unknown, binaryPath: string): Error {
+  const text = error instanceof Error ? error.message : String(error)
+  const errorRecord = error && typeof error === 'object' ? error as { errno?: number; code?: string } : {}
+  if (
+    process.platform === 'darwin' &&
+    (errorRecord.errno === -86 || /Unknown system error -86|Bad CPU type in executable/i.test(text))
+  ) {
+    return new Error([
+      'KataGo 引擎架构与当前 Mac 不匹配，macOS 拒绝启动。',
+      `当前平台: darwin-${process.arch}。`,
+      `KataGo 路径: ${binaryPath}。`,
+      '请安装对应芯片的 GoAgent macOS 包（Apple Silicon 下载 mac-arm64，Intel Mac 下载 mac-x64），或在设置中选择同架构的 KataGo 程序。'
+    ].join(' '))
+  }
+  return error instanceof Error ? error : new Error(text)
+}
+
 async function queryKataGoBatch(
   queries: AnalysisQuery[],
   onResponse?: (response: KataGoResponse) => void,
@@ -640,10 +657,11 @@ async function queryKataGoBatch(
       stdio: ['pipe', 'pipe', 'pipe']
     })
   } catch (error) {
+    const normalizedError = normalizeLocalKataGoProcessError(error, command[0])
     if (canUseZhiziAutoFallback(error)) {
       return queryZhiziAfterLocalFailure(error)
     }
-    throw error
+    throw normalizedError
   }
 
   let stderr = ''
@@ -761,7 +779,7 @@ async function queryKataGoBatch(
       clearPartialTimer()
       cleanup()
       engineLease.finish('error')
-      reject(error)
+      reject(normalizeLocalKataGoProcessError(error, command[0]))
     })
 
     child.once('close', (code) => {
