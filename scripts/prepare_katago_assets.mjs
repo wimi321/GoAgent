@@ -77,7 +77,15 @@ async function findRuntimeBinary(assetDir, platform) {
 
   const expectedName = basename(platform.binaryPath).toLowerCase()
   const candidates = (await walkFiles(assetRoot)).filter((file) => basename(file).toLowerCase() === expectedName)
-  candidates.sort((left, right) => candidateScore(right, ['win64', 'win32', 'x64']) - candidateScore(left, ['win64', 'win32', 'x64']))
+  const normalizedPlatformPath = platform.binaryPath.replaceAll('\\', '/').toLowerCase()
+  const platformHints = normalizedPlatformPath.includes('darwin-arm64')
+    ? ['darwin-arm64', 'apple-silicon', 'arm64']
+    : normalizedPlatformPath.includes('darwin-x64')
+      ? ['darwin-x64', 'mac-intel', 'x86_64', 'x64']
+      : normalizedPlatformPath.includes('win32-x64')
+        ? ['win64', 'win32', 'x64']
+        : normalizedPlatformPath.split('/').filter(Boolean)
+  candidates.sort((left, right) => candidateScore(right, platformHints) - candidateScore(left, platformHints))
   return candidates[0] ?? ''
 }
 

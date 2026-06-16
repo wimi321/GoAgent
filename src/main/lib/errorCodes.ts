@@ -1,6 +1,7 @@
 export type GoAgentErrorCode =
   | 'APP_HOME_NOT_WRITABLE'
   | 'KATAGO_BINARY_MISSING'
+  | 'KATAGO_BINARY_ARCH_MISMATCH'
   | 'KATAGO_BINARY_NOT_EXECUTABLE'
   | 'KATAGO_MODEL_MISSING'
   | 'KATAGO_CONFIG_FAILED'
@@ -31,6 +32,15 @@ export function toUserFacingError(error: unknown, fallbackCode: GoAgentErrorCode
       title: 'KataGo 模型缺失',
       message: '应用没有找到默认 KataGo 模型，无法进行围棋局面分析。',
       action: '请重新安装完整安装包，或在设置中选择可用模型文件。',
+      technicalDetail: text
+    }
+  }
+  if (/Unknown system error -86|Bad CPU type in executable|架构与当前 Mac 不匹配/i.test(text)) {
+    return {
+      code: 'KATAGO_BINARY_ARCH_MISMATCH',
+      title: 'KataGo 架构不匹配',
+      message: '当前 KataGo 程序不能在这台 Mac 上运行。',
+      action: 'Apple Silicon 请安装 mac-arm64 版，Intel Mac 请安装 mac-x64 版；如果你手动选择了 KataGo 程序，请换成同架构版本。',
       technicalDetail: text
     }
   }

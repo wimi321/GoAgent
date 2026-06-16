@@ -40,8 +40,32 @@ test('official KataGo model installer is wired through main preload and settings
   assert.match(runtime, /join\(__dirname, '\.\.\/\.\.\/data\/katago'\)/)
   assert.match(runtime, /platformCompatibleBinaryPath/)
   assert.match(runtime, /firstExistingBinary/)
+  assert.match(runtime, /editionPlatform === platformKey\(\) \? editionBinary : ''/)
+  assert.match(runtime, /expectedKey = platformKey\(\)/)
+  assert.match(runtime, /darwin\|win32\|linux/)
+  assert.match(runtime, /normalized\.includes\(`\/\$\{expectedKey\}\/`\)/)
   assert.match(runtime, /\\\/win32-\[\^\/\]\+\\\//)
   assert.match(runtime, /\\.exe/)
+
+  const assets = read('src/main/services/katago/katagoAssets.ts')
+  assert.match(assets, /editionBinaryPathForPlatform/)
+  assert.match(assets, /edition\.platform === key/)
+
+  const prepareScript = read('scripts/prepare_katago_assets.mjs')
+  assert.match(prepareScript, /darwin-arm64/)
+  assert.match(prepareScript, /apple-silicon/)
+  assert.match(prepareScript, /darwin-x64/)
+  assert.match(prepareScript, /mac-intel/)
+
+  const checkScript = read('scripts/check_katago_assets.mjs')
+  assert.match(checkScript, /binaryArchitectureProblem/)
+  assert.match(checkScript, /KataGo binary architecture mismatch/)
+  assert.match(checkScript, /darwin-x64' \? 'x86_64'/)
+  assert.match(checkScript, /darwin-arm64' \? 'arm64'/)
+
+  const appErrorCopy = read('src/renderer/src/App.tsx')
+  assert.match(appErrorCopy, /Unknown system error -86/)
+  assert.match(appErrorCopy, /Apple Silicon 请下载 mac-arm64/)
 
   const main = read('src/main/index.ts')
   assert.match(main, /katago-assets:install-official-model/)

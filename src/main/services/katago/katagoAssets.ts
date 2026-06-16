@@ -51,6 +51,7 @@ interface KataGoEditionMetadata {
   modelPath?: string
   binaryPath?: string
   flavor?: string
+  platform?: string
 }
 
 const execFileAsync = promisify(execFile)
@@ -58,6 +59,13 @@ const WINDOWS_OPENCL_RUNTIME_URL = 'https://github.com/wimi321/lizzieyzy-next/re
 
 function platformKey(): string {
   return `${process.platform}-${process.arch}`
+}
+
+function editionBinaryPathForPlatform(edition: KataGoEditionMetadata | null, key: string): string {
+  if (!edition?.binaryPath) {
+    return ''
+  }
+  return edition.platform === key ? edition.binaryPath : ''
 }
 
 function userKatagoRoot(): string | null {
@@ -365,7 +373,9 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
   }
 
   const edition = await readEditionMetadata(root)
-  const binaryPath = join(root, edition?.binaryPath || platform.binaryPath)
+  const editionBinaryPath = editionBinaryPathForPlatform(edition, key)
+  const displayBinaryPath = editionBinaryPath || platform.binaryPath
+  const binaryPath = join(root, displayBinaryPath)
   const manifestModelPath = join(root, manifest.modelPath)
   const editionModelPath = edition?.modelPath ? join(root, edition.modelPath) : ''
   const editionModelFound = editionModelPath ? await exists(editionModelPath) : false
@@ -392,8 +402,8 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
   const detail = ready
     ? `已找到 ${basename(binaryPath)} 和 ${edition?.flavor === 'nvidia' ? 'NVIDIA bundled model' : manifest.defaultModelDisplayName}。`
     : [
-        binaryFound ? '' : `缺少引擎: ${edition?.binaryPath || platform.binaryPath}`,
-        binaryFound && !binaryExecutable ? `引擎不可执行: ${edition?.binaryPath || platform.binaryPath}` : '',
+        binaryFound ? '' : `缺少引擎: ${displayBinaryPath}`,
+        binaryFound && !binaryExecutable ? `引擎不可执行: ${displayBinaryPath}` : '',
         modelFound ? '' : `缺少模型: ${edition?.modelPath || manifest.modelPath}`,
         checksumDetail
       ].filter(Boolean).join('；')
