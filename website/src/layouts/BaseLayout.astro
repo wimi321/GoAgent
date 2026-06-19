@@ -69,7 +69,7 @@ const copyByLang = {
     brand: 'LizzieYzy Next',
     brandSub: '专业围棋复盘',
     goAgentSub: '实验围棋智能体',
-    nav: { products: '产品', workflow: '工作流', download: '下载', docs: '文档', faq: 'FAQ' },
+    nav: { products: '功能', workflow: '工作流', download: '下载', docs: '使用指南', faq: '常见问题' },
     cta: '免费下载',
     footer: '首推 LizzieYzy Next 做稳定全盘复盘；GoAgent 作为实验围棋智能体，探索 AI 讲棋的新工作流。',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
@@ -87,7 +87,7 @@ const copyByLang = {
     brand: 'LizzieYzy Next',
     brandSub: '專業圍棋復盤',
     goAgentSub: '實驗圍棋智能體',
-    nav: { products: '產品', workflow: '工作流', download: '下載', docs: '文檔', faq: 'FAQ' },
+    nav: { products: '功能', workflow: '工作流', download: '下載', docs: '使用指南', faq: '常見問題' },
     cta: '免費下載',
     footer: '首推 LizzieYzy Next 做穩定全盤復盤；GoAgent 是實驗中的圍棋智能體，探索 AI 講棋工作流。',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
@@ -200,11 +200,42 @@ const sectionHref = (section: string) => `${homeHref === '/' ? '/' : homeHref}#$
 const localizedPageKeys = new Set(['home', 'download', 'docs', 'privacy', 'faq', 'changelog'])
 const languagePageKey = localizedPageKeys.has(pageKey) ? pageKey : 'home'
 
+const homeLabels = {
+  'zh-CN': '首页',
+  'zh-Hant': '首頁',
+  en: 'Home',
+  ja: 'ホーム',
+  ko: '홈',
+  th: 'หน้าแรก',
+  vi: 'Trang chủ'
+} as const
+
+const changelogLabels = {
+  'zh-CN': '更新日志',
+  'zh-Hant': '更新日誌',
+  en: 'Changelog',
+  ja: '更新履歴',
+  ko: '변경 기록',
+  th: 'บันทึกอัปเดต',
+  vi: 'Nhật ký'
+} as const
+
+const currentLanguageLabels = {
+  'zh-CN': '简体中文',
+  'zh-Hant': '繁體中文',
+  en: 'English',
+  ja: '日本語',
+  ko: '한국어',
+  th: 'ไทย',
+  vi: 'Tiếng Việt'
+} as const
+
 const navItems = [
-  { href: sectionHref('products'), label: copy.nav.products },
-  { href: sectionHref('workflow'), label: copy.nav.workflow },
+  { href: homeHref, label: homeLabels[siteLang] },
   { href: sectionHref('download'), label: copy.nav.download },
+  { href: sectionHref('products'), label: copy.nav.products },
   { href: localizedPath(siteLang, 'docs'), label: copy.nav.docs },
+  { href: localizedPath(siteLang, 'changelog'), label: changelogLabels[siteLang] },
   { href: localizedPath(siteLang, 'faq'), label: copy.nav.faq }
 ]
 
@@ -265,26 +296,31 @@ const alternateItems = localizedPageKeys.has(pageKey)
     <a class="skip-link" href="#content">{copy.skip}</a>
     <div class="site-shell">
       <header class="site-header">
-        <div class="brand-cluster" aria-label="Site brands">
-          <a class="brand brand-primary" href={homeHref} aria-label="LizzieYzy Next home">
-            <img src="/logo.svg" alt="" width="36" height="36" />
-            <span>{copy.brand}</span>
-            <small>{copy.brandSub}</small>
-          </a>
-          <a class="brand brand-secondary" href={goAgentUrl} aria-label="GoAgent GitHub">
-            <img src="/logo.svg" alt="" width="30" height="30" />
-            <span>GoAgent</span>
-            <small>{copy.goAgentSub}</small>
-          </a>
-        </div>
+        <a class="site-logo" href={homeHref} aria-label="GoAgent home">
+          <img src="/logo.svg" alt="" width="46" height="46" />
+          <span>GoAgent</span>
+        </a>
         <nav aria-label="Primary">
           {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
         <div class="header-actions">
-          <div class="language-switcher" aria-label="Language">
-            {languageItems.map((item) => <a href={item.href}>{item.label}</a>)}
-          </div>
-          <a class="header-cta" href={sectionHref('download')}>{copy.cta}</a>
+          <details class="language-menu">
+            <summary aria-label="Language selector">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18" />
+                <path d="M12 3a14 14 0 0 1 0 18" />
+                <path d="M12 3a14 14 0 0 0 0 18" />
+              </svg>
+              <span>{currentLanguageLabels[siteLang]}</span>
+              <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m7 10 5 5 5-5" />
+              </svg>
+            </summary>
+            <div class="language-menu-list">
+              {languageItems.map((item) => <a href={item.href}>{item.label}</a>)}
+            </div>
+          </details>
         </div>
       </header>
       <main id="content">
