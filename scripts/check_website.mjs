@@ -53,6 +53,11 @@ requireFile('website/public/ai.txt')
 
 const index = read('website/src/pages/index.astro')
 const downloadPage = read('website/src/pages/download.astro')
+const docsPage = read('website/src/pages/docs.astro')
+const faqPage = read('website/src/pages/faq.astro')
+const changelogPage = read('website/src/pages/changelog.astro')
+const localizedHome = read('website/src/pages/[locale].astro')
+const localizedPages = read('website/src/pages/[locale]/[page].astro')
 const layout = read('website/src/layouts/BaseLayout.astro')
 const privacy = read('website/src/pages/privacy.astro')
 const deployment = read('website/DEPLOYMENT.md')
@@ -74,14 +79,49 @@ if (!index.includes('国内下载（百度网盘）')) fail('homepage hero must 
 if (!index.includes('国内用户优先用百度网盘下载')) fail('homepage hero must explain Baidu Netdisk as the domestic priority')
 if (!index.includes('备用：从 GitHub 下载')) fail('homepage hero must explain GitHub as backup')
 if (index.includes(chooserCopy)) fail('homepage hero must not use unnecessary chooser copy')
+if (index.includes('打不开再用')) fail('homepage should use priority/backup wording instead of troubleshooting-first wording')
 if (index.includes(baiduCodeLabel)) fail('homepage must not show a separate Baidu code label because it is already in the link')
 if (!index.includes('https://github.com/wimi321/lizzieyzy-next/releases')) fail('homepage must link LizzieYzy Next GitHub download')
 if (!index.includes('https://github.com/wimi321/GoAgent/releases')) fail('homepage must still link GoAgent GitHub download')
 if (!layout.includes('QQ 1030632742')) fail('site layout must expose QQ community')
 if (index.includes('Trust')) fail('homepage should not include Trust section')
-if (!downloadPage.includes('不知道选哪个？国内用户先点百度网盘')) fail('download page must explain the simplest download choice')
+if (!index.includes('下载顺序很简单')) fail('homepage download section must use simple download sequence copy')
+if (!downloadPage.includes('不知道选哪个？国内用户优先用百度网盘下载')) fail('download page must explain the simplest download choice')
 for (const keyword of ['SHA256', '回滚', '归档']) {
   if (downloadPage.includes(keyword)) fail(`download page should avoid technical wording: ${keyword}`)
+}
+for (const keyword of ['不用研究术语', '第一步：先下载 LizzieYzy Next', '国内用户：优先用百度网盘下载']) {
+  if (!docsPage.includes(keyword)) fail(`docs page must contain simple user guidance: ${keyword}`)
+}
+if (docsPage.includes('百度网盘打不开：')) fail('docs page should not lead with Baidu troubleshooting wording')
+for (const keyword of ['我应该先下载哪个？', 'GitHub 是备用下载入口', '不用先懂']) {
+  if (!faqPage.includes(keyword)) fail(`FAQ page must answer normal-user questions: ${keyword}`)
+}
+for (const keyword of ['官网首页更简单', '多语言页面同步更新', '普通用户不用先理解项目区别']) {
+  if (!changelogPage.includes(keyword)) fail(`changelog page must use user-facing copy: ${keyword}`)
+}
+for (const keyword of [
+  'homeCopy',
+  'Review Go games?',
+  'China download (Baidu)',
+  'GitHub download',
+  'home-proof-strip',
+  'hero-actions',
+  'Tải tại Trung Quốc (Baidu)'
+]) {
+  if (!localizedHome.includes(keyword)) fail(`localized homepage must use the simplified homepage system: ${keyword}`)
+}
+if (localizedHome.includes('<figure class="hero-art">')) fail('localized homepage must not render the old hero-art layout')
+for (const keyword of [
+  'simpleDownloads',
+  'Download LizzieYzy Next first',
+  'What should I download first?',
+  'Changelog - LizzieYzy Next and GoAgent Website',
+  'Tải LizzieYzy Next trước',
+  'ดาวน์โหลด LizzieYzy Next',
+  "page === 'download' ? simpleDownloads"
+]) {
+  if (!localizedPages.includes(keyword)) fail(`localized pages must use simple download/docs/FAQ/changelog copy: ${keyword}`)
 }
 for (const keyword of ['本地', 'LLM', 'TTS']) {
   if (!privacy.includes(keyword)) fail(`privacy page must contain ${keyword}`)

@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro'
 
 const lizzieReleasesUrl = 'https://github.com/wimi321/lizzieyzy-next/releases'
 const goAgentReleasesUrl = 'https://github.com/wimi321/GoAgent/releases'
+const lizzieBaiduUrl = 'https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w'
 
 const localeKeys = ['zh-hant', 'en', 'ja', 'ko', 'th', 'vi'] as const
 const pageKeys = ['download', 'docs', 'privacy', 'faq', 'changelog'] as const
@@ -247,6 +248,223 @@ const localized = {
   }
 } as const
 
+const simpleDownloads = {
+  'zh-hant': {
+    title: '下載 LizzieYzy Next - 百度網盤與 GitHub',
+    description: '先下載 LizzieYzy Next；中國大陸用戶優先用百度網盤，GitHub 是備用入口，GoAgent 是實驗功能。',
+    eyebrow: '下載',
+    h1: '下載 LizzieYzy Next',
+    lead: '大多數棋友先裝 LizzieYzy Next。中國大陸用戶優先用百度網盤下載；GitHub 是備用入口；GoAgent 想嘗鮮再試。',
+    tools: [
+      ['推薦先用', 'LizzieYzy Next 百度網盤', '適合中國大陸用戶，先下載這個開始復盤。', lizzieBaiduUrl, '百度網盤下載', '首推', true],
+      ['備用入口', 'LizzieYzy Next GitHub', '百度網盤不方便時使用。找自己電腦系統對應的安裝包。', lizzieReleasesUrl, '從 GitHub 下載', '備用', false],
+      ['想嘗鮮再試', 'GoAgent', '實驗圍棋智能體，適合想試 AI 講棋的用戶。', goAgentReleasesUrl, '試用 GoAgent', '實驗', false]
+    ],
+    noticeTitle: '普通用戶怎麼選',
+    noticeItems: ['只想復盤：先下載 LizzieYzy Next。', '中國大陸用戶優先用百度網盤下載。', '想試 AI 講棋，再下載 GoAgent。']
+  },
+  en: {
+    title: 'Download LizzieYzy Next - Baidu and GitHub',
+    description: 'Download LizzieYzy Next first. China users should use Baidu Netdisk; GitHub is the backup; GoAgent is experimental.',
+    eyebrow: 'Download',
+    h1: 'Download LizzieYzy Next',
+    lead: 'Most players should install LizzieYzy Next first. China users should use Baidu Netdisk first; GitHub is the backup; try GoAgent only when you want the experiment.',
+    tools: [
+      ['Recommended first', 'LizzieYzy Next via Baidu', 'Best for users in China who want the simplest download path.', lizzieBaiduUrl, 'Download from Baidu', 'Recommended', true],
+      ['Backup path', 'LizzieYzy Next via GitHub', 'Use this backup download page and pick the package for your computer.', lizzieReleasesUrl, 'Download from GitHub', 'Backup', false],
+      ['Try later', 'GoAgent', 'An experimental Go agent for users who want to try AI move explanations.', goAgentReleasesUrl, 'Try GoAgent', 'Experimental', false]
+    ],
+    noticeTitle: 'Simple choice',
+    noticeItems: ['Stable review: download LizzieYzy Next first.', 'China users should use Baidu Netdisk first.', 'AI explanations: try GoAgent later.']
+  },
+  ja: {
+    title: 'LizzieYzy Next ダウンロード - Baidu と GitHub',
+    description: 'まず LizzieYzy Next をダウンロード。中国のユーザーは Baidu、GitHub は予備、GoAgent は実験機能です。',
+    eyebrow: 'ダウンロード',
+    h1: 'LizzieYzy Next をダウンロード',
+    lead: '多くのユーザーは LizzieYzy Next から始めます。中国のユーザーは Baidu を優先し、GitHub は予備として使います。GoAgent は試したい時だけで大丈夫です。',
+    tools: [
+      ['まず推奨', 'LizzieYzy Next Baidu', '中国のユーザー向けの分かりやすい入口です。', lizzieBaiduUrl, 'Baidu でダウンロード', '推奨', true],
+      ['予備入口', 'LizzieYzy Next GitHub', '自分の OS に合うインストーラを選んでください。', lizzieReleasesUrl, 'GitHub から入手', '予備', false],
+      ['必要な時だけ', 'GoAgent', 'AI 解説を試したいユーザー向けの実験的な囲碁エージェントです。', goAgentReleasesUrl, 'GoAgent を試す', '実験', false]
+    ],
+    noticeTitle: '迷った時',
+    noticeItems: ['安定復盤は LizzieYzy Next から。', '中国のユーザーは Baidu を優先。', 'AI 解説を試す時だけ GoAgent。']
+  },
+  ko: {
+    title: 'LizzieYzy Next 다운로드 - Baidu와 GitHub',
+    description: 'LizzieYzy Next를 먼저 다운로드하세요. 중국 사용자는 Baidu, GitHub는 예비, GoAgent는 실험 기능입니다.',
+    eyebrow: '다운로드',
+    h1: 'LizzieYzy Next 다운로드',
+    lead: '대부분의 사용자는 LizzieYzy Next부터 설치하면 됩니다. 중국 사용자는 Baidu Netdisk를 먼저 쓰고, GitHub는 예비 경로로 사용하세요. GoAgent는 나중에 시험해도 됩니다.',
+    tools: [
+      ['먼저 추천', 'LizzieYzy Next Baidu', '중국 사용자가 가장 쉽게 시작할 수 있는 다운로드 경로입니다.', lizzieBaiduUrl, 'Baidu에서 다운로드', '추천', true],
+      ['예비 경로', 'LizzieYzy Next GitHub', '자기 컴퓨터에 맞는 설치 파일을 선택하세요.', lizzieReleasesUrl, 'GitHub에서 다운로드', '예비', false],
+      ['나중에 시험', 'GoAgent', 'AI 수 설명을 시험하고 싶은 사용자를 위한 실험 바둑 에이전트입니다.', goAgentReleasesUrl, 'GoAgent 시험하기', '실험', false]
+    ],
+    noticeTitle: '간단한 선택',
+    noticeItems: ['안정 복기: LizzieYzy Next 먼저.', '중국 사용자는 Baidu Netdisk 우선.', 'AI 설명은 나중에 GoAgent.']
+  },
+  th: {
+    title: 'ดาวน์โหลด LizzieYzy Next - Baidu และ GitHub',
+    description: 'ดาวน์โหลด LizzieYzy Next ก่อน ผู้ใช้ในจีนควรใช้ Baidu, GitHub เป็นช่องทางสำรอง และ GoAgent เป็นฟีเจอร์ทดลอง',
+    eyebrow: 'ดาวน์โหลด',
+    h1: 'ดาวน์โหลด LizzieYzy Next',
+    lead: 'ผู้เล่นส่วนใหญ่ควรติดตั้ง LizzieYzy Next ก่อน ผู้ใช้ในจีนควรใช้ Baidu Netdisk เป็นหลัก GitHub เป็นช่องทางสำรอง และ GoAgent ค่อยลองภายหลัง',
+    tools: [
+      ['แนะนำก่อน', 'LizzieYzy Next Baidu', 'เหมาะสำหรับผู้ใช้ในจีนที่ต้องการเริ่มดาวน์โหลดง่ายที่สุด', lizzieBaiduUrl, 'ดาวน์โหลดจาก Baidu', 'แนะนำ', true],
+      ['ช่องทางสำรอง', 'LizzieYzy Next GitHub', 'เลือกไฟล์ติดตั้งให้ตรงกับคอมพิวเตอร์ของคุณ', lizzieReleasesUrl, 'ดาวน์โหลดจาก GitHub', 'สำรอง', false],
+      ['ลองภายหลัง', 'GoAgent', 'agent หมากล้อมทดลองสำหรับคนที่อยากลองคำอธิบายด้วย AI', goAgentReleasesUrl, 'ลอง GoAgent', 'ทดลอง', false]
+    ],
+    noticeTitle: 'เลือกง่าย ๆ',
+    noticeItems: ['ทบทวนเกมให้เสถียร: ใช้ LizzieYzy Next ก่อน', 'ผู้ใช้ในจีนควรใช้ Baidu Netdisk ก่อน', 'อยากลอง AI ค่อยใช้ GoAgent']
+  },
+  vi: {
+    title: 'Tải LizzieYzy Next - Baidu và GitHub',
+    description: 'Tải LizzieYzy Next trước. Người dùng Trung Quốc nên dùng Baidu; GitHub là dự phòng; GoAgent là thử nghiệm.',
+    eyebrow: 'Tải xuống',
+    h1: 'Tải LizzieYzy Next',
+    lead: 'Đa số người chơi nên cài LizzieYzy Next trước. Người dùng Trung Quốc nên dùng Baidu Netdisk; GitHub là đường dự phòng; GoAgent chỉ cần khi muốn thử.',
+    tools: [
+      ['Khuyên dùng trước', 'LizzieYzy Next Baidu', 'Phù hợp với người dùng ở Trung Quốc muốn tải đơn giản nhất.', lizzieBaiduUrl, 'Tải từ Baidu', 'Khuyên dùng', true],
+      ['Đường dự phòng', 'LizzieYzy Next GitHub', 'Chọn bộ cài đúng với hệ điều hành của bạn.', lizzieReleasesUrl, 'Tải từ GitHub', 'Dự phòng', false],
+      ['Thử sau', 'GoAgent', 'Agent cờ vây thử nghiệm cho người muốn thử giải thích nước đi bằng AI.', goAgentReleasesUrl, 'Thử GoAgent', 'Thử nghiệm', false]
+    ],
+    noticeTitle: 'Chọn nhanh',
+    noticeItems: ['Ôn tập ổn định: tải LizzieYzy Next trước.', 'Người dùng Trung Quốc nên dùng Baidu Netdisk trước.', 'Muốn AI giải thích thì thử GoAgent sau.']
+  }
+} as const
+
+const friendlyPages = {
+  'zh-hant': {
+    docs: {
+      title: '使用指南 - LizzieYzy Next 和 GoAgent',
+      description: '普通棋友使用指南：先下載 LizzieYzy Next，打開棋譜復盤；想嘗試 AI 講棋時再試 GoAgent。',
+      eyebrow: '使用指南',
+      h1: '使用指南',
+      lead: '不用先研究術語。先下載 LizzieYzy Next，打開棋譜，看勝率、目差和關鍵失誤；想嘗試 AI 講棋時，再下載 GoAgent。',
+      steps: [
+        ['先下載 LizzieYzy Next', '大多數棋友先裝這個就夠了。中國大陸用戶優先用百度網盤；GitHub 是備用入口。'],
+        ['選對電腦系統', 'Windows 下載 Windows 包，Mac 下載 macOS 包，Linux 下載 Linux 包。先找最新版本，不必讀完整英文頁面。'],
+        ['打開棋譜開始復盤', '導入 SGF 棋譜，先看勝率、目差和關鍵失誤。先把一盤棋看明白，再研究更多設定。'],
+        ['先看三個重點', '先看勝率掉得多的手，再看目差變化，最後看 KataGo 推薦點。日常復盤抓這三件事就夠用。'],
+        ['想聽 AI 講棋再試 GoAgent', 'GoAgent 是實驗功能。只想穩定復盤，先不用安裝 GoAgent。'],
+        ['遇到問題怎麼辦', '下載卡住就換 GitHub 或網路；還不行可以到 GitHub Issues 或 QQ 群反饋。']
+      ],
+      qualityTitle: '記住一句話',
+      qualityItems: ['只想復盤：先用 LizzieYzy Next。', '下載不順：換另一個下載入口。', '想嘗試 AI 講棋：再試 GoAgent。']
+    },
+    faq: {
+      title: '常見問題 - LizzieYzy Next 和 GoAgent',
+      description: '普通用戶常見問題：下載哪個、GitHub 和百度怎麼選、GoAgent 是否必須、隱私和反饋方式。',
+      eyebrow: '常見問題',
+      h1: '常見問題',
+      lead: '先回答最常見的事：下載哪個、點哪裡、裝完怎麼開始、GoAgent 要不要用。',
+      items: [
+        ['我應該先下載哪個？', '先下載 LizzieYzy Next。它是首推的穩定復盤工具，適合大多數棋友。'],
+        ['GitHub 和百度網盤怎麼選？', '中國大陸用戶優先用百度網盤；GitHub 是備用下載入口。其他地區通常直接用 GitHub。'],
+        ['GoAgent 要一起下載嗎？', '不用。GoAgent 是實驗圍棋智能體，想嘗試 AI 講棋時再下載。'],
+        ['下載後做什麼？', '安裝 LizzieYzy Next，打開 SGF 棋譜，看勝率、目差和關鍵失誤。'],
+        ['會上傳我的棋譜嗎？', '官網不提供棋譜上傳。GoAgent 只有在你自己配置 AI 服務並發起講解時，才會調用你配置的服務。'],
+        ['怎麼反饋問題？', '可以用 GitHub Issues，也可以加入 QQ 群 1030632742 / 299419120。']
+      ]
+    },
+    changelog: {
+      title: '更新日誌 - LizzieYzy Next 和 GoAgent 官網',
+      description: '用普通用戶能看懂的方式記錄官網、下載入口和產品說明的近期更新。',
+      eyebrow: '更新日誌',
+      h1: '更新日誌',
+      lead: '這裡只寫用戶真正關心的變化：下載入口是否清楚、首頁是否好懂、GoAgent 是否仍是實驗功能。',
+      entries: [['首頁更簡單', '改成「想復盤圍棋，先下載 LizzieYzy Next」，讓普通用戶一眼知道先點哪裡。'], ['下載說明更清楚', '百度網盤、GitHub、GoAgent 三個入口分工更明確。'], ['多語言同步', '繁中、英文、日文、韓文、泰文、越文首頁同步成新版結構。'], ['指南與 FAQ 重寫', '改成普通棋友能看懂的問題和答案。']]
+    }
+  },
+  en: {
+    docs: {
+      title: 'Guide - LizzieYzy Next and GoAgent',
+      description: 'A simple guide for everyday Go players: download LizzieYzy Next first, review a game, then try GoAgent only if you want experimental AI explanations.',
+      eyebrow: 'Guide',
+      h1: 'Guide',
+      lead: 'No jargon first. Download LizzieYzy Next, open a game record, read winrate, score lead, and key mistakes. Try GoAgent later if you want AI explanations.',
+      steps: [
+        ['Download LizzieYzy Next first', 'This is enough for most players. China users can use Baidu Netdisk first; use GitHub as the backup.'],
+        ['Pick your system', 'Windows users download the Windows package, Mac users download macOS, and Linux users download Linux.'],
+        ['Open a game record', 'Import an SGF file and start with winrate, score lead, and key mistakes.'],
+        ['Look at three things', 'Find the biggest winrate drops, check the score lead, then compare KataGo candidate moves.'],
+        ['Try GoAgent only when needed', 'GoAgent is experimental. Use it when you want natural-language AI move explanations.'],
+        ['Need help?', 'If one download path is slow, try the other. For issues, use GitHub Issues or the QQ groups.']
+      ],
+      qualityTitle: 'One simple rule',
+      qualityItems: ['Stable review: use LizzieYzy Next first.', 'Download trouble: try the backup download path.', 'AI explanations: try GoAgent later.']
+    },
+    faq: {
+      title: 'FAQ - LizzieYzy Next and GoAgent',
+      description: 'Simple answers about what to download, GitHub and Baidu choices, whether GoAgent is required, privacy, and feedback.',
+      eyebrow: 'FAQ',
+      h1: 'Frequently Asked Questions',
+      lead: 'Short answers for normal users: what to download, where to click, what to do after installing, and whether GoAgent is needed.',
+      items: [
+        ['What should I download first?', 'Download LizzieYzy Next first. It is the recommended stable review tool for most players.'],
+        ['GitHub or Baidu Netdisk?', 'China users should use Baidu Netdisk first. GitHub is the backup download path. Users elsewhere usually use GitHub.'],
+        ['Do I need GoAgent too?', 'No. GoAgent is experimental. Download it later only if you want to try AI move explanations.'],
+        ['What do I do after downloading?', 'Install LizzieYzy Next, open an SGF game record, then read winrate, score lead, and key mistakes.'],
+        ['Will my game records be uploaded?', 'The website does not upload games. GoAgent only calls your configured AI service when you configure one and start an explanation task.'],
+        ['Where can I report problems?', 'Use GitHub Issues or the QQ groups 1030632742 / 299419120.']
+      ]
+    },
+    changelog: {
+      title: 'Changelog - LizzieYzy Next and GoAgent Website',
+      description: 'User-facing notes about website copy, download choices, and product positioning updates.',
+      eyebrow: 'Changelog',
+      h1: 'Changelog',
+      lead: 'Only user-visible changes are listed here: clearer download choices, simpler homepage copy, and the experimental status of GoAgent.',
+      entries: [['Simpler homepage', 'The homepage now says to download LizzieYzy Next first for Go review.'], ['Clearer downloads', 'Baidu Netdisk, GitHub, and GoAgent now have separate, easy-to-understand roles.'], ['Localized homepages', 'English, Traditional Chinese, Japanese, Korean, Thai, and Vietnamese homepages now use the same new structure.'], ['Guide and FAQ rewritten', 'The guide and FAQ now answer normal user questions first.']]
+    }
+  },
+  ja: {
+    docs: {
+      title: '使い方ガイド - LizzieYzy Next と GoAgent',
+      description: 'まず LizzieYzy Next を入れて棋譜を復盤し、AI 解説を試したい時だけ GoAgent を使うための簡単ガイド。',
+      eyebrow: 'ガイド',
+      h1: '使い方ガイド',
+      lead: '専門用語から始める必要はありません。まず LizzieYzy Next を入れ、棋譜を開き、勝率・目差・大きなミスを見ます。',
+      steps: [['まず LizzieYzy Next', '多くの人はこれだけで日常復盤を始められます。'], ['OS を選ぶ', 'Windows、macOS、Linux から自分の環境に合うものを選びます。'], ['SGF を開く', '棋譜を読み込み、勝率と目差を見ます。'], ['三つだけ見る', '大きく下がった手、目差の変化、KataGo の候補手を確認します。'], ['GoAgent は必要な時だけ', 'AI に言葉で説明させたい時の実験機能です。'], ['困ったら', 'ダウンロード経路を変えるか、GitHub Issues / QQ 群で相談してください。']],
+      qualityTitle: '覚えること',
+      qualityItems: ['安定復盤は LizzieYzy Next から。', 'ダウンロードできなければ別の入口を使う。', 'AI 解説を試す時だけ GoAgent。']
+    },
+    faq: {
+      title: 'FAQ - LizzieYzy Next と GoAgent',
+      description: '何をダウンロードするか、GoAgent が必要か、プライバシー、問い合わせ先を簡単に説明します。',
+      eyebrow: 'FAQ',
+      h1: 'よくある質問',
+      lead: '普通のユーザーが迷いやすい点だけを短く答えます。',
+      items: [['最初に何を入れる？', 'LizzieYzy Next を入れてください。多くの復盤にはこれで十分です。'], ['GitHub と Baidu は？', '中国のユーザーは Baidu、それ以外は通常 GitHub を使います。'], ['GoAgent も必要？', '必須ではありません。AI 解説を試したい時だけ使います。'], ['インストール後は？', 'SGF 棋譜を開き、勝率・目差・重要なミスを確認します。'], ['棋譜はアップロードされる？', '公式サイトは棋譜をアップロードしません。AI サービスはユーザーが設定して使う時だけ呼び出されます。'], ['問題報告は？', 'GitHub Issues または QQ 群 1030632742 / 299419120 を使ってください。']]
+    },
+    changelog: {
+      title: '更新履歴 - LizzieYzy Next と GoAgent 公式サイト',
+      description: 'ユーザーに見える変更を分かりやすく記録します。',
+      eyebrow: '更新履歴',
+      h1: '更新履歴',
+      lead: 'ダウンロード導線、トップページ、FAQ など、ユーザーに関係する変更だけをまとめます。',
+      entries: [['トップページを簡単に', 'まず LizzieYzy Next をダウンロードする流れにしました。'], ['ダウンロードを整理', 'Baidu、GitHub、GoAgent の役割を分けました。'], ['多言語を同期', '各言語のトップページを新版にそろえました。'], ['ガイドと FAQ を改善', '普通のユーザーが迷う質問から答える形にしました。']]
+    }
+  },
+  ko: {
+    docs: { title: '사용 가이드 - LizzieYzy Next와 GoAgent', description: '먼저 LizzieYzy Next로 복기하고, AI 설명이 필요할 때 GoAgent를 시험하는 간단한 안내입니다.', eyebrow: '가이드', h1: '사용 가이드', lead: '전문 용어부터 알 필요는 없습니다. LizzieYzy Next를 설치하고 기보를 열어 승률, 집 차이, 핵심 실수를 먼저 보세요.', steps: [['먼저 LizzieYzy Next', '대부분의 복기는 이것으로 시작하면 됩니다.'], ['운영체제 선택', 'Windows, macOS, Linux 중 자기 컴퓨터에 맞는 파일을 받습니다.'], ['기보 열기', 'SGF를 가져와 승률과 집 차이를 봅니다.'], ['세 가지만 확인', '큰 승률 하락, 집 차이 변화, KataGo 후보수를 봅니다.'], ['GoAgent는 필요할 때', 'AI 설명을 시험하고 싶을 때 쓰는 실험 기능입니다.'], ['도움이 필요하면', '다운로드 경로를 바꾸거나 GitHub Issues / QQ 그룹에 문의하세요.']], qualityTitle: '한 줄 요약', qualityItems: ['안정 복기: LizzieYzy Next 먼저.', '다운로드 문제: 다른 경로 사용.', 'AI 설명: 나중에 GoAgent.'] },
+    faq: { title: 'FAQ - LizzieYzy Next와 GoAgent', description: '무엇을 받을지, GoAgent가 필요한지, 개인정보와 피드백 방법을 쉽게 설명합니다.', eyebrow: 'FAQ', h1: '자주 묻는 질문', lead: '일반 사용자가 헷갈리는 질문에 짧게 답합니다.', items: [['처음 무엇을 받나요?', 'LizzieYzy Next를 먼저 받으세요. 대부분의 복기에 충분합니다.'], ['GitHub와 Baidu는?', '중국 사용자는 Baidu를 먼저 쓰고, 그 외 지역은 보통 GitHub를 씁니다.'], ['GoAgent도 필요한가요?', '필수는 아닙니다. AI 설명을 시험하고 싶을 때만 받으세요.'], ['설치 후에는?', 'SGF 기보를 열고 승률, 집 차이, 핵심 실수를 확인합니다.'], ['기보가 업로드되나요?', '웹사이트는 기보를 업로드하지 않습니다. AI 서비스는 사용자가 설정하고 작업을 시작할 때만 호출됩니다.'], ['문제 제보는?', 'GitHub Issues 또는 QQ 그룹 1030632742 / 299419120을 사용하세요.']] },
+    changelog: { title: '변경 기록 - LizzieYzy Next와 GoAgent 웹사이트', description: '사용자에게 보이는 변경만 쉽게 기록합니다.', eyebrow: '변경 기록', h1: '변경 기록', lead: '다운로드, 홈페이지, FAQ처럼 사용자에게 직접 보이는 변경을 정리합니다.', entries: [['홈페이지 단순화', '먼저 LizzieYzy Next를 다운로드하는 흐름으로 바꿨습니다.'], ['다운로드 정리', 'Baidu, GitHub, GoAgent의 역할을 구분했습니다.'], ['다국어 동기화', '각 언어 홈페이지를 새 구조로 맞췄습니다.'], ['가이드와 FAQ 개선', '일반 사용자의 질문부터 답하도록 바꿨습니다.']] }
+  },
+  th: {
+    docs: { title: 'คู่มือใช้งาน - LizzieYzy Next และ GoAgent', description: 'เริ่มจาก LizzieYzy Next เพื่อทบทวนเกม แล้วค่อยลอง GoAgent เมื่ออยากได้คำอธิบาย AI', eyebrow: 'คู่มือ', h1: 'คู่มือใช้งาน', lead: 'ไม่ต้องเริ่มจากศัพท์เทคนิค ติดตั้ง LizzieYzy Next เปิดคีฟู แล้วดูอัตราชนะ คะแนน และจุดผิดสำคัญก่อน', steps: [['เริ่มด้วย LizzieYzy Next', 'ผู้ใช้ส่วนใหญ่เริ่มตรงนี้ได้เลย'], ['เลือกไฟล์ตามระบบ', 'Windows ใช้ Windows, Mac ใช้ macOS, Linux ใช้ Linux'], ['เปิด SGF', 'นำเข้าคีฟูแล้วดูกราฟและคะแนน'], ['ดูสามอย่างก่อน', 'จุดที่อัตราชนะตก คะแนนเปลี่ยน และหมากแนะนำจาก KataGo'], ['GoAgent ใช้เมื่ออยากลอง', 'เป็นฟีเจอร์ทดลองสำหรับคำอธิบายด้วย AI'], ['ถ้ามีปัญหา', 'ลองช่องทางดาวน์โหลดอื่น หรือแจ้งผ่าน GitHub Issues / QQ']], qualityTitle: 'จำสั้น ๆ', qualityItems: ['ทบทวนเสถียร: LizzieYzy Next ก่อน', 'ดาวน์โหลดติด: ใช้อีกช่องทาง', 'อยากลอง AI: ใช้ GoAgent ภายหลัง'] },
+    faq: { title: 'FAQ - LizzieYzy Next และ GoAgent', description: 'ตอบสั้น ๆ ว่าควรดาวน์โหลดอะไร ต้องใช้ GoAgent ไหม และข้อมูลส่วนตัวเป็นอย่างไร', eyebrow: 'FAQ', h1: 'คำถามที่พบบ่อย', lead: 'ตอบคำถามที่ผู้ใช้ทั่วไปมักสงสัยก่อน', items: [['ควรดาวน์โหลดอะไรก่อน?', 'ดาวน์โหลด LizzieYzy Next ก่อน เหมาะกับการทบทวนส่วนใหญ่'], ['GitHub หรือ Baidu?', 'ผู้ใช้ในจีนใช้ Baidu ก่อน ผู้ใช้อื่นมักใช้ GitHub'], ['ต้องใช้ GoAgent ไหม?', 'ไม่จำเป็น ใช้เมื่ออยากลองคำอธิบายด้วย AI'], ['หลังติดตั้งทำอะไร?', 'เปิด SGF แล้วดูอัตราชนะ คะแนน และจุดผิดสำคัญ'], ['คีฟูถูกอัปโหลดไหม?', 'เว็บไซต์ไม่อัปโหลดคีฟู บริการ AI จะถูกเรียกเมื่อผู้ใช้ตั้งค่าและเริ่มงานเอง'], ['แจ้งปัญหาที่ไหน?', 'ใช้ GitHub Issues หรือ QQ 1030632742 / 299419120']] },
+    changelog: { title: 'บันทึกอัปเดต - เว็บไซต์ LizzieYzy Next และ GoAgent', description: 'บันทึกการเปลี่ยนแปลงที่ผู้ใช้เห็นจริง', eyebrow: 'บันทึกอัปเดต', h1: 'บันทึกอัปเดต', lead: 'สรุปเฉพาะสิ่งที่เกี่ยวกับผู้ใช้ เช่น ดาวน์โหลด หน้าแรก และ FAQ', entries: [['หน้าแรกง่ายขึ้น', 'บอกให้ดาวน์โหลด LizzieYzy Next ก่อนอย่างชัดเจน'], ['ดาวน์โหลดชัดขึ้น', 'แยกบทบาท Baidu, GitHub และ GoAgent'], ['หลายภาษาอัปเดตพร้อมกัน', 'หน้าแรกทุกภาษาถูกปรับเป็นโครงสร้างใหม่'], ['คู่มือและ FAQ ดีขึ้น', 'ตอบคำถามของผู้ใช้ทั่วไปก่อน']] }
+  },
+  vi: {
+    docs: { title: 'Hướng dẫn - LizzieYzy Next và GoAgent', description: 'Bắt đầu với LizzieYzy Next để ôn tập, chỉ thử GoAgent khi muốn giải thích AI.', eyebrow: 'Hướng dẫn', h1: 'Hướng dẫn', lead: 'Không cần bắt đầu bằng thuật ngữ. Cài LizzieYzy Next, mở kỳ phổ, xem tỉ lệ thắng, điểm và lỗi quan trọng trước.', steps: [['Tải LizzieYzy Next trước', 'Đa số người chơi bắt đầu tại đây là đủ.'], ['Chọn đúng hệ điều hành', 'Windows tải Windows, Mac tải macOS, Linux tải Linux.'], ['Mở SGF', 'Nhập kỳ phổ rồi xem tỉ lệ thắng và điểm.'], ['Xem ba điều', 'Nước làm giảm tỉ lệ thắng, thay đổi điểm, và nước gợi ý KataGo.'], ['GoAgent dùng khi muốn thử', 'Đây là tính năng thử nghiệm cho giải thích bằng AI.'], ['Cần trợ giúp', 'Thử đường tải khác hoặc báo qua GitHub Issues / QQ.']], qualityTitle: 'Nhớ ngắn gọn', qualityItems: ['Ôn tập ổn định: LizzieYzy Next trước.', 'Tải lỗi: dùng đường dự phòng.', 'Muốn AI giải thích: thử GoAgent sau.'] },
+    faq: { title: 'FAQ - LizzieYzy Next và GoAgent', description: 'Trả lời đơn giản về tải xuống, GoAgent, quyền riêng tư và phản hồi.', eyebrow: 'FAQ', h1: 'Câu hỏi thường gặp', lead: 'Trả lời ngắn cho những điều người dùng thường bối rối.', items: [['Tải gì trước?', 'Tải LizzieYzy Next trước. Đa số nhu cầu ôn tập dùng nó là đủ.'], ['GitHub hay Baidu?', 'Người dùng Trung Quốc dùng Baidu trước, nơi khác thường dùng GitHub.'], ['Có cần GoAgent không?', 'Không bắt buộc. Chỉ dùng khi muốn thử giải thích AI.'], ['Cài xong làm gì?', 'Mở SGF rồi xem tỉ lệ thắng, điểm và lỗi quan trọng.'], ['Kỳ phổ có bị tải lên không?', 'Website không tải kỳ phổ lên. Dịch vụ AI chỉ được gọi khi bạn cấu hình và bắt đầu tác vụ.'], ['Báo lỗi ở đâu?', 'Dùng GitHub Issues hoặc QQ 1030632742 / 299419120.']] },
+    changelog: { title: 'Nhật ký - Website LizzieYzy Next và GoAgent', description: 'Ghi lại thay đổi người dùng thấy được.', eyebrow: 'Nhật ký', h1: 'Nhật ký', lead: 'Chỉ tóm tắt những thay đổi liên quan trực tiếp đến người dùng: tải xuống, trang chủ và FAQ.', entries: [['Trang chủ đơn giản hơn', 'Nói rõ hãy tải LizzieYzy Next trước.'], ['Tải xuống rõ hơn', 'Tách vai trò Baidu, GitHub và GoAgent.'], ['Đồng bộ đa ngôn ngữ', 'Các trang chủ ngôn ngữ đã dùng cùng cấu trúc mới.'], ['Hướng dẫn và FAQ tốt hơn', 'Ưu tiên câu hỏi của người dùng phổ thông.']] }
+  }
+} as const
+
 export function getStaticPaths() {
   const locales = ['zh-hant', 'en', 'ja', 'ko', 'th', 'vi'] as const
   const pages = ['download', 'docs', 'privacy', 'faq', 'changelog'] as const
@@ -255,14 +473,15 @@ export function getStaticPaths() {
 
 const locale = Astro.params.locale as LocaleKey
 const page = Astro.params.page as PageKey
-const data = localized[locale][page]
+const sourceData = localized[locale][page]
+const data = (page === 'download' ? simpleDownloads[locale] : ((friendlyPages as any)[locale]?.[page] ?? sourceData)) as any
 const meta = localeMeta[locale]
 const canonical = `https://goagent.top/${locale}/${page}`
 const jsonLd = page === 'faq'
   ? {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: localized[locale].faq.items.map(([question, answer]) => ({
+      mainEntity: data.items.map(([question, answer]) => ({
         '@type': 'Question',
         name: question,
         acceptedAnswer: { '@type': 'Answer', text: answer }
@@ -278,34 +497,30 @@ const jsonLd = page === 'faq'
         <h1>{data.h1}</h1>
         <p class="lead">{data.lead}</p>
         <div class="button-row">
-          <a class="button primary" href={lizzieReleasesUrl}>{data.primary}</a>
-          <a class="button" href={goAgentReleasesUrl}>{data.secondary}</a>
+          <a class="button primary" href={lizzieBaiduUrl}>{data.tools[0][4]}</a>
+          <a class="button" href={lizzieReleasesUrl}>{data.tools[1][4]}</a>
         </div>
       </section>
       <section class="content-stack">
-        <div class="grid two">
-          {data.options.map(([audience, title, text, badge]) => (
-            <article class="download-card">
+        <div class="download-list">
+          {data.tools.map(([audience, title, text, href, cta, badge, featured]) => (
+            <article class={`download-row ${featured ? 'featured' : ''}`}>
+              <div>
               <p class="eyebrow">{audience}</p>
               <h3>{title}</h3>
               <p>{text}</p>
               <div class="download-meta">
                 <span>{badge}</span>
-                <span>GitHub</span>
-                <span>Download</span>
+                <span>{title.includes('GoAgent') ? 'GoAgent' : 'LizzieYzy Next'}</span>
               </div>
-              <a class="button" href={lizzieReleasesUrl}>{data.primary}</a>
+              </div>
+              <a class={`button ${featured ? 'primary' : 'subtle'}`} href={href}>{cta}</a>
             </article>
           ))}
         </div>
         <article class="notice">
-          <h2>{data.checkTitle}</h2>
-          <p>{data.checkText}</p>
-          <ul>{data.checkItems.map((item) => <li>{item}</li>)}</ul>
-        </article>
-        <article class="notice">
-          <h2>{data.whyTitle}</h2>
-          <p>{data.whyText}</p>
+          <h2>{data.noticeTitle}</h2>
+          <ul>{data.noticeItems.map((item) => <li>{item}</li>)}</ul>
         </article>
       </section>
     </>

@@ -2,21 +2,20 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 
 const docs = [
-  ['安装 GoAgent', '从 GitHub 下载页下载适合系统的安装包。Windows 普通用户选标准版，NVIDIA 用户可选 NVIDIA 版，Mac 用户按芯片选择 Apple Silicon 或 Intel。'],
-  ['配置 KataGo', 'GoAgent 以本地 KataGo 为事实裁判。应用会提供官方权重选择、下载状态、资源诊断和速度测试，确保棋盘分析、候选点、PV 和目差可用。'],
-  ['配置 LLM', '在设置中填写用户自己的 LLM Base URL、API Key 和模型。老师任务会把必要的棋盘上下文、KataGo 证据和知识库结果发给配置的服务。'],
-  ['导入 SGF', '可以导入本地 SGF，也可以使用棋谱库能力管理棋局。棋谱默认保存在本机用户目录。'],
-  ['使用当前手讲解', '在棋盘当前手处让老师分析。老师会参考棋盘、KataGo 候选点、PV、知识匹配和学生设置，输出面向人的解释。'],
-  ['使用区间复盘', '选中一段手数后进行聚焦复盘，适合复盘中盘战、转换、定式分支、死活攻防和官子阶段。'],
-  ['设置学生水平、年龄和老师风格', '可配置学生水平、年龄范围、老师讲解风格和术语密度，让同一个局面用不同层次讲清楚。'],
-  ['TTS 规划说明', '默认计划使用 Kokoro 中文 ONNX 离线语音。其它语言作为可选下载包；自定义 TTS API 需要用户显式选择，不自动切换。']
+  ['第一步：先下载 LizzieYzy Next', '大多数棋友先装这个就够了。国内用户优先用百度网盘下载；GitHub 是备用入口。'],
+  ['第二步：选对你的电脑系统', 'Windows 用户下载 Windows 包，Mac 用户下载 macOS 包，Linux 用户下载 Linux 包。先找最新版本里的安装包，不用读完整英文页面。'],
+  ['第三步：打开棋谱开始复盘', '安装后导入 SGF 棋谱，先看胜率、目差和关键失误。不要一开始研究太多设置，先把一盘棋看明白。'],
+  ['第四步：先看三个重点', '先看哪几手胜率掉得多，再看目差变化，最后看 KataGo 推荐的候选点。普通复盘先抓这三件事就够用。'],
+  ['第五步：想听 AI 讲棋，再试 GoAgent', 'GoAgent 是实验功能，适合想尝试 AI 自然语言讲解的人。只想稳定复盘，不用一开始就安装 GoAgent。'],
+  ['第六步：下载或安装遇到问题', '下载不顺时可以换另一个入口或网络。Windows 提示安全拦截时，请确认文件来自官网链接后再继续。'],
+  ['第七步：隐私怎么理解', 'LizzieYzy Next 和 GoAgent 都是桌面工具，棋谱复盘优先在你的电脑上完成。GoAgent 只有在你自己配置 AI 服务并发起讲解时，才会把必要内容发给你配置的服务。'],
+  ['第八步：需要帮助时', '先看常见问题；还解决不了，可以去 GitHub Issues，或加入 QQ 群 1030632742 / 299419120 交流。']
 ]
 ---
-<BaseLayout title="GoAgent 文档 - 快速开始" description="GoAgent 的安装、KataGo、LLM、SGF、当前手讲解、区间复盘和 TTS 使用文档。" pageKey="docs">
+<BaseLayout title="使用指南 - LizzieYzy Next 和 GoAgent" description="面向普通棋友的使用指南：先下载 LizzieYzy Next，打开棋谱复盘；想尝试 AI 讲棋时再试 GoAgent。" pageKey="docs">
   <section class="page-hero">
-    <p class="eyebrow">Docs</p>
-    <h1>快速开始</h1>
-    <p class="lead">这是一份短文档，帮助你把 GoAgent 跑起来，并理解它如何把 KataGo、LLM、知识库和本地隐私策略组合起来。</p>
+    <h1>使用指南</h1>
+    <p class="lead">不用研究术语。先下载 LizzieYzy Next，打开棋谱，看胜率、目差和关键失误；想尝试 AI 讲棋时，再下载 GoAgent。</p>
   </section>
   <section class="content-stack">
     {docs.map(([title, text], index) => (
@@ -29,11 +28,11 @@ const docs = [
       </article>
     ))}
     <article class="notice">
-      <h2>讲解质量原则</h2>
+      <h2>记住一句话</h2>
       <ul>
-        <li>KataGo 是事实依据，LLM 不应编造坐标、胜率、PV 或定式名。</li>
-        <li>常规定式少讲，定式分支讲变化，中盘战和明显损失才详细展开。</li>
-        <li>知识库负责解释和训练迁移，不代替当前局面的引擎判断。</li>
+        <li>只想复盘：先用 LizzieYzy Next。</li>
+        <li>国内用户：优先用百度网盘下载。</li>
+        <li>想尝试 AI 讲棋：再试 GoAgent。</li>
       </ul>
     </article>
   </section>

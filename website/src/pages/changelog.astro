@@ -1,24 +1,31 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 ---
-<BaseLayout title="GoAgent Changelog" description="GoAgent 近期版本摘要和后续路线。" pageKey="changelog">
+<BaseLayout title="更新日志 - LizzieYzy Next 和 GoAgent 官网" description="用普通用户能看懂的方式记录官网、下载入口和产品说明的近期更新。" pageKey="changelog">
   <section class="page-hero">
-    <p class="eyebrow">Changelog</p>
-    <h1>版本摘要</h1>
-    <p class="lead">官网第一版先手写近期版本摘要；更多记录请查看 GitHub 下载页和仓库 CHANGELOG。</p>
+    <h1>更新日志</h1>
+    <p class="lead">这里只写用户真正关心的变化：下载入口有没有更清楚、官网有没有更好懂、GoAgent 是否仍然是实验功能。</p>
   </section>
   <section class="content-stack">
     <article class="doc-card">
-      <h2>0.3.x</h2>
-      <p>围绕真实复盘质量持续强化：棋形识别、区间复盘、老师会话、学生设置、知识库来源策略、质量评测、KataGo engine telemetry 和多语言 UI。</p>
+      <h2>官网首页更简单</h2>
+      <p>首页改成“想复盘围棋，先下载 LizzieYzy Next”。普通用户不用先理解项目区别，先点下载就能开始。</p>
     </article>
     <article class="doc-card">
-      <h2>官网</h2>
-      <p>新增 Cloudflare Pages 静态官网、下载页、隐私页、FAQ、部署说明和网站质量检查。官网安装包继续链接 GitHub 下载页，不托管大文件。</p>
+      <h2>下载入口更清楚</h2>
+      <p>国内用户优先用百度网盘下载；GitHub 作为备用入口；GoAgent 明确标成“想尝鲜再试”的实验围棋智能体。</p>
     </article>
     <article class="doc-card">
-      <h2>后续版本</h2>
-      <p>TTS、真实教学评测、常驻 KataGo Engine Pool、自动更新、发布包 smoke test 和更完整的视觉 QA 仍会继续推进。</p>
+      <h2>多语言页面同步更新</h2>
+      <p>简体中文、繁体中文、英语、日语、韩语、泰语、越南语首页同步成同一套清晰结构，避免不同语言看到旧版本。</p>
+    </article>
+    <article class="doc-card">
+      <h2>使用指南和常见问题重写</h2>
+      <p>使用指南、更新日志、常见问题改成普通棋友能看懂的表达，减少技术词，优先回答“我该下载哪个、怎么开始、出问题怎么办”。</p>
+    </article>
+    <article class="doc-card">
+      <h2>后续会继续优化</h2>
+      <p>后续重点是让下载、安装、复盘、反馈路径更顺，继续保持 LizzieYzy Next 首推、GoAgent 实验尝鲜的清晰定位。</p>
     </article>
   </section>
 </BaseLayout>

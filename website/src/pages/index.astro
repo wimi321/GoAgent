@@ -17,7 +17,7 @@ const products = [
     points: ['导入棋谱就能看', '找关键失误', '看胜率和目差', 'Windows / macOS / Linux'],
     primary: '下载 LizzieYzy Next',
     secondary: '查看代码',
-    release: lizzieReleases,
+    release: lizzieBaidu,
     repo: lizzieGithub,
     featured: true
   },
@@ -37,7 +37,7 @@ const products = [
 ]
 
 const workflow = [
-  ['先下载 LizzieYzy Next', '不知道选哪个，就先装这个。大多数棋友日常复盘都够用。'],
+  ['先下载 LizzieYzy Next', '先装这个，大多数棋友日常复盘都够用。'],
   ['打开棋谱看问题', '看胜率、目差和关键失误，快速知道这盘棋哪里下坏了。'],
   ['想尝鲜再试 GoAgent', '想让 AI 用自然语言讲棋时，再试 GoAgent 这个实验功能。']
 ]
@@ -55,7 +55,7 @@ const downloads = [
   },
   {
     title: '备用：LizzieYzy Next GitHub 下载',
-    text: '百度网盘打不开时再点这个。页面是英文也没关系，找最新安装包下载。',
+    text: 'GitHub 是备用下载入口。页面是英文也没关系，找最新安装包下载。',
     href: lizzieReleases,
     note: '备用下载',
     cta: '从 GitHub 下载',
@@ -241,8 +241,8 @@ const jsonLd = {
 
   <section id="download" class="section-block download-section">
     <div class="section-head centered">
-      <h2>不知道点哪个？按这个顺序</h2>
-      <p>国内用户先点百度网盘；打不开再用 GitHub；GoAgent 是实验功能，想试 AI 讲棋再下载。</p>
+      <h2>下载顺序很简单</h2>
+      <p>国内用户优先用百度网盘下载；GitHub 是备用入口；GoAgent 是实验功能，想试 AI 讲棋再下载。</p>
     </div>
     <div class="download-list">
       {downloads.map((download) => (

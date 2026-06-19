@@ -338,6 +338,13 @@ h1 {
   display: block;
 }
 
+.home-hero:lang(en) h1,
+.home-hero:lang(th) h1,
+.home-hero:lang(vi) h1 {
+  max-width: 1060px;
+  font-size: clamp(3.05rem, 4.7vw, 4.6rem);
+}
+
 .home-hero h1 strong {
   color: #07541d;
   font-weight: 920;
@@ -389,9 +396,15 @@ h3 {
   color: #171b17;
   font-size: 1.28rem;
   font-weight: 820;
-  white-space: nowrap;
+  line-height: 1.18;
+  text-align: center;
+  white-space: normal;
   box-shadow: 0 12px 26px rgba(40, 33, 21, 0.06);
   gap: 14px;
+}
+
+.hero-actions .button span {
+  overflow-wrap: anywhere;
 }
 
 .hero-actions .button.primary {
@@ -1196,6 +1209,13 @@ h3 {
   .home-hero h1 {
     font-size: 2.05rem;
     line-height: 1.18;
+  }
+
+  .home-hero:lang(en) h1,
+  .home-hero:lang(th) h1,
+  .home-hero:lang(vi) h1 {
+    max-width: 100%;
+    font-size: 2.05rem;
   }
 
   h2,

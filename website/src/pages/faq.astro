@@ -2,16 +2,16 @@
 import BaseLayout from '../layouts/BaseLayout.astro'
 
 const faqs = [
-  ['GoAgent 是什么？', 'GoAgent 是开源免费的专业围棋智能体，目标是把 KataGo、知识库、多模态 LLM 和质量门禁整合成一个可验证的 AI 围棋老师。'],
-  ['它和普通 AI 聊天有什么区别？', '普通聊天容易凭空讲棋。GoAgent 会围绕棋盘、KataGo 证据、PV、目差、知识匹配和学生设置组织讲解。'],
-  ['是否需要联网？', 'KataGo 和本地数据可以在本机运行。使用 LLM、自定义 TTS API、下载权重或同步远程棋谱时需要联网。'],
-  ['KataGo 是否本地运行？', '是。GoAgent 的设计是让 KataGo 在本机运行，作为候选点、胜率、目差和 PV 的事实来源。'],
-  ['LLM 是否必须？', '如果要使用 AI 老师自然语言讲解，需要配置 LLM。棋盘和 KataGo 分析能力可以独立存在。'],
-  ['是否支持 Windows NVIDIA？', '支持。Release 中提供 Windows x64 标准版和 Windows x64 NVIDIA 版。'],
-  ['为什么下载文件不放在官网？', 'Cloudflare Pages 适合静态网页，不适合托管大型安装包。安装包会放在 GitHub 下载页，国内用户优先用百度网盘。'],
-  ['TTS 是否上传文本？', '默认 Kokoro TTS 是本地离线，不上传。只有用户显式选择自定义 TTS API 时，朗读文本才会发到用户配置的服务。'],
-  ['官网域名是什么？', '官网域名是 goagent.top。'],
-  ['如何反馈问题？', '可以在 GitHub Issues 反馈，也欢迎加入 QQ 群 1030632742 交流。']
+  ['我应该先下载哪个？', '先下载 LizzieYzy Next。它是首推的稳定复盘工具，适合大多数棋友日常看胜率、目差和关键失误。'],
+  ['百度网盘和 GitHub 该点哪个？', '国内用户优先用百度网盘下载。GitHub 是备用下载入口。'],
+  ['GoAgent 要不要一起下载？', '不用一开始就下载。GoAgent 是实验围棋智能体，适合想尝试 AI 讲棋、AI 问答的人。只想稳定复盘，先不用管它。'],
+  ['下载后我该做什么？', '安装 LizzieYzy Next，打开或导入 SGF 棋谱，然后先看胜率曲线、目差变化和关键失误。'],
+  ['支持哪些电脑？', 'LizzieYzy Next 支持 Windows、macOS、Linux。GoAgent 目前更适合想尝鲜的 Windows / macOS 用户。'],
+  ['GitHub 页面是英文怎么办？', '不用读完整英文。找到最新版本，下载与你电脑系统对应的安装包即可；不确定时优先使用百度网盘。'],
+  ['为什么官网不直接放安装包？', '安装包比较大，官网负责把入口放清楚。大文件放在百度网盘和 GitHub，方便下载、更新和回退版本。'],
+  ['会不会上传我的棋谱？', '官网本身不上传棋谱。LizzieYzy Next 是桌面复盘工具；GoAgent 只有在你自己配置 AI 服务并主动使用讲解时，才会调用你配置的服务。'],
+  ['KataGo、AI、LLM 这些词我不懂怎么办？', '不用先懂。日常复盘先看 LizzieYzy Next 的胜率、目差和推荐点就够了；想深入时再了解 GoAgent 和 AI 讲棋。'],
+  ['如何反馈问题？', '可以在 GitHub Issues 反馈，也欢迎加入 GoAgent QQ 1030632742 或 LizzieYzy Next QQ 299419120 交流。']
 ]
 
 const jsonLd = {
@@ -27,11 +27,10 @@ const jsonLd = {
   }))
 }
 ---
-<BaseLayout title="GoAgent FAQ" description="GoAgent 常见问题：联网、本地 KataGo、LLM、Windows NVIDIA、TTS 隐私和反馈方式。" pageKey="faq" jsonLd={jsonLd}>
+<BaseLayout title="常见问题 - LizzieYzy Next 和 GoAgent" description="普通用户常见问题：该下载哪个、百度网盘和 GitHub 怎么选、GoAgent 是否必须、隐私和反馈方式。" pageKey="faq" jsonLd={jsonLd}>
   <section class="page-hero">
-    <p class="eyebrow">FAQ</p>
     <h1>常见问题</h1>
-    <p class="lead">这里回答下载、隐私、KataGo、LLM 和 TTS 的基础问题。</p>
+    <p class="lead">不讲复杂术语，先回答最常见的问题：下载哪个、点哪里、装完怎么开始、GoAgent 要不要用。</p>
   </section>
   <section class="content-stack faq-list">
     {faqs.map(([question, answer]) => (

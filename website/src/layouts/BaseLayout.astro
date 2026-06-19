@@ -80,6 +80,10 @@ const copyByLang = {
       compare: '产品对比'
     },
     privacy: '隐私',
+    footerDownloads: {
+      lizzie: 'LizzieYzy Next 从 GitHub 下载',
+      goAgent: 'GoAgent 从 GitHub 下载'
+    },
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   'zh-Hant': {
@@ -98,6 +102,10 @@ const copyByLang = {
       compare: '產品對比'
     },
     privacy: '隱私',
+    footerDownloads: {
+      lizzie: 'LizzieYzy Next 從 GitHub 下載',
+      goAgent: 'GoAgent 從 GitHub 下載'
+    },
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   en: {
@@ -116,6 +124,10 @@ const copyByLang = {
       compare: 'Compare products'
     },
     privacy: 'Privacy',
+    footerDownloads: {
+      lizzie: 'Download LizzieYzy Next from GitHub',
+      goAgent: 'Download GoAgent from GitHub'
+    },
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   ja: {
@@ -134,6 +146,10 @@ const copyByLang = {
       compare: '製品比較'
     },
     privacy: 'プライバシー',
+    footerDownloads: {
+      lizzie: 'LizzieYzy Next を GitHub から入手',
+      goAgent: 'GoAgent を GitHub から入手'
+    },
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   ko: {
@@ -152,6 +168,10 @@ const copyByLang = {
       compare: '제품 비교'
     },
     privacy: '개인정보',
+    footerDownloads: {
+      lizzie: 'GitHub에서 LizzieYzy Next 다운로드',
+      goAgent: 'GitHub에서 GoAgent 다운로드'
+    },
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   th: {
@@ -170,6 +190,10 @@ const copyByLang = {
       compare: 'เปรียบเทียบ'
     },
     privacy: 'ความเป็นส่วนตัว',
+    footerDownloads: {
+      lizzie: 'ดาวน์โหลด LizzieYzy Next จาก GitHub',
+      goAgent: 'ดาวน์โหลด GoAgent จาก GitHub'
+    },
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   vi: {
@@ -188,6 +212,10 @@ const copyByLang = {
       compare: 'So sánh'
     },
     privacy: 'Riêng tư',
+    footerDownloads: {
+      lizzie: 'Tải LizzieYzy Next từ GitHub',
+      goAgent: 'Tải GoAgent từ GitHub'
+    },
     copyright: 'GoAgent and LizzieYzy Next contributors'
   }
 } as const
@@ -334,9 +362,9 @@ const alternateItems = localizedPageKeys.has(pageKey)
         </div>
         <div class="footer-links">
           <a href={lizzieUrl}>LizzieYzy Next GitHub</a>
-          <a href={lizzieReleases}>LizzieYzy Next GitHub 下载</a>
+          <a href={lizzieReleases}>{copy.footerDownloads.lizzie}</a>
           <a href={goAgentUrl}>GoAgent GitHub</a>
-          <a href={goAgentReleases}>GoAgent GitHub 下载</a>
+          <a href={goAgentReleases}>{copy.footerDownloads.goAgent}</a>
           <a href={goAgentIssues}>Issues</a>
           <a href={localizedPath(siteLang, 'privacy')}>{copy.privacy}</a>
         </div>
