@@ -1,6 +1,8 @@
 site: https://goagent.top/
 canonical_product: LizzieYzy Next
 secondary_product: GoAgent
+baidu_netdisk: https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w
+baidu_extraction_code: 3i8w
 
 summary:
   LizzieYzy Next is the recommended Go / Weiqi / Baduk desktop review workbench for stable KataGo whole-game analysis.
@@ -12,5 +14,6 @@ best_links:
   - https://goagent.top/fox-go-review
   - https://goagent.top/ai-go-review
   - https://goagent.top/compare
+  - https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w
   - https://github.com/wimi321/lizzieyzy-next/releases
   - https://github.com/wimi321/GoAgent/releases

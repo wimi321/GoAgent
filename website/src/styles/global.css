@@ -495,10 +495,84 @@ h3 {
 
 .download-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   gap: 24px;
   align-items: center;
   padding: 24px;
+}
+
+.download-row.featured {
+  gap: 30px;
+  padding: 30px;
+  border-color: rgba(11, 81, 63, 0.5);
+  background:
+    radial-gradient(circle at 14% 22%, rgba(232, 241, 235, 0.72), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 249, 245, 0.9));
+  box-shadow: 0 24px 70px rgba(11, 81, 63, 0.13);
+}
+
+.download-row h2,
+.download-row h3 {
+  font-family: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+  font-size: 1.8rem;
+}
+
+.download-row.featured h2,
+.download-row.featured h3 {
+  font-size: 2.5rem;
+}
+
+.download-row .product-label {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 10px;
+}
+
+.download-icon {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  border: 1px solid rgba(38, 35, 28, 0.1);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(251, 247, 239, 0.84)),
+    repeating-linear-gradient(0deg, rgba(11, 81, 63, 0.05) 0 1px, transparent 1px 18px),
+    repeating-linear-gradient(90deg, rgba(11, 81, 63, 0.05) 0 1px, transparent 1px 18px);
+  color: var(--green);
+  box-shadow: 0 14px 30px rgba(33, 29, 20, 0.08);
+}
+
+.download-row.featured .download-icon {
+  width: 112px;
+  height: 112px;
+  color: var(--green);
+}
+
+.download-icon svg {
+  width: 54%;
+  height: 54%;
+}
+
+.download-icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.download-icon.github {
+  color: #20252a;
+}
+
+.download-icon.github path {
+  fill: currentColor;
+  stroke: none;
+}
+
+.download-icon.agent {
+  color: var(--green);
 }
 
 .download-row p,
@@ -511,6 +585,16 @@ h3 {
   display: block;
   color: var(--green-strong);
   font-weight: 760;
+}
+
+.download-row .button {
+  min-width: 154px;
+}
+
+.download-row.featured .button {
+  min-width: 190px;
+  min-height: 56px;
+  font-size: 1.05rem;
 }
 
 .grid {
@@ -769,6 +853,11 @@ h3 {
 
   .download-row {
     grid-template-columns: 1fr;
+  }
+
+  .download-row.featured .download-icon {
+    width: 86px;
+    height: 86px;
   }
 
   .compare-row {

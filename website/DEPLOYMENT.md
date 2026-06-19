@@ -48,6 +48,8 @@ https://www.goagent.top/* https://goagent.top/:splat 301
 - Pages 单文件大小有限，不适合托管 `.exe`、`.dmg`、`.zip`。
 - 官网首推下载按钮链接 LizzieYzy Next GitHub Releases：
   `https://github.com/wimi321/lizzieyzy-next/releases`
+- 官网也提供 LizzieYzy Next 百度网盘入口，方便国内用户下载：
+  `https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w`，提取码 `3i8w`
 - GoAgent 作为实验围棋智能体，下载入口链接：
   `https://github.com/wimi321/GoAgent/releases`
 
@@ -146,6 +148,6 @@ curl https://goagent.top/sitemap.xml | grep -i goagent.top
 
 - `https://goagent.top/` 返回 200。
 - `https://www.goagent.top/` 跳转到 `https://goagent.top/` 或正常展示同一站点。
-- 页面中包含 `LizzieYzy Next`、`GoAgent`、GitHub Releases 链接和隐私说明入口。
+- 页面中包含 `LizzieYzy Next`、`GoAgent`、百度网盘、GitHub Releases 链接和隐私说明入口。
 
 如果 `dig goagent.top A` 返回 `198.18.*`，请先删除 Cloudflare DNS 中的占位 A 记录，再回到 Pages 项目的 Custom domains 重新激活 `goagent.top`。如果 `www.goagent.top` 返回 Cloudflare `530`，通常表示 DNS 到了 Cloudflare，但没有指向有效 Pages 部署或 custom domain 还未激活。

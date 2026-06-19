@@ -5,6 +5,8 @@ const goAgentGithub = 'https://github.com/wimi321/GoAgent'
 const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
 const lizzieGithub = 'https://github.com/wimi321/lizzieyzy-next'
 const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
+const lizzieBaidu = 'https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w'
+const lizzieBaiduCode = '3i8w'
 
 const products = [
   {
@@ -42,8 +44,36 @@ const workflow = [
 ]
 
 const downloads = [
-  ['LizzieYzy Next Releases', '首推下载。持续维护的 KataGo 复盘 GUI，提供 Windows、macOS、Linux 多平台发布包。', lizzieReleases, 'LizzieYzy Next QQ 299419120'],
-  ['GoAgent Releases', '实验围棋智能体，适合想体验 AI 讲棋工作流的用户。', goAgentReleases, 'GoAgent QQ 1030632742']
+  {
+    title: 'LizzieYzy Next 百度网盘',
+    text: '国内访问更方便，适合大多数国内用户优先下载。',
+    href: lizzieBaidu,
+    note: `提取码 ${lizzieBaiduCode}`,
+    cta: '打开百度网盘',
+    label: '推荐国内用户优先下载',
+    icon: 'cloud',
+    featured: true
+  },
+  {
+    title: 'LizzieYzy Next GitHub Releases',
+    text: '完整发布记录、多平台安装包和校验信息，适合归档和校验。',
+    href: lizzieReleases,
+    note: 'LizzieYzy Next QQ 299419120',
+    cta: '打开 Releases',
+    label: '',
+    icon: 'github',
+    featured: false
+  },
+  {
+    title: 'GoAgent Releases',
+    text: '实验围棋智能体，适合想体验 AI 讲棋工作流的用户。',
+    href: goAgentReleases,
+    note: 'GoAgent QQ 1030632742',
+    cta: '试用 GoAgent',
+    label: '',
+    icon: 'agent',
+    featured: false
+  }
 ]
 
 const jsonLd = {
@@ -60,7 +90,7 @@ const jsonLd = {
       applicationCategory: 'GameApplication',
       operatingSystem: 'Windows, macOS, Linux',
       url: lizzieGithub,
-      downloadUrl: lizzieReleases,
+      downloadUrl: [lizzieBaidu, lizzieReleases],
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
     },
     {
@@ -150,17 +180,41 @@ const jsonLd = {
   <section id="download" class="section-block download-section">
     <div class="section-head centered">
       <h2>免费下载</h2>
-      <p>首推 LizzieYzy Next。安装包统一放在 GitHub Releases，方便校验、回滚和追踪版本。</p>
+      <p>首推 LizzieYzy Next。国内用户可以优先用百度网盘下载，GitHub Releases 保留完整版本和校验记录。</p>
     </div>
     <div class="download-list">
-      {downloads.map(([title, text, href, note]) => (
-        <article class="download-row">
+      {downloads.map((download) => (
+        <article class={`download-row ${download.featured ? 'featured' : ''}`}>
+          <span class={`download-icon ${download.icon}`} aria-hidden="true">
+            {download.icon === 'cloud' && (
+              <svg viewBox="0 0 48 48" role="img">
+                <path d="M17.4 35.4H14a9 9 0 0 1-1.1-18 12.8 12.8 0 0 1 24.5 4.3A7 7 0 0 1 36 35.4h-5.4" />
+                <path d="M24 19.8v18" />
+                <path d="m17.8 31.8 6.2 6.2 6.2-6.2" />
+              </svg>
+            )}
+            {download.icon === 'github' && (
+              <svg viewBox="0 0 48 48" role="img">
+                <path d="M24 7.6a16.4 16.4 0 0 0-5.2 32c.8.1 1.1-.3 1.1-.8v-3c-4.5 1-5.5-1.9-5.5-1.9-.7-1.9-1.8-2.4-1.8-2.4-1.5-1 .1-1 .1-1 1.6.1 2.5 1.7 2.5 1.7 1.5 2.5 3.8 1.8 4.7 1.4.1-1.1.6-1.8 1-2.2-3.6-.4-7.4-1.8-7.4-8a6.2 6.2 0 0 1 1.7-4.4c-.2-.4-.7-2.1.2-4.3 0 0 1.3-.4 4.5 1.7a15.3 15.3 0 0 1 8.2 0c3.1-2.1 4.5-1.7 4.5-1.7.9 2.2.3 3.9.2 4.3a6.2 6.2 0 0 1 1.7 4.4c0 6.2-3.8 7.6-7.4 8 .6.5 1.1 1.5 1.1 3v4.4c0 .5.3.9 1.1.8A16.4 16.4 0 0 0 24 7.6Z" />
+              </svg>
+            )}
+            {download.icon === 'agent' && (
+              <svg viewBox="0 0 48 48" role="img">
+                <path d="M17 20h14a7 7 0 0 1 7 7v3a7 7 0 0 1-7 7H17a7 7 0 0 1-7-7v-3a7 7 0 0 1 7-7Z" />
+                <path d="M24 20v-7" />
+                <path d="M20 13h8" />
+                <path d="M18.5 28.5h.1" />
+                <path d="M29.5 28.5h.1" />
+              </svg>
+            )}
+          </span>
           <div>
-            <h3>{title}</h3>
-            <p>{text}</p>
-            <small>{note}</small>
+            {download.label && <p class="product-label">{download.label}</p>}
+            <h3>{download.title}</h3>
+            <p>{download.text}</p>
+            <small>{download.note}</small>
           </div>
-          <a class="button primary" href={href}>打开 Releases</a>
+          <a class={`button ${download.featured ? 'primary' : 'subtle'}`} href={download.href}>{download.cta}</a>
         </article>
       ))}
     </div>

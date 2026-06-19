@@ -3,53 +3,95 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
 const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
+const lizzieBaidu = 'https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w'
+const lizzieBaiduCode = '3i8w'
 
 const tools = [
   {
-    audience: '推荐先下载',
-    title: 'LizzieYzy Next',
-    text: '面向棋友日常复盘的专业 KataGo GUI。适合野狐昵称抓谱、快速全盘分析、胜率图和底部概览。',
+    audience: '推荐国内用户优先下载',
+    title: 'LizzieYzy Next 百度网盘',
+    text: `国内访问更方便，提取码 ${lizzieBaiduCode}。适合大多数国内用户先下载安装。`,
+    platforms: ['Windows', 'macOS', 'Linux'],
+    href: lizzieBaidu,
+    cta: '打开百度网盘',
+    qq: '适合大多数国内用户',
+    featured: true,
+    icon: 'cloud'
+  },
+  {
+    audience: '官方完整记录',
+    title: 'LizzieYzy Next GitHub Releases',
+    text: '完整发布历史、多平台安装包和校验信息都保留在 GitHub Releases，适合归档、回滚和校验。',
     platforms: ['Windows', 'macOS', 'Linux'],
     href: lizzieReleases,
+    cta: '打开 Releases',
     qq: 'LizzieYzy Next QQ 299419120',
-    featured: true
+    featured: false,
+    icon: 'github'
   },
   {
     audience: '实验功能尝鲜',
-    title: 'GoAgent',
+    title: 'GoAgent Releases',
     text: '实验中的围棋智能体。适合想体验当前手讲解、KataGo 证据解释和 AI 问答工作流的用户。',
     platforms: ['Windows', 'macOS'],
     href: goAgentReleases,
+    cta: '试用 GoAgent',
     qq: 'GoAgent QQ 1030632742',
-    featured: false
+    featured: false,
+    icon: 'agent'
   }
 ]
 ---
 <BaseLayout title="下载 LizzieYzy Next" description="首推下载 LizzieYzy Next 专业围棋复盘工作台；GoAgent 作为实验围棋智能体提供尝鲜版本。" pageKey="download">
   <section class="page-hero">
     <h1>下载 LizzieYzy Next</h1>
-    <p class="lead">大多数用户先下载 LizzieYzy Next：它是更成熟的全盘复盘工具。GoAgent 保留为实验围棋智能体，适合想尝试 AI 讲棋的人。</p>
+    <p class="lead">大多数用户先下载 LizzieYzy Next：国内用户可以优先用百度网盘，GitHub Releases 保留完整版本记录、校验信息和多平台安装包。</p>
   </section>
   <section class="content-stack">
-    <div class="grid two">
+    <div class="download-list">
       {tools.map((tool) => (
-        <article class={`download-card ${tool.featured ? 'featured' : ''}`}>
-          <p class="product-label">{tool.audience}</p>
-          <h2>{tool.title}</h2>
-          <p>{tool.text}</p>
-          <div class="download-meta">
-            {tool.platforms.map((platform) => <span>{platform}</span>)}
-            <span>GitHub Releases</span>
-            <span>SHA256</span>
+        <article class={`download-row ${tool.featured ? 'featured' : ''}`}>
+          <span class={`download-icon ${tool.icon}`} aria-hidden="true">
+            {tool.icon === 'cloud' && (
+              <svg viewBox="0 0 48 48" role="img">
+                <path d="M17.4 35.4H14a9 9 0 0 1-1.1-18 12.8 12.8 0 0 1 24.5 4.3A7 7 0 0 1 36 35.4h-5.4" />
+                <path d="M24 19.8v18" />
+                <path d="m17.8 31.8 6.2 6.2 6.2-6.2" />
+              </svg>
+            )}
+            {tool.icon === 'github' && (
+              <svg viewBox="0 0 48 48" role="img">
+                <path d="M24 7.6a16.4 16.4 0 0 0-5.2 32c.8.1 1.1-.3 1.1-.8v-3c-4.5 1-5.5-1.9-5.5-1.9-.7-1.9-1.8-2.4-1.8-2.4-1.5-1 .1-1 .1-1 1.6.1 2.5 1.7 2.5 1.7 1.5 2.5 3.8 1.8 4.7 1.4.1-1.1.6-1.8 1-2.2-3.6-.4-7.4-1.8-7.4-8a6.2 6.2 0 0 1 1.7-4.4c-.2-.4-.7-2.1.2-4.3 0 0 1.3-.4 4.5 1.7a15.3 15.3 0 0 1 8.2 0c3.1-2.1 4.5-1.7 4.5-1.7.9 2.2.3 3.9.2 4.3a6.2 6.2 0 0 1 1.7 4.4c0 6.2-3.8 7.6-7.4 8 .6.5 1.1 1.5 1.1 3v4.4c0 .5.3.9 1.1.8A16.4 16.4 0 0 0 24 7.6Z" />
+              </svg>
+            )}
+            {tool.icon === 'agent' && (
+              <svg viewBox="0 0 48 48" role="img">
+                <path d="M17 20h14a7 7 0 0 1 7 7v3a7 7 0 0 1-7 7H17a7 7 0 0 1-7-7v-3a7 7 0 0 1 7-7Z" />
+                <path d="M24 20v-7" />
+                <path d="M20 13h8" />
+                <path d="M18.5 28.5h.1" />
+                <path d="M29.5 28.5h.1" />
+              </svg>
+            )}
+          </span>
+          <div>
+            <p class="product-label">{tool.audience}</p>
+            <h2>{tool.title}</h2>
+            <p>{tool.text}</p>
+            <div class="download-meta">
+              {tool.platforms.map((platform) => <span>{platform}</span>)}
+              {tool.featured ? <span>百度网盘</span> : <span>GitHub Releases</span>}
+              {!tool.featured && <span>SHA256</span>}
+            </div>
+            <p>{tool.qq}</p>
           </div>
-          <p>{tool.qq}</p>
-          <a class="button primary" href={tool.href}>打开 {tool.title} Releases</a>
+          <a class={`button ${tool.featured ? 'primary' : 'subtle'}`} href={tool.href}>{tool.cta}</a>
         </article>
       ))}
     </div>
     <article class="notice">
       <h2>校验下载文件</h2>
-      <p>下载前先确认项目名、版本号和文件名。首推 LizzieYzy Next；如果你下载的是 GoAgent，请确认自己要试的是实验智能体版本。</p>
+      <p>国内下载优先用百度网盘；需要核对版本、文件名或校验值时，请回到 GitHub Releases 查看完整发布记录。首推 LizzieYzy Next；如果你下载的是 GoAgent，请确认自己要试的是实验智能体版本。</p>
       <ul>
         <li>Windows 可使用 PowerShell 的 Get-FileHash。</li>
         <li>macOS 可使用 shasum -a 256。</li>

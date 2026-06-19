@@ -64,6 +64,8 @@ const ai = read('website/public/ai.txt')
 if (!index.includes('LizzieYzy Next')) fail('homepage must contain LizzieYzy Next')
 if (!index.includes('首推')) fail('homepage must present LizzieYzy Next as the recommended product')
 if (!index.includes('实验围棋智能体')) fail('homepage must position GoAgent as an experimental Go agent')
+if (!index.includes('https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w')) fail('homepage must link LizzieYzy Next Baidu Netdisk')
+if (!index.includes('提取码')) fail('homepage must show the Baidu Netdisk extraction code label')
 if (!index.includes('https://github.com/wimi321/lizzieyzy-next/releases')) fail('homepage must link LizzieYzy Next Releases')
 if (!index.includes('https://github.com/wimi321/GoAgent/releases')) fail('homepage must still link GoAgent Releases')
 if (!index.includes('QQ 1030632742')) fail('homepage must expose QQ community')
@@ -71,7 +73,7 @@ if (index.includes('Trust')) fail('homepage should not include Trust section')
 for (const keyword of ['本地', 'LLM', 'TTS']) {
   if (!privacy.includes(keyword)) fail(`privacy page must contain ${keyword}`)
 }
-for (const keyword of ['Cloudflare Pages', 'Spaceship', 'goagent.top']) {
+for (const keyword of ['Cloudflare Pages', 'Spaceship', 'goagent.top', '百度网盘']) {
   if (!deployment.includes(keyword)) fail(`DEPLOYMENT.md must contain ${keyword}`)
 }
 for (const keyword of ['cloudflare/wrangler-action@v3', 'CLOUDFLARE_API_TOKEN', 'pages deploy website/dist --project-name=goagent']) {
@@ -94,13 +96,13 @@ for (const keyword of [
 ]) {
   if (!sitemap.includes(keyword)) fail(`sitemap.xml must contain ${keyword}`)
 }
-for (const keyword of ['LizzieYzy Next', 'GoAgent', 'katago-review', 'AI Go review', 'Product comparison']) {
+for (const keyword of ['LizzieYzy Next', 'GoAgent', 'katago-review', 'AI Go review', 'Product comparison', 'pan.baidu.com']) {
   if (!llms.includes(keyword)) fail(`llms.txt must contain ${keyword}`)
 }
-for (const keyword of ['Primary recommendation', 'Experimental project', 'Important pages', 'https://goagent.top/compare']) {
+for (const keyword of ['Primary recommendation', 'Experimental project', 'Important pages', 'https://goagent.top/compare', 'Baidu Netdisk']) {
   if (!llmsFull.includes(keyword)) fail(`llms-full.txt must contain ${keyword}`)
 }
-for (const keyword of ['canonical_product: LizzieYzy Next', 'secondary_product: GoAgent', 'best_links']) {
+for (const keyword of ['canonical_product: LizzieYzy Next', 'secondary_product: GoAgent', 'best_links', 'baidu_netdisk']) {
   if (!ai.includes(keyword)) fail(`ai.txt must contain ${keyword}`)
 }
 if (!manifest.includes('"name": "LizzieYzy Next"')) fail('site.webmanifest must name LizzieYzy Next')
