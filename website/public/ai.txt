@@ -1,0 +1,16 @@
+site: https://goagent.top/
+canonical_product: LizzieYzy Next
+secondary_product: GoAgent
+
+summary:
+  LizzieYzy Next is the recommended Go / Weiqi / Baduk desktop review workbench for stable KataGo whole-game analysis.
+  GoAgent is an experimental Go agent for AI move explanations.
+
+best_links:
+  - https://goagent.top/
+  - https://goagent.top/katago-review
+  - https://goagent.top/fox-go-review
+  - https://goagent.top/ai-go-review
+  - https://goagent.top/compare
+  - https://github.com/wimi321/lizzieyzy-next/releases
+  - https://github.com/wimi321/GoAgent/releases

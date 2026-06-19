@@ -98,7 +98,7 @@ main {
   top: 14px;
   z-index: 20;
   display: grid;
-  grid-template-columns: auto minmax(360px, 1fr) auto;
+  grid-template-columns: minmax(320px, auto) minmax(280px, 1fr) auto;
   align-items: center;
   gap: 18px;
   margin: 14px 0 28px;
@@ -110,9 +110,11 @@ main {
   backdrop-filter: blur(22px);
 }
 
+.brand-cluster,
 .brand,
 .site-header nav,
 .footer-links,
+.footer-resources,
 .button-row,
 .header-actions,
 .language-switcher,
@@ -122,11 +124,24 @@ main {
   align-items: center;
 }
 
+.brand-cluster {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .brand {
   gap: 10px;
-  padding-left: 4px;
+  min-height: 42px;
+  border-radius: 999px;
+  padding: 3px 9px 3px 4px;
   font-weight: 820;
   letter-spacing: 0;
+}
+
+.brand-secondary {
+  border: 1px solid rgba(38, 35, 28, 0.1);
+  background: rgba(250, 249, 245, 0.74);
+  color: #263029;
 }
 
 .brand img {
@@ -138,6 +153,10 @@ main {
   color: var(--muted);
   font-size: 12px;
   font-weight: 720;
+}
+
+.brand-secondary small {
+  font-size: 11px;
 }
 
 .site-header nav {
@@ -631,6 +650,36 @@ h3 {
   font-size: 14px;
 }
 
+.compare-table {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.compare-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.6fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.compare-row > * {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: rgba(250, 249, 245, 0.64);
+  line-height: 1.6;
+}
+
+.compare-head > * {
+  background: var(--green-soft);
+  color: var(--green-strong);
+}
+
+.compare-row span {
+  color: var(--muted);
+}
+
 .site-footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, auto);
@@ -655,12 +704,28 @@ h3 {
   gap: 12px;
 }
 
-.footer-links a {
+.footer-resources {
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.footer-links a,
+.footer-resources a {
   color: #3e4a42;
   font-size: 14px;
 }
 
-.footer-links a:hover {
+.footer-resources a {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.58);
+  font-weight: 720;
+}
+
+.footer-links a:hover,
+.footer-resources a:hover {
   color: var(--green-strong);
 }
 
@@ -705,6 +770,10 @@ h3 {
   .download-row {
     grid-template-columns: 1fr;
   }
+
+  .compare-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -714,6 +783,10 @@ h3 {
 
   .site-header {
     border-radius: 24px;
+  }
+
+  .brand-cluster {
+    width: 100%;
   }
 
   .brand {

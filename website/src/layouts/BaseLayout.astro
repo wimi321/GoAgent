@@ -6,7 +6,17 @@ interface Props {
   description?: string
   canonical?: string
   lang?: string
-  pageKey?: 'home' | 'download' | 'docs' | 'privacy' | 'faq' | 'changelog'
+  pageKey?:
+    | 'home'
+    | 'download'
+    | 'docs'
+    | 'privacy'
+    | 'faq'
+    | 'changelog'
+    | 'katago-review'
+    | 'fox-go-review'
+    | 'ai-go-review'
+    | 'compare'
   jsonLd?: Record<string, unknown>
 }
 
@@ -58,10 +68,17 @@ const copyByLang = {
     skip: '跳到主要内容',
     brand: 'LizzieYzy Next',
     brandSub: '专业围棋复盘',
+    goAgentSub: '实验围棋智能体',
     nav: { products: '产品', workflow: '工作流', download: '下载', docs: '文档', faq: 'FAQ' },
     cta: '下载首推版',
     footer: '首推 LizzieYzy Next 做稳定全盘复盘；GoAgent 作为实验围棋智能体，探索 AI 讲棋的新工作流。',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
+    resources: {
+      katago: 'KataGo 复盘',
+      fox: '野狐棋谱复盘',
+      ai: '围棋 AI 复盘',
+      compare: '产品对比'
+    },
     privacy: '隐私',
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
@@ -69,10 +86,17 @@ const copyByLang = {
     skip: '跳到主要內容',
     brand: 'LizzieYzy Next',
     brandSub: '專業圍棋復盤',
+    goAgentSub: '實驗圍棋智能體',
     nav: { products: '產品', workflow: '工作流', download: '下載', docs: '文檔', faq: 'FAQ' },
     cta: '下載首推版',
     footer: '首推 LizzieYzy Next 做穩定全盤復盤；GoAgent 是實驗中的圍棋智能體，探索 AI 講棋工作流。',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
+    resources: {
+      katago: 'KataGo 復盤',
+      fox: '野狐棋譜復盤',
+      ai: '圍棋 AI 復盤',
+      compare: '產品對比'
+    },
     privacy: '隱私',
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
@@ -80,10 +104,17 @@ const copyByLang = {
     skip: 'Skip to content',
     brand: 'LizzieYzy Next',
     brandSub: 'Go review workbench',
+    goAgentSub: 'Experimental Go agent',
     nav: { products: 'Products', workflow: 'Workflow', download: 'Download', docs: 'Guide', faq: 'FAQ' },
     cta: 'Download recommended',
     footer: 'Start with LizzieYzy Next for stable whole-game review. GoAgent is an experimental Go agent for AI move explanations.',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
+    resources: {
+      katago: 'KataGo review',
+      fox: 'Fox game review',
+      ai: 'AI Go review',
+      compare: 'Compare products'
+    },
     privacy: 'Privacy',
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
@@ -91,10 +122,17 @@ const copyByLang = {
     skip: '本文へ移動',
     brand: 'LizzieYzy Next',
     brandSub: '囲碁復盤ワークベンチ',
+    goAgentSub: '実験的な囲碁エージェント',
     nav: { products: 'プロダクト', workflow: '流れ', download: 'ダウンロード', docs: 'ガイド', faq: 'FAQ' },
     cta: '推奨版を入手',
     footer: 'まず LizzieYzy Next で一局全体を安定して復盤。GoAgent は AI 解説を試す実験的な囲碁エージェントです。',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
+    resources: {
+      katago: 'KataGo 復盤',
+      fox: 'Fox 棋譜復盤',
+      ai: 'AI 囲碁復盤',
+      compare: '製品比較'
+    },
     privacy: 'プライバシー',
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
@@ -102,10 +140,17 @@ const copyByLang = {
     skip: '본문으로 이동',
     brand: 'LizzieYzy Next',
     brandSub: '바둑 복기 워크벤치',
+    goAgentSub: '실험 바둑 에이전트',
     nav: { products: '제품', workflow: '흐름', download: '다운로드', docs: '가이드', faq: 'FAQ' },
     cta: '추천판 다운로드',
     footer: '먼저 LizzieYzy Next로 안정적인 전판 복기를 시작하세요. GoAgent는 AI 수 설명을 실험하는 바둑 에이전트입니다.',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
+    resources: {
+      katago: 'KataGo 복기',
+      fox: 'Fox 기보 복기',
+      ai: 'AI 바둑 복기',
+      compare: '제품 비교'
+    },
     privacy: '개인정보',
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
@@ -113,10 +158,17 @@ const copyByLang = {
     skip: 'ไปยังเนื้อหา',
     brand: 'LizzieYzy Next',
     brandSub: 'พื้นที่ทบทวนหมากล้อม',
+    goAgentSub: 'Go agent ทดลอง',
     nav: { products: 'ผลิตภัณฑ์', workflow: 'เวิร์กโฟลว์', download: 'ดาวน์โหลด', docs: 'คู่มือ', faq: 'FAQ' },
     cta: 'ดาวน์โหลดตัวแนะนำ',
     footer: 'เริ่มด้วย LizzieYzy Next สำหรับการทบทวนทั้งเกมที่เสถียร ส่วน GoAgent เป็น agent ทดลองสำหรับคำอธิบายด้วย AI',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
+    resources: {
+      katago: 'รีวิว KataGo',
+      fox: 'รีวิวเกม Fox',
+      ai: 'รีวิว Go ด้วย AI',
+      compare: 'เปรียบเทียบ'
+    },
     privacy: 'ความเป็นส่วนตัว',
     copyright: 'GoAgent and LizzieYzy Next contributors'
   },
@@ -124,10 +176,17 @@ const copyByLang = {
     skip: 'Chuyển tới nội dung',
     brand: 'LizzieYzy Next',
     brandSub: 'Bàn làm việc ôn tập cờ vây',
+    goAgentSub: 'Agent cờ vây thử nghiệm',
     nav: { products: 'Sản phẩm', workflow: 'Quy trình', download: 'Tải xuống', docs: 'Hướng dẫn', faq: 'FAQ' },
     cta: 'Tải bản khuyên dùng',
     footer: 'Hãy bắt đầu với LizzieYzy Next để ôn tập toàn ván ổn định. GoAgent là agent cờ vây thử nghiệm cho giải thích bằng AI.',
     community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
+    resources: {
+      katago: 'Ôn tập KataGo',
+      fox: 'Ôn tập ván Fox',
+      ai: 'Ôn tập Go bằng AI',
+      compare: 'So sánh'
+    },
     privacy: 'Riêng tư',
     copyright: 'GoAgent and LizzieYzy Next contributors'
   }
@@ -138,6 +197,8 @@ const siteLang = (lang in copyByLang ? lang : 'zh-CN') as SiteLang
 const copy = copyByLang[siteLang]
 const homeHref = homeByLang[siteLang]
 const sectionHref = (section: string) => `${homeHref === '/' ? '/' : homeHref}#${section}`
+const localizedPageKeys = new Set(['home', 'download', 'docs', 'privacy', 'faq', 'changelog'])
+const languagePageKey = localizedPageKeys.has(pageKey) ? pageKey : 'home'
 
 const navItems = [
   { href: sectionHref('products'), label: copy.nav.products },
@@ -148,25 +209,34 @@ const navItems = [
 ]
 
 const languageItems = [
-  { href: localizedPath('zh-CN', pageKey), label: '简' },
-  { href: localizedPath('zh-Hant', pageKey), label: '繁' },
-  { href: localizedPath('en', pageKey), label: 'EN' },
-  { href: localizedPath('ja', pageKey), label: '日' },
-  { href: localizedPath('ko', pageKey), label: '한' },
-  { href: localizedPath('th', pageKey), label: 'TH' },
-  { href: localizedPath('vi', pageKey), label: 'VI' }
+  { href: localizedPath('zh-CN', languagePageKey), label: '简' },
+  { href: localizedPath('zh-Hant', languagePageKey), label: '繁' },
+  { href: localizedPath('en', languagePageKey), label: 'EN' },
+  { href: localizedPath('ja', languagePageKey), label: '日' },
+  { href: localizedPath('ko', languagePageKey), label: '한' },
+  { href: localizedPath('th', languagePageKey), label: 'TH' },
+  { href: localizedPath('vi', languagePageKey), label: 'VI' }
 ]
 
-const alternateItems = [
-  { lang: 'zh-CN', href: `https://goagent.top${localizedPath('zh-CN', pageKey)}` },
-  { lang: 'zh-Hant', href: `https://goagent.top${localizedPath('zh-Hant', pageKey)}` },
-  { lang: 'en', href: `https://goagent.top${localizedPath('en', pageKey)}` },
-  { lang: 'ja', href: `https://goagent.top${localizedPath('ja', pageKey)}` },
-  { lang: 'ko', href: `https://goagent.top${localizedPath('ko', pageKey)}` },
-  { lang: 'th', href: `https://goagent.top${localizedPath('th', pageKey)}` },
-  { lang: 'vi', href: `https://goagent.top${localizedPath('vi', pageKey)}` },
-  { lang: 'x-default', href: `https://goagent.top${localizedPath('zh-CN', pageKey)}` }
+const resourceItems = [
+  { href: '/katago-review', label: copy.resources.katago },
+  { href: '/fox-go-review', label: copy.resources.fox },
+  { href: '/ai-go-review', label: copy.resources.ai },
+  { href: '/compare', label: copy.resources.compare }
 ]
+
+const alternateItems = localizedPageKeys.has(pageKey)
+  ? [
+      { lang: 'zh-CN', href: `https://goagent.top${localizedPath('zh-CN', pageKey)}` },
+      { lang: 'zh-Hant', href: `https://goagent.top${localizedPath('zh-Hant', pageKey)}` },
+      { lang: 'en', href: `https://goagent.top${localizedPath('en', pageKey)}` },
+      { lang: 'ja', href: `https://goagent.top${localizedPath('ja', pageKey)}` },
+      { lang: 'ko', href: `https://goagent.top${localizedPath('ko', pageKey)}` },
+      { lang: 'th', href: `https://goagent.top${localizedPath('th', pageKey)}` },
+      { lang: 'vi', href: `https://goagent.top${localizedPath('vi', pageKey)}` },
+      { lang: 'x-default', href: `https://goagent.top${localizedPath('zh-CN', pageKey)}` }
+    ]
+  : []
 ---
 <!doctype html>
 <html lang={lang}>
@@ -195,11 +265,18 @@ const alternateItems = [
     <a class="skip-link" href="#content">{copy.skip}</a>
     <div class="site-shell">
       <header class="site-header">
-        <a class="brand" href={homeHref} aria-label="LizzieYzy Next home">
-          <img src="/logo.svg" alt="" width="36" height="36" />
-          <span>{copy.brand}</span>
-          <small>{copy.brandSub}</small>
-        </a>
+        <div class="brand-cluster" aria-label="Site brands">
+          <a class="brand brand-primary" href={homeHref} aria-label="LizzieYzy Next home">
+            <img src="/logo.svg" alt="" width="36" height="36" />
+            <span>{copy.brand}</span>
+            <small>{copy.brandSub}</small>
+          </a>
+          <a class="brand brand-secondary" href={goAgentUrl} aria-label="GoAgent GitHub">
+            <img src="/logo.svg" alt="" width="30" height="30" />
+            <span>GoAgent</span>
+            <small>{copy.goAgentSub}</small>
+          </a>
+        </div>
         <nav aria-label="Primary">
           {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
@@ -227,6 +304,9 @@ const alternateItems = [
           <a href={goAgentIssues}>Issues</a>
           <a href={localizedPath(siteLang, 'privacy')}>{copy.privacy}</a>
         </div>
+        <nav class="footer-resources" aria-label="Resources">
+          {resourceItems.map((item) => <a href={item.href}>{item.label}</a>)}
+        </nav>
         <p class="copyright">Copyright © {new Date().getFullYear()} {copy.copyright}.</p>
       </footer>
     </div>

@@ -1,0 +1,104 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
+const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
+
+const rows = [
+  ['推荐给谁', '绝大多数想稳定复盘的棋友', '想尝试 AI 自然语言讲棋的用户'],
+  ['核心价值', 'KataGo 全盘分析、胜率、目差、候选点、关键手定位', '把棋盘、KataGo 证据和 AI 问答组织成讲解工作流'],
+  ['成熟度', '首推，适合日常使用', '实验项目，适合尝鲜和反馈'],
+  ['平台', 'Windows / macOS / Linux', 'Windows / macOS']
+]
+
+const faq = [
+  ['我第一次来应该下载哪个？', '下载 LizzieYzy Next。它是首推的专业围棋复盘工作台。'],
+  ['GoAgent 还值得试吗？', '值得，但它定位是实验围棋智能体。你想体验 AI 讲棋、愿意尝鲜和反馈时再试。'],
+  ['两个项目会混在一起吗？', '不会。页面顶部会显示两个产品，但下载建议很明确：首推 LizzieYzy Next，GoAgent 是实验智能体。']
+]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebPage',
+      name: 'LizzieYzy Next 与 GoAgent 怎么选',
+      inLanguage: 'zh-CN',
+      description: 'LizzieYzy Next 是首推的专业围棋复盘工作台；GoAgent 是实验围棋智能体。',
+      url: 'https://goagent.top/compare'
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map(([question, answer]) => ({
+        '@type': 'Question',
+        name: question,
+        acceptedAnswer: { '@type': 'Answer', text: answer }
+      }))
+    }
+  ]
+}
+---
+<BaseLayout
+  title="LizzieYzy Next 与 GoAgent 怎么选"
+  description="第一次下载围棋 AI 复盘工具，首推 LizzieYzy Next；GoAgent 是实验围棋智能体，适合尝试 AI 讲棋。"
+  pageKey="compare"
+  jsonLd={jsonLd}
+>
+  <section class="page-hero">
+    <p class="eyebrow">Compare</p>
+    <h1>先用 LizzieYzy Next，想尝鲜再试 GoAgent</h1>
+    <p class="lead">两个项目都面向围棋复盘，但用户目标不同：一个负责成熟稳定地看清整盘，一个负责探索 AI 讲棋的新工作流。</p>
+    <div class="button-row">
+      <a class="button primary" href={lizzieReleases}>下载首推版</a>
+      <a class="button subtle" href={goAgentReleases}>试用 GoAgent</a>
+    </div>
+  </section>
+
+  <section class="content-stack">
+    <div class="grid two">
+      <article class="product-panel featured">
+        <img src="/images/lizzieyzy-next-workbench.jpg" alt="LizzieYzy Next 围棋复盘工作台" width="1536" height="1152" loading="lazy" decoding="async" />
+        <div class="product-copy">
+          <p class="product-label">首推</p>
+          <h2>LizzieYzy Next</h2>
+          <p>适合绝大多数棋友：导入棋谱，先看清胜率、目差、候选点和整盘节奏。</p>
+        </div>
+      </article>
+      <article class="product-panel">
+        <img src="/images/goagent-workbench.jpg" alt="GoAgent 围棋智能体工作台" width="1536" height="1152" loading="lazy" decoding="async" />
+        <div class="product-copy">
+          <p class="product-label">实验</p>
+          <h2>GoAgent</h2>
+          <p>适合想体验 AI 讲棋的用户：把棋盘、KataGo 证据和自然语言解释放到一个实验工作流里。</p>
+        </div>
+      </article>
+    </div>
+
+    <article class="doc-card">
+      <h2>快速对比</h2>
+      <div class="compare-table" role="table" aria-label="LizzieYzy Next 与 GoAgent 对比">
+        <div class="compare-row compare-head" role="row">
+          <strong role="columnheader">对比项</strong>
+          <strong role="columnheader">LizzieYzy Next</strong>
+          <strong role="columnheader">GoAgent</strong>
+        </div>
+        {rows.map(([label, lizzie, goagent]) => (
+          <div class="compare-row" role="row">
+            <strong role="cell">{label}</strong>
+            <span role="cell">{lizzie}</span>
+            <span role="cell">{goagent}</span>
+          </div>
+        ))}
+      </div>
+    </article>
+
+    <section class="faq-list" aria-label="产品选择常见问题">
+      {faq.map(([question, answer]) => (
+        <details>
+          <summary>{question}</summary>
+          <p>{answer}</p>
+        </details>
+      ))}
+    </section>
+  </section>
+</BaseLayout>

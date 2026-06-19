@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://goagent.top/</loc><priority>1.0</priority></url>
+  <url><loc>https://goagent.top/katago-review</loc><lastmod>2026-06-19</lastmod><priority>0.95</priority></url>
+  <url><loc>https://goagent.top/fox-go-review</loc><lastmod>2026-06-19</lastmod><priority>0.85</priority></url>
+  <url><loc>https://goagent.top/ai-go-review</loc><lastmod>2026-06-19</lastmod><priority>0.85</priority></url>
+  <url><loc>https://goagent.top/compare</loc><lastmod>2026-06-19</lastmod><priority>0.8</priority></url>
   <url><loc>https://goagent.top/download</loc><priority>0.9</priority></url>
   <url><loc>https://goagent.top/docs</loc><priority>0.8</priority></url>
   <url><loc>https://goagent.top/privacy</loc><priority>0.7</priority></url>

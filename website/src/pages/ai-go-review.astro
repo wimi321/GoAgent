@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
+const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
+
+const principles = [
+  ['事实先行', '围棋 AI 复盘先看 KataGo 给出的胜率、目差、候选点和 PV，不让自然语言凭空判断。'],
+  ['少讲废话', '常规定式少讲，真正的战斗、转换、死活和明显损失才值得展开。'],
+  ['分层学习', '强棋友看变化和目差，普通棋友先看“这手为什么亏、下次怎么想”。']
+]
+
+const faq = [
+  ['围棋 AI 复盘是不是直接问聊天机器人？', '不建议。聊天机器人没有棋盘和 KataGo 证据时容易编造。更好的顺序是先用 LizzieYzy Next 分析，再用 GoAgent 尝试讲解。'],
+  ['LizzieYzy Next 和 GoAgent 怎么搭配？', 'LizzieYzy Next 负责成熟稳定的全盘复盘；GoAgent 负责实验性的自然语言讲棋。'],
+  ['AI 讲棋应该相信什么？', '优先相信可验证的 KataGo 候选点、胜率、目差和变化图。自然语言解释应该服务这些证据。']
+]
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'TechArticle',
+      headline: '围棋 AI 复盘怎么看',
+      inLanguage: 'zh-CN',
+      description: '围棋 AI 复盘建议先用 KataGo 工具看清全盘，再尝试自然语言讲解。',
+      mainEntityOfPage: 'https://goagent.top/ai-go-review'
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map(([question, answer]) => ({
+        '@type': 'Question',
+        name: question,
+        acceptedAnswer: { '@type': 'Answer', text: answer }
+      }))
+    }
+  ]
+}
+---
+<BaseLayout
+  title="围棋 AI 复盘怎么看 - LizzieYzy Next 与 GoAgent"
+  description="围棋 AI 复盘建议先用 LizzieYzy Next 做 KataGo 全盘分析，再用 GoAgent 尝试自然语言讲棋，避免没有证据的空泛解释。"
+  pageKey="ai-go-review"
+  jsonLd={jsonLd}
+>
+  <section class="page-hero">
+    <p class="eyebrow">AI Go Review</p>
+    <h1>好的围棋 AI 复盘，先有证据再讲道理</h1>
+    <p class="lead">真正有用的 AI 复盘不是“说得像老师”，而是能把 KataGo 证据、棋盘变化和人能听懂的解释连起来。</p>
+    <div class="button-row">
+      <a class="button primary" href={lizzieReleases}>下载 LizzieYzy Next</a>
+      <a class="button subtle" href={goAgentReleases}>试用 GoAgent</a>
+    </div>
+  </section>
+
+  <section class="content-stack">
+    <article class="premium-panel doc-card">
+      <div>
+        <h2>推荐顺序</h2>
+        <p>先用 LizzieYzy Next 做成熟稳定的 KataGo 全盘复盘；当你已经定位关键手，再用 GoAgent 尝试 AI 讲棋。这个顺序能减少空泛解释，也更适合日常进步。</p>
+      </div>
+      <img src="/images/goagent-workbench.jpg" alt="GoAgent 围棋 AI 讲解工作台" width="1536" height="1152" loading="lazy" decoding="async" />
+    </article>
+
+    <div class="grid three">
+      {principles.map(([title, text]) => (
+        <article class="doc-card">
+          <h2>{title}</h2>
+          <p>{text}</p>
+        </article>
+      ))}
+    </div>
+
+    <section class="faq-list" aria-label="围棋 AI 复盘常见问题">
+      {faq.map(([question, answer]) => (
+        <details>
+          <summary>{question}</summary>
+          <p>{answer}</p>
+        </details>
+      ))}
+    </section>
+  </section>
+</BaseLayout>

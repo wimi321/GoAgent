@@ -37,18 +37,29 @@ requireFile('website/package.json')
 requireFile('website/src/pages/index.astro')
 requireFile('website/src/pages/download.astro')
 requireFile('website/src/pages/privacy.astro')
+requireFile('website/src/pages/katago-review.astro')
+requireFile('website/src/pages/fox-go-review.astro')
+requireFile('website/src/pages/ai-go-review.astro')
+requireFile('website/src/pages/compare.astro')
 requireFile('website/src/pages/[locale].astro')
 requireFile('website/src/pages/[locale]/[page].astro')
 requireFile('website/DEPLOYMENT.md')
+requireFile('.github/workflows/deploy-website.yml')
 requireFile('website/public/sitemap.xml')
 requireFile('website/public/site.webmanifest')
 requireFile('website/public/llms.txt')
+requireFile('website/public/llms-full.txt')
+requireFile('website/public/ai.txt')
 
 const index = read('website/src/pages/index.astro')
 const privacy = read('website/src/pages/privacy.astro')
 const deployment = read('website/DEPLOYMENT.md')
+const workflow = read('.github/workflows/deploy-website.yml')
 const sitemap = read('website/public/sitemap.xml')
 const manifest = read('website/public/site.webmanifest')
+const llms = read('website/public/llms.txt')
+const llmsFull = read('website/public/llms-full.txt')
+const ai = read('website/public/ai.txt')
 
 if (!index.includes('LizzieYzy Next')) fail('homepage must contain LizzieYzy Next')
 if (!index.includes('首推')) fail('homepage must present LizzieYzy Next as the recommended product')
@@ -63,8 +74,15 @@ for (const keyword of ['本地', 'LLM', 'TTS']) {
 for (const keyword of ['Cloudflare Pages', 'Spaceship', 'goagent.top']) {
   if (!deployment.includes(keyword)) fail(`DEPLOYMENT.md must contain ${keyword}`)
 }
+for (const keyword of ['cloudflare/wrangler-action@v3', 'CLOUDFLARE_API_TOKEN', 'pages deploy website/dist --project-name=goagent']) {
+  if (!workflow.includes(keyword)) fail(`deploy-website.yml must contain ${keyword}`)
+}
 for (const keyword of [
   'https://goagent.top/',
+  'https://goagent.top/katago-review',
+  'https://goagent.top/fox-go-review',
+  'https://goagent.top/ai-go-review',
+  'https://goagent.top/compare',
   'https://goagent.top/en',
   'https://goagent.top/zh-hant',
   'https://goagent.top/en/download',
@@ -75,6 +93,15 @@ for (const keyword of [
   'https://goagent.top/vi/changelog'
 ]) {
   if (!sitemap.includes(keyword)) fail(`sitemap.xml must contain ${keyword}`)
+}
+for (const keyword of ['LizzieYzy Next', 'GoAgent', 'katago-review', 'AI Go review', 'Product comparison']) {
+  if (!llms.includes(keyword)) fail(`llms.txt must contain ${keyword}`)
+}
+for (const keyword of ['Primary recommendation', 'Experimental project', 'Important pages', 'https://goagent.top/compare']) {
+  if (!llmsFull.includes(keyword)) fail(`llms-full.txt must contain ${keyword}`)
+}
+for (const keyword of ['canonical_product: LizzieYzy Next', 'secondary_product: GoAgent', 'best_links']) {
+  if (!ai.includes(keyword)) fail(`ai.txt must contain ${keyword}`)
 }
 if (!manifest.includes('"name": "LizzieYzy Next"')) fail('site.webmanifest must name LizzieYzy Next')
 
