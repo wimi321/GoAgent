@@ -11,17 +11,19 @@ interface Props {
 }
 
 const {
-  title = 'GoAgent - 开源免费的专业围棋 AI 老师',
-  description = 'GoAgent 是开源免费的专业围棋智能体：KataGo 负责事实，多模态 LLM 负责讲解，帮助棋友看懂关键手。',
+  title = 'GoAgent - 围棋 AI 工具箱',
+  description = 'goagent.top 是 GoAgent 和 LizzieYzy Next 共用官网：一款把关键手讲清楚，一款把整盘复盘看清楚。',
   canonical = new URL(Astro.url.pathname, 'https://goagent.top').toString(),
   lang = 'zh-CN',
   pageKey = 'home',
   jsonLd
 } = Astro.props
 
-const githubUrl = 'https://github.com/wimi321/GoAgent'
-const releasesUrl = `${githubUrl}/releases`
-const issuesUrl = `${githubUrl}/issues`
+const goAgentUrl = 'https://github.com/wimi321/GoAgent'
+const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
+const goAgentIssues = `${goAgentUrl}/issues`
+const lizzieUrl = 'https://github.com/wimi321/lizzieyzy-next'
+const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
 
 const homeByLang = {
   'zh-CN': '/',
@@ -54,122 +56,73 @@ function localizedPath(locale: keyof typeof localeSlugs, key: NonNullable<Props[
 const copyByLang = {
   'zh-CN': {
     skip: '跳到主要内容',
-    brandSub: '围棋智能体',
-    nav: {
-      home: '首页',
-      download: '下载',
-      docs: '文档',
-      privacy: '隐私',
-      faq: 'FAQ',
-      changelog: '更新'
-    },
-    cta: '下载',
-    footer: '开源免费的围棋智能体。KataGo 给证据，AI 老师讲清楚。',
-    community: 'QQ 交流群：1030632742',
+    brandSub: '围棋 AI 工具箱',
+    nav: { products: '产品', workflow: '工作流', download: '下载', docs: '文档', faq: 'FAQ' },
+    cta: '免费下载',
+    footer: 'GoAgent 把关键手讲清楚；LizzieYzy Next 把整盘复盘看清楚。两个开源桌面工具，共用一个官网。',
+    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
     privacy: '隐私',
-    copyright: 'GoAgent contributors'
+    copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   'zh-Hant': {
     skip: '跳到主要內容',
-    brandSub: '圍棋智能體',
-    nav: {
-      home: '首頁',
-      download: '下載',
-      docs: '文檔',
-      privacy: '隱私',
-      faq: 'FAQ',
-      changelog: '更新'
-    },
-    cta: '下載',
-    footer: '開源免費的圍棋智能體。KataGo 給證據，AI 老師講清楚。',
-    community: 'QQ 交流群：1030632742',
+    brandSub: '圍棋 AI 工具箱',
+    nav: { products: '產品', workflow: '工作流', download: '下載', docs: '文檔', faq: 'FAQ' },
+    cta: '免費下載',
+    footer: 'GoAgent 把關鍵手講清楚；LizzieYzy Next 把整盤復盤看清楚。兩個開源桌面工具，共用一個官網。',
+    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
     privacy: '隱私',
-    copyright: 'GoAgent contributors'
+    copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   en: {
     skip: 'Skip to content',
-    brandSub: 'Go AI agent',
-    nav: {
-      home: 'Home',
-      download: 'Download',
-      docs: 'Guide',
-      privacy: 'Privacy',
-      faq: 'FAQ',
-      changelog: 'Updates'
-    },
-    cta: 'Download',
-    footer: 'Open-source and free Go AI teacher. KataGo gives evidence. AI explains clearly.',
-    community: 'QQ community: 1030632742',
+    brandSub: 'Go AI toolkit',
+    nav: { products: 'Products', workflow: 'Workflow', download: 'Download', docs: 'Guide', faq: 'FAQ' },
+    cta: 'Download free',
+    footer: 'GoAgent explains key moves clearly; LizzieYzy Next makes the whole-game review easier to read. Two open-source desktop tools, one website.',
+    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
     privacy: 'Privacy',
-    copyright: 'GoAgent contributors'
+    copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   ja: {
     skip: '本文へ移動',
-    brandSub: '囲碁 AI エージェント',
-    nav: {
-      home: 'ホーム',
-      download: 'ダウンロード',
-      docs: 'ガイド',
-      privacy: 'プライバシー',
-      faq: 'FAQ',
-      changelog: '更新'
-    },
-    cta: 'ダウンロード',
-    footer: 'オープンソースで無料の囲碁 AI 先生。KataGo が根拠を出し、AI がわかりやすく説明します。',
-    community: 'QQ コミュニティ：1030632742',
+    brandSub: '囲碁 AI ツールキット',
+    nav: { products: 'プロダクト', workflow: '流れ', download: 'ダウンロード', docs: 'ガイド', faq: 'FAQ' },
+    cta: '無料ダウンロード',
+    footer: 'GoAgent は重要な一手を説明し、LizzieYzy Next は一局全体を読みやすくします。',
+    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
     privacy: 'プライバシー',
-    copyright: 'GoAgent contributors'
+    copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   ko: {
     skip: '본문으로 이동',
-    brandSub: '바둑 AI 에이전트',
-    nav: {
-      home: '홈',
-      download: '다운로드',
-      docs: '가이드',
-      privacy: '개인정보',
-      faq: 'FAQ',
-      changelog: '업데이트'
-    },
-    cta: '다운로드',
-    footer: '오픈소스 무료 바둑 AI 선생님. KataGo가 근거를 제시하고 AI가 쉽게 설명합니다.',
-    community: 'QQ 커뮤니티: 1030632742',
+    brandSub: '바둑 AI 툴킷',
+    nav: { products: '제품', workflow: '흐름', download: '다운로드', docs: '가이드', faq: 'FAQ' },
+    cta: '무료 다운로드',
+    footer: 'GoAgent는 핵심 수를 설명하고, LizzieYzy Next는 전체 판 복기를 보기 쉽게 만듭니다.',
+    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
     privacy: '개인정보',
-    copyright: 'GoAgent contributors'
+    copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   th: {
     skip: 'ไปยังเนื้อหา',
-    brandSub: 'เอเจนต์ AI หมากล้อม',
-    nav: {
-      home: 'หน้าแรก',
-      download: 'ดาวน์โหลด',
-      docs: 'คู่มือ',
-      privacy: 'ความเป็นส่วนตัว',
-      faq: 'FAQ',
-      changelog: 'อัปเดต'
-    },
-    cta: 'ดาวน์โหลด',
-    footer: 'ครู AI หมากล้อมแบบโอเพนซอร์สและฟรี KataGo ให้หลักฐาน ส่วน AI อธิบายให้เข้าใจง่าย',
-    community: 'ชุมชน QQ: 1030632742',
+    brandSub: 'ชุดเครื่องมือ AI หมากล้อม',
+    nav: { products: 'ผลิตภัณฑ์', workflow: 'เวิร์กโฟลว์', download: 'ดาวน์โหลด', docs: 'คู่มือ', faq: 'FAQ' },
+    cta: 'ดาวน์โหลดฟรี',
+    footer: 'GoAgent อธิบายหมากสำคัญ ส่วน LizzieYzy Next ช่วยอ่านภาพรวมทั้งเกมให้ชัดขึ้น',
+    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
     privacy: 'ความเป็นส่วนตัว',
-    copyright: 'GoAgent contributors'
+    copyright: 'GoAgent and LizzieYzy Next contributors'
   },
   vi: {
     skip: 'Chuyển tới nội dung',
-    brandSub: 'AI agent cờ vây',
-    nav: {
-      home: 'Trang chủ',
-      download: 'Tải xuống',
-      docs: 'Hướng dẫn',
-      privacy: 'Riêng tư',
-      faq: 'FAQ',
-      changelog: 'Cập nhật'
-    },
-    cta: 'Tải xuống',
-    footer: 'Giáo viên AI cờ vây mã nguồn mở và miễn phí. KataGo đưa bằng chứng, AI giải thích rõ ràng.',
-    community: 'Cộng đồng QQ: 1030632742',
+    brandSub: 'Bộ công cụ AI cờ vây',
+    nav: { products: 'Sản phẩm', workflow: 'Quy trình', download: 'Tải xuống', docs: 'Hướng dẫn', faq: 'FAQ' },
+    cta: 'Tải miễn phí',
+    footer: 'GoAgent giải thích nước quan trọng; LizzieYzy Next giúp đọc toàn bộ ván rõ hơn.',
+    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
     privacy: 'Riêng tư',
-    copyright: 'GoAgent contributors'
+    copyright: 'GoAgent and LizzieYzy Next contributors'
   }
 } as const
 
@@ -177,14 +130,14 @@ type SiteLang = keyof typeof copyByLang
 const siteLang = (lang in copyByLang ? lang : 'zh-CN') as SiteLang
 const copy = copyByLang[siteLang]
 const homeHref = homeByLang[siteLang]
+const sectionHref = (section: string) => `${homeHref === '/' ? '/' : homeHref}#${section}`
 
 const navItems = [
-  { href: localizedPath(siteLang, 'home'), label: copy.nav.home },
-  { href: localizedPath(siteLang, 'download'), label: copy.nav.download },
+  { href: sectionHref('products'), label: copy.nav.products },
+  { href: sectionHref('workflow'), label: copy.nav.workflow },
+  { href: sectionHref('download'), label: copy.nav.download },
   { href: localizedPath(siteLang, 'docs'), label: copy.nav.docs },
-  { href: localizedPath(siteLang, 'privacy'), label: copy.nav.privacy },
-  { href: localizedPath(siteLang, 'faq'), label: copy.nav.faq },
-  { href: localizedPath(siteLang, 'changelog'), label: copy.nav.changelog }
+  { href: localizedPath(siteLang, 'faq'), label: copy.nav.faq }
 ]
 
 const languageItems = [
@@ -220,11 +173,11 @@ const alternateItems = [
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content="https://goagent.top/logo.svg" />
+    <meta property="og:image" content="https://goagent.top/images/go-tools-hero.jpg" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#f7f8f5" />
+    <meta name="theme-color" content="#faf9f5" />
     <meta name="color-scheme" content="light" />
     {alternateItems.map((item) => <link rel="alternate" hreflang={item.lang} href={item.href} />)}
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
@@ -240,14 +193,14 @@ const alternateItems = [
           <span>GoAgent</span>
           <small>{copy.brandSub}</small>
         </a>
-        <nav aria-label={copy.nav.home}>
+        <nav aria-label="Primary">
           {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
         <div class="header-actions">
           <div class="language-switcher" aria-label="Language">
             {languageItems.map((item) => <a href={item.href}>{item.label}</a>)}
           </div>
-          <a class="header-cta" href={releasesUrl}>{copy.cta}</a>
+          <a class="header-cta" href={sectionHref('download')}>{copy.cta}</a>
         </div>
       </header>
       <main id="content">
@@ -260,11 +213,12 @@ const alternateItems = [
           <p class="community-line">{copy.community}</p>
         </div>
         <div class="footer-links">
-          <a href={githubUrl}>GitHub</a>
-          <a href={releasesUrl}>Releases</a>
-          <a href={issuesUrl}>Issues</a>
+          <a href={goAgentUrl}>GoAgent GitHub</a>
+          <a href={lizzieUrl}>LizzieYzy Next GitHub</a>
+          <a href={goAgentReleases}>GoAgent Releases</a>
+          <a href={lizzieReleases}>LizzieYzy Next Releases</a>
+          <a href={goAgentIssues}>Issues</a>
           <a href={localizedPath(siteLang, 'privacy')}>{copy.privacy}</a>
-          <a href={`${githubUrl}/blob/main/LICENSE`}>License MIT</a>
         </div>
         <p class="copyright">Copyright © {new Date().getFullYear()} {copy.copyright}.</p>
       </footer>

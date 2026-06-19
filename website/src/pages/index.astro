@@ -1,223 +1,143 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const releasesUrl = 'https://github.com/wimi321/GoAgent/releases'
-const githubUrl = 'https://github.com/wimi321/GoAgent'
+const goAgentGithub = 'https://github.com/wimi321/GoAgent'
+const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
+const lizzieGithub = 'https://github.com/wimi321/lizzieyzy-next'
+const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
 
-const boardMargin = 48
-const boardSpan = 664
-const step = boardSpan / 18
-const lines = Array.from({ length: 19 }, (_, index) => boardMargin + index * step)
-const starPoints = [3, 9, 15].flatMap((x) => [3, 9, 15].map((y) => ({ x, y })))
-const stones = [
-  { x: 3, y: 3, color: 'black' },
-  { x: 15, y: 3, color: 'white' },
-  { x: 15, y: 15, color: 'black' },
-  { x: 3, y: 15, color: 'white' },
-  { x: 9, y: 10, color: 'black', last: true },
-  { x: 10, y: 9, color: 'white' },
-  { x: 11, y: 11, color: 'black' }
+const products = [
+  {
+    title: 'GoAgent',
+    label: 'AI 围棋老师',
+    image: '/images/goagent-workbench.jpg',
+    alt: 'GoAgent 围棋讲解工作台',
+    summary: '适合想把一手棋听明白的人。它把棋盘、KataGo 证据、知识库和 AI 老师问答放在一起，帮你理解关键手。',
+    points: ['当前手讲解', 'KataGo 证据链', 'AI 老师问答', 'Windows / macOS'],
+    primary: '下载 GoAgent',
+    secondary: '查看代码',
+    release: goAgentReleases,
+    repo: goAgentGithub
+  },
+  {
+    title: 'LizzieYzy Next',
+    label: '专业复盘工作台',
+    image: '/images/lizzieyzy-next-workbench.jpg',
+    alt: 'LizzieYzy Next 全盘分析工作台',
+    summary: '适合想快速看完整盘走势的人。它维护 LizzieYzy 的 KataGo GUI 体验，强化野狐抓谱、快速全盘分析和胜率概览。',
+    points: ['野狐昵称抓谱', '快速全盘分析', '胜率图与底部概览', 'Windows / macOS / Linux'],
+    primary: '下载 LizzieYzy Next',
+    secondary: '查看代码',
+    release: lizzieReleases,
+    repo: lizzieGithub
+  }
 ]
-const candidates = [
-  { x: 12, y: 9, rank: 1, winrate: '58%', visits: '12k', score: '+3.1' },
-  { x: 8, y: 11, rank: 2, winrate: '55%', visits: '8k', score: '+1.7' },
-  { x: 11, y: 8, rank: 3, winrate: '53%', visits: '4k', score: '+0.9' }
-]
-const toPoint = (value: number) => boardMargin + value * step
 
-const valueCards = [
-  ['开源', '代码公开在 GitHub，路线透明，欢迎一起改进。'],
-  ['免费', '安装包免费下载，普通棋友也能直接试用。'],
-  ['专业', 'KataGo 给证据，AI 老师把关键手讲清楚。']
-]
-
-const features = [
-  ['当前手讲解', '点击一手棋，看到候选点、胜率差、PV 和老师解释。'],
-  ['区间复盘', '只看一段关键手，快速找出中盘战和转折点。'],
-  ['棋形识别', '识别常见定式、死活、手筋和形状，不硬套名字。'],
-  ['学生适配', '按水平、年龄和老师风格调整讲解深度。'],
-  ['开源透明', '项目在 GitHub 公开，问题和路线都可追踪。'],
-  ['桌面应用', 'Windows 和 macOS 优先，适合长期复盘学习。']
+const workflow = [
+  ['导入棋谱', '从本地 SGF、野狐公开棋谱或已有棋谱库开始，不需要先理解引擎参数。'],
+  ['看清走势', '用 LizzieYzy Next 先扫完整盘胜率、目差和问题手分布，快速定位转折点。'],
+  ['听懂关键手', '回到 GoAgent 问当前手：为什么亏、好点在哪里、下一盘先看什么。']
 ]
 
 const downloads = [
-  ['Windows x64 标准版', '普通 Windows 用户首选'],
-  ['Windows x64 NVIDIA 版', 'NVIDIA 显卡用户'],
-  ['macOS Apple Silicon', 'M 系列 Mac'],
-  ['macOS Intel', 'Intel Mac']
+  ['GoAgent Releases', '开源免费的 AI 围棋老师，优先下载 Windows 或 macOS 桌面版。', goAgentReleases, 'GoAgent QQ 1030632742'],
+  ['LizzieYzy Next Releases', '持续维护的 KataGo 复盘 GUI，提供 Windows、macOS、Linux 多平台发布包。', lizzieReleases, 'LizzieYzy Next QQ 299419120']
 ]
 
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
+  '@type': 'WebSite',
   name: 'GoAgent',
-  alternateName: '围棋智能体',
-  applicationCategory: 'EducationalApplication',
-  operatingSystem: 'Windows, macOS',
-  description: 'GoAgent 是开源免费的专业围棋 AI 老师，结合 KataGo 和多模态 LLM 帮助用户看懂关键手。',
+  alternateName: '围棋 AI 工具箱',
   url: 'https://goagent.top/',
-  codeRepository: githubUrl,
-  license: `${githubUrl}/blob/main/LICENSE`,
-  downloadUrl: releasesUrl,
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD'
-  }
+  description: 'goagent.top 是 GoAgent 和 LizzieYzy Next 共用的围棋 AI 工具官网。',
+  hasPart: [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'GoAgent',
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Windows, macOS',
+      url: goAgentGithub,
+      downloadUrl: goAgentReleases,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'LizzieYzy Next',
+      applicationCategory: 'GameApplication',
+      operatingSystem: 'Windows, macOS, Linux',
+      url: lizzieGithub,
+      downloadUrl: lizzieReleases,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+    }
+  ]
 }
 ---
 <BaseLayout
-  title="GoAgent - 开源免费的专业围棋 AI 老师"
-  description="GoAgent 是开源免费的专业围棋 AI 老师：导入棋谱，结合 KataGo 和多模态 LLM，把关键手讲成普通用户听得懂的话。"
+  title="GoAgent - 围棋 AI 工具箱"
+  description="goagent.top 是 GoAgent 和 LizzieYzy Next 共用官网：一款把关键手讲清楚，一款把整盘复盘看清楚。"
   pageKey="home"
   jsonLd={jsonLd}
 >
-  <section class="hero hero-premium">
+  <section class="home-hero">
     <div class="hero-copy">
-      <p class="eyebrow">开源 · 免费 · 专业</p>
-      <h1><span>让 AI 老师</span><span>把棋讲明白</span></h1>
-      <p class="subtitle">导入棋谱，看懂关键手。</p>
+      <h1>一站找到好用的围棋 AI 工具</h1>
       <p class="lead">
-        GoAgent 是一款免费的围棋智能体。它会看棋盘、看候选点、看变化，把“这手为什么亏”“好点好在哪里”“下一次该先看哪里”讲成人能听懂的话。
+        GoAgent 负责把棋讲明白；LizzieYzy Next 负责把整盘复盘看清楚。两款开源桌面工具，共用一个官网。
       </p>
       <div class="button-row">
-        <a class="button primary" href={releasesUrl}>免费下载</a>
-        <a class="button" href={githubUrl}>查看开源代码</a>
-        <a class="button subtle" href="/docs">快速开始</a>
+        <a class="button primary" href={goAgentReleases}>下载 GoAgent</a>
+        <a class="button" href={lizzieReleases}>下载 LizzieYzy Next</a>
+        <a class="button subtle" href="#products">先看区别</a>
       </div>
-      <div class="hero-note">
-        <span>Windows / macOS</span>
-        <span>MIT License</span>
-        <span>QQ 1030632742</span>
+      <div class="trust-row" aria-label="官网要点">
+        <span>开源免费</span>
+        <span>KataGo 分析</span>
+        <span>Windows / macOS / Linux</span>
       </div>
     </div>
-
-    <aside class="hero-visual hero-device" aria-label="GoAgent product preview">
-      <div class="device-chrome">
-        <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
-        <span>GoAgent · current move</span>
-      </div>
-      <div class="device-body">
-        <div class="board-panel">
-          <svg class="go-board-svg" viewBox="0 0 760 760" role="img" aria-label="标准 19 路围棋棋盘预览">
-            <defs>
-              <linearGradient id="boardGlow" x1="0" x2="1" y1="0" y2="1">
-                <stop offset="0%" stop-color="#f3cc86" />
-                <stop offset="55%" stop-color="#e0a85d" />
-                <stop offset="100%" stop-color="#c98b45" />
-              </linearGradient>
-              <radialGradient id="blackStone" cx="32%" cy="26%" r="74%">
-                <stop offset="0%" stop-color="#86837b" />
-                <stop offset="40%" stop-color="#262521" />
-                <stop offset="100%" stop-color="#060605" />
-              </radialGradient>
-              <radialGradient id="whiteStone" cx="32%" cy="24%" r="78%">
-                <stop offset="0%" stop-color="#ffffff" />
-                <stop offset="58%" stop-color="#eee8dc" />
-                <stop offset="100%" stop-color="#b9ac98" />
-              </radialGradient>
-              <filter id="stoneShadow" x="-30%" y="-20%" width="160%" height="170%">
-                <feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#5d3b16" flood-opacity="0.28" />
-              </filter>
-              <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#644217" flood-opacity="0.18" />
-              </filter>
-            </defs>
-            <rect x="18" y="18" width="724" height="724" rx="54" fill="url(#boardGlow)" filter="url(#softShadow)" />
-            <rect x="18" y="18" width="724" height="724" rx="54" fill="none" stroke="rgba(89, 58, 24, .18)" />
-            {lines.map((pos) => (
-              <>
-                <line x1={boardMargin} y1={pos} x2={boardMargin + boardSpan} y2={pos} class="board-line" />
-                <line x1={pos} y1={boardMargin} x2={pos} y2={boardMargin + boardSpan} class="board-line" />
-              </>
-            ))}
-            {starPoints.map((point) => (
-              <circle cx={toPoint(point.x)} cy={toPoint(point.y)} r="5.6" class="star-point" />
-            ))}
-            {stones.map((stone) => (
-              <g class={`stone-svg ${stone.color}`} filter="url(#stoneShadow)">
-                <circle cx={toPoint(stone.x)} cy={toPoint(stone.y)} r="17.8" fill={stone.color === 'black' ? 'url(#blackStone)' : 'url(#whiteStone)'} />
-                {stone.last && <circle cx={toPoint(stone.x)} cy={toPoint(stone.y)} r="6.5" class="last-mark" />}
-              </g>
-            ))}
-            {candidates.map((candidate) => (
-              <g class={`candidate-svg rank-${candidate.rank}`} transform={`translate(${toPoint(candidate.x)} ${toPoint(candidate.y)})`}>
-                <circle r="22.5" />
-                <text class="candidate-rank" y="-7">{candidate.rank}</text>
-                <text class="candidate-main" y="7">{candidate.winrate}</text>
-                <text class="candidate-sub" y="18">{candidate.visits} · {candidate.score}</text>
-              </g>
-            ))}
-          </svg>
-          <div class="board-caption">
-            <strong>第 128 手</strong>
-            <span>黑棋候选点 · 胜率差 6.2%</span>
-          </div>
-        </div>
-
-        <div class="teacher-panel">
-          <div class="tool-trace">
-            <span>读取棋谱</span>
-            <span>KataGo 分析</span>
-            <span>知识匹配</span>
-          </div>
-          <div class="teacher-message">
-            <p>这手的想法是对的：黑棋想压住上边。</p>
-            <p>但一选更专业，因为它先看住白棋反击点，同时保留右边的后续。实战亏的不只是这一下，而是让白棋把节奏拿回去了。</p>
-          </div>
-          <div class="composer-preview">
-            <span>问问 AI 老师：这手为什么不是一选？</span>
-            <strong>↵</strong>
-          </div>
-        </div>
-      </div>
-    </aside>
+    <figure class="hero-art">
+      <img src="/images/go-tools-hero.jpg" alt="围棋棋盘与两款 AI 复盘工具界面" width="1600" height="914" loading="eager" decoding="async" />
+    </figure>
   </section>
 
-  <section class="value-section">
-    <div class="grid three">
-      {valueCards.map(([title, text]) => (
-        <article class="value-card">
-          <h2>{title}</h2>
-          <p>{text}</p>
-        </article>
-      ))}
-    </div>
-  </section>
-
-  <section>
+  <section id="products" class="section-block product-section">
     <div class="section-head centered">
-      <p class="eyebrow">运作方式</p>
-      <h2>三步看懂一盘棋</h2>
-      <p>KataGo 负责事实，AI 老师负责讲解，质量检查负责减少乱讲。</p>
+      <h2>两款工具，相辅相成</h2>
+      <p>想让 AI 老师讲清楚，用 GoAgent；想快速看完整盘走势，用 LizzieYzy Next。</p>
     </div>
-    <div class="grid three workflow">
-      <article class="card">
-        <h3>导入棋谱</h3>
-        <p>导入 SGF 或选择棋谱，定位当前手、关键区间和双方信息。</p>
-      </article>
-      <article class="card">
-        <h3>找出关键手</h3>
-        <p>胜率曲线、候选点、目差、PV 和问题手列表一起帮你缩小复盘范围。</p>
-      </article>
-      <article class="card">
-        <h3>听懂讲解</h3>
-        <p>AI 老师结合棋盘、KataGo 和知识库，说人话，不把复盘写成机器报告。</p>
-      </article>
+    <div class="product-grid">
+      {products.map((product) => (
+        <article class="product-panel">
+          <img src={product.image} alt={product.alt} width="1536" height="1152" loading="lazy" decoding="async" />
+          <div class="product-copy">
+            <p class="product-label">{product.label}</p>
+            <h3>{product.title}</h3>
+            <p>{product.summary}</p>
+            <ul>
+              {product.points.map((point) => <li>{point}</li>)}
+            </ul>
+            <div class="button-row compact">
+              <a class="button primary" href={product.release}>{product.primary}</a>
+              <a class="button subtle" href={product.repo}>{product.secondary}</a>
+            </div>
+          </div>
+        </article>
+      ))}
     </div>
   </section>
 
-  <section>
+  <section id="workflow" class="section-block workflow-section">
     <div class="section-head">
       <div>
-        <p class="eyebrow">产品</p>
-        <h2>做给普通棋友用，也给认真学棋的人用。</h2>
+        <h2>从棋谱到复盘，只走三步</h2>
+        <p>普通用户不需要先懂引擎参数：先下载、导入棋谱，再看图和解释。</p>
       </div>
-      <p>不用被一整盘胜率图淹没。GoAgent 会把关键手、候选点和老师解释放在同一个工作台里。</p>
     </div>
-    <div class="grid three">
-      {features.map(([title, text]) => (
-        <article class="card">
+    <div class="workflow-line">
+      {workflow.map(([title, text], index) => (
+        <article class="workflow-step">
+          <span>{index + 1}</span>
           <h3>{title}</h3>
           <p>{text}</p>
         </article>
@@ -225,41 +145,22 @@ const jsonLd = {
     </div>
   </section>
 
-  <section>
-    <div class="feature-panel premium-panel">
-      <div>
-        <p class="eyebrow">老师风格</p>
-        <h2>常规定式少讲，中盘战多讲。</h2>
-        <p>
-          真正的老师不会每手都长篇大论。正常定式简单点到；出现分支就讲选择条件；进入中盘战、攻杀和转换，才展开说目的、应手、变化和实战损失。
-        </p>
-      </div>
-      <ul class="feature-list">
-        <li>常见定式正常进行时，只讲一句方向。</li>
-        <li>局部分支出现时，列关键变化，不硬套名称。</li>
-        <li>明显亏损时，解释实战想法为什么能理解、又亏在哪里。</li>
-        <li>输出里提到手数和坐标时，可以回到棋盘查看。</li>
-      </ul>
+  <section id="download" class="section-block download-section">
+    <div class="section-head centered">
+      <h2>免费下载</h2>
+      <p>官网保持轻量，安装包统一放在 GitHub Releases，方便校验、回滚和追踪版本。</p>
     </div>
-  </section>
-
-  <section>
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">下载</p>
-        <h2>免费下载桌面版</h2>
-      </div>
-      <p>安装包放在 GitHub Releases。官网保持轻量，下载前可查看 SHA256SUMS.txt。</p>
-    </div>
-    <div class="grid four">
-      {downloads.map(([title, audience]) => (
-        <article class="download-card">
-          <h3>{title}</h3>
-          <p>{audience}</p>
-          <a class="button" href={releasesUrl}>前往下载</a>
+    <div class="download-list">
+      {downloads.map(([title, text, href, note]) => (
+        <article class="download-row">
+          <div>
+            <h3>{title}</h3>
+            <p>{text}</p>
+            <small>{note}</small>
+          </div>
+          <a class="button primary" href={href}>打开 Releases</a>
         </article>
       ))}
     </div>
   </section>
-
 </BaseLayout>

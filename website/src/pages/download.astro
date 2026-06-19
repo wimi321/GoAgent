@@ -1,52 +1,58 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const releasesUrl = 'https://github.com/wimi321/GoAgent/releases'
-const options = [
-  ['Windows 普通用户', 'Windows x64 标准版', '适合大多数 Windows 机器，优先选择 OpenCL 推荐包。', '推荐'],
-  ['NVIDIA 显卡用户', 'Windows x64 NVIDIA 版', '适合 NVIDIA 显卡和 CUDA 运行环境。', 'GPU'],
-  ['macOS M 系列', 'macOS Apple Silicon', '适合 Apple Silicon / M 系列芯片。', 'arm64'],
-  ['Intel Mac', 'macOS Intel', '适合 Intel 架构 Mac。', 'x64']
+const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
+const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
+
+const tools = [
+  {
+    audience: '想听懂关键手',
+    title: 'GoAgent',
+    text: '开源免费的 AI 围棋老师。适合当前手讲解、KataGo 证据解释、AI 老师问答。',
+    platforms: ['Windows', 'macOS'],
+    href: goAgentReleases,
+    qq: 'QQ 1030632742'
+  },
+  {
+    audience: '想快速复盘整盘',
+    title: 'LizzieYzy Next',
+    text: '持续维护的 KataGo 复盘 GUI。适合野狐昵称抓谱、快速全盘分析、胜率图和底部概览。',
+    platforms: ['Windows', 'macOS', 'Linux'],
+    href: lizzieReleases,
+    qq: 'QQ 299419120'
+  }
 ]
 ---
-<BaseLayout title="下载 GoAgent - GitHub Releases" description="从 GitHub Releases 下载 GoAgent 的 Windows 和 macOS 安装包。" pageKey="download">
+<BaseLayout title="下载 GoAgent 与 LizzieYzy Next" description="从 GitHub Releases 下载 GoAgent 和 LizzieYzy Next 的桌面发布包。" pageKey="download">
   <section class="page-hero">
-    <p class="eyebrow">Download</p>
-    <h1>下载 GoAgent</h1>
-    <p class="lead">官网不托管大安装包。所有桌面安装包先统一从 GitHub Releases 下载，方便校验、回滚和版本追踪。</p>
-    <div class="button-row">
-      <a class="button primary" href={releasesUrl}>打开 GitHub Releases</a>
-      <a class="button" href="/docs">安装文档</a>
-    </div>
+    <h1>免费下载</h1>
+    <p class="lead">官网不托管大型安装包。两个项目都从 GitHub Releases 下载，方便校验、回滚和版本追踪。</p>
   </section>
   <section class="content-stack">
     <div class="grid two">
-      {options.map(([audience, title, text, badge]) => (
+      {tools.map((tool) => (
         <article class="download-card">
-          <p class="eyebrow">{audience}</p>
-          <h3>{title}</h3>
-          <p>{text}</p>
+          <p class="product-label">{tool.audience}</p>
+          <h2>{tool.title}</h2>
+          <p>{tool.text}</p>
           <div class="download-meta">
-            <span>{badge}</span>
+            {tool.platforms.map((platform) => <span>{platform}</span>)}
             <span>GitHub Releases</span>
             <span>SHA256</span>
           </div>
-          <a class="button" href={releasesUrl}>选择版本</a>
+          <p>{tool.qq}</p>
+          <a class="button primary" href={tool.href}>打开 Releases</a>
         </article>
       ))}
     </div>
     <article class="notice">
       <h2>校验下载文件</h2>
-      <p>每个 release 会提供 `SHA256SUMS.txt`。下载后建议对照校验，尤其是从镜像或第三方下载时。官网不托管安装包，避免用户拿到和 GitHub Release 不一致的文件。</p>
+      <p>下载前先确认项目名、版本号和文件名。下载后建议对照 release 中的校验文件，尤其是从镜像或第三方链接下载时。</p>
       <ul>
-        <li>Windows 可使用 PowerShell 的 `Get-FileHash`。</li>
-        <li>macOS 可使用 `shasum -a 256`。</li>
-        <li>如果文件名、版本号或校验值不一致，请重新从 GitHub Releases 下载。</li>
+        <li>Windows 可使用 PowerShell 的 Get-FileHash。</li>
+        <li>macOS 可使用 shasum -a 256。</li>
+        <li>如果文件名、版本号或校验值不一致，请回到对应项目的 GitHub Releases 重新下载。</li>
       </ul>
-    </article>
-    <article class="notice">
-      <h2>为什么不把安装包放在官网？</h2>
-      <p>Cloudflare Pages 适合静态官网，不适合作为大型安装包仓库。GoAgent 的安装包会先放在 GitHub Releases；以后可以补充 `download.goagent.top` 作为 release mirror。</p>
     </article>
   </section>
 </BaseLayout>
