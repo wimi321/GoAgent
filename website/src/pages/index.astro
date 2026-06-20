@@ -10,11 +10,11 @@ const lizzieBaidu = 'https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w'
 const products = [
   {
     title: 'LizzieYzy Next',
-    label: '首推 · 专业复盘工作台',
+    label: '首推 · KataGo 官方 README 列入',
     image: '/images/lizzieyzy-next-workbench.jpg',
     alt: 'LizzieYzy Next 全盘分析工作台',
-    summary: '大多数棋友先装这个。打开棋谱，就能看胜率、目差和关键失误，快速知道一盘棋哪里下坏了。',
-    points: ['导入棋谱就能看', '找关键失误', '看胜率和目差', 'Windows / macOS / Linux'],
+    summary: 'KataGo 官方 README 列入的 Lizzie 系列复盘界面。免费开源，下载后解压即用，导入棋谱就能快速看胜率、目差和关键失误。',
+    points: ['KataGo 官方 README 列入', '免费开源', '解压即用', '快速复盘'],
     primary: '下载 LizzieYzy Next',
     secondary: '查看代码',
     release: lizzieBaidu,
@@ -37,15 +37,15 @@ const products = [
 ]
 
 const workflow = [
-  ['先下载 LizzieYzy Next', '先装这个，大多数棋友日常复盘都够用。'],
-  ['打开棋谱看问题', '看胜率、目差和关键失误，快速知道这盘棋哪里下坏了。'],
+  ['下载并解压 LizzieYzy Next', '免费开源，解压即用，不用先研究复杂配置。'],
+  ['导入棋谱快速复盘', '看胜率、目差和关键失误，快速知道这盘棋哪里下坏了。'],
   ['想尝鲜再试 GoAgent', '想让 AI 用自然语言讲棋时，再试 GoAgent 这个实验功能。']
 ]
 
 const downloads = [
   {
     title: '推荐：LizzieYzy Next 百度网盘',
-    text: '国内用户优先用百度网盘下载，大多数棋友下载后就能开始复盘。',
+    text: '国内用户优先用百度网盘下载。LizzieYzy Next 免费开源、解压即用，下载后就能快速复盘。',
     href: lizzieBaidu,
     note: '国内优先',
     cta: '百度网盘下载',
@@ -55,7 +55,7 @@ const downloads = [
   },
   {
     title: '备用：LizzieYzy Next GitHub 下载',
-    text: 'GitHub 是备用下载入口。页面是英文也没关系，找最新安装包下载。',
+    text: 'GitHub 是开源代码和备用下载入口。页面是英文也没关系，找最新安装包下载。',
     href: lizzieReleases,
     note: '备用下载',
     cta: '从 GitHub 下载',
@@ -81,7 +81,7 @@ const jsonLd = {
   name: 'LizzieYzy Next',
   alternateName: '专业围棋复盘工作台',
   url: 'https://goagent.top/',
-  description: 'LizzieYzy Next 是面向棋友的专业 KataGo 复盘工作台；GoAgent 是实验中的围棋智能体。',
+  description: 'LizzieYzy Next 是 KataGo 官方 README 列入的 Lizzie 系列复盘界面，免费开源、解压即用、适合快速复盘；GoAgent 是实验中的围棋智能体。',
   hasPart: [
     {
       '@type': 'SoftwareApplication',
@@ -106,7 +106,7 @@ const jsonLd = {
 ---
 <BaseLayout
   title="LizzieYzy Next - 专业围棋复盘工作台"
-  description="LizzieYzy Next 是首推的专业 KataGo 复盘工作台，适合棋友快速看清整盘走势；GoAgent 是实验中的围棋智能体。"
+  description="LizzieYzy Next 是 KataGo 官方 README 列入的 Lizzie 系列复盘界面，免费开源、解压即用、适合快速复盘；GoAgent 是实验中的围棋智能体。"
   pageKey="home"
   jsonLd={jsonLd}
 >
@@ -117,7 +117,7 @@ const jsonLd = {
         <span>先下载 <strong>LizzieYzy Next</strong></span>
       </h1>
       <p class="lead">
-        大多数棋友直接安装 LizzieYzy Next，用它看胜率、目差和关键失误；想尝试 AI 讲棋时，再试 GoAgent。
+        KataGo 官方 README 已列入 LizzieYzy Next。它免费开源，下载后解压即用，导入棋谱就能快速看胜率、目差和关键失误；想尝试 AI 讲棋时，再试 GoAgent。
       </p>
       <div class="button-row hero-actions" aria-label="下载入口">
         <a class="button primary" href={lizzieBaidu}>
@@ -167,7 +167,7 @@ const jsonLd = {
             <path d="M12 20a4 4 0 0 1 8 0" />
           </svg>
         </span>
-        <p>大多数人先装这个</p>
+        <p>KataGo 官方 README 列入</p>
       </div>
       <div class="home-proof-item">
         <span aria-hidden="true">
@@ -177,7 +177,7 @@ const jsonLd = {
             <path d="M12 16v4" />
           </svg>
         </span>
-        <p>支持 Windows / macOS / Linux</p>
+        <p>免费开源，解压即用</p>
       </div>
       <div class="home-proof-item">
         <span aria-hidden="true">
@@ -190,15 +190,15 @@ const jsonLd = {
             <path d="m19.1 4.9-1.4 1.4" />
           </svg>
         </span>
-        <p>GoAgent 是实验功能</p>
+        <p>导入棋谱，快速复盘</p>
       </div>
     </div>
   </section>
 
   <section id="products" class="section-block product-section">
     <div class="section-head centered">
-      <h2>不知道怎么选？先装 LizzieYzy Next</h2>
-      <p>先解决复盘问题，再考虑 AI 讲棋。GoAgent 是实验功能，想尝鲜时再试。</p>
+      <h2>为什么先装 LizzieYzy Next？</h2>
+      <p>KataGo 官方 README 列入，免费开源，解压即用，导入棋谱就能快速复盘。GoAgent 是实验功能，想尝鲜时再试。</p>
     </div>
     <div class="product-grid">
       {products.map((product) => (
@@ -242,7 +242,7 @@ const jsonLd = {
   <section id="download" class="section-block download-section">
     <div class="section-head centered">
       <h2>下载顺序很简单</h2>
-      <p>国内用户优先用百度网盘下载；GitHub 是备用入口；GoAgent 是实验功能，想试 AI 讲棋再下载。</p>
+      <p>国内用户优先用百度网盘下载；LizzieYzy Next 免费开源、解压即用，下载后先快速复盘。GoAgent 是实验功能，想试 AI 讲棋再下载。</p>
     </div>
     <div class="download-list">
       {downloads.map((download) => (
