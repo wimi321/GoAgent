@@ -2,7 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type Conte
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getIkatagoPassword, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, getZhiziToken, hasIkatagoPassword, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, hasZhiziToken, replaceSettings, setSettings, upsertGames } from './lib/store'
 import { BRAND_NAME } from '@shared/brand'
-import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AnalyzeTrialPositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest, ZhiziCloudConnectionTestResult, ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudLoginResult, ZhiziCloudSendCodeRequest, ZhiziCloudSendCodeResult } from './lib/types'
+import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AnalyzeTrialPositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest, ZhiziCloudAccountStatusResult, ZhiziCloudConnectionTestResult, ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudLoginResult, ZhiziCloudSendCodeRequest, ZhiziCloudSendCodeResult, ZhiziCloudStatus } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
 import { runReview } from './services/review'
@@ -30,7 +30,7 @@ import {
 } from './services/studentProfile'
 import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 import { clearTtsCache, inspectTtsAssets, listTtsVoices, synthesizeTts, testTtsSettings } from './services/tts'
-import { loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode } from './services/zhiziCloudAuth'
+import { inspectZhiziCloudAccount, loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode, ZHIZI_OFFICIAL_APP_DOWNLOAD_URL } from './services/zhiziCloudAuth'
 import { queryZhiziGtpAnalysisBatch } from './services/zhiziGtpEngine'
 
 let mainWindow: BrowserWindow | null = null
@@ -108,21 +108,40 @@ function requestTeacherBoardImages(event: IpcMainInvokeEvent, request: TeacherBo
   })
 }
 
-function humanizeZhiziConnectionError(error: unknown): string {
+function classifyZhiziConnectionError(error: unknown): { status: ZhiziCloudStatus; message: string } {
   const text = error instanceof Error ? error.message : String(error)
   if (/not_enough_credit|余额不足|not enough credit|没有可用算力/i.test(text)) {
-    return '智子云 token 有效，但远程 worker 分配失败：当前账号没有可用算力或额度不足。请在智子云确认套餐/余额后重试。'
+    return {
+      status: 'no-credit',
+      message: '智子云 token 有效，但远程 worker 分配失败：当前账号没有可用算力或额度不足。请下载智子官方 App，在 App 内充值/开通后回到 GoAgent 重新检测。'
+    }
   }
   if (/invalid_status|NoSuchKey|ssh\.json|colab/i.test(text)) {
-    return '智子云远程平台没有找到当前账号的可用 worker 配置。请确认该账号已开通对应远程算力。'
+    return {
+      status: 'worker-unavailable',
+      message: '智子云远程平台没有找到当前账号的可用 worker 配置。请确认该账号已开通对应远程算力。'
+    }
   }
   if (/token 已失效|401|invalid.*token|auth/i.test(text)) {
-    return '智子云 token 已失效，请退出后重新登录智子云。'
+    return {
+      status: 'token-expired',
+      message: '智子云 token 已失效，请退出后重新登录智子云。'
+    }
   }
   if (/websocket error|Socket 连接失败|Socket 已断开|transport error|xhr poll error|timeout|超时/i.test(text)) {
-    return `智子云 Socket 连接失败：${text.slice(0, 260)}`
+    return {
+      status: 'network-error',
+      message: `智子云 Socket 连接失败：${text.slice(0, 260)}`
+    }
   }
-  return `智子云连接检测失败：${text.slice(0, 320)}`
+  return {
+    status: 'worker-unavailable',
+    message: `智子云连接检测失败：${text.slice(0, 320)}`
+  }
+}
+
+function humanizeZhiziConnectionError(error: unknown): string {
+  return classifyZhiziConnectionError(error).message
 }
 
 function attachTextEditingContextMenu(window: BrowserWindow): void {
@@ -518,12 +537,15 @@ app.whenReady().then(() => {
     setSettings({
       zhiziUsername: payload.phone.trim(),
       zhiziToken: result.token,
-      katagoEngineMode: 'zhizi'
+      katagoEngineMode: 'zhizi',
+      zhiziLastStatus: 'logged-in',
+      zhiziLastCheckedAt: new Date().toISOString()
     })
     return {
       ok: true,
       message: `${result.message} GoAgent 可直接连接智子云。`,
       hasToken: true,
+      status: 'logged-in',
       dashboard: await dashboard()
     }
   })
@@ -539,12 +561,15 @@ app.whenReady().then(() => {
     setSettings({
       zhiziUsername: payload.phone.trim(),
       zhiziToken: result.token,
-      katagoEngineMode: 'zhizi'
+      katagoEngineMode: 'zhizi',
+      zhiziLastStatus: 'logged-in',
+      zhiziLastCheckedAt: new Date().toISOString()
     })
     return {
       ok: true,
       message: `${result.message} GoAgent 可直接连接智子云。`,
       hasToken: true,
+      status: 'logged-in',
       dashboard: await dashboard()
     }
   })
@@ -553,20 +578,44 @@ app.whenReady().then(() => {
     setSettings({
       zhiziToken: '',
       katagoEngineMode: 'auto',
-      zhiziUseWhenLocalSlow: false
+      zhiziUseWhenLocalSlow: false,
+      zhiziLastStatus: 'logged-out',
+      zhiziLastCheckedAt: new Date().toISOString()
     })
     return {
       ok: true,
       message: '已退出智子云登录，已清除本地 token，并切回自动分析模式。重新登录后会自动连接智子云。',
       hasToken: false,
+      status: 'logged-out',
       dashboard: await dashboard()
     }
   })
-  ipcMain.handle('zhizi:test-connection', async (): Promise<ZhiziCloudConnectionTestResult> => {
+  ipcMain.handle('zhizi:me', async (): Promise<ZhiziCloudAccountStatusResult> => {
+    const settings = getSettings()
+    const result = await inspectZhiziCloudAccount(settings.zhiziToken)
+    setSettings({
+      zhiziLastStatus: result.status,
+      zhiziLastCheckedAt: new Date().toISOString()
+    })
+    return {
+      ...result,
+      dashboard: await dashboard()
+    }
+  })
+  ipcMain.handle('zhizi:open-official-app-download', async () => {
+    await shell.openExternal(ZHIZI_OFFICIAL_APP_DOWNLOAD_URL)
+    return { ok: true, url: ZHIZI_OFFICIAL_APP_DOWNLOAD_URL }
+  })
+  async function runZhiziConnectionTest(): Promise<ZhiziCloudConnectionTestResult> {
     const settings = getSettings()
     if (!settings.zhiziToken.trim()) {
+      setSettings({
+        zhiziLastStatus: 'logged-out',
+        zhiziLastCheckedAt: new Date().toISOString()
+      })
       return {
         ok: false,
+        status: 'logged-out',
         message: '智子云未登录：请先用账号密码或短信验证码登录。'
       }
     }
@@ -599,13 +648,23 @@ app.whenReady().then(() => {
       const result = results.get('zhizi-smoke')
       const best = result?.moveInfos?.[0]
       if (!best) {
+        setSettings({
+          zhiziLastStatus: 'worker-unavailable',
+          zhiziLastCheckedAt: new Date().toISOString()
+        })
         return {
           ok: false,
+          status: 'worker-unavailable',
           message: '智子云已连接，但没有返回候选点。请稍后重试。'
         }
       }
+      setSettings({
+        zhiziLastStatus: 'ready',
+        zhiziLastCheckedAt: new Date().toISOString()
+      })
       return {
         ok: true,
+        status: 'ready',
         message: '智子云连接成功，远程 KataGo 已返回候选点。',
         candidateCount: result?.moveInfos?.length ?? 0,
         topMove: typeof best.move === 'string' ? best.move : undefined,
@@ -614,12 +673,20 @@ app.whenReady().then(() => {
         scoreMean: typeof best.scoreMean === 'number' ? best.scoreMean : typeof best.scoreLead === 'number' ? best.scoreLead : undefined
       }
     } catch (error) {
+      const classified = classifyZhiziConnectionError(error)
+      setSettings({
+        zhiziLastStatus: classified.status,
+        zhiziLastCheckedAt: new Date().toISOString()
+      })
       return {
         ok: false,
-        message: humanizeZhiziConnectionError(error)
+        status: classified.status,
+        message: classified.message
       }
     }
-  })
+  }
+  ipcMain.handle('zhizi:refresh-session', async (): Promise<ZhiziCloudConnectionTestResult> => runZhiziConnectionTest())
+  ipcMain.handle('zhizi:test-connection', async (): Promise<ZhiziCloudConnectionTestResult> => runZhiziConnectionTest())
   ipcMain.handle('tts:inspect-assets', async () => inspectTtsAssets())
   ipcMain.handle('tts:list-voices', async () => listTtsVoices())
   ipcMain.handle('tts:synthesize', async (_event, payload) => synthesizeTts(payload))

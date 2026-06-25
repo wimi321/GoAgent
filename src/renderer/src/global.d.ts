@@ -43,6 +43,7 @@ import type {
   TtsSynthesisRequest,
   TtsSynthesisResult,
   TtsVoice,
+  ZhiziCloudAccountStatusResult,
   ZhiziCloudConnectionTestResult,
   ZhiziCloudLoginCodeRequest,
   ZhiziCloudLoginRequest,
@@ -117,7 +118,10 @@ declare global {
       sendZhiziCloudLoginCode: (payload: ZhiziCloudSendCodeRequest) => Promise<ZhiziCloudSendCodeResult>
       loginZhiziCloudCode: (payload: ZhiziCloudLoginCodeRequest) => Promise<ZhiziCloudLoginResult>
       logoutZhiziCloud: () => Promise<ZhiziCloudLoginResult>
+      inspectZhiziCloudAccount: () => Promise<ZhiziCloudAccountStatusResult>
       testZhiziCloudConnection: () => Promise<ZhiziCloudConnectionTestResult>
+      refreshZhiziCloudSession: () => Promise<ZhiziCloudConnectionTestResult>
+      openZhiziOfficialAppDownload: () => Promise<{ ok: boolean; url: string }>
       inspectTtsAssets: () => Promise<TtsAssetStatus>
       listTtsVoices: () => Promise<TtsVoice[]>
       synthesizeTts: (payload: TtsSynthesisRequest) => Promise<TtsSynthesisResult>

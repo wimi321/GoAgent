@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { io, type Socket } from 'socket.io-client'
-import type { AppSettings, GameMove, KataGoAnalysisGroup } from '@main/lib/types'
+import type { AppSettings, GameMove, KataGoAnalysisGroup, ZhiziCloudGpuTier } from '@main/lib/types'
 
 export type ZhiziGtpAnalysisResponse = Record<string, unknown> & {
   id?: string
@@ -113,10 +113,57 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`
 }
 
-function directSocketArgs(settings: AppSettings): string {
-  const args = ['--platform', 'all', '--client-id', 'zhizi-web']
-  args.push(...splitCommandLine(settings.zhiziExtraArgs).filter((arg) => arg !== '--token'))
+function zhiziGpuTypeForTier(tier: ZhiziCloudGpuTier): string {
+  if (tier === 'deep') return '6x'
+  if (tier === 'fast') return '3x'
+  return '1x'
+}
+
+function hasOption(args: string[], option: string): boolean {
+  return args.some((arg) => arg === option || arg.startsWith(`${option}=`))
+}
+
+function withoutUnsafeSocketArgs(args: string[]): string[] {
+  const filtered: string[] = []
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--token' || arg.startsWith('--token=')) {
+      if (arg === '--token') index += 1
+      continue
+    }
+    if (arg === '--zz-socketio-token' || arg.startsWith('--zz-socketio-token=')) {
+      if (arg === '--zz-socketio-token') index += 1
+      continue
+    }
+    filtered.push(arg)
+  }
+  return filtered
+}
+
+export function buildZhiziSocketArgs(settings: AppSettings): string {
+  const extraArgs = withoutUnsafeSocketArgs(splitCommandLine(settings.zhiziExtraArgs))
+  const args: string[] = []
+  if (!hasOption(extraArgs, '--platform')) {
+    args.push('--platform', settings.zhiziPlatform.trim() || 'all')
+  }
+  if (!hasOption(extraArgs, '--engine-type')) {
+    args.push('--engine-type', 'go')
+  }
+  if (!hasOption(extraArgs, '--gpu-type')) {
+    args.push('--gpu-type', settings.zhiziGpuType.trim() || zhiziGpuTypeForTier(settings.zhiziGpuTier))
+  }
+  if (!hasOption(extraArgs, '--kata-name')) {
+    args.push('--kata-name', settings.zhiziKataName.trim() || 'katago-TENSORRT')
+  }
+  if (!hasOption(extraArgs, '--kata-weight')) {
+    args.push('--kata-weight', settings.zhiziKataWeight.trim() || '28bnbt')
+  }
+  args.push(...extraArgs)
   return args.map(shellQuote).join(' ')
+}
+
+function directSocketArgs(settings: AppSettings): string {
+  return buildZhiziSocketArgs(settings)
 }
 
 function chunkToText(chunk: unknown): string {
