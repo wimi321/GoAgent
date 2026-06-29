@@ -476,28 +476,33 @@ app.whenReady().then(() => {
       throw error
     }
   })
-  ipcMain.handle('katago:analyze-game-quick', async (event, payload: AnalyzeGameQuickRequest) =>
-    runScheduledAnalysis({
-      runId: payload.runId,
-      group: 'quick',
-      priority: 'quick',
-      description: `Quick game sweep ${payload.gameId}`,
-      replaceGroup: true
-    }, () => analyzeGameQuickRuntime({
-      gameId: payload.gameId,
-      maxVisits: payload.maxVisits,
-      refineVisits: payload.refineVisits,
-      refineTopN: payload.refineTopN,
-      runId: payload.runId,
-      onProgress: (progress) => {
-        safeSendToRenderer(event, 'katago:analyze-game-quick-progress', {
-          ...progress,
-          runId: payload.runId,
-          gameId: payload.gameId
-        })
-      }
-    }))
-  )
+  ipcMain.handle('katago:analyze-game-quick', async (event, payload: AnalyzeGameQuickRequest) => {
+    try {
+      return await runScheduledAnalysis({
+        runId: payload.runId,
+        group: 'quick',
+        priority: 'quick',
+        description: `Quick game sweep ${payload.gameId}`,
+        replaceGroup: true
+      }, () => analyzeGameQuickRuntime({
+        gameId: payload.gameId,
+        maxVisits: payload.maxVisits,
+        refineVisits: payload.refineVisits,
+        refineTopN: payload.refineTopN,
+        runId: payload.runId,
+        onProgress: (progress) => {
+          safeSendToRenderer(event, 'katago:analyze-game-quick-progress', {
+            ...progress,
+            runId: payload.runId,
+            gameId: payload.gameId
+          })
+        }
+      }))
+    } catch (error) {
+      if (/已取消|cancel|replaced|替换|停止/i.test(String(error))) return []
+      throw error
+    }
+  })
   ipcMain.handle('katago:cancel-analysis', async (_event, payload: KataGoCancelAnalysisRequest) =>
     cancelKataGoAnalysis(payload)
   )

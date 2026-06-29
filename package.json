@@ -213,5 +213,15 @@
       "owner": "wimi321",
       "repo": "GoAgent"
     }
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "esbuild",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp"
+    ]
   }
 }

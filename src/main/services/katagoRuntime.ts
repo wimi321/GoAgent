@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
 import { appHome } from '@main/lib/store'
@@ -169,6 +169,9 @@ function firstExisting(paths: string[]): string {
   return unique(paths).find((path) => existsSync(path)) ?? ''
 }
 
+const binaryProbeCache = new Map<string, { ok: boolean; note: string }>()
+let lastBinaryRejectionNotes: string[] = []
+
 function platformCompatibleBinaryPath(path: string): boolean {
   if (!path) {
     return false
@@ -194,7 +197,69 @@ function platformCompatibleBinaryPath(path: string): boolean {
 }
 
 function firstExistingBinary(paths: string[]): string {
-  return unique(paths).find((path) => !isAsarPath(path) && platformCompatibleBinaryPath(path) && existsSync(path)) ?? ''
+  lastBinaryRejectionNotes = []
+  for (const path of unique(paths)) {
+    const probe = probeKataGoBinary(path)
+    if (probe.ok) return path
+    if (probe.note) lastBinaryRejectionNotes.push(probe.note)
+  }
+  return ''
+}
+
+function binaryProbeCacheKey(path: string): string {
+  try {
+    const stat = statSync(path)
+    return `${path}:${stat.size}:${stat.mtimeMs}`
+  } catch {
+    return path
+  }
+}
+
+function shortProbeError(error: unknown): string {
+  const detail = error as { stderr?: Buffer | string; stdout?: Buffer | string; message?: string; code?: string }
+  const text = String(detail.stderr || detail.stdout || detail.message || detail.code || error)
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('；')
+    .slice(0, 220)
+}
+
+function probeKataGoBinary(path: string): { ok: boolean; note: string } {
+  if (!path || !existsSync(path)) return { ok: false, note: '' }
+  if (isAsarPath(path)) return { ok: false, note: `跳过 app.asar 内的 KataGo: ${path}` }
+  if (!platformCompatibleBinaryPath(path)) return { ok: false, note: `跳过不匹配当前系统的 KataGo: ${path}` }
+
+  try {
+    chmodSync(path, 0o755)
+  } catch {
+    // Keep probing. Some system-managed binaries cannot be chmodded but are
+    // already executable.
+  }
+
+  const cacheKey = binaryProbeCacheKey(path)
+  const cached = binaryProbeCache.get(cacheKey)
+  if (cached) return cached
+
+  try {
+    execFileSync(path, ['version'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 5000
+    })
+    const result = { ok: true, note: '' }
+    binaryProbeCache.set(cacheKey, result)
+    return result
+  } catch (error) {
+    const result = {
+      ok: false,
+      note: `跳过无法启动的 KataGo: ${path}（${shortProbeError(error)}）`
+    }
+    binaryProbeCache.set(cacheKey, result)
+    return result
+  }
 }
 
 function globModelFiles(directory: string, pattern: RegExp): string[] {
@@ -383,15 +448,11 @@ export function resolveKataGoRuntime(settings?: AppSettings): KataGoRuntime {
   const notes: string[] = []
 
   if (katagoBin) {
-    try {
-      chmodSync(katagoBin, 0o755)
-    } catch {
-      // Some system-managed binaries cannot be chmodded; existing executable bits are enough.
-    }
     notes.push(`KataGo 引擎: ${basename(katagoBin)}`)
   } else {
     notes.push('未找到内置 KataGo 引擎。')
   }
+  notes.push(...lastBinaryRejectionNotes.slice(0, 3))
 
   const exactPreset = katagoModel ? basename(katagoModel) === modelPreset.fileName : false
   if (katagoModel) {

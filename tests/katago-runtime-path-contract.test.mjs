@@ -14,7 +14,9 @@ test('KataGo runtime never resolves bundled executables from inside app.asar', (
 
   assert.match(runtime, /function isAsarPath\(path: string\): boolean/)
   assert.match(runtime, /normalized\.includes\('\/app\.asar\/'\) \|\| normalized\.endsWith\('\/app\.asar'\)/)
-  assert.match(runtime, /!isAsarPath\(path\) && platformCompatibleBinaryPath\(path\) && existsSync\(path\)/)
+  assert.match(runtime, /function probeKataGoBinary\(path: string\)/)
+  assert.match(runtime, /execFileSync\(path, \['version'\]/)
+  assert.match(runtime, /跳过无法启动的 KataGo/)
   assert.match(runtime, /return unique\(roots\)\.filter\(\(root\) => !isAsarPath\(root\)\)/)
 })
 
