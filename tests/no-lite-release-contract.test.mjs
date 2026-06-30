@@ -39,7 +39,9 @@ test('release workflow publishes only full Standard and NVIDIA packages', () => 
   assert.match(workflow, /GoAgent-\*-win-x64\.exe/)
   assert.match(workflow, /GoAgent-\*-win-x64-portable\.zip/)
   assert.match(workflow, /GoAgent-\*-win-x64-nvidia\.exe/)
-  assert.match(workflow, /GoAgent-\*-win-x64-nvidia-portable\.7z\*/)
+  assert.match(workflow, /GoAgent-\*-win-x64-nvidia-portable\.7z/)
+  assert.doesNotMatch(workflow, /GoAgent-\*-win-x64-nvidia-portable\.7z\*/)
+  assert.doesNotMatch(workflow, /\.7z\.001/)
 })
 
 test('Lite release helper scripts and docs were removed', () => {

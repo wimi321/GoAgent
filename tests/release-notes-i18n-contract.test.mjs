@@ -13,14 +13,12 @@ test('release notes include multilingual download guidance', () => {
   }
 })
 
-test('release notes list standard and NVIDIA artifacts', () => {
+test('release notes list recommended portable Windows artifacts', () => {
   for (const asset of [
     `GoAgent-${packageJson.version}-mac-arm64.dmg`,
     `GoAgent-${packageJson.version}-mac-x64.dmg`,
     `GoAgent-${packageJson.version}-win-x64-portable.zip`,
-    `GoAgent-${packageJson.version}-win-x64.exe`,
-    `GoAgent-${packageJson.version}-win-x64-nvidia.exe`,
-    `GoAgent-${packageJson.version}-win-x64-nvidia-portable.7z.001`
+    `GoAgent-${packageJson.version}-win-x64-nvidia-portable.7z`
   ]) {
     assert.ok(notes.includes(asset), `missing ${asset}`)
     const url = `https://github.com/wimi321/GoAgent/releases/download/v${packageJson.version}/${asset}`
@@ -31,18 +29,23 @@ test('release notes list standard and NVIDIA artifacts', () => {
 test('release notes label Windows editions as OpenCL and CUDA without checksum clutter', () => {
   assert.match(notes, /OpenCL/)
   assert.match(notes, /CUDA/)
+  assert.match(notes, /免安装/)
+  assert.match(notes, /portable/)
   assert.doesNotMatch(notes, /\| SHA256SUMS\.txt \|/)
   assert.doesNotMatch(notes, /\| Checksums \|/)
   assert.doesNotMatch(notes, /\| 校验文件 \|/)
   assert.doesNotMatch(notes, /\| 校驗檔 \|/)
 })
 
-test('release notes do not list retired Lite artifacts', () => {
+test('release notes do not list retired Lite artifacts or Windows installers', () => {
   for (const asset of [
     `GoAgent-${packageJson.version}-mac-arm64-lite.dmg`,
     `GoAgent-${packageJson.version}-mac-x64-lite.dmg`,
     `GoAgent-${packageJson.version}-win-x64-lite.exe`,
-    `GoAgent-${packageJson.version}-win-x64-lite-portable.zip`
+    `GoAgent-${packageJson.version}-win-x64-lite-portable.zip`,
+    `GoAgent-${packageJson.version}-win-x64.exe`,
+    `GoAgent-${packageJson.version}-win-x64-nvidia.exe`,
+    `GoAgent-${packageJson.version}-win-x64-nvidia-portable.7z.001`
   ]) {
     assert.equal(notes.includes(asset), false, `must not advertise ${asset}`)
   }

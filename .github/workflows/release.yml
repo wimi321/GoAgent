@@ -563,25 +563,21 @@ jobs:
             }
           }
           Push-Location $releaseDir
-          & 7z a -t7z -m0=LZMA2 -mx=7 -mmt=on -v1900m "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
+          & 7z a -t7z -m0=LZMA2 -mx=7 -mmt=on "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
           Pop-Location
           Rename-Item -LiteralPath $installer.FullName -NewName "GoAgent-$version-win-x64-nvidia.exe" -Force
-          $nvidiaPortableParts = Get-ChildItem -Path $releaseDir -Filter "GoAgent-$version-win-x64-nvidia-portable.7z.*" -File | Sort-Object Name
+          $nvidiaPortable = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia-portable.7z")
           $nvidiaInstaller = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia.exe")
-          if (-not $nvidiaPortableParts) { throw "Missing NVIDIA portable split 7z parts after recompression." }
-          $nvidiaPortableTotal = ($nvidiaPortableParts | Measure-Object -Property Length -Sum).Sum
+          if (-not $nvidiaPortable) { throw "Missing NVIDIA portable 7z archive after recompression." }
+          $nvidiaPortableTotal = $nvidiaPortable.Length
           $nvidiaPortableMax = 2560MB
           if ($nvidiaPortableTotal -gt $nvidiaPortableMax) {
-            throw "NVIDIA portable split 7z total bytes exceeds size budget: $nvidiaPortableTotal > $nvidiaPortableMax"
+            throw "NVIDIA portable 7z bytes exceed size budget: $nvidiaPortableTotal > $nvidiaPortableMax"
           }
-          Write-Host "NVIDIA portable split 7z parts: $($nvidiaPortableParts.Count)"
-          Write-Host "NVIDIA portable split 7z total bytes: $nvidiaPortableTotal"
+          Write-Host "NVIDIA portable 7z bytes: $nvidiaPortableTotal"
           Write-Host "NVIDIA installer EXE bytes: $($nvidiaInstaller.Length)"
-          foreach ($part in $nvidiaPortableParts) {
-            Write-Host "NVIDIA portable part bytes: $($part.Name) $($part.Length)"
-            if ($part.Length -ge 2147483648) {
-              throw "NVIDIA portable split archive part exceeds GitHub's 2 GiB asset limit: $($part.Name) $($part.Length)"
-            }
+          if ($nvidiaPortable.Length -ge 2147483648) {
+            throw "NVIDIA portable archive exceeds GitHub's 2 GiB asset limit: $($nvidiaPortable.Name) $($nvidiaPortable.Length)"
           }
 
       - name: Smoke NVIDIA packaged Windows app
@@ -593,7 +589,7 @@ jobs:
           name: GoAgent-Windows-NVIDIA
           path: |
             release/**/*nvidia*.exe
-            release/**/*nvidia*.7z*
+            release/**/*nvidia*.7z
           if-no-files-found: error
 
   github-release:
@@ -615,24 +611,6 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Generate checksums
-        shell: bash
-        run: |
-          shopt -s globstar nullglob
-          files=(
-            artifacts/**/GoAgent-*-mac-arm64.dmg
-            artifacts/**/GoAgent-*-mac-x64.dmg
-            artifacts/**/GoAgent-*-win-x64-portable.zip
-            artifacts/**/GoAgent-*-win-x64.exe
-            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z*
-            artifacts/**/GoAgent-*-win-x64-nvidia.exe
-          )
-          if [[ ${#files[@]} -eq 0 ]]; then
-            echo "No release assets found for checksum generation." >&2
-            exit 1
-          fi
-          sha256sum "${files[@]}" | sed 's# .*/#  #' > artifacts/SHA256SUMS.txt
-
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -643,7 +621,6 @@ jobs:
             artifacts/**/GoAgent-*-mac-x64.dmg
             artifacts/**/GoAgent-*-win-x64-portable.zip
             artifacts/**/GoAgent-*-win-x64.exe
-            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z*
+            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z
             artifacts/**/GoAgent-*-win-x64-nvidia.exe
-            artifacts/SHA256SUMS.txt
           body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md

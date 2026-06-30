@@ -24,7 +24,7 @@ const requiredWorkflowFragments = [
   '--preserve-model-name',
   'RUNNER_OS',
   'select_default_katago_model.mjs',
-  'GoAgent-*-win-x64-nvidia-portable.7z*',
+  'GoAgent-*-win-x64-nvidia-portable.7z',
   'GoAgent-*-win-x64-nvidia.exe',
   'GoAgent-*-mac-arm64.dmg',
   'GoAgent-*-mac-x64.dmg',
@@ -36,7 +36,7 @@ const requiredWorkflowFragments = [
   'NVIDIA package duplicated KataGo assets',
   '-mx=7',
   '$nvidiaPortableMax = 2560MB',
-  'NVIDIA portable split 7z total bytes exceeds size budget',
+  'NVIDIA portable 7z bytes exceed size budget',
   'body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md'
 ]
 
@@ -78,6 +78,12 @@ if (asarUnpack.some((entry) => /data\/(?:katago|tts)/.test(String(entry)))) {
 }
 if (workflow.includes('-ms=off')) {
   failures.push('NVIDIA portable compression must not disable solid compression with -ms=off')
+}
+if (workflow.includes('-v1900m') || workflow.includes('nvidia-portable.7z.*')) {
+  failures.push('NVIDIA portable archive must be uploaded as a single .7z file without split .001 suffixes')
+}
+if (workflow.includes('SHA256SUMS.txt')) {
+  failures.push('release workflow must not upload checksum files in the public download list')
 }
 
 if (failures.length > 0) {

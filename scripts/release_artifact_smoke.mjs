@@ -22,7 +22,7 @@ function classify(file) {
   if (/mac-arm64\.dmg$/.test(name)) return 'mac-arm64-dmg'
   if (/mac-x64\.dmg$/.test(name)) return 'mac-x64-dmg'
   if (/win-x64-nvidia\.exe$/.test(name)) return 'win-nvidia-exe'
-  if (/win-x64-nvidia-portable\.7z\.001$/.test(name)) return 'win-nvidia-archive'
+  if (/win-x64-nvidia-portable\.7z$/.test(name)) return 'win-nvidia-archive'
   if (/win-x64\.exe$/.test(name)) return 'win-standard-exe'
   if (/win-x64-portable\.zip$/.test(name)) return 'win-standard-zip'
   return ''

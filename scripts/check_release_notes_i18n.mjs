@@ -26,15 +26,16 @@ const requiredAssets = [
   `GoAgent-${version}-mac-arm64.dmg`,
   `GoAgent-${version}-mac-x64.dmg`,
   `GoAgent-${version}-win-x64-portable.zip`,
-  `GoAgent-${version}-win-x64.exe`,
-  `GoAgent-${version}-win-x64-nvidia.exe`,
-  `GoAgent-${version}-win-x64-nvidia-portable.7z.001`
+  `GoAgent-${version}-win-x64-nvidia-portable.7z`
 ]
 const forbiddenAssets = [
   `GoAgent-${version}-mac-arm64-lite.dmg`,
   `GoAgent-${version}-mac-x64-lite.dmg`,
   `GoAgent-${version}-win-x64-lite.exe`,
-  `GoAgent-${version}-win-x64-lite-portable.zip`
+  `GoAgent-${version}-win-x64-lite-portable.zip`,
+  `GoAgent-${version}-win-x64.exe`,
+  `GoAgent-${version}-win-x64-nvidia.exe`,
+  `GoAgent-${version}-win-x64-nvidia-portable.7z.001`
 ]
 const requiredTopics = [
   'grounded shape recognition engine',
@@ -71,11 +72,12 @@ for (const asset of requiredAssets) {
 }
 if (!body.includes('OpenCL')) failures.push('missing OpenCL edition label')
 if (!body.includes('CUDA')) failures.push('missing CUDA edition label')
+if (!body.includes('免安装') || !body.includes('portable')) failures.push('recommended Windows downloads must emphasize portable packages')
 if (body.includes('| SHA256SUMS.txt |') || body.includes('| Checksums |') || body.includes('| 校验文件 |') || body.includes('| 校驗檔 |')) {
   failures.push('recommended download tables must not advertise checksum files')
 }
 for (const asset of forbiddenAssets) {
-  if (body.includes(asset)) failures.push(`release notes must not advertise retired Lite asset: ${asset}`)
+  if (body.includes(asset)) failures.push(`release notes must not advertise this non-recommended asset: ${asset}`)
 }
 for (const topic of requiredTopics) {
   if (!body.toLowerCase().includes(topic.toLowerCase())) failures.push(`missing release topic: ${topic}`)
