@@ -675,14 +675,25 @@ jobs:
           $unpackedDir = Join-Path $releaseDir "win-unpacked"
           if (-not $installer) { throw "Missing NVIDIA installer EXE before rename." }
           if (-not (Test-Path $unpackedDir)) { throw "Missing win-unpacked directory for NVIDIA portable recompression." }
+          $duplicatedKatagoDir = Join-Path $unpackedDir "resources/app.asar.unpacked/data/katago"
+          if (Test-Path $duplicatedKatagoDir) {
+            $duplicatedKatagoBytes = (Get-ChildItem -Path $duplicatedKatagoDir -Recurse -File | Measure-Object -Property Length -Sum).Sum
+            if ($duplicatedKatagoBytes -gt 1048576) {
+              throw "NVIDIA package duplicated KataGo assets inside app.asar.unpacked: $duplicatedKatagoBytes bytes"
+            }
+          }
           Push-Location $releaseDir
-          & 7z a -t7z -m0=LZMA2 -mx=1 -ms=off -mmt=on -v1900m "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
+          & 7z a -t7z -m0=LZMA2 -mx=7 -mmt=on -v1900m "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
           Pop-Location
           Rename-Item -LiteralPath $installer.FullName -NewName "GoAgent-$version-win-x64-nvidia.exe" -Force
           $nvidiaPortableParts = Get-ChildItem -Path $releaseDir -Filter "GoAgent-$version-win-x64-nvidia-portable.7z.*" -File | Sort-Object Name
           $nvidiaInstaller = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia.exe")
           if (-not $nvidiaPortableParts) { throw "Missing NVIDIA portable split 7z parts after recompression." }
           $nvidiaPortableTotal = ($nvidiaPortableParts | Measure-Object -Property Length -Sum).Sum
+          $nvidiaPortableMax = 2560MB
+          if ($nvidiaPortableTotal -gt $nvidiaPortableMax) {
+            throw "NVIDIA portable split 7z total bytes exceeds size budget: $nvidiaPortableTotal > $nvidiaPortableMax"
+          }
           Write-Host "NVIDIA portable split 7z parts: $($nvidiaPortableParts.Count)"
           Write-Host "NVIDIA portable split 7z total bytes: $nvidiaPortableTotal"
           Write-Host "NVIDIA installer EXE bytes: $($nvidiaInstaller.Length)"
