@@ -32,6 +32,11 @@ const requiredWorkflowFragments = [
   '--platform=darwin-arm64',
   '--platform=darwin-x64',
   'hdiutil attach',
+  'resources/app.asar.unpacked/data/katago',
+  'NVIDIA package duplicated KataGo assets',
+  '-mx=7',
+  '$nvidiaPortableMax = 2560MB',
+  'NVIDIA portable split 7z total bytes exceeds size budget',
   'body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md'
 ]
 
@@ -57,6 +62,22 @@ for (const fragment of requiredPrepareFragments) {
 }
 for (const scriptName of requiredScripts) {
   if (!packageJson.scripts?.[scriptName]) failures.push(`package.json missing script: ${scriptName}`)
+}
+
+const buildFiles = packageJson.build?.files ?? []
+const winFiles = packageJson.build?.win?.files ?? []
+const asarUnpack = packageJson.build?.asarUnpack ?? []
+for (const [label, files] of [['build.files', buildFiles], ['build.win.files', winFiles]]) {
+  if (!files.includes('data/knowledge/**/*')) failures.push(`${label} must include data/knowledge/**/* explicitly`)
+  if (!files.includes('!data/katago/**/*')) failures.push(`${label} must exclude data/katago/**/* from app.asar`)
+  if (!files.includes('!data/tts/**/*')) failures.push(`${label} must exclude data/tts/**/* from app.asar`)
+  if (files.includes('data/**/*')) failures.push(`${label} must not include broad data/**/* because it duplicates extraResources`)
+}
+if (asarUnpack.some((entry) => /data\/(?:katago|tts)/.test(String(entry)))) {
+  failures.push('build.asarUnpack must not unpack data/katago or data/tts because they are shipped via extraResources')
+}
+if (workflow.includes('-ms=off')) {
+  failures.push('NVIDIA portable compression must not disable solid compression with -ms=off')
 }
 
 if (failures.length > 0) {

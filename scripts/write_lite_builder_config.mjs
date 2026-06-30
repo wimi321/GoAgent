@@ -30,7 +30,7 @@ liteBuild.extraResources = [
     filter: ['**/*', '!kokoro/zh-CN/onnx/model_int8.onnx']
   }
 ]
-liteBuild.asarUnpack = ['data/tts/**/*']
+liteBuild.asarUnpack = []
 
 liteBuild.win = {
   ...(liteBuild.win ?? {}),

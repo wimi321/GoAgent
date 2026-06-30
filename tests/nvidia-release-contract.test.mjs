@@ -22,6 +22,7 @@ test('release workflow publishes standard Windows as a full OpenCL runtime bundl
 
 test('release workflow publishes a real Windows NVIDIA edition', () => {
   const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8')
+  const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
   assert.match(workflow, /package-nvidia-windows:/)
   assert.match(workflow, /wimi321\/lizzieyzy-next/)
@@ -31,6 +32,20 @@ test('release workflow publishes a real Windows NVIDIA edition', () => {
   assert.match(workflow, /RUNNER_OS.*Windows/)
   assert.match(workflow, /GoAgent-\*-win-x64-nvidia-portable\.7z\*/)
   assert.match(workflow, /GoAgent-\*-win-x64-nvidia\.exe/)
+  assert.match(workflow, /resources\/app\.asar\.unpacked\/data\/katago/)
+  assert.match(workflow, /NVIDIA package duplicated KataGo assets/)
+  assert.match(workflow, /-mx=7/)
+  assert.doesNotMatch(workflow, /-ms=off/)
+  assert.match(workflow, /\$nvidiaPortableMax = 2560MB/)
+  assert.match(workflow, /NVIDIA portable split 7z total bytes exceeds size budget/)
+
+  for (const files of [packageJson.build.files, packageJson.build.win.files]) {
+    assert.ok(files.includes('data/knowledge/**/*'))
+    assert.ok(files.includes('!data/katago/**/*'))
+    assert.ok(files.includes('!data/tts/**/*'))
+    assert.equal(files.includes('data/**/*'), false)
+  }
+  assert.deepEqual(packageJson.build.asarUnpack, [])
 })
 
 test('release workflow restores macOS KataGo assets from macOS packages', () => {

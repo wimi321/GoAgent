@@ -1,6 +1,6 @@
 {
   "name": "goagent",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "description": "Agentic AI teacher for Go / Weiqi / Baduk, powered by KataGo and multimodal LLMs.",
   "main": "out/main/index.js",
   "type": "module",
@@ -116,9 +116,8 @@
     "files": [
       "out/**/*",
       "scripts/**/*",
-      "data/**/*",
-      "!data/katago/bin/**/*",
-      "!data/katago/models/**/*",
+      "data/knowledge/**/*",
+      "!data/katago/**/*",
       "!data/tts/**/*",
       "assets/**/*",
       "package.json"
@@ -140,10 +139,7 @@
         ]
       }
     ],
-    "asarUnpack": [
-      "data/katago/**/*",
-      "data/tts/**/*"
-    ],
+    "asarUnpack": [],
     "asar": true,
     "mac": {
       "category": "public.app-category.education",
@@ -174,6 +170,13 @@
       "icon": "assets/icon.ico",
       "artifactName": "${productName}-${version}-${os}-${arch}-portable.${ext}",
       "files": [
+        "out/**/*",
+        "scripts/**/*",
+        "data/knowledge/**/*",
+        "!data/katago/**/*",
+        "!data/tts/**/*",
+        "assets/**/*",
+        "package.json",
         "!**/node_modules/onnxruntime-node/bin/napi-v3/darwin/**",
         "!**/node_modules/onnxruntime-node/bin/napi-v3/linux/**",
         "!**/node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**",
