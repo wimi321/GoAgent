@@ -6,15 +6,19 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:
 import { BRAND_DATA_DIR } from '@shared/brand'
 import type { AppSettings, LibraryGame } from './types'
 
+export const legacyElectronUserData = app.getPath('userData')
 export const appHome = process.env.GOAGENT_APP_HOME || join(app.getPath('home'), BRAND_DATA_DIR)
+export const electronUserData = process.env.GOAGENT_ELECTRON_USER_DATA || join(appHome, 'electron-user-data')
 export const libraryDir = join(appHome, 'library')
 export const reviewsDir = join(appHome, 'reviews')
 export const cacheDir = join(appHome, 'cache')
 export const reportsDir = join(appHome, 'teacher-reports')
 
-for (const dir of [appHome, libraryDir, reviewsDir, cacheDir, reportsDir]) {
+for (const dir of [appHome, electronUserData, libraryDir, reviewsDir, cacheDir, reportsDir]) {
   mkdirSync(dir, { recursive: true })
 }
+// Keep Chromium cache/profile files isolated from legacy AppData profiles that can be locked or corrupted on Windows.
+app.setPath('userData', electronUserData)
 
 function defaultPythonBin(): string {
   return process.platform === 'win32' ? 'python' : 'python3'

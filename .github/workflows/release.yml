@@ -388,6 +388,10 @@ jobs:
           fi
           ${{ matrix.command }}
 
+      - name: Smoke packaged Windows app
+        if: runner.os == 'Windows'
+        run: node scripts/smoke_windows_packaged_app.mjs --mode=full --require-katago
+
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -503,6 +507,10 @@ jobs:
             export CSC_IDENTITY_AUTO_DISCOVERY=false
           fi
           ${{ matrix.command }}
+
+      - name: Smoke Lite packaged Windows app
+        if: runner.os == 'Windows'
+        run: node scripts/smoke_windows_packaged_app.mjs --mode=lite --allow-missing-katago
 
       - name: Upload Lite packaged artifacts
         uses: actions/upload-artifact@v4
@@ -684,6 +692,9 @@ jobs:
               throw "NVIDIA portable split archive part exceeds GitHub's 2 GiB asset limit: $($part.Name) $($part.Length)"
             }
           }
+
+      - name: Smoke NVIDIA packaged Windows app
+        run: node scripts/smoke_windows_packaged_app.mjs --mode=nvidia --require-katago
 
       - name: Upload NVIDIA packaged artifacts
         uses: actions/upload-artifact@v4

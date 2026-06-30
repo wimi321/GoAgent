@@ -1,6 +1,6 @@
 {
   "name": "goagent",
-  "version": "0.4.14",
+  "version": "0.4.15",
   "description": "Agentic AI teacher for Go / Weiqi / Baduk, powered by KataGo and multimodal LLMs.",
   "main": "out/main/index.js",
   "type": "module",
@@ -49,6 +49,7 @@
     "website:check": "pnpm --dir website build",
     "check:website": "node scripts/check_website.mjs",
     "smoke:release-artifacts": "node scripts/release_artifact_smoke.mjs",
+    "smoke:windows-packaged": "node scripts/smoke_windows_packaged_app.mjs",
     "check:teacher-quality": "pnpm build && pnpm eval:teacher && pnpm eval:claims && pnpm eval:quality-gate && pnpm check:knowledge-sources && pnpm eval:knowledge-coverage && pnpm eval:shape-recognition && pnpm eval:move-range && pnpm eval:vision-evidence && pnpm eval:katago-trace && pnpm eval:engine-silver && pnpm eval:teacher-style && pnpm eval:teacher-session && pnpm eval:tts-provider-policy && pnpm check:teacher-artifact",
     "package": "pnpm dist",
     "dist": "pnpm build && electron-builder",
