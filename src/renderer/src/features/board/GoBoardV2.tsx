@@ -15,11 +15,12 @@ import {
   type RenderCandidate,
   type RenderKeyMove,
   type RenderPlayedMove,
+  type RenderStone,
   type RenderVariationMove
 } from './boardGeometry'
 import type { CandidateTooltipMove, CandidateTooltipPosition } from './CandidateTooltip'
 import type { TrialBranch } from './trialBranch'
-import type { TerritoryDisplayMode, TerritoryJudgement } from './territoryJudgement'
+import type { TerritoryDisplayMode, TerritoryJudgement, TerritoryOwner } from './territoryJudgement'
 import './board-v2.css'
 
 interface GoBoardV2Props {
@@ -53,6 +54,13 @@ type HoveredCandidate = {
   position: CandidateTooltipPosition
 } | null
 type BoardHoverEvent = PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>
+type TerritoryStrandedStone = RenderStone & {
+  territoryOwner: TerritoryOwner
+  strength: number
+  territoryLabel: string
+}
+
+const STRANDED_STONE_THRESHOLD = 0.48
 
 function valueOf(record: unknown, key: string): unknown {
   return typeof record === 'object' && record !== null ? (record as Record<string, unknown>)[key] : undefined
@@ -302,6 +310,43 @@ function TrialStoneMark({ move, boardSize }: { move: TrialBranch['moves'][number
   )
 }
 
+function territoryStrandedStones(stones: RenderStone[], judgement: TerritoryJudgement | null | undefined): TerritoryStrandedStone[] {
+  if (!judgement?.available || judgement.cells.length === 0) {
+    return []
+  }
+  const ownershipByPoint = new Map(judgement.cells.map((cell) => [`${cell.x},${cell.y}`, cell]))
+  return stones.flatMap((stone) => {
+    const ownership = ownershipByPoint.get(`${stone.x},${stone.y}`)
+    if (!ownership || ownership.owner === stone.color || ownership.strength < STRANDED_STONE_THRESHOLD) {
+      return []
+    }
+    return [{
+      ...stone,
+      territoryOwner: ownership.owner,
+      strength: ownership.strength,
+      territoryLabel: ownership.label
+    }]
+  })
+}
+
+function TerritoryStrandedStoneMark({ marker, boardSize }: { marker: TerritoryStrandedStone; boardSize: number }): ReactElement {
+  const p = xy(marker, boardSize)
+  const ownerLabel = marker.territoryOwner === 'B' ? '黑地' : '白地'
+  const stoneLabel = marker.color === 'B' ? '黑子' : '白子'
+  return (
+    <g
+      className={`ks-territory-stranded-stone ks-territory-stranded-stone--in-${marker.territoryOwner} ${marker.strength >= 0.68 ? 'ks-territory-stranded-stone--strong' : ''}`}
+      transform={`translate(${p.x} ${p.y})`}
+      aria-label={`${marker.territoryLabel} ${ownerLabel}中的${stoneLabel}`}
+    >
+      <circle className="ks-territory-stranded-stone__halo" r="30.6" />
+      <circle className="ks-territory-stranded-stone__ring" r="26.4" />
+      <path className="ks-territory-stranded-stone__tick ks-territory-stranded-stone__tick--a" d="M -18 -24 C -10 -30 10 -30 18 -24" />
+      <path className="ks-territory-stranded-stone__tick ks-territory-stranded-stone__tick--b" d="M -18 24 C -10 30 10 30 18 24" />
+    </g>
+  )
+}
+
 function TerritoryOverlay({
   judgement,
   mode,
@@ -396,6 +441,7 @@ export function GoBoardV2({
   const stones = useMemo(() => renderStones(record, moveNumber), [record, moveNumber])
   const candidates = useMemo(() => renderCandidates(analysis, boardSize), [analysis, boardSize])
   const playedMove = useMemo(() => renderPlayedMove(analysis, boardSize), [analysis, boardSize])
+  const strandedStones = useMemo(() => territoryStrandedStones(stones, territoryJudgement), [stones, territoryJudgement])
   const variationFirstColor = analysis?.trialContext?.active
     ? analysis.trialContext.nextColor
     : moveToColor(analysis?.currentMove ?? (moveNumber > 0 ? record.moves[moveNumber - 1] : undefined))
@@ -613,6 +659,14 @@ export function GoBoardV2({
             )
           })}
         </g>
+
+        {strandedStones.length > 0 ? (
+          <g className="ks-territory-stranded-stones-layer">
+            {strandedStones.map((marker) => (
+              <TerritoryStrandedStoneMark key={`${marker.x}-${marker.y}-${marker.moveNumber}`} marker={marker} boardSize={boardSize} />
+            ))}
+          </g>
+        ) : null}
 
         {trialBranch?.active && trialBranch.moves.length > 0 ? (
           <g className="ks-trial-stones-layer">

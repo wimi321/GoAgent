@@ -176,6 +176,66 @@
   opacity: 0.24;
 }
 
+.ks-territory-stranded-stones-layer {
+  pointer-events: none;
+}
+
+.ks-territory-stranded-stone {
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(0 2px 3px rgb(40 25 10 / 0.2));
+}
+
+.ks-territory-stranded-stone__halo,
+.ks-territory-stranded-stone__ring,
+.ks-territory-stranded-stone__tick {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.ks-territory-stranded-stone__halo {
+  stroke: var(--ks-territory-stranded-halo);
+  stroke-width: 3.8;
+  opacity: 0.62;
+}
+
+.ks-territory-stranded-stone__ring {
+  stroke: var(--ks-territory-stranded-ring);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0.92;
+}
+
+.ks-territory-stranded-stone__tick {
+  stroke: var(--ks-territory-stranded-ring);
+  stroke-width: 2.45;
+  stroke-linecap: round;
+  opacity: 0.78;
+}
+
+.ks-territory-stranded-stone__tick--b {
+  opacity: 0.5;
+}
+
+.ks-territory-stranded-stone--strong .ks-territory-stranded-stone__ring {
+  stroke-width: 2.65;
+  opacity: 0.98;
+}
+
+.ks-territory-stranded-stone--strong .ks-territory-stranded-stone__tick {
+  opacity: 0.92;
+}
+
+.ks-territory-stranded-stone--in-B {
+  --ks-territory-stranded-ring: rgba(12, 15, 17, 0.88);
+  --ks-territory-stranded-halo: rgba(255, 247, 221, 0.58);
+}
+
+.ks-territory-stranded-stone--in-W {
+  --ks-territory-stranded-ring: rgba(255, 251, 238, 0.94);
+  --ks-territory-stranded-halo: rgba(20, 26, 28, 0.5);
+}
+
 .ks-trial-stones-layer {
   pointer-events: none;
 }
