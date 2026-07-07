@@ -7,6 +7,7 @@ interface TerritoryControlPanelProps {
   mode: TerritoryDisplayMode
   judgement: TerritoryJudgement
   busy?: boolean
+  compact?: boolean
   onToggle: () => void
   onModeChange: (mode: TerritoryDisplayMode) => void
   onDeepen: () => void
@@ -37,13 +38,14 @@ export function TerritoryControlPanel({
   mode,
   judgement,
   busy = false,
+  compact = false,
   onToggle,
   onModeChange,
   onDeepen,
   t
 }: TerritoryControlPanelProps): ReactElement {
   return (
-    <div className={`territory-control ${enabled ? 'is-enabled' : ''}`} data-disable-replay-wheel="true">
+    <div className={`territory-control ${compact ? 'territory-control--compact' : ''} ${enabled ? 'is-enabled' : ''}`} data-disable-replay-wheel="true">
       <button type="button" className="territory-control__toggle" onClick={onToggle} aria-pressed={enabled}>
         <span className="territory-control__spark" />
         {t('territoryJudgement')}

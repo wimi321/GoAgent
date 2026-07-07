@@ -2959,6 +2959,19 @@ export function App(): ReactElement {
                 liveAnalysis={liveAnalysis}
                 disabled={liveAnalysisDisabled}
                 trialBranch={trialBranch}
+                territoryControl={(
+                  <TerritoryControlPanel
+                    enabled={territoryEnabled}
+                    mode={territoryMode}
+                    judgement={territoryJudgement}
+                    busy={territoryBusy}
+                    compact
+                    onToggle={() => setTerritoryEnabled((value) => !value)}
+                    onModeChange={setTerritoryMode}
+                    onDeepen={() => void runTerritoryJudgementAnalysis()}
+                    t={t}
+                  />
+                )}
                 onStart={() => void startLiveAnalysis()}
                 onPause={() => pauseLiveAnalysis(t('pausedFineReview'), true)}
                 onToggleTrial={trialBranch.active ? exitTrialMode : enterTrialMode}
@@ -2979,16 +2992,6 @@ export function App(): ReactElement {
           <section className="board-stage">
             {record ? (
               <div className="board-table board-table--v2">
-                <TerritoryControlPanel
-                  enabled={territoryEnabled}
-                  mode={territoryMode}
-                  judgement={territoryJudgement}
-                  busy={territoryBusy}
-                  onToggle={() => setTerritoryEnabled((value) => !value)}
-                  onModeChange={setTerritoryMode}
-                  onDeepen={() => void runTerritoryJudgementAnalysis()}
-                  t={t}
-                />
                 {boardRecord && boardRecord.boardSize >= 2 ? (
                   <GoBoardV2
                     record={boardRecord}
@@ -5472,6 +5475,7 @@ function BoardContextBar({
   liveAnalysis,
   disabled,
   trialBranch,
+  territoryControl,
   onStart,
   onPause,
   onToggleTrial,
@@ -5486,6 +5490,7 @@ function BoardContextBar({
   liveAnalysis: LiveAnalysisState
   disabled: boolean
   trialBranch: TrialBranch
+  territoryControl?: ReactElement
   onStart: () => void
   onPause: () => void
   onToggleTrial: () => void
@@ -5563,6 +5568,12 @@ function BoardContextBar({
             >
               清空
             </button>
+          </>
+        ) : null}
+        {territoryControl ? (
+          <>
+            <span className="analysis-control-strip__divider" aria-hidden />
+            {territoryControl}
           </>
         ) : null}
         <button

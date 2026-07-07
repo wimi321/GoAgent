@@ -79,16 +79,14 @@
 }
 
 .ui-gallery__territory-control {
-  position: absolute;
-  top: 58px;
-  left: 50%;
-  z-index: 5;
-  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  width: min(100%, 620px);
+  margin-top: -2px;
 }
 
 .ui-gallery__territory-control .territory-control {
-  position: static;
-  transform: none;
+  max-width: 100%;
 }
 
 .ui-gallery__panel--teacher {
@@ -217,7 +215,6 @@
   }
 
   .ui-gallery__territory-control {
-    top: 58px;
     width: min(100% - 28px, 312px);
   }
 
