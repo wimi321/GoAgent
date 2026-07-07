@@ -49,6 +49,7 @@ export interface AnalysisCacheRequirement {
   minBestVisits?: number
   minActualVisits?: number
   minTier?: AnalysisCacheTier
+  requireOwnership?: boolean
   requireStablePv?: boolean
   requireMediumConfidence?: boolean
   allowStaleMs?: number
@@ -152,6 +153,9 @@ function cacheEntryMeetsRequirement(entry: AnalysisCacheEntry, requirement: Anal
   if (requirement.minActualVisits && entry.quality.actualVisits < requirement.minActualVisits) {
     return { status: 'lower-quality', entry, reason: `actualVisits ${entry.quality.actualVisits} is below ${requirement.minActualVisits}` }
   }
+  if (requirement.requireOwnership && !hasRootOwnership(entry.analysis)) {
+    return { status: 'lower-quality', entry, reason: 'cached analysis does not include root ownership' }
+  }
   if (requirement.requireStablePv && pvRank[entry.quality.pvConfidence ?? 'unstable'] < pvRank.medium) {
     return { status: 'lower-quality', entry, reason: `PV confidence ${entry.quality.pvConfidence ?? 'unknown'} is not stable enough` }
   }
@@ -159,6 +163,17 @@ function cacheEntryMeetsRequirement(entry: AnalysisCacheEntry, requirement: Anal
     return { status: 'lower-quality', entry, reason: `analysis confidence ${entry.quality.confidence ?? 'unknown'} is not high enough` }
   }
   return null
+}
+
+function hasRootOwnership(analysis: KataGoMoveAnalysis): boolean {
+  const boardSize = Math.max(2, Math.round(analysis.boardSize || 19))
+  const expected = boardSize * boardSize
+  const afterOwnership = analysis.after.ownership
+  const beforeOwnership = analysis.moveNumber === 0 ? analysis.before.ownership : undefined
+  return Boolean(
+    (Array.isArray(afterOwnership) && afterOwnership.length >= expected) ||
+    (Array.isArray(beforeOwnership) && beforeOwnership.length >= expected)
+  )
 }
 
 export function readAnalysisCache(input: AnalysisCacheKeyInput, requirement: AnalysisCacheRequirement = {}): AnalysisCacheLookupResult {

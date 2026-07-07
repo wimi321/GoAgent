@@ -39,6 +39,8 @@ interface KataGoResponse {
     scoreStdev?: number
     utility?: number
     scoreMean?: number
+    ownership?: number[]
+    ownershipStdev?: number[]
   }
   moveInfos?: Array<{
     move?: string
@@ -265,7 +267,7 @@ function responseSideToMove(response: KataGoResponse, fallback: GameMove['color'
     : fallback
 }
 
-function root(response: KataGoResponse, sideToMove: GameMove['color']): { winrate: number; scoreLead: number } {
+function root(response: KataGoResponse, sideToMove: GameMove['color']): { winrate: number; scoreLead: number; ownership?: number[]; ownershipStdev?: number[] } {
   if (!response.rootInfo) {
     throw new Error(`KataGo 没有返回 rootInfo${response.error ? `: ${response.error}` : ''}`)
   }
@@ -274,7 +276,9 @@ function root(response: KataGoResponse, sideToMove: GameMove['color']): { winrat
   const rawScoreLead = Number(response.rootInfo.scoreLead ?? response.rootInfo.scoreMean ?? 0)
   return {
     winrate: blackWinrateFromSideToMove(rawWinrate, actualSideToMove),
-    scoreLead: blackScoreLeadFromSideToMove(rawScoreLead, actualSideToMove)
+    scoreLead: blackScoreLeadFromSideToMove(rawScoreLead, actualSideToMove),
+    ownership: Array.isArray(response.rootInfo.ownership) ? response.rootInfo.ownership.map(Number) : undefined,
+    ownershipStdev: Array.isArray(response.rootInfo.ownershipStdev) ? response.rootInfo.ownershipStdev.map(Number) : undefined
   }
 }
 

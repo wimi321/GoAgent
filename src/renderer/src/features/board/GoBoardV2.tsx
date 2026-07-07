@@ -15,10 +15,12 @@ import {
   type RenderCandidate,
   type RenderKeyMove,
   type RenderPlayedMove,
+  type RenderStone,
   type RenderVariationMove
 } from './boardGeometry'
 import type { CandidateTooltipMove, CandidateTooltipPosition } from './CandidateTooltip'
 import type { TrialBranch } from './trialBranch'
+import type { TerritoryDisplayMode, TerritoryJudgement, TerritoryOwner } from './territoryJudgement'
 import './board-v2.css'
 
 interface GoBoardV2Props {
@@ -29,6 +31,8 @@ interface GoBoardV2Props {
   flashPoint?: (BoardPoint & { nonce?: number; label?: string }) | null
   compact?: boolean
   trialBranch?: TrialBranch | null
+  territoryJudgement?: TerritoryJudgement | null
+  territoryMode?: TerritoryDisplayMode
   onPointClick?: (point: BoardPoint) => void
   onPointContextMenu?: () => void
   onCandidateHover?: (candidate: RenderCandidate | null) => void
@@ -50,6 +54,13 @@ type HoveredCandidate = {
   position: CandidateTooltipPosition
 } | null
 type BoardHoverEvent = PointerEvent<SVGSVGElement> | MouseEvent<SVGSVGElement>
+type TerritoryStrandedStone = RenderStone & {
+  territoryOwner: TerritoryOwner
+  strength: number
+  territoryLabel: string
+}
+
+const STRANDED_STONE_THRESHOLD = 0.68
 
 function valueOf(record: unknown, key: string): unknown {
   return typeof record === 'object' && record !== null ? (record as Record<string, unknown>)[key] : undefined
@@ -299,7 +310,145 @@ function TrialStoneMark({ move, boardSize }: { move: TrialBranch['moves'][number
   )
 }
 
-export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], flashPoint = null, compact = false, trialBranch = null, onPointClick, onPointContextMenu, onCandidateHover, t: providedT }: GoBoardV2Props): ReactElement {
+function territoryStrandedStones(stones: RenderStone[], judgement: TerritoryJudgement | null | undefined): TerritoryStrandedStone[] {
+  if (!judgement?.available || judgement.cells.length === 0) {
+    return []
+  }
+  const ownershipByPoint = new Map(judgement.cells.map((cell) => [`${cell.x},${cell.y}`, cell]))
+  const candidates = stones.flatMap((stone) => {
+    const ownership = ownershipByPoint.get(`${stone.x},${stone.y}`)
+    if (!ownership || ownership.owner === stone.color || ownership.strength < STRANDED_STONE_THRESHOLD) {
+      return []
+    }
+    return [{
+      ...stone,
+      territoryOwner: ownership.owner,
+      strength: ownership.strength,
+      territoryLabel: ownership.label
+    }]
+  })
+  if (candidates.length > Math.max(8, stones.length * 0.32)) {
+    return []
+  }
+  return candidates
+}
+
+function TerritoryStrandedStoneMark({ marker, boardSize }: { marker: TerritoryStrandedStone; boardSize: number }): ReactElement {
+  const p = xy(marker, boardSize)
+  const ownerLabel = marker.territoryOwner === 'B' ? '黑地' : '白地'
+  const stoneLabel = marker.color === 'B' ? '黑子' : '白子'
+  const markerSize = 8.8 + Math.min(5.2, Math.max(0, marker.strength - STRANDED_STONE_THRESHOLD) * 17)
+  return (
+    <g
+      className={`ks-territory-stranded-stone ks-territory-stranded-stone--in-${marker.territoryOwner} ${marker.strength >= 0.82 ? 'ks-territory-stranded-stone--strong' : ''}`}
+      transform={`translate(${p.x} ${p.y})`}
+      aria-label={`${marker.territoryLabel} ${ownerLabel}中的${stoneLabel}`}
+      style={{ opacity: Math.min(0.9, 0.58 + marker.strength * 0.26) }}
+    >
+      <rect
+        className="ks-territory-stranded-stone__chip"
+        x={-markerSize / 2}
+        y={-markerSize / 2}
+        width={markerSize}
+        height={markerSize}
+        rx="2.2"
+        transform="rotate(45)"
+      />
+      <rect
+        className="ks-territory-stranded-stone__chip-core"
+        x={-markerSize * 0.28}
+        y={-markerSize * 0.28}
+        width={markerSize * 0.56}
+        height={markerSize * 0.56}
+        rx="1.2"
+        transform="rotate(45)"
+      />
+    </g>
+  )
+}
+
+function TerritoryOverlay({
+  judgement,
+  mode,
+  boardSize
+}: {
+  judgement: TerritoryJudgement
+  mode: TerritoryDisplayMode
+  boardSize: number
+}): ReactElement | null {
+  if (!judgement.available || judgement.cells.length === 0) {
+    return null
+  }
+  const cell = INNER / (boardSize - 1)
+  return (
+    <g className={`ks-territory-layer ks-territory-layer--${mode} ks-territory-layer--${judgement.confidence}`}>
+      {judgement.cells.map((cellInfo) => {
+        const p = xy(cellInfo, boardSize)
+        const isUnclear = cellInfo.strength < 0.18
+        const visualOwner = isUnclear ? 'unclear' : cellInfo.owner
+        const opacity = isUnclear
+          ? Math.min(0.38, Math.max(0.12, cellInfo.strength * 1.25))
+          : Math.min(0.72, Math.max(0.18, Math.pow(cellInfo.strength, 1 / 1.42) * 0.62))
+        const blockSize = mode === 'blocks'
+          ? cell * (isUnclear ? 0.42 : 0.76)
+          : mode === 'marks'
+            ? Math.max(isUnclear ? 4.8 : 7.5, cell * (isUnclear ? 0.18 : 0.32) * Math.max(0.45, cellInfo.strength))
+            : cell * (isUnclear ? 0.48 : 0.9)
+        const markerSize = Math.max(isUnclear ? 2.6 : 4.8, blockSize * (isUnclear ? 0.18 : 0.21))
+        if (mode === 'marks') {
+          return (
+            <circle
+              key={`${cellInfo.x}-${cellInfo.y}`}
+              className={`ks-territory-mark ks-territory-mark--${visualOwner}`}
+              cx={p.x}
+              cy={p.y}
+              r={blockSize}
+              style={{ opacity: Math.min(0.92, opacity * 1.55) }}
+            />
+          )
+        }
+        return (
+          <g
+            key={`${cellInfo.x}-${cellInfo.y}`}
+            className={`ks-territory-point ks-territory-point--${visualOwner}`}
+            style={{ opacity }}
+          >
+            <rect
+              className={`ks-territory-cell ks-territory-cell--${visualOwner}`}
+              x={p.x - blockSize / 2}
+              y={p.y - blockSize / 2}
+              width={blockSize}
+              height={blockSize}
+              rx={mode === 'blocks' ? 5 : blockSize * 0.44}
+            />
+            <circle
+              className={`ks-territory-dot ks-territory-dot--${visualOwner}`}
+              cx={p.x}
+              cy={p.y}
+              r={markerSize}
+            />
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
+export function GoBoardV2({
+  record,
+  moveNumber,
+  analysis = null,
+  keyMoves = [],
+  flashPoint = null,
+  compact = false,
+  trialBranch = null,
+  territoryJudgement = null,
+  territoryMode = 'heat',
+  onPointClick,
+  onPointContextMenu,
+  onCandidateHover,
+  t: providedT
+}: GoBoardV2Props): ReactElement {
   const t = providedT ?? ((key: string) => {
     const fallback: Record<string, string> = {
       boardImageLabel: '围棋棋盘',
@@ -312,6 +461,8 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
   const stones = useMemo(() => renderStones(record, moveNumber), [record, moveNumber])
   const candidates = useMemo(() => renderCandidates(analysis, boardSize), [analysis, boardSize])
   const playedMove = useMemo(() => renderPlayedMove(analysis, boardSize), [analysis, boardSize])
+  const strandedStones = useMemo(() => territoryStrandedStones(stones, territoryJudgement), [stones, territoryJudgement])
+  const strandedStoneKeys = useMemo(() => new Set(strandedStones.map((stone) => `${stone.x},${stone.y}`)), [strandedStones])
   const variationFirstColor = analysis?.trialContext?.active
     ? analysis.trialContext.nextColor
     : moveToColor(analysis?.currentMove ?? (moveNumber > 0 ? record.moves[moveNumber - 1] : undefined))
@@ -494,6 +645,8 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
           })}
         </g>
 
+        {territoryJudgement ? <TerritoryOverlay judgement={territoryJudgement} mode={territoryMode} boardSize={boardSize} /> : null}
+
         <g className="ks-board-coordinates-v2">
           {letters.map((letter, index) => {
             const top = xy({ x: index, y: 0 }, boardSize)
@@ -517,8 +670,13 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
           {stones.map((stone) => {
             const p = xy(stone, boardSize)
             const isPreviousMove = stone.moveNumber === previousMoveNumber
+            const isTerritoryStranded = strandedStoneKeys.has(`${stone.x},${stone.y}`)
             return (
-              <g key={`${stone.x}-${stone.y}-${stone.moveNumber}`} className={`ks-stone ks-stone--${stone.color} ${isPreviousMove ? 'ks-stone--previous' : ''}`} transform={`translate(${p.x} ${p.y})`}>
+              <g
+                key={`${stone.x}-${stone.y}-${stone.moveNumber}`}
+                className={`ks-stone ks-stone--${stone.color} ${isPreviousMove ? 'ks-stone--previous' : ''} ${isTerritoryStranded ? 'ks-stone--territory-stranded' : ''}`}
+                transform={`translate(${p.x} ${p.y})`}
+              >
                 <circle className="ks-stone-shadow" r="24" />
                 <circle className="ks-stone-body" r="22.2" />
                 <ellipse className="ks-stone-highlight" cx="-6.5" cy="-8.2" rx="8.6" ry="5.2" />
@@ -527,6 +685,14 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
             )
           })}
         </g>
+
+        {strandedStones.length > 0 ? (
+          <g className="ks-territory-stranded-stones-layer">
+            {strandedStones.map((marker) => (
+              <TerritoryStrandedStoneMark key={`${marker.x}-${marker.y}-${marker.moveNumber}`} marker={marker} boardSize={boardSize} />
+            ))}
+          </g>
+        ) : null}
 
         {trialBranch?.active && trialBranch.moves.length > 0 ? (
           <g className="ks-trial-stones-layer">

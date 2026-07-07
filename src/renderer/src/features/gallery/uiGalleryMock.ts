@@ -24,6 +24,19 @@ function move(moveNumber: number, color: 'B' | 'W', gtp: string): GameMove {
   }
 }
 
+function mockOwnership(boardSize = 19): number[] {
+  return Array.from({ length: boardSize * boardSize }, (_, index) => {
+    const x = index % boardSize
+    const y = Math.floor(index / boardSize)
+    const leftBias = x < 7 ? 0.46 : 0
+    const rightBias = x > 12 ? -0.38 : 0
+    const topLeft = x < 8 && y < 8 ? 0.35 : 0
+    const bottomRight = x > 10 && y > 10 ? -0.42 : 0
+    const centerNoise = Math.sin((x + 1) * 0.9) * Math.cos((y + 2) * 0.7) * 0.16
+    return Math.max(-0.96, Math.min(0.96, leftBias + rightBias + topLeft + bottomRight + centerNoise))
+  })
+}
+
 export const galleryGame: LibraryGame = {
   id: 'gallery-game-01',
   title: 'Sprint 7 UI Gallery',
@@ -90,6 +103,7 @@ export const galleryAnalysis: KataGoMoveAnalysis = {
   after: {
     winrate: 43,
     scoreLead: -1.8,
+    ownership: mockOwnership(19),
     topMoves: [
       { move: 'Q10', winrate: 60, scoreLead: 4.4, visits: 2410, order: 1, prior: 0.19, pv: ['Q10', 'Q8', 'O10'] },
       { move: 'K16', winrate: 55, scoreLead: 2.7, visits: 1488, order: 2, prior: 0.14, pv: ['K16', 'N17'] },
