@@ -1,6 +1,6 @@
 {
   "name": "goagent",
-  "version": "0.4.17",
+  "version": "0.4.18",
   "description": "Agentic AI teacher for Go / Weiqi / Baduk, powered by KataGo and multimodal LLMs.",
   "main": "out/main/index.js",
   "type": "module",
