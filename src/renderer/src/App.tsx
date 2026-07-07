@@ -1,4 +1,4 @@
-import type { FormEvent, KeyboardEvent, PointerEvent, ReactElement, ReactNode } from 'react'
+import type { FormEvent, KeyboardEvent, PointerEvent, ReactElement, ReactNode, WheelEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AnalyzeGameQuickProgress,
@@ -42,8 +42,10 @@ import lizzieWhiteStoneUrl from './assets/lizzie/white.png'
 import logoUrl from '../../../assets/logo.png'
 import { GoBoardV2 } from './features/board/GoBoardV2'
 import type { KeyMoveSummary } from './features/board/KeyMoveNavigator'
+import { TerritoryControlPanel, TerritorySummaryStrip } from './features/board/TerritoryJudgementPanel'
 import { WinrateTimelineV2 } from './features/board/WinrateTimelineV2'
 import { boardPointLabel, parseBoardPoint, type BoardPoint, type RenderKeyMove } from './features/board/boardGeometry'
+import { buildTerritoryJudgement, type TerritoryDisplayMode } from './features/board/territoryJudgement'
 import {
   addTrialMove,
   clearTrialMoves,
@@ -165,6 +167,27 @@ const emptyDashboard: DashboardData = {
     hasLlmApiKey: false,
     notes: []
   }
+}
+
+const REPLAY_WHEEL_STEP_PX = 44
+const REPLAY_WHEEL_MAX_STEPS_PER_EVENT = 6
+
+function isReplayNavigationTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return true
+  }
+  return !target.closest('input, textarea, select, button, [contenteditable="true"], [role="textbox"], [role="combobox"], [role="listbox"], [data-disable-replay-wheel="true"]')
+}
+
+function normalizedWheelPixels(event: WheelEvent<HTMLElement>): number {
+  const primaryDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX
+  if (event.deltaMode === 1) {
+    return primaryDelta * 16
+  }
+  if (event.deltaMode === 2) {
+    return primaryDelta * 360
+  }
+  return primaryDelta
 }
 
 function uniqueModelOptions(models: string[]): string[] {
@@ -800,6 +823,9 @@ export function App(): ReactElement {
   const [prompt, setPrompt] = useState('')
   const [moveRange, setMoveRange] = useState<{ start: number; end: number } | null>(null)
   const [boardFlash, setBoardFlash] = useState<(BoardPoint & { nonce: number; label: string }) | null>(null)
+  const [territoryEnabled, setTerritoryEnabled] = useState(false)
+  const [territoryMode, setTerritoryMode] = useState<TerritoryDisplayMode>('heat')
+  const [territoryBusy, setTerritoryBusy] = useState(false)
   const [busy, setBusy] = useState('')
   const [graphBusy, setGraphBusy] = useState(false)
   const [graphProgress, setGraphProgress] = useState('')
@@ -827,6 +853,7 @@ export function App(): ReactElement {
   const graphRunId = useRef('')
   const liveAnalysisRunId = useRef('')
   const trialAnalysisRunId = useRef('')
+  const territoryAnalysisRunId = useRef('')
   const trialAnalysisCacheRef = useRef<Record<string, KataGoMoveAnalysis>>({})
   const autoAnalysisRequestId = useRef('')
   const userPausedLiveAnalysisRef = useRef(false)
@@ -834,6 +861,7 @@ export function App(): ReactElement {
   const recordRef = useRef<GameRecord | null>(record)
   const trialBranchRef = useRef(trialBranch)
   const jumpToMoveRef = useRef<(next: number) => void>(() => {})
+  const replayWheelAccumulatorRef = useRef(0)
   const teacherBusyRef = useRef(false)
   const activeTeacherRunRef = useRef<ActiveTeacherRunUi | null>(null)
   const selectedGameIdRef = useRef('')
@@ -1078,6 +1106,10 @@ export function App(): ReactElement {
   const boardRecord = trialRecord ?? record
   const boardMoveNumber = trialRecord ? trialRecord.moves.length : moveNumber
   const boardAnalysis = trialBranch.active ? trialAnalysis : currentAnalysis
+  const territoryJudgement = useMemo(
+    () => buildTerritoryJudgement(boardAnalysis, boardRecord?.boardSize ?? record?.boardSize ?? 19),
+    [boardAnalysis, boardRecord?.boardSize, record?.boardSize]
+  )
   const displayBoardKeyMoveMarks = trialBranch.active ? [] : currentBoardKeyMoveMarks
 
   useEffect(() => {
@@ -1853,6 +1885,33 @@ export function App(): ReactElement {
     }
   }
 
+  function handleReplayWheel(event: WheelEvent<HTMLElement>): void {
+    const rec = recordRef.current
+    if (!rec || teacherBusyRef.current || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || !isReplayNavigationTarget(event.target)) {
+      return
+    }
+    const delta = normalizedWheelPixels(event)
+    if (!Number.isFinite(delta) || Math.abs(delta) < 1) {
+      return
+    }
+    event.preventDefault()
+    replayWheelAccumulatorRef.current += delta
+    const rawSteps = Math.trunc(replayWheelAccumulatorRef.current / REPLAY_WHEEL_STEP_PX)
+    if (rawSteps === 0) {
+      return
+    }
+    const steps = Math.max(-REPLAY_WHEEL_MAX_STEPS_PER_EVENT, Math.min(REPLAY_WHEEL_MAX_STEPS_PER_EVENT, rawSteps))
+    replayWheelAccumulatorRef.current -= steps * REPLAY_WHEEL_STEP_PX
+    const currentMove = moveNumberRef.current
+    const nextMove = Math.max(0, Math.min(rec.moves.length, currentMove + steps))
+    if (nextMove === currentMove) {
+      replayWheelAccumulatorRef.current = 0
+      return
+    }
+    moveNumberRef.current = nextMove
+    jumpToMoveRef.current(nextMove)
+  }
+
   function trialCacheKey(gameId: string, branch: TrialBranch): string {
     return `${gameId}:${branch.branchHash}:${dashboard.settings.katagoModelPreset || dashboard.settings.katagoModel || 'model'}`
   }
@@ -2455,6 +2514,113 @@ export function App(): ReactElement {
     }
   }
 
+  async function runTerritoryJudgementAnalysis(): Promise<void> {
+    const gameId = selectedGame?.id
+    const targetRecord = record
+    const targetMove = moveNumber
+    if (!gameId || !targetRecord || busy === 'teacher') {
+      return
+    }
+    const runId = crypto.randomUUID()
+    territoryAnalysisRunId.current = runId
+    setTerritoryEnabled(true)
+    setTerritoryBusy(true)
+    setError('')
+    setLiveAnalysis((current) => ({
+      ...current,
+      running: true,
+      status: `形势判断中 · 第 ${targetMove} 手`,
+      targetMoveNumber: targetMove,
+      visits: 0,
+      bestVisits: 0,
+      visitsPerSecond: 0
+    }))
+    await cancelKataGoWork({ group: 'single' })
+    const disposeSearchProgress = window.goagent.onAnalyzePositionSearchProgress((progress) => {
+      if (
+        territoryAnalysisRunId.current !== runId ||
+        progress.runId !== runId ||
+        progress.gameId !== gameId ||
+        progress.moveNumber !== targetMove ||
+        selectedGameIdRef.current !== gameId
+      ) {
+        return
+      }
+      setLiveAnalysis((current) => ({
+        ...current,
+        running: progress.isDuringSearch,
+        status: progress.isDuringSearch ? `形势判断搜索 ${formatVisits(progress.visits)}` : current.status,
+        visits: Math.max(current.visits, progress.visits),
+        visitsPerSecond: progress.visitsPerSecond > 0 ? progress.visitsPerSecond : current.visitsPerSecond,
+        targetMoveNumber: targetMove
+      }))
+    })
+    const disposeProgress = window.goagent.onAnalyzePositionProgress((progress) => {
+      if (
+        territoryAnalysisRunId.current !== runId ||
+        progress.runId !== runId ||
+        progress.gameId !== gameId ||
+        progress.moveNumber !== targetMove ||
+        selectedGameIdRef.current !== gameId
+      ) {
+        return
+      }
+      rememberEvaluation(progress.analysis, { force: true })
+      if (moveNumberRef.current === targetMove) {
+        setAnalysis(progress.analysis)
+      }
+      setLiveAnalysis((current) => ({
+        ...current,
+        running: !progress.isFinal,
+        status: progress.isFinal ? '形势判断完成' : `形势判断搜索 ${formatVisits(candidateVisitsTotal(progress.analysis))}`,
+        visits: Math.max(current.visits, candidateVisitsTotal(progress.analysis)),
+        bestVisits: Math.max(current.bestVisits, candidateBestVisits(progress.analysis)),
+        targetMoveNumber: targetMove
+      }))
+    })
+    try {
+      const nextAnalysis = await window.goagent.analyzePositionStream({
+        gameId,
+        moveNumber: targetMove,
+        maxVisits: 1400,
+        runId,
+        group: 'single',
+        reportDuringSearchEvery: 0.25
+      })
+      if (territoryAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
+        return
+      }
+      rememberEvaluation(nextAnalysis, { force: true })
+      if (moveNumberRef.current === targetMove) {
+        setAnalysis(nextAnalysis)
+      }
+      setLiveAnalysis((current) => ({
+        ...current,
+        running: false,
+        status: '形势判断完成',
+        visits: Math.max(current.visits, candidateVisitsTotal(nextAnalysis)),
+        bestVisits: Math.max(current.bestVisits, candidateBestVisits(nextAnalysis)),
+        targetMoveNumber: targetMove
+      }))
+    } catch (cause) {
+      if (territoryAnalysisRunId.current === runId) {
+        const message = kataGoRuntimeErrorMessage(cause) || String(cause)
+        setError(`形势判断失败: ${message}`)
+        setLiveAnalysis((current) => ({
+          ...current,
+          running: false,
+          status: message
+        }))
+      }
+    } finally {
+      disposeProgress()
+      disposeSearchProgress()
+      if (territoryAnalysisRunId.current === runId) {
+        setTerritoryBusy(false)
+      }
+    }
+  }
+
   async function runMoveAnalysisAt(targetMoveNumber: number): Promise<void> {
     if (!record || !selectedGame || busy !== '') {
       return
@@ -2782,7 +2948,7 @@ export function App(): ReactElement {
           ) : null}
         </aside>
 
-        <main className="board-workspace">
+        <main className="board-workspace" onWheel={handleReplayWheel}>
           <header className="topbar">
             {record ? (
               <BoardContextBar
@@ -2813,6 +2979,16 @@ export function App(): ReactElement {
           <section className="board-stage">
             {record ? (
               <div className="board-table board-table--v2">
+                <TerritoryControlPanel
+                  enabled={territoryEnabled}
+                  mode={territoryMode}
+                  judgement={territoryJudgement}
+                  busy={territoryBusy}
+                  onToggle={() => setTerritoryEnabled((value) => !value)}
+                  onModeChange={setTerritoryMode}
+                  onDeepen={() => void runTerritoryJudgementAnalysis()}
+                  t={t}
+                />
                 {boardRecord && boardRecord.boardSize >= 2 ? (
                   <GoBoardV2
                     record={boardRecord}
@@ -2821,6 +2997,8 @@ export function App(): ReactElement {
                     keyMoves={displayBoardKeyMoveMarks}
                     flashPoint={boardFlash}
                     trialBranch={trialBranch.active ? trialBranch : null}
+                    territoryJudgement={territoryEnabled ? territoryJudgement : null}
+                    territoryMode={territoryMode}
                     onPointClick={trialBranch.active ? playTrialPoint : undefined}
                     onPointContextMenu={trialBranch.active ? undoTrialBranch : undefined}
                     t={t}
@@ -2857,7 +3035,9 @@ export function App(): ReactElement {
                   onRangeClear={handleTimelineRangeClear}
                   rangeStart={moveRange?.start ?? null}
                   rangeEnd={moveRange?.end ?? null}
-                  summary={timelineFinalRecordScore ? (
+                  summary={territoryEnabled ? (
+                    <TerritorySummaryStrip judgement={territoryJudgement} compact t={t} />
+                  ) : timelineFinalRecordScore ? (
                     <div className="ks-timeline-record-score">
                       <span>{t('recordScoreLead')}</span>
                       <strong>{timelineFinalRecordScore.displayLead}</strong>

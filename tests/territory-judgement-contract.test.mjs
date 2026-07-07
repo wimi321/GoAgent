@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import test from 'node:test'
+
+const root = process.cwd()
+const read = (path) => readFileSync(join(root, path), 'utf8')
+
+test('KataGo root ownership is preserved for positional judgement', () => {
+  const types = read('src/main/lib/types.ts')
+  const katago = read('src/main/services/katago.ts')
+
+  assert.match(types, /ownership\?: number\[\]/)
+  assert.match(types, /ownershipStdev\?: number\[\]/)
+  assert.match(katago, /rootInfo\?: \{/)
+  assert.match(katago, /rootInfo\.ownership/)
+  assert.match(katago, /rootInfo\.ownershipStdev/)
+  assert.match(katago, /ownership: Array\.isArray\(response\.rootInfo\.ownership\)/)
+})
+
+test('renderer has a reusable territory judgement model and premium board overlay', () => {
+  const model = read('src/renderer/src/features/board/territoryJudgement.ts')
+  const board = read('src/renderer/src/features/board/GoBoardV2.tsx')
+  const css = read('src/renderer/src/features/board/board-v2.css')
+
+  assert.match(model, /export function buildTerritoryJudgement/)
+  assert.match(model, /TerritoryDisplayMode = 'heat' \| 'blocks' \| 'marks'/)
+  assert.match(model, /source: 'root'/)
+  assert.match(model, /best-continuation/)
+  assert.match(board, /territoryJudgement\?: TerritoryJudgement/)
+  assert.match(board, /function TerritoryOverlay/)
+  assert.match(board, /ks-territory-layer/)
+  assert.match(css, /\.ks-territory-layer--heat/)
+  assert.match(css, /\.ks-territory-layer--blocks/)
+  assert.match(css, /\.ks-territory-layer--marks/)
+})
+
+test('workbench exposes positional judgement controls and summary without replacing analysis flow', () => {
+  const app = read('src/renderer/src/App.tsx')
+  const panel = read('src/renderer/src/features/board/TerritoryJudgementPanel.tsx')
+  const styles = read('src/renderer/src/styles.css')
+  const i18n = read('src/renderer/src/i18n.ts')
+
+  assert.match(app, /const \[territoryEnabled, setTerritoryEnabled\]/)
+  assert.match(app, /buildTerritoryJudgement\(boardAnalysis/)
+  assert.match(app, /runTerritoryJudgementAnalysis/)
+  assert.match(app, /<TerritoryControlPanel/)
+  assert.match(app, /territoryJudgement=\{territoryEnabled \? territoryJudgement : null\}/)
+  assert.match(app, /<TerritorySummaryStrip judgement=\{territoryJudgement\}/)
+  assert.match(panel, /territoryModeHeat/)
+  assert.match(panel, /territoryBlackStrong/)
+  assert.match(styles, /\.territory-control/)
+  assert.match(styles, /\.territory-summary/)
+  assert.match(i18n, /territoryJudgement: '形势判断'/)
+  assert.match(i18n, /territoryModeHeat: 'Heat'/)
+})
+
+test('UI gallery includes positional judgement sample data for visual QA', () => {
+  const gallery = read('src/renderer/src/features/gallery/UiGallery.tsx')
+  const mock = read('src/renderer/src/features/gallery/uiGalleryMock.ts')
+
+  assert.match(mock, /function mockOwnership/)
+  assert.match(mock, /ownership: mockOwnership\(19\)/)
+  assert.match(gallery, /TerritoryControlPanel/)
+  assert.match(gallery, /TerritorySummaryStrip/)
+  assert.match(gallery, /buildTerritoryJudgement\(galleryAnalysis/)
+})

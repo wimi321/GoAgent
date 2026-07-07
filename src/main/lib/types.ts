@@ -849,11 +849,15 @@ export interface KataGoMoveAnalysis {
   before: {
     winrate: number
     scoreLead: number
+    ownership?: number[]
+    ownershipStdev?: number[]
     topMoves: KataGoCandidate[]
   }
   after: {
     winrate: number
     scoreLead: number
+    ownership?: number[]
+    ownershipStdev?: number[]
     topMoves: KataGoCandidate[]
   }
   playedMove?: {

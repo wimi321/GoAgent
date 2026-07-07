@@ -4,8 +4,10 @@ import { BoardInsightPanel } from '../board/BoardInsightPanel'
 import { CandidateTooltip } from '../board/CandidateTooltip'
 import { GoBoardV2 } from '../board/GoBoardV2'
 import { KeyMoveNavigator } from '../board/KeyMoveNavigator'
+import { TerritoryControlPanel, TerritorySummaryStrip } from '../board/TerritoryJudgementPanel'
 import { WinrateTimelineV2 } from '../board/WinrateTimelineV2'
 import { parseBoardPoint, type RenderKeyMove } from '../board/boardGeometry'
+import { buildTerritoryJudgement, type TerritoryDisplayMode } from '../board/territoryJudgement'
 import { DiagnosticsPanel } from '../diagnostics/DiagnosticsPanel'
 import { BetaAcceptancePanel } from '../release/BetaAcceptancePanel'
 import { StudentBindingDialog } from '../student/StudentBindingDialog'
@@ -14,6 +16,7 @@ import { KataGoAssetsPanel } from '../settings/KataGoAssetsPanel'
 import { RuntimeSettingsPanel } from '../settings/RuntimeSettingsPanel'
 import { TeacherComposerPro } from '../teacher/TeacherComposerPro'
 import { TeacherRunCardPro } from '../teacher/TeacherRunCardPro'
+import { createUiTranslator } from '../../i18n'
 import {
   galleryAnalysis,
   galleryEvaluations,
@@ -48,8 +51,12 @@ function noopForm(event: FormEvent): void {
 export function UiGallery(): ReactElement {
   const [moveNumber, setMoveNumber] = useState(24)
   const [composerValue, setComposerValue] = useState('')
+  const [territoryEnabled, setTerritoryEnabled] = useState(true)
+  const [territoryMode, setTerritoryMode] = useState<TerritoryDisplayMode>('heat')
   const [dialogOpen, setDialogOpen] = useState(() => new URLSearchParams(window.location.search).has('dialog'))
   const boardKeyMoves = useMemo(() => keyMoveMarks(), [])
+  const territoryJudgement = useMemo(() => buildTerritoryJudgement(galleryAnalysis, galleryRecord.boardSize), [])
+  const t = useMemo(() => createUiTranslator('zh-CN'), [])
 
   return (
     <main className="ui-gallery">
@@ -73,7 +80,20 @@ export function UiGallery(): ReactElement {
             moveNumber={moveNumber}
             analysis={galleryAnalysis}
             keyMoves={boardKeyMoves}
+            territoryJudgement={territoryEnabled ? territoryJudgement : null}
+            territoryMode={territoryMode}
           />
+          <div className="ui-gallery__territory-control">
+            <TerritoryControlPanel
+              enabled={territoryEnabled}
+              mode={territoryMode}
+              judgement={territoryJudgement}
+              onToggle={() => setTerritoryEnabled((value) => !value)}
+              onModeChange={setTerritoryMode}
+              onDeepen={() => undefined}
+              t={t}
+            />
+          </div>
           <div className="ui-gallery__floating-tooltip">
             <CandidateTooltip
               candidate={{
@@ -164,6 +184,7 @@ export function UiGallery(): ReactElement {
             currentMoveNumber={moveNumber}
             totalMoves={72}
             onMove={setMoveNumber}
+            summary={<TerritorySummaryStrip judgement={territoryJudgement} compact t={t} />}
           />
           <KeyMoveNavigator
             moves={galleryKeyMoves}

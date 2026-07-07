@@ -19,6 +19,7 @@ import {
 } from './boardGeometry'
 import type { CandidateTooltipMove, CandidateTooltipPosition } from './CandidateTooltip'
 import type { TrialBranch } from './trialBranch'
+import type { TerritoryDisplayMode, TerritoryJudgement } from './territoryJudgement'
 import './board-v2.css'
 
 interface GoBoardV2Props {
@@ -29,6 +30,8 @@ interface GoBoardV2Props {
   flashPoint?: (BoardPoint & { nonce?: number; label?: string }) | null
   compact?: boolean
   trialBranch?: TrialBranch | null
+  territoryJudgement?: TerritoryJudgement | null
+  territoryMode?: TerritoryDisplayMode
   onPointClick?: (point: BoardPoint) => void
   onPointContextMenu?: () => void
   onCandidateHover?: (candidate: RenderCandidate | null) => void
@@ -299,7 +302,75 @@ function TrialStoneMark({ move, boardSize }: { move: TrialBranch['moves'][number
   )
 }
 
-export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], flashPoint = null, compact = false, trialBranch = null, onPointClick, onPointContextMenu, onCandidateHover, t: providedT }: GoBoardV2Props): ReactElement {
+function TerritoryOverlay({
+  judgement,
+  mode,
+  boardSize
+}: {
+  judgement: TerritoryJudgement
+  mode: TerritoryDisplayMode
+  boardSize: number
+}): ReactElement | null {
+  if (!judgement.available || judgement.cells.length === 0) {
+    return null
+  }
+  const cell = INNER / (boardSize - 1)
+  return (
+    <g className={`ks-territory-layer ks-territory-layer--${mode} ks-territory-layer--${judgement.confidence}`}>
+      {judgement.cells.map((cellInfo) => {
+        const p = xy(cellInfo, boardSize)
+        const opacity = Math.min(0.46, Math.max(0.055, Math.pow(cellInfo.strength, 1 / 1.33) * 0.34))
+        const blockSize = mode === 'blocks'
+          ? cell * 0.88
+          : mode === 'marks'
+            ? Math.max(6, cell * 0.42 * cellInfo.strength)
+            : cell * 1.08
+        if (mode === 'marks') {
+          return (
+            <rect
+              key={`${cellInfo.x}-${cellInfo.y}`}
+              className={`ks-territory-mark ks-territory-mark--${cellInfo.owner}`}
+              x={p.x - blockSize / 2}
+              y={p.y - blockSize / 2}
+              width={blockSize}
+              height={blockSize}
+              rx={blockSize * 0.22}
+              style={{ opacity: Math.min(0.82, opacity * 1.7) }}
+            />
+          )
+        }
+        return (
+          <rect
+            key={`${cellInfo.x}-${cellInfo.y}`}
+            className={`ks-territory-cell ks-territory-cell--${cellInfo.owner}`}
+            x={p.x - blockSize / 2}
+            y={p.y - blockSize / 2}
+            width={blockSize}
+            height={blockSize}
+            rx={mode === 'blocks' ? 4 : blockSize * 0.42}
+            style={{ opacity }}
+          />
+        )
+      })}
+    </g>
+  )
+}
+
+export function GoBoardV2({
+  record,
+  moveNumber,
+  analysis = null,
+  keyMoves = [],
+  flashPoint = null,
+  compact = false,
+  trialBranch = null,
+  territoryJudgement = null,
+  territoryMode = 'heat',
+  onPointClick,
+  onPointContextMenu,
+  onCandidateHover,
+  t: providedT
+}: GoBoardV2Props): ReactElement {
   const t = providedT ?? ((key: string) => {
     const fallback: Record<string, string> = {
       boardImageLabel: '围棋棋盘',
@@ -493,6 +564,8 @@ export function GoBoardV2({ record, moveNumber, analysis = null, keyMoves = [], 
             return <circle key={`${point.x}-${point.y}`} cx={p.x} cy={p.y} r="6" />
           })}
         </g>
+
+        {territoryJudgement ? <TerritoryOverlay judgement={territoryJudgement} mode={territoryMode} boardSize={boardSize} /> : null}
 
         <g className="ks-board-coordinates-v2">
           {letters.map((letter, index) => {

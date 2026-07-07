@@ -78,6 +78,19 @@
   width: min(100%, 620px);
 }
 
+.ui-gallery__territory-control {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  z-index: 5;
+  transform: translateX(-50%);
+}
+
+.ui-gallery__territory-control .territory-control {
+  position: static;
+  transform: none;
+}
+
 .ui-gallery__panel--teacher {
   display: grid;
   align-content: start;
@@ -185,5 +198,35 @@
   .ui-gallery__grid--main,
   .ui-gallery__grid--three {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .ui-gallery {
+    padding: 18px 14px;
+  }
+
+  .ui-gallery__hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .ui-gallery__panel {
+    padding: 12px;
+  }
+
+  .ui-gallery__territory-control {
+    top: 58px;
+    width: min(100% - 28px, 312px);
+  }
+
+  .ui-gallery__floating-tooltip {
+    position: relative;
+    inset: auto;
+    width: min(100%, 270px);
+    height: 148px;
+    justify-self: end;
+    margin-top: -6px;
   }
 }

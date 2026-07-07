@@ -49,6 +49,60 @@
   fill: rgba(39, 22, 11, 0.72);
 }
 
+.ks-territory-layer {
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  transition: opacity var(--ks-motion-med, 180ms ease);
+}
+
+.ks-territory-layer--low {
+  opacity: 0.76;
+}
+
+.ks-territory-layer--medium,
+.ks-territory-layer--high {
+  opacity: 0.92;
+}
+
+.ks-territory-cell,
+.ks-territory-mark {
+  pointer-events: none;
+  stroke-width: 0.8;
+}
+
+.ks-territory-cell--B,
+.ks-territory-mark--B {
+  fill: rgba(32, 42, 45, 0.92);
+  stroke: rgba(20, 24, 25, 0.22);
+}
+
+.ks-territory-cell--W,
+.ks-territory-mark--W {
+  fill: rgba(212, 235, 238, 0.94);
+  stroke: rgba(98, 134, 138, 0.2);
+}
+
+.ks-territory-layer--heat .ks-territory-cell {
+  filter: blur(1.3px);
+}
+
+.ks-territory-layer--blocks .ks-territory-cell {
+  filter: none;
+  stroke-width: 1;
+  shape-rendering: geometricPrecision;
+}
+
+.ks-territory-layer--marks {
+  mix-blend-mode: normal;
+}
+
+.ks-territory-layer--marks .ks-territory-mark {
+  stroke-width: 1.1;
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: rotate(45deg);
+}
+
 .ks-board-coordinates-v2 text {
   fill: rgba(50, 31, 17, 0.58);
   font-size: 12px;

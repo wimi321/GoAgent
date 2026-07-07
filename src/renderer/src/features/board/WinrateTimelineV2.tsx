@@ -128,7 +128,7 @@ export function WinrateTimelineV2({
 }: WinrateTimelineV2Props): ReactElement {
   const t = providedT ?? ((key: string, vars?: Record<string, string | number | undefined>) => {
     const fallback: Record<string, string> = {
-      timelineAria: '胜率图，点击后可用左右方向键切换手数',
+      timelineAria: '胜率图，可用鼠标滚轮或左右方向键切换手数',
       timelineTitle: '胜率走势',
       timelineLoading: '分析中',
       timelineCurrentBlackWinrate: '当前黑胜率',
