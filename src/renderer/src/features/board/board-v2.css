@@ -51,39 +51,67 @@
 
 .ks-territory-layer {
   pointer-events: none;
-  mix-blend-mode: multiply;
+  mix-blend-mode: normal;
   transition: opacity var(--ks-motion-med, 180ms ease);
 }
 
 .ks-territory-layer--low {
-  opacity: 0.76;
+  opacity: 0.82;
 }
 
 .ks-territory-layer--medium,
 .ks-territory-layer--high {
-  opacity: 0.92;
+  opacity: 0.96;
 }
 
 .ks-territory-cell,
-.ks-territory-mark {
+.ks-territory-mark,
+.ks-territory-dot {
   pointer-events: none;
-  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
 }
 
 .ks-territory-cell--B,
 .ks-territory-mark--B {
-  fill: rgba(32, 42, 45, 0.92);
-  stroke: rgba(20, 24, 25, 0.22);
+  fill: rgba(18, 22, 24, 0.52);
+  stroke: rgba(9, 11, 12, 0.52);
+  stroke-width: 1.1;
 }
 
 .ks-territory-cell--W,
 .ks-territory-mark--W {
-  fill: rgba(212, 235, 238, 0.94);
-  stroke: rgba(98, 134, 138, 0.2);
+  fill: rgba(255, 252, 241, 0.66);
+  stroke: rgba(42, 59, 61, 0.42);
+  stroke-width: 1.15;
+}
+
+.ks-territory-cell--unclear,
+.ks-territory-mark--unclear {
+  fill: rgba(224, 169, 71, 0.5);
+  stroke: rgba(131, 86, 24, 0.3);
+  stroke-width: 0.9;
+}
+
+.ks-territory-dot--B {
+  fill: rgba(8, 10, 11, 0.9);
+  stroke: rgba(255, 244, 211, 0.24);
+  stroke-width: 0.9;
+}
+
+.ks-territory-dot--W {
+  fill: rgba(255, 255, 250, 0.96);
+  stroke: rgba(30, 39, 42, 0.68);
+  stroke-width: 1.1;
+}
+
+.ks-territory-dot--unclear {
+  fill: rgba(215, 147, 35, 0.78);
+  stroke: rgba(255, 248, 221, 0.5);
+  stroke-width: 0.65;
 }
 
 .ks-territory-layer--heat .ks-territory-cell {
-  filter: blur(1.3px);
+  filter: drop-shadow(0 1px 2px rgb(73 43 15 / 0.14));
 }
 
 .ks-territory-layer--blocks .ks-territory-cell {
@@ -98,9 +126,7 @@
 
 .ks-territory-layer--marks .ks-territory-mark {
   stroke-width: 1.1;
-  transform-box: fill-box;
-  transform-origin: center;
-  transform: rotate(45deg);
+  filter: drop-shadow(0 1px 1px rgb(82 55 20 / 0.18));
 }
 
 .ks-board-coordinates-v2 text {

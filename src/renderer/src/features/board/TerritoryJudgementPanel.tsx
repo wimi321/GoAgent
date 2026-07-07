@@ -68,6 +68,14 @@ export function TerritoryControlPanel({
           <span className={`territory-control__confidence territory-control__confidence--${judgement.confidence}`}>
             {t('territoryConfidence')}{confidenceLabel(judgement.confidence, t)}
           </span>
+          <span className="territory-control__legend" aria-label={t('territoryLegend')}>
+            <i className="territory-control__legend-dot territory-control__legend-dot--black" />
+            {t('territoryBlackTerritory')}
+            <i className="territory-control__legend-dot territory-control__legend-dot--white" />
+            {t('territoryWhiteTerritory')}
+            <i className="territory-control__legend-dot territory-control__legend-dot--unclear" />
+            {t('territoryContested')}
+          </span>
           <button type="button" className="territory-control__deepen" onClick={onDeepen} disabled={busy}>
             {busy ? t('timelineLoading') : t('territoryDeepen')}
           </button>

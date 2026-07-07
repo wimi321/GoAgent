@@ -319,37 +319,50 @@ function TerritoryOverlay({
     <g className={`ks-territory-layer ks-territory-layer--${mode} ks-territory-layer--${judgement.confidence}`}>
       {judgement.cells.map((cellInfo) => {
         const p = xy(cellInfo, boardSize)
-        const opacity = Math.min(0.46, Math.max(0.055, Math.pow(cellInfo.strength, 1 / 1.33) * 0.34))
+        const isUnclear = cellInfo.strength < 0.18
+        const visualOwner = isUnclear ? 'unclear' : cellInfo.owner
+        const opacity = isUnclear
+          ? Math.min(0.38, Math.max(0.12, cellInfo.strength * 1.25))
+          : Math.min(0.72, Math.max(0.18, Math.pow(cellInfo.strength, 1 / 1.42) * 0.62))
         const blockSize = mode === 'blocks'
-          ? cell * 0.88
+          ? cell * (isUnclear ? 0.42 : 0.76)
           : mode === 'marks'
-            ? Math.max(6, cell * 0.42 * cellInfo.strength)
-            : cell * 1.08
+            ? Math.max(isUnclear ? 4.8 : 7.5, cell * (isUnclear ? 0.18 : 0.32) * Math.max(0.45, cellInfo.strength))
+            : cell * (isUnclear ? 0.48 : 0.9)
+        const markerSize = Math.max(isUnclear ? 2.6 : 4.8, blockSize * (isUnclear ? 0.18 : 0.21))
         if (mode === 'marks') {
           return (
-            <rect
+            <circle
               key={`${cellInfo.x}-${cellInfo.y}`}
-              className={`ks-territory-mark ks-territory-mark--${cellInfo.owner}`}
-              x={p.x - blockSize / 2}
-              y={p.y - blockSize / 2}
-              width={blockSize}
-              height={blockSize}
-              rx={blockSize * 0.22}
-              style={{ opacity: Math.min(0.82, opacity * 1.7) }}
+              className={`ks-territory-mark ks-territory-mark--${visualOwner}`}
+              cx={p.x}
+              cy={p.y}
+              r={blockSize}
+              style={{ opacity: Math.min(0.92, opacity * 1.55) }}
             />
           )
         }
         return (
-          <rect
+          <g
             key={`${cellInfo.x}-${cellInfo.y}`}
-            className={`ks-territory-cell ks-territory-cell--${cellInfo.owner}`}
-            x={p.x - blockSize / 2}
-            y={p.y - blockSize / 2}
-            width={blockSize}
-            height={blockSize}
-            rx={mode === 'blocks' ? 4 : blockSize * 0.42}
+            className={`ks-territory-point ks-territory-point--${visualOwner}`}
             style={{ opacity }}
-          />
+          >
+            <rect
+              className={`ks-territory-cell ks-territory-cell--${visualOwner}`}
+              x={p.x - blockSize / 2}
+              y={p.y - blockSize / 2}
+              width={blockSize}
+              height={blockSize}
+              rx={mode === 'blocks' ? 5 : blockSize * 0.44}
+            />
+            <circle
+              className={`ks-territory-dot ks-territory-dot--${visualOwner}`}
+              cx={p.x}
+              cy={p.y}
+              r={markerSize}
+            />
+          </g>
         )
       })}
     </g>
