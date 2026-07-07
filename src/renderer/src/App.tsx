@@ -2976,7 +2976,6 @@ export function App(): ReactElement {
                     busy={territoryBusy}
                     compact
                     onToggle={toggleTerritoryJudgement}
-                    onDeepen={() => void runTerritoryJudgementAnalysis()}
                     t={t}
                   />
                 )}

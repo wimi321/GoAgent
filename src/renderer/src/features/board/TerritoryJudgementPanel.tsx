@@ -8,7 +8,6 @@ interface TerritoryControlPanelProps {
   busy?: boolean
   compact?: boolean
   onToggle: () => void
-  onDeepen: () => void
   t: UiTranslator
 }
 
@@ -31,7 +30,6 @@ export function TerritoryControlPanel({
   busy = false,
   compact = false,
   onToggle,
-  onDeepen,
   t
 }: TerritoryControlPanelProps): ReactElement {
   return (
@@ -53,9 +51,7 @@ export function TerritoryControlPanel({
             <i className="territory-control__legend-dot territory-control__legend-dot--unclear" />
             {t('territoryContested')}
           </span>
-          <button type="button" className="territory-control__deepen" onClick={onDeepen} disabled={busy}>
-            {busy ? t('timelineLoading') : t('territoryDeepen')}
-          </button>
+          {busy ? <span className="territory-control__busy">{t('timelineLoading')}</span> : null}
         </>
       ) : null}
     </div>

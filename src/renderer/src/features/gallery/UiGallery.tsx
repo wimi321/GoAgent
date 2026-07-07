@@ -86,7 +86,6 @@ export function UiGallery(): ReactElement {
               enabled={territoryEnabled}
               judgement={territoryJudgement}
               onToggle={() => setTerritoryEnabled((value) => !value)}
-              onDeepen={() => undefined}
               t={t}
             />
           </div>

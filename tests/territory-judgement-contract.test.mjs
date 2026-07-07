@@ -61,6 +61,8 @@ test('workbench exposes positional judgement controls and summary without replac
   assert.match(app, /<TerritorySummaryStrip judgement=\{territoryJudgement\}/)
   assert.doesNotMatch(panel, /territory-control__segments/)
   assert.doesNotMatch(panel, /onModeChange/)
+  assert.doesNotMatch(panel, /onDeepen/)
+  assert.doesNotMatch(panel, /territory-control__deepen/)
   assert.match(panel, /territoryBlackStrong/)
   assert.match(panel, /territory-control__legend/)
   assert.match(panel, /territoryBlackTerritory/)
@@ -69,11 +71,13 @@ test('workbench exposes positional judgement controls and summary without replac
   assert.match(styles, /\.territory-control/)
   assert.match(styles, /\.territory-control--compact/)
   assert.doesNotMatch(styles, /territory-control__segments/)
+  assert.doesNotMatch(styles, /territory-control__deepen/)
   assert.match(styles, /\.territory-control__legend-dot--black/)
   assert.doesNotMatch(styles.match(/\.territory-control\s*\{[\s\S]*?\}/)?.[0] ?? '', /position:\s*absolute/)
   assert.match(styles, /\.territory-summary/)
   assert.match(i18n, /territoryJudgement: '形势判断'/)
   assert.match(i18n, /territoryBlackTerritory: '黑地'/)
+  assert.doesNotMatch(i18n, /territoryDeepen/)
 })
 
 test('UI gallery includes positional judgement sample data for visual QA', () => {
