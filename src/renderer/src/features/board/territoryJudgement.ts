@@ -13,6 +13,10 @@ export interface TerritoryCell extends BoardPoint {
   label: string
 }
 
+export interface TerritoryBoardStone extends BoardPoint {
+  color: TerritoryOwner
+}
+
 export interface TerritoryRegionSummary {
   id: string
   label: string
@@ -43,6 +47,7 @@ export interface TerritoryJudgement {
 const OWNERSHIP_VISUAL_THRESHOLD = 0.055
 const STRONG_OWNERSHIP_THRESHOLD = 0.52
 const UNSETTLED_THRESHOLD = 0.24
+const OWNERSHIP_STONE_CALIBRATION_THRESHOLD = 0.18
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -73,6 +78,26 @@ function ownershipSource(analysis: KataGoMoveAnalysis | null | undefined, boardS
     validOwnership(analysis?.after.topMoves?.[0]?.ownership, boardSize) ??
     validOwnership(analysis?.before.topMoves?.[0]?.ownership, boardSize)
   return { source: bestContinuation ? 'best-continuation' : 'unavailable', ownership: bestContinuation }
+}
+
+function calibratedOwnershipSign(ownership: number[], boardSize: number, stones: TerritoryBoardStone[] = []): 1 | -1 {
+  let agreement = 0
+  let evidence = 0
+  for (const stone of stones) {
+    if (stone.x < 0 || stone.y < 0 || stone.x >= boardSize || stone.y >= boardSize) {
+      continue
+    }
+    const raw = finite(ownership[stone.y * boardSize + stone.x])
+    if (typeof raw !== 'number' || Math.abs(raw) < OWNERSHIP_STONE_CALIBRATION_THRESHOLD) {
+      continue
+    }
+    agreement += stone.color === 'B' ? raw : -raw
+    evidence += Math.abs(raw)
+  }
+  // KataGo ownership should usually agree with stones already on the board.
+  // Some engines/transports expose the sign from the other perspective; flip it
+  // when the actual stones give clear opposite-color evidence.
+  return evidence >= 3 && agreement < -evidence * 0.18 ? -1 : 1
 }
 
 function confidenceFor(input: {
@@ -158,7 +183,11 @@ function buildRegions(cells: TerritoryCell[], boardSize: number): TerritoryRegio
   }).sort((a, b) => Math.abs(b.average) - Math.abs(a.average)).slice(0, 5)
 }
 
-export function buildTerritoryJudgement(analysis: KataGoMoveAnalysis | null | undefined, boardSizeInput = 19): TerritoryJudgement {
+export function buildTerritoryJudgement(
+  analysis: KataGoMoveAnalysis | null | undefined,
+  boardSizeInput = 19,
+  stones: TerritoryBoardStone[] = []
+): TerritoryJudgement {
   const boardSize = Math.max(2, Math.round(boardSizeInput || analysis?.boardSize || 19))
   const { source, ownership } = ownershipSource(analysis, boardSize)
   const scoreLead = finite(analysis?.after.scoreLead)
@@ -183,6 +212,7 @@ export function buildTerritoryJudgement(analysis: KataGoMoveAnalysis | null | un
     }
   }
 
+  const sign = calibratedOwnershipSign(ownership, boardSize, stones)
   let blackStrong = 0
   let whiteStrong = 0
   let unsettled = 0
@@ -191,7 +221,7 @@ export function buildTerritoryJudgement(analysis: KataGoMoveAnalysis | null | un
   const cells: TerritoryCell[] = []
   for (let y = 0; y < boardSize; y += 1) {
     for (let x = 0; x < boardSize; x += 1) {
-      const value = clamp(Number(ownership[y * boardSize + x] ?? 0), -1, 1)
+      const value = clamp(Number(ownership[y * boardSize + x] ?? 0) * sign, -1, 1)
       const strength = Math.abs(value)
       if (value >= STRONG_OWNERSHIP_THRESHOLD) blackStrong += 1
       if (value <= -STRONG_OWNERSHIP_THRESHOLD) whiteStrong += 1

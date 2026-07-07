@@ -6,7 +6,7 @@ import { GoBoardV2 } from '../board/GoBoardV2'
 import { KeyMoveNavigator } from '../board/KeyMoveNavigator'
 import { TerritoryControlPanel, TerritorySummaryStrip } from '../board/TerritoryJudgementPanel'
 import { WinrateTimelineV2 } from '../board/WinrateTimelineV2'
-import { parseBoardPoint, type RenderKeyMove } from '../board/boardGeometry'
+import { parseBoardPoint, renderStones, type RenderKeyMove } from '../board/boardGeometry'
 import { buildTerritoryJudgement } from '../board/territoryJudgement'
 import { DiagnosticsPanel } from '../diagnostics/DiagnosticsPanel'
 import { BetaAcceptancePanel } from '../release/BetaAcceptancePanel'
@@ -54,7 +54,10 @@ export function UiGallery(): ReactElement {
   const [territoryEnabled, setTerritoryEnabled] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(() => new URLSearchParams(window.location.search).has('dialog'))
   const boardKeyMoves = useMemo(() => keyMoveMarks(), [])
-  const territoryJudgement = useMemo(() => buildTerritoryJudgement(galleryAnalysis, galleryRecord.boardSize), [])
+  const territoryJudgement = useMemo(
+    () => buildTerritoryJudgement(galleryAnalysis, galleryRecord.boardSize, renderStones(galleryRecord, moveNumber)),
+    [moveNumber]
+  )
   const t = useMemo(() => createUiTranslator('zh-CN'), [])
 
   return (

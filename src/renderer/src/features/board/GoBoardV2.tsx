@@ -60,7 +60,7 @@ type TerritoryStrandedStone = RenderStone & {
   territoryLabel: string
 }
 
-const STRANDED_STONE_THRESHOLD = 0.48
+const STRANDED_STONE_THRESHOLD = 0.68
 
 function valueOf(record: unknown, key: string): unknown {
   return typeof record === 'object' && record !== null ? (record as Record<string, unknown>)[key] : undefined
@@ -315,7 +315,7 @@ function territoryStrandedStones(stones: RenderStone[], judgement: TerritoryJudg
     return []
   }
   const ownershipByPoint = new Map(judgement.cells.map((cell) => [`${cell.x},${cell.y}`, cell]))
-  return stones.flatMap((stone) => {
+  const candidates = stones.flatMap((stone) => {
     const ownership = ownershipByPoint.get(`${stone.x},${stone.y}`)
     if (!ownership || ownership.owner === stone.color || ownership.strength < STRANDED_STONE_THRESHOLD) {
       return []
@@ -327,22 +327,42 @@ function territoryStrandedStones(stones: RenderStone[], judgement: TerritoryJudg
       territoryLabel: ownership.label
     }]
   })
+  if (candidates.length > Math.max(8, stones.length * 0.32)) {
+    return []
+  }
+  return candidates
 }
 
 function TerritoryStrandedStoneMark({ marker, boardSize }: { marker: TerritoryStrandedStone; boardSize: number }): ReactElement {
   const p = xy(marker, boardSize)
   const ownerLabel = marker.territoryOwner === 'B' ? '黑地' : '白地'
   const stoneLabel = marker.color === 'B' ? '黑子' : '白子'
+  const markerSize = 9.5 + Math.min(5.5, Math.max(0, marker.strength - STRANDED_STONE_THRESHOLD) * 18)
   return (
     <g
-      className={`ks-territory-stranded-stone ks-territory-stranded-stone--in-${marker.territoryOwner} ${marker.strength >= 0.68 ? 'ks-territory-stranded-stone--strong' : ''}`}
+      className={`ks-territory-stranded-stone ks-territory-stranded-stone--in-${marker.territoryOwner} ${marker.strength >= 0.82 ? 'ks-territory-stranded-stone--strong' : ''}`}
       transform={`translate(${p.x} ${p.y})`}
       aria-label={`${marker.territoryLabel} ${ownerLabel}中的${stoneLabel}`}
+      style={{ opacity: Math.min(0.9, 0.58 + marker.strength * 0.26) }}
     >
-      <circle className="ks-territory-stranded-stone__halo" r="30.6" />
-      <circle className="ks-territory-stranded-stone__ring" r="26.4" />
-      <path className="ks-territory-stranded-stone__tick ks-territory-stranded-stone__tick--a" d="M -18 -24 C -10 -30 10 -30 18 -24" />
-      <path className="ks-territory-stranded-stone__tick ks-territory-stranded-stone__tick--b" d="M -18 24 C -10 30 10 30 18 24" />
+      <rect
+        className="ks-territory-stranded-stone__chip"
+        x={15 - markerSize / 2}
+        y={-22 - markerSize / 2}
+        width={markerSize}
+        height={markerSize}
+        rx="2.2"
+        transform={`rotate(45 ${15} ${-22})`}
+      />
+      <rect
+        className="ks-territory-stranded-stone__chip-core"
+        x={15 - markerSize * 0.28}
+        y={-22 - markerSize * 0.28}
+        width={markerSize * 0.56}
+        height={markerSize * 0.56}
+        rx="1.2"
+        transform={`rotate(45 ${15} ${-22})`}
+      />
     </g>
   )
 }
@@ -442,6 +462,7 @@ export function GoBoardV2({
   const candidates = useMemo(() => renderCandidates(analysis, boardSize), [analysis, boardSize])
   const playedMove = useMemo(() => renderPlayedMove(analysis, boardSize), [analysis, boardSize])
   const strandedStones = useMemo(() => territoryStrandedStones(stones, territoryJudgement), [stones, territoryJudgement])
+  const strandedStoneKeys = useMemo(() => new Set(strandedStones.map((stone) => `${stone.x},${stone.y}`)), [strandedStones])
   const variationFirstColor = analysis?.trialContext?.active
     ? analysis.trialContext.nextColor
     : moveToColor(analysis?.currentMove ?? (moveNumber > 0 ? record.moves[moveNumber - 1] : undefined))
@@ -649,8 +670,13 @@ export function GoBoardV2({
           {stones.map((stone) => {
             const p = xy(stone, boardSize)
             const isPreviousMove = stone.moveNumber === previousMoveNumber
+            const isTerritoryStranded = strandedStoneKeys.has(`${stone.x},${stone.y}`)
             return (
-              <g key={`${stone.x}-${stone.y}-${stone.moveNumber}`} className={`ks-stone ks-stone--${stone.color} ${isPreviousMove ? 'ks-stone--previous' : ''}`} transform={`translate(${p.x} ${p.y})`}>
+              <g
+                key={`${stone.x}-${stone.y}-${stone.moveNumber}`}
+                className={`ks-stone ks-stone--${stone.color} ${isPreviousMove ? 'ks-stone--previous' : ''} ${isTerritoryStranded ? 'ks-stone--territory-stranded' : ''}`}
+                transform={`translate(${p.x} ${p.y})`}
+              >
                 <circle className="ks-stone-shadow" r="24" />
                 <circle className="ks-stone-body" r="22.2" />
                 <ellipse className="ks-stone-highlight" cx="-6.5" cy="-8.2" rx="8.6" ry="5.2" />

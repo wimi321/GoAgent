@@ -44,7 +44,7 @@ import { GoBoardV2 } from './features/board/GoBoardV2'
 import type { KeyMoveSummary } from './features/board/KeyMoveNavigator'
 import { TerritoryControlPanel, TerritorySummaryStrip } from './features/board/TerritoryJudgementPanel'
 import { WinrateTimelineV2 } from './features/board/WinrateTimelineV2'
-import { boardPointLabel, parseBoardPoint, type BoardPoint, type RenderKeyMove } from './features/board/boardGeometry'
+import { boardPointLabel, parseBoardPoint, renderStones, type BoardPoint, type RenderKeyMove } from './features/board/boardGeometry'
 import { buildTerritoryJudgement } from './features/board/territoryJudgement'
 import {
   addTrialMove,
@@ -1105,9 +1105,13 @@ export function App(): ReactElement {
   const boardRecord = trialRecord ?? record
   const boardMoveNumber = trialRecord ? trialRecord.moves.length : moveNumber
   const boardAnalysis = trialBranch.active ? trialAnalysis : currentAnalysis
+  const boardTerritoryStones = useMemo(
+    () => boardRecord ? renderStones(boardRecord, boardMoveNumber) : [],
+    [boardRecord, boardMoveNumber]
+  )
   const territoryJudgement = useMemo(
-    () => buildTerritoryJudgement(boardAnalysis, boardRecord?.boardSize ?? record?.boardSize ?? 19),
-    [boardAnalysis, boardRecord?.boardSize, record?.boardSize]
+    () => buildTerritoryJudgement(boardAnalysis, boardRecord?.boardSize ?? record?.boardSize ?? 19, boardTerritoryStones),
+    [boardAnalysis, boardRecord?.boardSize, boardTerritoryStones, record?.boardSize]
   )
   const displayBoardKeyMoveMarks = trialBranch.active ? [] : currentBoardKeyMoveMarks
 
