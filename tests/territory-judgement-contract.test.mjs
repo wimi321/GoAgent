@@ -34,6 +34,8 @@ test('renderer has a reusable territory judgement model and premium board overla
   assert.match(board, /function territoryStrandedStones/)
   assert.match(board, /function TerritoryStrandedStoneMark/)
   assert.match(board, /candidates\.length > Math\.max\(8, stones\.length \* 0\.32\)/)
+  assert.match(board, /transform="rotate\(45\)"/)
+  assert.doesNotMatch(board, /rotate\(45 \$\{15\} \$\{-22\}\)/)
   assert.match(board, /ks-territory-layer/)
   assert.match(board, /ks-territory-stranded-stones-layer/)
   assert.match(board, /ks-territory-stranded-stone--in-/)

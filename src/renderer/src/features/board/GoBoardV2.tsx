@@ -337,7 +337,7 @@ function TerritoryStrandedStoneMark({ marker, boardSize }: { marker: TerritorySt
   const p = xy(marker, boardSize)
   const ownerLabel = marker.territoryOwner === 'B' ? '黑地' : '白地'
   const stoneLabel = marker.color === 'B' ? '黑子' : '白子'
-  const markerSize = 9.5 + Math.min(5.5, Math.max(0, marker.strength - STRANDED_STONE_THRESHOLD) * 18)
+  const markerSize = 8.8 + Math.min(5.2, Math.max(0, marker.strength - STRANDED_STONE_THRESHOLD) * 17)
   return (
     <g
       className={`ks-territory-stranded-stone ks-territory-stranded-stone--in-${marker.territoryOwner} ${marker.strength >= 0.82 ? 'ks-territory-stranded-stone--strong' : ''}`}
@@ -347,21 +347,21 @@ function TerritoryStrandedStoneMark({ marker, boardSize }: { marker: TerritorySt
     >
       <rect
         className="ks-territory-stranded-stone__chip"
-        x={15 - markerSize / 2}
-        y={-22 - markerSize / 2}
+        x={-markerSize / 2}
+        y={-markerSize / 2}
         width={markerSize}
         height={markerSize}
         rx="2.2"
-        transform={`rotate(45 ${15} ${-22})`}
+        transform="rotate(45)"
       />
       <rect
         className="ks-territory-stranded-stone__chip-core"
-        x={15 - markerSize * 0.28}
-        y={-22 - markerSize * 0.28}
+        x={-markerSize * 0.28}
+        y={-markerSize * 0.28}
         width={markerSize * 0.56}
         height={markerSize * 0.56}
         rx="1.2"
-        transform={`rotate(45 ${15} ${-22})`}
+        transform="rotate(45)"
       />
     </g>
   )
