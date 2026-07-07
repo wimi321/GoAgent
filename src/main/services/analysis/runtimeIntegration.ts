@@ -162,6 +162,7 @@ function cacheRequirementForProfile(profile: AdaptiveAnalysisProfile): AnalysisC
     minTier: profile.cacheTier,
     minBestVisits,
     minActualVisits: teaching ? Math.max(60, Math.min(profile.maxVisits, Math.round(profile.maxVisits * 0.12))) : undefined,
+    requireOwnership: profile.includeOwnership,
     requireStablePv: teaching,
     requireMediumConfidence: teaching,
     allowStaleMs: profile.cacheTier === 'oracle' ? -1 : 1000 * 60 * 60 * 24 * 30

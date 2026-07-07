@@ -45,7 +45,7 @@ import type { KeyMoveSummary } from './features/board/KeyMoveNavigator'
 import { TerritoryControlPanel, TerritorySummaryStrip } from './features/board/TerritoryJudgementPanel'
 import { WinrateTimelineV2 } from './features/board/WinrateTimelineV2'
 import { boardPointLabel, parseBoardPoint, type BoardPoint, type RenderKeyMove } from './features/board/boardGeometry'
-import { buildTerritoryJudgement, type TerritoryDisplayMode } from './features/board/territoryJudgement'
+import { buildTerritoryJudgement } from './features/board/territoryJudgement'
 import {
   addTrialMove,
   clearTrialMoves,
@@ -824,7 +824,6 @@ export function App(): ReactElement {
   const [moveRange, setMoveRange] = useState<{ start: number; end: number } | null>(null)
   const [boardFlash, setBoardFlash] = useState<(BoardPoint & { nonce: number; label: string }) | null>(null)
   const [territoryEnabled, setTerritoryEnabled] = useState(false)
-  const [territoryMode, setTerritoryMode] = useState<TerritoryDisplayMode>('heat')
   const [territoryBusy, setTerritoryBusy] = useState(false)
   const [busy, setBusy] = useState('')
   const [graphBusy, setGraphBusy] = useState(false)
@@ -2621,6 +2620,17 @@ export function App(): ReactElement {
     }
   }
 
+  function toggleTerritoryJudgement(): void {
+    if (territoryEnabled) {
+      setTerritoryEnabled(false)
+      return
+    }
+    setTerritoryEnabled(true)
+    if (!territoryJudgement.available && !territoryBusy) {
+      void runTerritoryJudgementAnalysis()
+    }
+  }
+
   async function runMoveAnalysisAt(targetMoveNumber: number): Promise<void> {
     if (!record || !selectedGame || busy !== '') {
       return
@@ -2962,12 +2972,10 @@ export function App(): ReactElement {
                 territoryControl={(
                   <TerritoryControlPanel
                     enabled={territoryEnabled}
-                    mode={territoryMode}
                     judgement={territoryJudgement}
                     busy={territoryBusy}
                     compact
-                    onToggle={() => setTerritoryEnabled((value) => !value)}
-                    onModeChange={setTerritoryMode}
+                    onToggle={toggleTerritoryJudgement}
                     onDeepen={() => void runTerritoryJudgementAnalysis()}
                     t={t}
                   />
@@ -3001,7 +3009,6 @@ export function App(): ReactElement {
                     flashPoint={boardFlash}
                     trialBranch={trialBranch.active ? trialBranch : null}
                     territoryJudgement={territoryEnabled ? territoryJudgement : null}
-                    territoryMode={territoryMode}
                     onPointClick={trialBranch.active ? playTrialPoint : undefined}
                     onPointContextMenu={trialBranch.active ? undoTrialBranch : undefined}
                     t={t}

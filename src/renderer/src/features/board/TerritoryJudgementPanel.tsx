@@ -1,15 +1,13 @@
 import type { ReactElement } from 'react'
 import type { UiTranslator } from '../../i18n'
-import type { TerritoryDisplayMode, TerritoryJudgement } from './territoryJudgement'
+import type { TerritoryJudgement } from './territoryJudgement'
 
 interface TerritoryControlPanelProps {
   enabled: boolean
-  mode: TerritoryDisplayMode
   judgement: TerritoryJudgement
   busy?: boolean
   compact?: boolean
   onToggle: () => void
-  onModeChange: (mode: TerritoryDisplayMode) => void
   onDeepen: () => void
   t: UiTranslator
 }
@@ -27,20 +25,12 @@ function confidenceLabel(confidence: TerritoryJudgement['confidence'], t: UiTran
   return t('territoryConfidenceMissing')
 }
 
-function modeLabel(mode: TerritoryDisplayMode, t: UiTranslator): string {
-  if (mode === 'blocks') return t('territoryModeBlocks')
-  if (mode === 'marks') return t('territoryModeMarks')
-  return t('territoryModeHeat')
-}
-
 export function TerritoryControlPanel({
   enabled,
-  mode,
   judgement,
   busy = false,
   compact = false,
   onToggle,
-  onModeChange,
   onDeepen,
   t
 }: TerritoryControlPanelProps): ReactElement {
@@ -52,19 +42,6 @@ export function TerritoryControlPanel({
       </button>
       {enabled ? (
         <>
-          <div className="territory-control__segments" role="group" aria-label={t('territoryDisplayMode')}>
-            {(['heat', 'blocks', 'marks'] as TerritoryDisplayMode[]).map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={item === mode ? 'is-active' : ''}
-                onClick={() => onModeChange(item)}
-                aria-pressed={item === mode}
-              >
-                {modeLabel(item, t)}
-              </button>
-            ))}
-          </div>
           <span className={`territory-control__confidence territory-control__confidence--${judgement.confidence}`}>
             {t('territoryConfidence')}{confidenceLabel(judgement.confidence, t)}
           </span>

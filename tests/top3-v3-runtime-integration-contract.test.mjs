@@ -71,5 +71,5 @@ test('V3 analysis cache is tiered and runtime cache keys include engine fingerpr
   assert.match(runtime, /gameFingerprint/)
   assert.match(runtime, /runtimeFingerprints/)
   assert.match(runtime, /cacheRequirementForProfile/)
+  assert.match(runtime, /requireOwnership: profile\.includeOwnership/)
 })
-
