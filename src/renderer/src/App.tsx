@@ -5502,12 +5502,7 @@ function BoardContextBar({
   const scoreLead = analysis?.after.scoreLead
   const winrate = analysis?.after.winrate
   const isCurrentLiveTarget = liveAnalysis.targetMoveNumber === moveNumber
-  const totalVisits = isCurrentLiveTarget ? liveAnalysis.visits : candidateVisitsTotal(analysis)
-  const bestVisits = isCurrentLiveTarget ? liveAnalysis.bestVisits : candidateBestVisits(analysis)
   const finalRecordScore = !trialBranch.active && moveNumber === record.moves.length ? gameResultLeadForUi(record.game, t) : null
-  const status = isCurrentLiveTarget
-    ? liveAnalysis.status
-    : (analysis ? t('analysisSearched', { visits: formatVisits(totalVisits) }) : t('analysisWaiting'))
   const speedLabel = isCurrentLiveTarget && liveAnalysis.visitsPerSecond > 0
     ? formatSearchSpeed(liveAnalysis.visitsPerSecond)
     : isCurrentLiveTarget && liveAnalysis.running
@@ -5531,10 +5526,6 @@ function BoardContextBar({
           {finalRecordScore && typeof scoreLead === 'number' ? (
             <small>{t('katagoScoreLead')}: {formatScoreLead(scoreLead, t)}</small>
           ) : null}
-        </div>
-        <div className="board-contextbar__metric board-contextbar__metric--search">
-          <span>{status}</span>
-          <strong>{t('totalAndBestVisits', { total: formatVisits(totalVisits), best: formatVisits(bestVisits) })}</strong>
         </div>
         <div className="board-contextbar__metric board-contextbar__metric--speed">
           <span>{t('searchSpeed')}</span>
