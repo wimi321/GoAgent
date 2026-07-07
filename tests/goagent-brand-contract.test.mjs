@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 
@@ -15,6 +15,7 @@ function trackedTextFiles() {
     .toString('utf8')
     .split('\0')
     .filter(Boolean)
+    .filter((file) => existsSync(join(root, file)))
     .filter((file) => {
       const body = readFileSync(join(root, file))
       return !body.includes(0)

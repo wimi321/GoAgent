@@ -49,6 +49,15 @@ if (remoteDebuggingPort && /^\d+$/.test(remoteDebuggingPort)) {
   app.commandLine.appendSwitch('remote-debugging-port', remoteDebuggingPort)
 }
 
+if (process.platform === 'win32' && process.env.GOAGENT_ENABLE_ELECTRON_GPU !== '1') {
+  app.commandLine.appendSwitch('disable-gpu')
+  app.commandLine.appendSwitch('disable-software-rasterizer')
+  app.commandLine.appendSwitch('disable-gpu-compositing')
+  app.commandLine.appendSwitch('disable-gpu-sandbox')
+  app.commandLine.appendSwitch('disable-features', 'Vulkan')
+  app.disableHardwareAcceleration()
+}
+
 function assetPath(fileName: string): string {
   return join(__dirname, '../../assets', fileName)
 }

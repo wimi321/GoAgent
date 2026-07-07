@@ -24,14 +24,16 @@ The NVIDIA edition is not a renamed standard package. During packaging, the work
 
 This matters because CUDA builds normally need neighboring DLL/runtime files next to `katago.exe`.
 
+KataGo assets must live in `resources/data/katago` in the packaged app. They must not also appear under `resources/app.asar.unpacked/data/katago`; that duplicate path makes the portable archive dramatically larger without improving runtime behavior.
+
 ## Expected Artifacts
 
 ```text
 GoAgent-<version>-win-x64-nvidia.exe
-GoAgent-<version>-win-x64-nvidia-portable.7z.001
-GoAgent-<version>-win-x64-nvidia-portable.7z.002
-GoAgent-<version>-win-x64-nvidia-portable.7z.003
+GoAgent-<version>-win-x64-nvidia-portable.7z
 ```
+
+The portable package is published as a single 7z file without `.001` split-volume suffixes. The workflow uses solid 7z compression and enforces a size budget so the NVIDIA portable archive remains in the same order of magnitude as the source NVIDIA runtime bundle while staying below GitHub's per-asset upload limit.
 
 The standard Windows package remains:
 

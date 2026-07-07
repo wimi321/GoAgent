@@ -2,8 +2,9 @@ node_modules
 out
 dist
 website/.astro
-release
-.release
+/release
+/.release
+/.tmp
 .dev-release
 .dev-cache
 .DS_Store

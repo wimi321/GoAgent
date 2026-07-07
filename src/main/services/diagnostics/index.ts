@@ -7,6 +7,7 @@ import { ikatagoClientConfigured, shouldPreferIKataGoEngine } from '../ikatagoCl
 import { shouldPreferZhiziGtpEngine, zhiziGtpConfigured } from '../zhiziGtpEngine'
 import { probeOpenAICompatibleProvider } from '../llm/openaiCompatibleProvider'
 import { inspectKataGoAssets } from '../katago/katagoAssets'
+import { isLitePackagedRuntime } from '../release/packageRuntime'
 import type { DiagnosticCheck, DiagnosticsReport, DiagnosticsOverall } from './types'
 
 function isReleaseRuntime(): boolean {
@@ -70,17 +71,20 @@ async function checkKatagoBinary(): Promise<DiagnosticCheck> {
       detail: `使用 iKataGo 远程算力: ${basename(settings.ikatagoClientBin)}`
     }
   }
-  const required = isReleaseRuntime()
+  const liteRuntime = isLitePackagedRuntime()
+  const required = isReleaseRuntime() && !liteRuntime
   if (!runtime.katagoBin) {
     return {
       id: 'katago-binary',
       title: 'KataGo 引擎',
       status: required ? 'fail' : 'warn',
       required,
-      detail: '未找到内置或本机 KataGo 引擎。',
+      detail: liteRuntime ? 'Lite 安装包不内置 KataGo 引擎。' : '未找到内置或本机 KataGo 引擎。',
       action: required
         ? '请确认安装包包含 data/katago/bin/<platform>-<arch>/katago。'
-        : '开发环境可稍后运行 scripts/prepare_katago_assets.mjs 或使用系统 KataGo。'
+        : liteRuntime
+          ? '可在设置中安装官方 KataGo 模型/运行时，或配置本机 KataGo、智子云远程算力。'
+          : '开发环境可稍后运行 scripts/prepare_katago_assets.mjs 或使用系统 KataGo。'
     }
   }
   try {
@@ -138,17 +142,20 @@ async function checkKatagoModel(): Promise<DiagnosticCheck> {
       detail: 'iKataGo 远程服务负责模型和配置，GoAgent 不要求本机模型。'
     }
   }
-  const required = isReleaseRuntime()
+  const liteRuntime = isLitePackagedRuntime()
+  const required = isReleaseRuntime() && !liteRuntime
   if (!runtime.katagoModel) {
     return {
       id: 'katago-model',
       title: 'KataGo 默认模型',
       status: required ? 'fail' : 'warn',
       required,
-      detail: '未找到默认 KataGo 模型。',
+      detail: liteRuntime ? 'Lite 安装包不内置默认 KataGo 模型。' : '未找到默认 KataGo 模型。',
       action: required
         ? '安装包应该内置默认 KataGo 模型；请确认 data/katago/models 中存在默认模型文件。'
-        : '开发环境可先保留 manifest，通过资源准备脚本或 CI release artifact 注入模型。'
+        : liteRuntime
+          ? '可在设置中下载官方模型；下载完成后基础分析即可使用。'
+          : '开发环境可先保留 manifest，通过资源准备脚本或 CI release artifact 注入模型。'
     }
   }
   return {
@@ -191,7 +198,8 @@ async function checkBundledKataGoAssets(): Promise<DiagnosticCheck> {
     }
   }
   const status = await inspectKataGoAssets()
-  const required = isReleaseRuntime()
+  const liteRuntime = isLitePackagedRuntime()
+  const required = isReleaseRuntime() && !liteRuntime
   if (status.ready) {
     return {
       id: 'katago-assets',
@@ -206,10 +214,12 @@ async function checkBundledKataGoAssets(): Promise<DiagnosticCheck> {
     title: '内置 KataGo 资源',
     status: required ? 'fail' : 'warn',
     required,
-    detail: status.detail,
+    detail: liteRuntime ? 'Lite 安装包只内置 manifest，不内置大型 KataGo 二进制和模型。' : status.detail,
     action: required
       ? '请重新安装完整安装包，或检查 data/katago 资源是否损坏。'
-      : '开发环境可通过 scripts/prepare_katago_assets.mjs 准备资源。'
+      : liteRuntime
+        ? '需要本机分析时，可在设置里安装官方模型/运行时，或使用远程算力。'
+        : '开发环境可通过 scripts/prepare_katago_assets.mjs 准备资源。'
   }
 }
 

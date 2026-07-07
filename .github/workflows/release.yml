@@ -388,6 +388,10 @@ jobs:
           fi
           ${{ matrix.command }}
 
+      - name: Smoke packaged Windows app
+        if: runner.os == 'Windows'
+        run: node scripts/smoke_windows_packaged_app.mjs --mode=full --require-katago
+
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -399,122 +403,6 @@ jobs:
             release/**/*.exe
             release/**/*.zip
             release/**/*.tar.gz
-            release/**/*.yml
-          if-no-files-found: error
-
-  package-lite:
-    name: Package Lite ${{ matrix.name }}
-    needs:
-      - release-preflight
-      - prepare-tts-assets
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: macOS
-            os: macos-latest
-            command: pnpm dist:lite:mac
-          - name: Windows
-            os: windows-latest
-            command: pnpm dist:lite:win
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.30.3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Setup Python for Kokoro zh G2P
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Kokoro zh G2P Python dependencies
-        run: python -m pip install -r scripts/requirements-tts.txt
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Download Kokoro TTS assets
-        uses: actions/download-artifact@v4
-        with:
-          name: GoAgent-Kokoro-zh-CN
-          path: data/tts/kokoro/zh-CN
-
-      - name: Validate Kokoro TTS assets
-        shell: bash
-        env:
-          GOAGENT_TTS_ASSETS_STRICT: "1"
-          GOAGENT_TTS_SMOKE_STRICT: "1"
-          GOAGENT_TTS_PYTHON: python
-        run: |
-          pnpm check:tts-assets
-          pnpm smoke:tts
-
-      - name: Package Lite desktop app
-        shell: bash
-        env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' && 'true' || 'false' }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_KEYCHAIN: ${{ secrets.APPLE_KEYCHAIN }}
-          APPLE_KEYCHAIN_PROFILE: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
-        run: |
-          for name in \
-            CSC_LINK \
-            CSC_KEY_PASSWORD \
-            WIN_CSC_LINK \
-            WIN_CSC_KEY_PASSWORD \
-            APPLE_API_KEY \
-            APPLE_API_KEY_ID \
-            APPLE_API_ISSUER \
-            APPLE_ID \
-            APPLE_APP_SPECIFIC_PASSWORD \
-            APPLE_TEAM_ID \
-            APPLE_KEYCHAIN \
-            APPLE_KEYCHAIN_PROFILE
-          do
-            if [[ -z "${!name:-}" ]]; then
-              unset "${name}"
-            fi
-          done
-          if [[ "${RUNNER_OS}" == "macOS" && -z "${CSC_LINK:-}" ]]; then
-            export CSC_IDENTITY_AUTO_DISCOVERY=false
-          fi
-          ${{ matrix.command }}
-
-      - name: Upload Lite packaged artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: GoAgent-Lite-${{ matrix.name }}
-          path: |
-            release/**/*-lite.AppImage
-            release/**/*-lite.deb
-            release/**/*-lite.dmg
-            release/**/*-lite.exe
-            release/**/*-lite-portable.zip
-            release/**/*-lite.tar.gz
             release/**/*.yml
           if-no-files-found: error
 
@@ -667,23 +555,33 @@ jobs:
           $unpackedDir = Join-Path $releaseDir "win-unpacked"
           if (-not $installer) { throw "Missing NVIDIA installer EXE before rename." }
           if (-not (Test-Path $unpackedDir)) { throw "Missing win-unpacked directory for NVIDIA portable recompression." }
-          Push-Location $releaseDir
-          & 7z a -t7z -m0=LZMA2 -mx=1 -ms=off -mmt=on -v1900m "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
-          Pop-Location
-          Rename-Item -LiteralPath $installer.FullName -NewName "GoAgent-$version-win-x64-nvidia.exe" -Force
-          $nvidiaPortableParts = Get-ChildItem -Path $releaseDir -Filter "GoAgent-$version-win-x64-nvidia-portable.7z.*" -File | Sort-Object Name
-          $nvidiaInstaller = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia.exe")
-          if (-not $nvidiaPortableParts) { throw "Missing NVIDIA portable split 7z parts after recompression." }
-          $nvidiaPortableTotal = ($nvidiaPortableParts | Measure-Object -Property Length -Sum).Sum
-          Write-Host "NVIDIA portable split 7z parts: $($nvidiaPortableParts.Count)"
-          Write-Host "NVIDIA portable split 7z total bytes: $nvidiaPortableTotal"
-          Write-Host "NVIDIA installer EXE bytes: $($nvidiaInstaller.Length)"
-          foreach ($part in $nvidiaPortableParts) {
-            Write-Host "NVIDIA portable part bytes: $($part.Name) $($part.Length)"
-            if ($part.Length -ge 2147483648) {
-              throw "NVIDIA portable split archive part exceeds GitHub's 2 GiB asset limit: $($part.Name) $($part.Length)"
+          $duplicatedKatagoDir = Join-Path $unpackedDir "resources/app.asar.unpacked/data/katago"
+          if (Test-Path $duplicatedKatagoDir) {
+            $duplicatedKatagoBytes = (Get-ChildItem -Path $duplicatedKatagoDir -Recurse -File | Measure-Object -Property Length -Sum).Sum
+            if ($duplicatedKatagoBytes -gt 1048576) {
+              throw "NVIDIA package duplicated KataGo assets inside app.asar.unpacked: $duplicatedKatagoBytes bytes"
             }
           }
+          Push-Location $releaseDir
+          & 7z a -t7z -m0=LZMA2 -mx=7 -mmt=on "GoAgent-$version-win-x64-nvidia-portable.7z" ".\win-unpacked\*" | Out-Host
+          Pop-Location
+          Rename-Item -LiteralPath $installer.FullName -NewName "GoAgent-$version-win-x64-nvidia.exe" -Force
+          $nvidiaPortable = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia-portable.7z")
+          $nvidiaInstaller = Get-Item (Join-Path $releaseDir "GoAgent-$version-win-x64-nvidia.exe")
+          if (-not $nvidiaPortable) { throw "Missing NVIDIA portable 7z archive after recompression." }
+          $nvidiaPortableTotal = $nvidiaPortable.Length
+          $nvidiaPortableMax = 2560MB
+          if ($nvidiaPortableTotal -gt $nvidiaPortableMax) {
+            throw "NVIDIA portable 7z bytes exceed size budget: $nvidiaPortableTotal > $nvidiaPortableMax"
+          }
+          Write-Host "NVIDIA portable 7z bytes: $nvidiaPortableTotal"
+          Write-Host "NVIDIA installer EXE bytes: $($nvidiaInstaller.Length)"
+          if ($nvidiaPortable.Length -ge 2147483648) {
+            throw "NVIDIA portable archive exceeds GitHub's 2 GiB asset limit: $($nvidiaPortable.Name) $($nvidiaPortable.Length)"
+          }
+
+      - name: Smoke NVIDIA packaged Windows app
+        run: node scripts/smoke_windows_packaged_app.mjs --mode=nvidia --require-katago
 
       - name: Upload NVIDIA packaged artifacts
         uses: actions/upload-artifact@v4
@@ -691,7 +589,7 @@ jobs:
           name: GoAgent-Windows-NVIDIA
           path: |
             release/**/*nvidia*.exe
-            release/**/*nvidia*.7z*
+            release/**/*nvidia*.7z
           if-no-files-found: error
 
   github-release:
@@ -699,10 +597,9 @@ jobs:
     needs:
       - release-preflight
       - package
-      - package-lite
       - package-nvidia-windows
     runs-on: ubuntu-latest
-    if: always() && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-lite.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
+    if: always() && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout release notes
@@ -714,28 +611,6 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Generate checksums
-        shell: bash
-        run: |
-          shopt -s globstar nullglob
-          files=(
-            artifacts/**/GoAgent-*-mac-arm64.dmg
-            artifacts/**/GoAgent-*-mac-x64.dmg
-            artifacts/**/GoAgent-*-mac-arm64-lite.dmg
-            artifacts/**/GoAgent-*-mac-x64-lite.dmg
-            artifacts/**/GoAgent-*-win-x64-lite-portable.zip
-            artifacts/**/GoAgent-*-win-x64-lite.exe
-            artifacts/**/GoAgent-*-win-x64-portable.zip
-            artifacts/**/GoAgent-*-win-x64.exe
-            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z*
-            artifacts/**/GoAgent-*-win-x64-nvidia.exe
-          )
-          if [[ ${#files[@]} -eq 0 ]]; then
-            echo "No release assets found for checksum generation." >&2
-            exit 1
-          fi
-          sha256sum "${files[@]}" | sed 's# .*/#  #' > artifacts/SHA256SUMS.txt
-
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
@@ -744,13 +619,8 @@ jobs:
           files: |
             artifacts/**/GoAgent-*-mac-arm64.dmg
             artifacts/**/GoAgent-*-mac-x64.dmg
-            artifacts/**/GoAgent-*-mac-arm64-lite.dmg
-            artifacts/**/GoAgent-*-mac-x64-lite.dmg
-            artifacts/**/GoAgent-*-win-x64-lite-portable.zip
-            artifacts/**/GoAgent-*-win-x64-lite.exe
             artifacts/**/GoAgent-*-win-x64-portable.zip
             artifacts/**/GoAgent-*-win-x64.exe
-            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z*
+            artifacts/**/GoAgent-*-win-x64-nvidia-portable.7z
             artifacts/**/GoAgent-*-win-x64-nvidia.exe
-            artifacts/SHA256SUMS.txt
           body_path: docs/RELEASE_NOTES_${{ github.ref_name }}.md

@@ -1,6 +1,6 @@
 {
   "name": "goagent",
-  "version": "0.4.14",
+  "version": "0.4.17",
   "description": "Agentic AI teacher for Go / Weiqi / Baduk, powered by KataGo and multimodal LLMs.",
   "main": "out/main/index.js",
   "type": "module",
@@ -49,6 +49,7 @@
     "website:check": "pnpm --dir website build",
     "check:website": "node scripts/check_website.mjs",
     "smoke:release-artifacts": "node scripts/release_artifact_smoke.mjs",
+    "smoke:windows-packaged": "node scripts/smoke_windows_packaged_app.mjs",
     "check:teacher-quality": "pnpm build && pnpm eval:teacher && pnpm eval:claims && pnpm eval:quality-gate && pnpm check:knowledge-sources && pnpm eval:knowledge-coverage && pnpm eval:shape-recognition && pnpm eval:move-range && pnpm eval:vision-evidence && pnpm eval:katago-trace && pnpm eval:engine-silver && pnpm eval:teacher-style && pnpm eval:teacher-session && pnpm eval:tts-provider-policy && pnpm check:teacher-artifact",
     "package": "pnpm dist",
     "dist": "pnpm build && electron-builder",
@@ -56,10 +57,6 @@
     "dist:mac": "pnpm build && electron-builder --mac --publish never",
     "dist:win": "pnpm build && electron-builder --win --publish never",
     "dist:linux": "pnpm build && electron-builder --linux --publish never",
-    "write:lite-builder-config": "node scripts/write_lite_builder_config.mjs",
-    "dist:lite:mac": "pnpm build && pnpm write:lite-builder-config && electron-builder --config .release/electron-builder-lite.json --mac --publish never",
-    "dist:lite:win": "pnpm build && pnpm write:lite-builder-config && electron-builder --config .release/electron-builder-lite.json --win --publish never",
-    "dist:lite:linux": "pnpm build && pnpm write:lite-builder-config && electron-builder --config .release/electron-builder-lite.json --linux --publish never",
     "dist:local:mac": "pnpm prepare:zhizi-b28 && pnpm dist:mac",
     "dist:local:win": "pnpm prepare:zhizi-b28 && pnpm dist:win",
     "dist:local:linux": "pnpm prepare:zhizi-b28 && pnpm dist:linux",
@@ -69,10 +66,10 @@
     "prepare:zhizi-b28": "node scripts/download_zhizi_b28.mjs",
     "check:katago-assets": "node scripts/check_katago_assets.mjs --mode=dev",
     "check:katago-assets:release": "node scripts/check_katago_assets.mjs --mode=release",
-    "check:lite-release-assets": "node scripts/check_lite_release_assets.mjs",
+    "check:no-lite-release-assets": "node scripts/check_no_lite_release_assets.mjs",
     "check:nvidia-release-assets": "node scripts/check_nvidia_release_assets.mjs",
     "check:release-notes-i18n": "node scripts/check_release_notes_i18n.mjs",
-    "check:release-quality": "pnpm check:teacher-quality && pnpm check:lite-release-assets && pnpm check:nvidia-release-assets && pnpm check:release-notes-i18n && pnpm check:tts-assets && pnpm smoke:tts && pnpm smoke:release-artifacts",
+    "check:release-quality": "pnpm check:teacher-quality && pnpm check:no-lite-release-assets && pnpm check:nvidia-release-assets && pnpm check:release-notes-i18n && pnpm check:tts-assets && pnpm smoke:tts && pnpm smoke:release-artifacts",
     "check:p0-beta": "node scripts/p0_beta_acceptance.mjs",
     "check:artifacts": "node scripts/package_artifact_smoke.mjs --mode=dev",
     "smoke:teacher-llm": "pnpm build && node scripts/teacher_llm_smoke.mjs",
@@ -115,9 +112,8 @@
     "files": [
       "out/**/*",
       "scripts/**/*",
-      "data/**/*",
-      "!data/katago/bin/**/*",
-      "!data/katago/models/**/*",
+      "data/knowledge/**/*",
+      "!data/katago/**/*",
       "!data/tts/**/*",
       "assets/**/*",
       "package.json"
@@ -139,10 +135,7 @@
         ]
       }
     ],
-    "asarUnpack": [
-      "data/katago/**/*",
-      "data/tts/**/*"
-    ],
+    "asarUnpack": [],
     "asar": true,
     "mac": {
       "category": "public.app-category.education",
@@ -173,6 +166,13 @@
       "icon": "assets/icon.ico",
       "artifactName": "${productName}-${version}-${os}-${arch}-portable.${ext}",
       "files": [
+        "out/**/*",
+        "scripts/**/*",
+        "data/knowledge/**/*",
+        "!data/katago/**/*",
+        "!data/tts/**/*",
+        "assets/**/*",
+        "package.json",
         "!**/node_modules/onnxruntime-node/bin/napi-v3/darwin/**",
         "!**/node_modules/onnxruntime-node/bin/napi-v3/linux/**",
         "!**/node_modules/onnxruntime-node/bin/napi-v3/win32/arm64/**",
@@ -213,15 +213,5 @@
       "owner": "wimi321",
       "repo": "GoAgent"
     }
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "electron-winstaller",
-      "esbuild",
-      "onnxruntime-node",
-      "protobufjs",
-      "sharp"
-    ]
   }
 }

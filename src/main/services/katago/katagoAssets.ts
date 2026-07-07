@@ -7,8 +7,8 @@ import { Transform, Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { basename, dirname, join } from 'node:path'
 import { promisify } from 'node:util'
-import { app } from 'electron'
 import { getKataGoModelPreset } from '../katagoRuntime'
+import { appHome, legacyElectronUserData } from '@main/lib/store'
 import type { KataGoAssetInstallProgress, KataGoAssetInstallRequest, KataGoAssetInstallResult } from '@main/lib/types'
 
 export interface KataGoPlatformAsset {
@@ -68,12 +68,8 @@ function editionBinaryPathForPlatform(edition: KataGoEditionMetadata | null, key
   return edition.platform === key ? edition.binaryPath : ''
 }
 
-function userKatagoRoot(): string | null {
-  try {
-    return join(app.getPath('userData'), 'katago')
-  } catch {
-    return null
-  }
+function userKatagoRoot(): string {
+  return join(appHome, 'katago')
 }
 
 function candidateRoots(): string[] {
@@ -81,6 +77,9 @@ function candidateRoots(): string[] {
   const userRoot = userKatagoRoot()
   if (userRoot) {
     roots.push(userRoot)
+  }
+  if (legacyElectronUserData) {
+    roots.push(join(legacyElectronUserData, 'katago'))
   }
   if (process.resourcesPath) {
     roots.push(join(process.resourcesPath, 'data', 'katago'))
@@ -447,7 +446,7 @@ export async function installOfficialKataGoModel(
     throw new Error('缺少 data/katago/manifest.json，无法创建本机资源配置。')
   }
 
-  // If this preset is already bundled with the app or previously installed into userData, reuse it.
+  // If this preset is already bundled with the app or previously installed into the app home, reuse it.
   const bundledMatch = await findBundledModelPath(preset)
   if (bundledMatch) {
     onProgress?.({ stage: 'discovering', message: `${preset.label} 已随安装包提供，无需下载。`, percent: 100 })

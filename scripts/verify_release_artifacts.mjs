@@ -34,7 +34,7 @@ function isPackagedArtifact(file) {
   ) {
     return false
   }
-  return /(\.(dmg|zip|7z|exe|AppImage|deb)|\.tar\.gz|\.7z\.\d+)$/i.test(file)
+  return /(\.(dmg|zip|7z|exe|AppImage|deb)|\.tar\.gz)$/i.test(file)
 }
 
 const artifacts = files.filter(isPackagedArtifact)
@@ -45,7 +45,7 @@ const macX64Dmg = currentArtifacts.filter((file) => /mac-x64\.dmg$/i.test(file))
 const winX64Installer = currentArtifacts.filter((file) => /win-x64\.exe$/i.test(file) && !/portable/i.test(file))
 const winX64PortableZip = currentArtifacts.filter((file) => /win-x64-portable\.zip$/i.test(file))
 const winX64NvidiaInstaller = currentArtifacts.filter((file) => /win-x64-nvidia\.exe$/i.test(file))
-const winX64NvidiaPortableArchive = currentArtifacts.filter((file) => /win-x64-nvidia-portable\.7z\.001$/i.test(file))
+const winX64NvidiaPortableArchive = currentArtifacts.filter((file) => /win-x64-nvidia-portable\.7z$/i.test(file))
 const winPortableExe = currentArtifacts.filter((file) => /win-x64-portable\.exe$/i.test(file))
 const winArm64 = currentArtifacts.filter((file) => /win-arm64/i.test(file))
 const tiny = currentArtifacts.filter((file) => statSync(file).size < minSizeBytes)
