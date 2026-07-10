@@ -64,6 +64,7 @@ import { KataGoAssetsPanel } from './features/settings/KataGoAssetsPanel'
 import { TeacherSpeechControls } from './features/tts/TeacherSpeechControls'
 import { TtsSettingsPanel } from './features/tts/TtsSettingsPanel'
 import { TeacherComposerPro } from './features/teacher/TeacherComposerPro'
+import { analysisDisplaySeverity, isVerifiedTimelineIssue } from './features/timeline/analysisTrust'
 import {
   createUiTranslator,
   humanizeUiError,
@@ -458,11 +459,11 @@ const LIVE_ANALYSIS_TIME_LIMIT_MS = 150_000
 const LIVE_ANALYSIS_REPORT_INTERVAL_SECONDS = 0.2
 const QUICK_GRAPH_FAST_VISITS = 24
 const QUICK_GRAPH_FAST_VISITS_STRONG = 48
-const QUICK_GRAPH_REFINE_VISITS = 120
+const QUICK_GRAPH_REFINE_VISITS = 180
 const QUICK_GRAPH_REFINE_TOP_N = 8
 const LIBRARY_PAGE_SIZE = 10
 const TIMELINE_ISSUE_MIN_LOSS = 1
-const ANALYSIS_CACHE_SCHEMA_VERSION = 'v5-komi-and-stable-quick-winrate'
+const ANALYSIS_CACHE_SCHEMA_VERSION = 'v6-evidence-aware-issues'
 const ANALYSIS_CACHE_PREFIX = `goagent.analysisCache.${ANALYSIS_CACHE_SCHEMA_VERSION}.`
 const ANALYSIS_CACHE_INDEX_KEY = `goagent.analysisCache.${ANALYSIS_CACHE_SCHEMA_VERSION}.index`
 const ANALYSIS_CACHE_MAX_GAMES = 8
@@ -761,7 +762,7 @@ function timelineIssuesFromEvaluations(
         return []
       }
       const loss = normalizeLossPercent(item.playedMove?.winrateLoss)
-      if (loss < TIMELINE_ISSUE_MIN_LOSS) {
+      if (loss < TIMELINE_ISSUE_MIN_LOSS || !isVerifiedTimelineIssue(item, TIMELINE_ISSUE_MIN_LOSS)) {
         return []
       }
       const playedMove = item.playedMove?.move ?? item.currentMove?.gtp ?? record?.moves[item.moveNumber - 1]?.gtp ?? ''
@@ -5659,17 +5660,7 @@ function formatSearchSpeed(visitsPerSecond: number): string {
 }
 
 function evaluationSeverity(item: KataGoMoveAnalysis): 'quiet' | 'inaccuracy' | 'mistake' | 'blunder' {
-  const winrateLoss = normalizeLossPercent(item.playedMove?.winrateLoss)
-  if (item.judgement === 'blunder' || winrateLoss >= 18) {
-    return 'blunder'
-  }
-  if (item.judgement === 'mistake' || winrateLoss >= 10) {
-    return 'mistake'
-  }
-  if (item.judgement === 'inaccuracy' || winrateLoss >= 4) {
-    return 'inaccuracy'
-  }
-  return 'quiet'
+  return analysisDisplaySeverity(item)
 }
 
 function formatIssueLoss(loss: number): string {

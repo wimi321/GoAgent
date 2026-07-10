@@ -4,6 +4,7 @@ import type { GameRecord, KataGoMoveAnalysis } from '@main/lib/types'
 import type { UiTranslator } from '../../i18n'
 import {
   candidateVariationMoves,
+  candidatePerspectiveColor,
   getBoardSize,
   moveToColor,
   normalizeWinrate,
@@ -169,14 +170,16 @@ function svgCursorPoint(event: BoardHoverEvent): { x: number; y: number } | null
 function CandidateMark({
   candidate,
   boardSize,
+  perspectiveColor,
   active = false
 }: {
   candidate: RenderCandidate
   boardSize: number
+  perspectiveColor: 'B' | 'W'
   active?: boolean
 }): ReactElement {
   const p = xy(candidate, boardSize)
-  const className = `ks-candidate ks-candidate--${candidate.emphasis} ks-candidate--rank-${candidate.rank}${active ? ' ks-candidate--active' : ''}`
+  const className = `ks-candidate ks-candidate--${candidate.emphasis} ks-candidate--rank-${candidate.rank} ks-candidate-perspective--${perspectiveColor}${active ? ' ks-candidate--active' : ''}`
   const scale = candidate.emphasis === 'primary' ? 1.02 : candidate.emphasis === 'secondary' ? 0.96 : 0.9
   const winrate = formatCandidateWinrate(candidate)
   const visits = formatCandidateVisits(candidate)
@@ -460,6 +463,7 @@ export function GoBoardV2({
   const boardSize = getBoardSize(record)
   const stones = useMemo(() => renderStones(record, moveNumber), [record, moveNumber])
   const candidates = useMemo(() => renderCandidates(analysis, boardSize), [analysis, boardSize])
+  const candidatePerspective = useMemo(() => candidatePerspectiveColor(analysis), [analysis])
   const playedMove = useMemo(() => renderPlayedMove(analysis, boardSize), [analysis, boardSize])
   const strandedStones = useMemo(() => territoryStrandedStones(stones, territoryJudgement), [stones, territoryJudgement])
   const strandedStoneKeys = useMemo(() => new Set(strandedStones.map((stone) => `${stone.x},${stone.y}`)), [strandedStones])
@@ -708,6 +712,7 @@ export function GoBoardV2({
               key={`${candidate.rank}-${candidate.label}`}
               candidate={candidate}
               boardSize={boardSize}
+              perspectiveColor={candidatePerspective}
               active={sameCandidate(activeCandidate?.renderCandidate, candidate)}
             />
           ))}

@@ -113,7 +113,7 @@ interface ActiveKataGoProcess {
 
 const QUICK_ANALYSIS_FAST_VISITS = 24
 const QUICK_ANALYSIS_MAX_SWEEP_VISITS = 80
-const QUICK_ANALYSIS_REFINE_VISITS = 120
+const QUICK_ANALYSIS_REFINE_VISITS = 180
 const QUICK_ANALYSIS_REFINE_TOP_N = 10
 const QUICK_ANALYSIS_REFINE_MIN_LOSS = 4
 const QUICK_ANALYSIS_WIDE_ROOT_NOISE = 0
@@ -1425,7 +1425,8 @@ export async function analyzeGameQuick(
         winrateLoss,
         scoreLoss
       },
-      judgement: judgement(winrateLoss, scoreLoss)
+      judgement: judgement(winrateLoss, scoreLoss),
+      analysisQuality: buildAnalysisQuality(moveNumber, currentMove, beforeTopMoves, forcedActual)
     }
     analysis.moveClassification = classifyMoveAnalysis(analysis)
     analysis.pvConfidence = buildPvConfidenceReport(analysis)

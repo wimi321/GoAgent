@@ -78,7 +78,8 @@ test('Board overlays display candidate values from the side-to-move perspective'
   assert.doesNotMatch(galleryMock, /winrate: 0\.56/)
   assert.match(geometry, /function playerWinrateValue/)
   assert.match(geometry, /function playerScoreValue/)
-  assert.match(geometry, /const displayColor = isBeforePosition \? currentColor : oppositeColor\(currentColor\)/)
+  assert.match(geometry, /export function candidatePerspectiveColor/)
+  assert.match(geometry, /const displayColor = candidatePerspectiveColor\(analysis\)/)
   assert.match(geometry, /const winrateValue = playerWinrateValue\(getCandidateWinrate\(candidate\), displayColor\)/)
   assert.match(geometry, /const scoreValue = playerScoreValue\(getCandidateScore\(candidate\), displayColor\)/)
 
@@ -142,7 +143,7 @@ test('Quick winrate graph uses KaTrain-style fast visits and refines suspected m
   const katago = read('src/main/services/katago.ts')
   assert.match(katago, /QUICK_ANALYSIS_FAST_VISITS = 24/)
   assert.match(katago, /QUICK_ANALYSIS_MAX_SWEEP_VISITS = 80/)
-  assert.match(katago, /QUICK_ANALYSIS_REFINE_VISITS = 120/)
+  assert.match(katago, /QUICK_ANALYSIS_REFINE_VISITS = 180/)
   assert.match(katago, /QUICK_ANALYSIS_WIDE_ROOT_NOISE = 0/)
   assert.match(katago, /Math\.min\(QUICK_ANALYSIS_MAX_SWEEP_VISITS, Math\.round\(maxVisits\)\)/)
   assert.match(katago, /overrideSettings/)
@@ -167,7 +168,7 @@ test('Quick winrate graph uses KaTrain-style fast visits and refines suspected m
 
   const app = read('src/renderer/src/App.tsx')
   assert.match(app, /QUICK_GRAPH_FAST_VISITS = 24/)
-  assert.match(app, /QUICK_GRAPH_REFINE_VISITS = 120/)
+  assert.match(app, /QUICK_GRAPH_REFINE_VISITS = 180/)
   assert.match(app, /quickGraphFastVisits/)
   assert.match(app, /refineVisits/)
   assert.doesNotMatch(app, /maxVisits: 12,/)
@@ -180,7 +181,7 @@ test('Quick winrate graph uses KaTrain-style fast visits and refines suspected m
 test('Workbench reuses cache for automatic analysis but manual analysis refreshes the current move', () => {
   const app = read('src/renderer/src/App.tsx')
   assert.match(app, /ANALYSIS_CACHE_PREFIX/)
-  assert.match(app, /ANALYSIS_CACHE_SCHEMA_VERSION = 'v5-komi-and-stable-quick-winrate'/)
+  assert.match(app, /ANALYSIS_CACHE_SCHEMA_VERSION = 'v6-evidence-aware-issues'/)
   assert.match(app, /goagent\.analysisCache\.\$\{ANALYSIS_CACHE_SCHEMA_VERSION\}\./)
   assert.match(app, /function analysisQuality/)
   assert.match(app, /function preferAnalysis/)

@@ -395,6 +395,19 @@
   font-weight: 620;
 }
 
+.ks-candidate-perspective--W .ks-candidate-rank-badge {
+  fill: #f8f3e9;
+  stroke: rgba(41, 35, 28, 0.76);
+}
+
+.ks-candidate-perspective--W .ks-candidate-rank {
+  fill: #27231e;
+}
+
+.ks-candidate-perspective--B .ks-candidate-rank-badge {
+  fill: rgba(20, 22, 23, 0.94);
+}
+
 .ks-candidate-winrate {
   fill: var(--ks-candidate-ink, #071314);
   font-size: 12.8px;

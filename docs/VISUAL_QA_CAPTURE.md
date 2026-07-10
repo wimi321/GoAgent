@@ -4,27 +4,31 @@ Sprint 7 adds an internal UI Gallery for repeatable visual review. It uses mock 
 
 ## Open the Gallery
 
-Start the app in development mode:
+Build and open the gallery with the self-contained capture command:
 
 ```bash
-pnpm dev
+pnpm capture:ui-gallery
 ```
 
-Open either route:
+The command builds the current renderer, serves it on an available localhost port, captures the required states with Playwright, and shuts the server down. It does not require KataGo, LLM credentials, or a separately running dev server.
 
-```text
-http://localhost:5173/#/ui-gallery
-http://localhost:5173/?ui-gallery=1
+To inspect the gallery interactively instead, start the Vite renderer:
+
+```bash
+pnpm dev:vite
 ```
+
+Then open `http://localhost:5173/#/ui-gallery`.
 
 ## Capture Screenshots
 
-If Playwright is available locally, run:
+For a faster repeat capture after an unchanged build, run:
 
 ```bash
-GOAGENT_UI_GALLERY_URL="http://localhost:5173/#/ui-gallery" \
-node scripts/capture_ui_gallery.mjs
+pnpm capture:ui-gallery -- --skip-build
 ```
+
+Set `GOAGENT_BROWSER_PATH` when Chrome/Edge/Chromium is installed in a non-standard location. Set `GOAGENT_UI_GALLERY_URL` only when capturing an already-running renderer server.
 
 The script writes screenshots to:
 

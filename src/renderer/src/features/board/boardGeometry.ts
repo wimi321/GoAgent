@@ -184,6 +184,19 @@ export function oppositeColor(color: StoneColor): StoneColor {
   return color === 'B' ? 'W' : 'B'
 }
 
+export function candidatePerspectiveColor(analysis: KataGoMoveAnalysis | null | undefined): StoneColor {
+  const trialNextColor = valueOf(valueOf(analysis, 'trialContext'), 'nextColor')
+  if (trialNextColor === 'B' || trialNextColor === 'W') {
+    return trialNextColor
+  }
+  const beforeMoves = Array.isArray(valueOf(valueOf(analysis, 'before'), 'topMoves'))
+    ? valueOf(valueOf(analysis, 'before'), 'topMoves') as unknown[]
+    : []
+  const trialActive = valueOf(valueOf(analysis, 'trialContext'), 'active') === true
+  const currentColor = analysis?.currentMove ? moveToColor(analysis.currentMove) : 'B'
+  return beforeMoves.length > 0 && !trialActive ? currentColor : oppositeColor(currentColor)
+}
+
 export function candidateToPoint(candidate: KataGoCandidate | unknown, boardSize = 19): BoardPoint | null {
   return parseBoardPoint(candidate, boardSize)
 }
@@ -341,8 +354,7 @@ export function renderCandidates(analysis: KataGoMoveAnalysis | null | undefined
   const trialActive = valueOf(valueOf(analysis, 'trialContext'), 'active') === true
   const isBeforePosition = beforeMoves.length > 0 && !trialActive
   const topMoves = isBeforePosition ? beforeMoves : afterMoves
-  const currentColor = analysis.currentMove ? moveToColor(analysis.currentMove) : 'B'
-  const displayColor = isBeforePosition ? currentColor : oppositeColor(currentColor)
+  const displayColor = candidatePerspectiveColor(analysis)
 
   return topMoves.slice(0, 6).flatMap((candidate, index) => {
     const point = candidateToPoint(candidate, boardSize)
