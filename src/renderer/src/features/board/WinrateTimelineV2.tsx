@@ -2,8 +2,9 @@ import type { KeyboardEvent, PointerEvent as ReactPointerEvent, ReactElement, Re
 import { useMemo, useRef, useState } from 'react'
 import type { KataGoMoveAnalysis } from '@main/lib/types'
 import type { UiTranslator } from '../../i18n'
-import { getAnalysisMoveNumber, getAnalysisWinrate, classifyMoveLoss, normalizeWinrate } from './boardGeometry'
+import { getAnalysisMoveNumber, getAnalysisWinrate, normalizeWinrate } from './boardGeometry'
 import { moveFromTimelineSvgX } from './timelineInteraction'
+import { analysisDisplaySeverity } from '../timeline/analysisTrust'
 import './board-v2.css'
 
 type Severity = 'blunder' | 'mistake' | 'inaccuracy' | 'turning-point'
@@ -72,12 +73,13 @@ function buildPoints(evaluations: KataGoMoveAnalysis[], totalMoves: number): Tim
       return []
     }
     const loss = extractLoss(item)
+    const severity = analysisDisplaySeverity(item)
     return [{
       moveNumber,
       winrate,
       scoreLead: extractScoreLead(item),
       loss,
-      severity: loss === undefined ? undefined : classifyMoveLoss(loss) as Severity
+      severity: severity === 'quiet' ? undefined : severity as Severity
     }]
   }).filter((point) => point.moveNumber >= 0 && point.moveNumber <= totalMoves)
     .sort((a, b) => a.moveNumber - b.moveNumber)
