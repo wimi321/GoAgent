@@ -10,29 +10,44 @@ export const SUPPORTED_UI_LOCALES: Array<{ value: UiLocale; label: string; nativ
   { value: 'vi-VN', label: 'Tiếng Việt', nativeName: 'Tiếng Việt' }
 ]
 
+function matchUiLocale(value: unknown): UiLocale | null {
+  if (typeof value !== 'string') return null
+  const locale = value.trim().replaceAll('_', '-').toLowerCase()
+  if (!locale) return null
+
+  const primaryLanguage = locale.split(/[-.]/, 1)[0]
+  if (primaryLanguage === 'zh' || primaryLanguage === 'yue') {
+    const traditional =
+      primaryLanguage === 'yue' ||
+      locale.includes('-hant') ||
+      /-(tw|hk|mo)(?:-|\.|$)/.test(locale)
+    return traditional ? 'zh-TW' : 'zh-CN'
+  }
+  if (primaryLanguage === 'en') return 'en-US'
+  if (primaryLanguage === 'ja') return 'ja-JP'
+  if (primaryLanguage === 'ko') return 'ko-KR'
+  if (primaryLanguage === 'th') return 'th-TH'
+  if (primaryLanguage === 'vi') return 'vi-VN'
+  return null
+}
+
 export function normalizeUiLocale(value: unknown): UiLocale {
-  if (
-    value === 'zh-CN' ||
-    value === 'zh-TW' ||
-    value === 'en-US' ||
-    value === 'ja-JP' ||
-    value === 'ko-KR' ||
-    value === 'th-TH' ||
-    value === 'vi-VN'
-  ) {
-    return value
+  return matchUiLocale(value) ?? 'zh-CN'
+}
+
+/** Selects the first supported locale from the operating system's preference order. */
+export function detectSystemUiLocale(preferredLanguages?: readonly string[]): UiLocale {
+  const systemLanguages = preferredLanguages
+    ? [...preferredLanguages]
+    : typeof navigator === 'undefined'
+      ? []
+      : [...(navigator.languages ?? []), navigator.language]
+
+  for (const language of systemLanguages) {
+    const locale = matchUiLocale(language)
+    if (locale) return locale
   }
-  if (typeof value === 'string') {
-    const locale = value.toLowerCase()
-    if (locale === 'zh-hk' || locale === 'zh-mo' || locale === 'zh-hant') return 'zh-TW'
-    if (locale === 'zh' || locale === 'zh-cn' || locale === 'zh-sg' || locale === 'zh-hans') return 'zh-CN'
-    if (locale.startsWith('en')) return 'en-US'
-    if (locale.startsWith('ja')) return 'ja-JP'
-    if (locale.startsWith('ko')) return 'ko-KR'
-    if (locale.startsWith('th')) return 'th-TH'
-    if (locale.startsWith('vi')) return 'vi-VN'
-  }
-  return 'zh-CN'
+  return 'en-US'
 }
 
 export function localeNativeName(localeInput: unknown): string {

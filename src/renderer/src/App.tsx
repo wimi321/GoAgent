@@ -883,6 +883,10 @@ export function App(): ReactElement {
   useEffect(() => {
     document.title = BRAND_DISPLAY_NAME
   }, [])
+  useEffect(() => {
+    if (!dashboardLoaded || dashboard.settings.onboardingVersion < FIRST_RUN_ONBOARDING_VERSION) return
+    document.documentElement.lang = normalizeUiLocale(dashboard.settings.reviewLanguage)
+  }, [dashboardLoaded, dashboard.settings.onboardingVersion, dashboard.settings.reviewLanguage])
   const evaluationCacheRef = useRef<Record<string, EvaluationByMove>>({})
   const evaluationPersistTimersRef = useRef<Record<string, number>>({})
   const boardFlashNonceRef = useRef(0)

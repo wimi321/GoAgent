@@ -31,8 +31,11 @@ function defaultReviewLanguage(): AppSettings['reviewLanguage'] {
   } catch {
     // Electron may not expose app locale before ready on every platform.
   }
-  const locale = (systemLocale || Intl.DateTimeFormat().resolvedOptions().locale).toLowerCase()
-  if (locale === 'zh-hk' || locale === 'zh-mo' || locale.includes('hant')) return 'zh-TW'
+  const locale = (systemLocale || Intl.DateTimeFormat().resolvedOptions().locale).replaceAll('_', '-').toLowerCase()
+  const traditionalChinese =
+    (locale.startsWith('zh') || locale.startsWith('yue')) &&
+    (locale.startsWith('yue') || locale.includes('hant') || /-(tw|hk|mo)(?:-|\.|$)/.test(locale))
+  if (traditionalChinese) return 'zh-TW'
   if (locale.startsWith('zh')) return 'zh-CN'
   if (locale.startsWith('ja')) return 'ja-JP'
   if (locale.startsWith('ko')) return 'ko-KR'

@@ -7,7 +7,7 @@ import type {
   LlmSettingsTestResult
 } from '@main/lib/types'
 import logoUrl from '../../../../../assets/logo.png'
-import { normalizeUiLocale, SUPPORTED_UI_LOCALES, type UiLocale } from '../../i18n'
+import { detectSystemUiLocale, normalizeUiLocale, SUPPORTED_UI_LOCALES, type UiLocale } from '../../i18n'
 
 export const FIRST_RUN_ONBOARDING_VERSION = 1
 
@@ -140,7 +140,7 @@ export function FirstRunOnboarding({
   onPauseInstall: () => void
 }): ReactElement {
   const [step, setStep] = useState<'ai' | 'engine'>('ai')
-  const [locale, setLocale] = useState<UiLocale>(() => normalizeUiLocale(navigator.language || dashboard.settings.reviewLanguage))
+  const [locale, setLocale] = useState<UiLocale>(() => detectSystemUiLocale())
   const [baseUrl, setBaseUrl] = useState(dashboard.settings.llmBaseUrl)
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState(dashboard.settings.llmModel)
@@ -153,6 +153,10 @@ export function FirstRunOnboarding({
   const [technicalError, setTechnicalError] = useState('')
   const [autoBenchmark, setAutoBenchmark] = useState(dashboard.settings.katagoAutoBenchmarkEnabled)
   const copy = COPY[locale]
+
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
 
   useEffect(() => {
     setAutoBenchmark(dashboard.settings.katagoAutoBenchmarkEnabled)
