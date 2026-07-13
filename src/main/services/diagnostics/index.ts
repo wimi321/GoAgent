@@ -5,7 +5,6 @@ import { appHome, getSettings, hasLlmApiKey } from '@main/lib/store'
 import { resolveKataGoRuntime } from '../katagoRuntime'
 import { ikatagoClientConfigured, shouldPreferIKataGoEngine } from '../ikatagoClientEngine'
 import { shouldPreferZhiziGtpEngine, zhiziGtpConfigured } from '../zhiziGtpEngine'
-import { probeOpenAICompatibleProvider } from '../llm/openaiCompatibleProvider'
 import { inspectKataGoAssets } from '../katago/katagoAssets'
 import { isLitePackagedRuntime } from '../release/packageRuntime'
 import type { DiagnosticCheck, DiagnosticsReport, DiagnosticsOverall } from './types'
@@ -229,26 +228,21 @@ async function checkLlmProxy(): Promise<DiagnosticCheck> {
   if (!configured) {
     return {
       id: 'llm-proxy',
-      title: 'Claude 兼容代理',
+      title: 'AI 老师',
       status: 'warn',
       required: false,
-      detail: '还没有配置 Claude 兼容代理。KataGo 基础分析可用，但老师讲解不可用。',
-      action: '在设置中填写 Base URL、API Key 和 Claude 模型名。'
+      detail: '还没有连接 AI 模型。KataGo 分析仍然可以正常使用。',
+      action: '在“设置 > AI 模型”中填写服务地址、访问密钥和模型。'
     }
   }
-  const result = await probeOpenAICompatibleProvider({
-    llmBaseUrl: settings.llmBaseUrl,
-    llmApiKey: settings.llmApiKey,
-    llmModel: settings.llmModel
-  })
+  const verified = settings.llmSetupStatus === 'verified'
   return {
     id: 'llm-proxy',
-    title: 'Claude 兼容代理',
-    status: result.ok ? 'pass' : 'warn',
+    title: 'AI 老师',
+    status: verified ? 'pass' : 'warn',
     required: false,
-    detail: result.message,
-    action: result.ok ? undefined : '请检查代理是否启动、API Key 是否正确、模型是否支持图片输入。',
-    technicalDetail: result.technicalDetail
+    detail: verified ? '文字、棋盘图片和 Agent 工具调用已通过验证。' : '配置已保存，但还没有完成能力验证。',
+    action: verified ? undefined : '打开“设置 > AI 模型”，运行连接验证。'
   }
 }
 

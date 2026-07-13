@@ -17,12 +17,13 @@ import type {
   ChatToolCall,
   ChatTurnResult,
   LlmProvider,
+  ProviderCapabilityCheck,
   ProviderProbeResult,
   ProviderSettings
 } from './provider'
 
 const tinyPng =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAeklEQVR42u3SMQ0AIAwAwcrBAQ7wLwEHTMxtsEFv+vmTi7Fm3rOza6Pz/GsQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQ8EELinI6hhXFUGQAAAAASUVORK5CYII='
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAACXBIWXMAAAABAAAAAQBPJcTWAAAAh0lEQVR4nO3YsQ3CQBAAQSzRBTW4PmqgPmqgjJfIyF/IGlu/E19wq8tuG2PcruyuF/hXAVoBWgFaAVoBWgFaAdp0wOP5PmKPn89rn5pf7wJnU4BWgFaAVoBWgFaAVoBWgFaAVoBWgFaAVoBWgLZewOz//mjrXeBsCtAK0ArQCtAK0ArQLh/wBab/CJDUGGJhAAAAAElFTkSuQmCC'
 
 function endpoint(settings: ProviderSettings): string {
   return `${settings.llmBaseUrl.replace(/\/$/, '')}/chat/completions`
@@ -651,42 +652,120 @@ export async function streamOpenAICompatibleToolTurn(
 
 export async function probeOpenAICompatibleProvider(settings: ProviderSettings): Promise<ProviderProbeResult> {
   if (!settings.llmBaseUrl.trim() || !settings.llmApiKey.trim() || !settings.llmModel.trim()) {
+    const missing = { ok: false, message: '尚未填写完整配置。' }
     return {
       ok: false,
-      message: 'Claude 兼容代理未配置。',
-      supportsImage: false
+      message: 'AI 模型尚未配置完整。',
+      supportsImage: false,
+      capabilities: { text: missing, vision: missing, tools: missing }
     }
   }
-  try {
-    const text = await postOpenAICompatibleChat(settings, [
+
+  const textCapability: ProviderCapabilityCheck = await (async () => {
+    try {
+      const text = await postOpenAICompatibleChat(settings, [
+        {
+          role: 'system',
+          content: '这是连接测试。请在最终答案中只输出 OK。'
+        },
+        {
+          role: 'user',
+          content: '回复 OK。'
+        }
+      ], 512)
+      return /^\s*OK[.!]?\s*$/i.test(text)
+        ? { ok: true, message: '文字回复正常。' }
+        : { ok: false, message: '模型返回了内容，但没有完成文字测试。', technicalDetail: text.slice(0, 180) }
+    } catch (error) {
+      return { ok: false, message: '文字连接失败。', technicalDetail: String(error) }
+    }
+  })()
+
+  const visionCapability: ProviderCapabilityCheck = await (async () => {
+    if (!textCapability.ok) {
+      return { ok: false, message: '文字连接未通过，暂未测试图片。' }
+    }
+    try {
+      const text = await postOpenAICompatibleChat(settings, [
       {
         role: 'system',
         content: [
           '你正在执行多模态连接测试。',
-          '必须在最终可见 content 中只输出 OK 两个字母。',
+          '观察图片中央色块的颜色。',
+          '如果中央色块是蓝色，只输出 BLUE；如果是红色，只输出 RED；如果是绿色，只输出 GREEN。',
           '不要调用工具，不要输出解释，不要只写隐藏推理。'
         ].join('\n')
       },
       {
         role: 'user',
         content: [
-          { type: 'text', text: '请读取这张测试图片，并在最终答案中只输出 OK。' },
+          { type: 'text', text: '请读取图片，并只输出中央色块对应的英文颜色词。' },
           { type: 'image_url', image_url: { url: tinyPng, detail: 'high' } }
         ]
       }
-    ], 2048)
-    return {
-      ok: /ok/i.test(text),
-      message: /ok/i.test(text) ? 'Claude 兼容代理连接成功，图片输入可用。' : `代理有返回，但未按预期回答: ${text}`,
-      supportsImage: /ok/i.test(text)
+      ], 2048)
+      return /^\s*BLUE[.!]?\s*$/i.test(text)
+        ? { ok: true, message: '棋盘图片输入正常。' }
+        : { ok: false, message: '模型收到了请求，但没有完成图片测试。', technicalDetail: text.slice(0, 180) }
+    } catch (error) {
+      return { ok: false, message: '图片输入失败。', technicalDetail: String(error) }
     }
-  } catch (error) {
-    return {
-      ok: false,
-      message: 'Claude 兼容代理测试失败。',
-      supportsImage: false,
-      technicalDetail: String(error)
+  })()
+
+  const toolsCapability: ProviderCapabilityCheck = await (async () => {
+    if (!textCapability.ok) {
+      return { ok: false, message: '文字连接未通过，暂未测试工具调用。' }
     }
+    try {
+      const result = await postOpenAICompatibleToolTurn(settings, [
+        {
+          role: 'system',
+          content: '你正在执行工具能力测试。必须调用提供的 readiness_check 工具，不要直接回答。'
+        },
+        {
+          role: 'user',
+          content: '请调用 readiness_check，并把 value 设为 goagent。'
+        }
+      ], [
+        {
+          type: 'function',
+          function: {
+            name: 'readiness_check',
+            description: '确认模型可以发起工具调用。',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false
+            }
+          }
+        }
+      ], 512)
+      const called = result.toolCalls.some((call) => {
+        if (call.function.name !== 'readiness_check') return false
+        try {
+          return JSON.parse(call.function.arguments).value === 'goagent'
+        } catch {
+          return false
+        }
+      })
+      return called
+        ? { ok: true, message: 'Agent 工具调用正常。' }
+        : { ok: false, message: '模型可以回复，但没有按要求调用工具。', technicalDetail: result.text.slice(0, 180) }
+    } catch (error) {
+      return { ok: false, message: 'Agent 工具调用失败。', technicalDetail: String(error) }
+    }
+  })()
+
+  const capabilities = { text: textCapability, vision: visionCapability, tools: toolsCapability }
+  const ok = Object.values(capabilities).every((item) => item.ok)
+  const failed = Object.values(capabilities).filter((item) => !item.ok)
+  return {
+    ok,
+    message: ok ? 'AI 老师已就绪：文字、棋盘图片和工具调用均可用。' : `AI 老师还需要处理 ${failed.length} 项能力。`,
+    supportsImage: visionCapability.ok,
+    technicalDetail: failed.map((item) => item.technicalDetail).filter(Boolean).join('\n') || undefined,
+    capabilities
   }
 }
 

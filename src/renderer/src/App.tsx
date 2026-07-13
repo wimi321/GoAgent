@@ -11,6 +11,7 @@ import type {
   KataGoAssetInstallProgress,
   KataGoAssetStatus,
   KataGoBenchmarkResult,
+  KataGoBenchmarkTaskStatus,
   KataGoAnalysisSpeedMode,
   KataGoEngineMode,
   KataGoMoveAnalysis,
@@ -57,6 +58,7 @@ import {
   type TrialBranch
 } from './features/board/trialBranch'
 import { DiagnosticsGate } from './features/diagnostics/DiagnosticsGate'
+import { FIRST_RUN_ONBOARDING_VERSION, FirstRunOnboarding } from './features/onboarding/FirstRunOnboarding'
 import { UiGallery } from './features/gallery/UiGallery'
 import { StudentBindingDialog } from './features/student/StudentBindingDialog'
 import { StudentRailCard } from './features/student/StudentRailCard'
@@ -92,6 +94,9 @@ const emptyDashboard: DashboardData = {
     katagoBenchmarkThreads: 0,
     katagoBenchmarkVisitsPerSecond: 0,
     katagoBenchmarkUpdatedAt: '',
+    katagoBenchmarkEngineFingerprint: '',
+    katagoBenchmarkLastCompletedAt: '',
+    katagoAutoBenchmarkEnabled: true,
     katagoEngineMode: 'auto',
     katagoAnalysisSpeedMode: 'auto',
     localAnalysisDefaultApplied: true,
@@ -113,6 +118,9 @@ const emptyDashboard: DashboardData = {
     llmBaseUrl: 'https://api.openai.com/v1',
     llmApiKey: '',
     llmModel: 'gpt-5-mini',
+    onboardingVersion: 0,
+    llmSetupStatus: 'unconfigured',
+    llmLastVerifiedAt: '',
     reviewLanguage: 'zh-CN',
     defaultPlayerName: '',
     ttsEnabled: true,
@@ -811,6 +819,7 @@ export function App(): ReactElement {
   }
 
   const [dashboard, setDashboard] = useState<DashboardData>(emptyDashboard)
+  const [dashboardLoaded, setDashboardLoaded] = useState(false)
   const [selectedId, setSelectedId] = useState('')
   const [record, setRecord] = useState<GameRecord | null>(null)
   const [moveNumber, setMoveNumber] = useState(0)
@@ -844,6 +853,7 @@ export function App(): ReactElement {
   const [libraryCollapsed, setLibraryCollapsed] = useState(false)
   const [llmTestMessage, setLlmTestMessage] = useState('')
   const [katagoBenchmark, setKataGoBenchmark] = useState<KataGoBenchmarkResult | null>(null)
+  const [katagoBenchmarkStatus, setKataGoBenchmarkStatus] = useState<KataGoBenchmarkTaskStatus | 'idle'>('idle')
   const [katagoBenchmarkMessage, setKataGoBenchmarkMessage] = useState('')
   const [katagoInstallMessage, setKataGoInstallMessage] = useState('')
   const [katagoInstallProgress, setKataGoInstallProgress] = useState<KataGoAssetInstallProgress | null>(null)
@@ -866,6 +876,9 @@ export function App(): ReactElement {
   const activeTeacherRunRef = useRef<ActiveTeacherRunUi | null>(null)
   const selectedGameIdRef = useRef('')
   const selectedEvaluationCacheKeyRef = useRef('')
+  const katagoBenchmarkRunIdRef = useRef('')
+  const autoBenchmarkAttemptRef = useRef('')
+  const benchmarkManualCancelRef = useRef(false)
 
   useEffect(() => {
     document.title = BRAND_DISPLAY_NAME
@@ -935,6 +948,62 @@ export function App(): ReactElement {
       setKataGoInstallMessage(progress.message)
     })
   }, [])
+
+  useEffect(() => {
+    return window.goagent.onKataGoBenchmarkProgress((progress) => {
+      if (katagoBenchmarkRunIdRef.current && progress.runId !== katagoBenchmarkRunIdRef.current) return
+      katagoBenchmarkRunIdRef.current = progress.status === 'running' ? progress.runId : ''
+      setKataGoBenchmarkStatus(progress.status)
+      const localizedMessage = progress.status === 'running'
+        ? t('benchmarkStartedMessage')
+        : progress.status === 'completed'
+          ? t('benchmarkCompletedMessage', { threads: progress.result?.recommendedThreads ?? dashboard.settings.katagoBenchmarkThreads ?? 1 })
+          : progress.status === 'cancelled'
+            ? t('benchmarkCancelledMessage')
+            : progress.status === 'timed-out'
+              ? t('benchmarkTimedOutMessage')
+              : progress.status === 'failed'
+                ? t('benchmarkFailedMessage')
+                : progress.message
+      setKataGoBenchmarkMessage(localizedMessage)
+      if (progress.status === 'cancelled') {
+        if (!benchmarkManualCancelRef.current) autoBenchmarkAttemptRef.current = ''
+        benchmarkManualCancelRef.current = false
+      }
+      if (progress.result) setKataGoBenchmark(progress.result)
+      if (progress.status === 'completed') {
+        void window.goagent.getDashboard().then(setDashboard).catch(() => undefined)
+        void refreshKataGoAssets()
+      }
+    })
+  }, [dashboard.settings.katagoBenchmarkThreads, t])
+
+  useEffect(() => {
+    if (!dashboardLoaded || dashboard.settings.onboardingVersion < FIRST_RUN_ONBOARDING_VERSION) return
+    if (!dashboard.settings.katagoAutoBenchmarkEnabled || !(katagoAssets?.ready || dashboard.systemProfile.katagoReady)) return
+    if (busy || graphBusy || territoryBusy || liveAnalysis.running || katagoBenchmarkStatus === 'running') return
+    const attemptKey = `${dashboard.settings.katagoModelPreset}:${katagoAssets?.modelPath ?? dashboard.systemProfile.katagoModel}`
+    if (autoBenchmarkAttemptRef.current === attemptKey) return
+    autoBenchmarkAttemptRef.current = attemptKey
+    const timer = window.setTimeout(() => {
+      void startKataGoBenchmarkTask(true)
+    }, 700)
+    return () => window.clearTimeout(timer)
+  }, [
+    dashboardLoaded,
+    dashboard.settings.onboardingVersion,
+    dashboard.settings.katagoAutoBenchmarkEnabled,
+    dashboard.settings.katagoModelPreset,
+    dashboard.systemProfile.katagoReady,
+    dashboard.systemProfile.katagoModel,
+    katagoAssets?.ready,
+    katagoAssets?.modelPath,
+    busy,
+    graphBusy,
+    territoryBusy,
+    liveAnalysis.running,
+    katagoBenchmarkStatus
+  ])
 
   useEffect(() => {
     return () => {
@@ -1240,6 +1309,8 @@ export function App(): ReactElement {
       }
     } catch (cause) {
       setError(`初始化失败: ${String(cause)}`)
+    } finally {
+      setDashboardLoaded(true)
     }
   }
 
@@ -1571,7 +1642,8 @@ export function App(): ReactElement {
         llmApiKey: String(formData.get('llmApiKey') ?? ''),
         llmModel: String(formData.get('llmModel') ?? '')
       })
-      setLlmTestMessage(result.message)
+      setLlmTestMessage(result.ok ? `${t('settingsAiTitle')} · ${t('ready')}` : t('llmSetupRequired'))
+      setDashboard(await window.goagent.getDashboard())
     } catch (cause) {
       setLlmTestMessage(uiError(cause, 'llm-test'))
     } finally {
@@ -1579,33 +1651,41 @@ export function App(): ReactElement {
     }
   }
 
-  async function runKataGoBenchmark(): Promise<void> {
-    setBusy('katago-benchmark')
-    setKataGoBenchmarkMessage(t('benchmarkStarting'))
-    setError('')
+  async function startKataGoBenchmarkTask(automatic = false): Promise<void> {
+    if (katagoBenchmarkStatus === 'running') return
+    benchmarkManualCancelRef.current = false
+    setKataGoBenchmarkMessage(automatic ? t('benchmarkStartedMessage') : t('benchmarkStarting'))
     try {
-      if (typeof window.goagent.benchmarkKataGo !== 'function') {
-        throw new Error('测速服务尚未加载，请重启应用后再试。')
+      const started = await window.goagent.startKataGoBenchmark({ automatic, onlyIfNeeded: automatic })
+      if (started.status === 'skipped') {
+        setKataGoBenchmarkStatus('idle')
+        setKataGoBenchmarkMessage(t('benchmarkAlreadyReadyMessage'))
+        return
       }
-      const result = await window.goagent.benchmarkKataGo()
-      setKataGoBenchmark(result)
-      setKataGoBenchmarkMessage(`已优化：推荐 ${result.recommendedThreads} 线程，${formatSearchSpeed(result.visitsPerSecond)}。`)
-      setDashboard(await window.goagent.getDashboard())
-      void refreshKataGoAssets()
-      if (selectedGame && record) {
-        pauseLiveAnalysis('测速完成，准备使用新配置')
-        setAnalysis(null)
-        setEvaluations({})
-        void warmupEvaluationGraph(selectedGame.id, moveNumber)
-        if (!userPausedLiveAnalysisRef.current) {
-          void startLiveAnalysis()
-        }
-      }
+      katagoBenchmarkRunIdRef.current = started.runId
+      setKataGoBenchmarkStatus('running')
     } catch (cause) {
-      setKataGoBenchmarkMessage(uiError(cause, 'katago-benchmark'))
-    } finally {
-      setBusy('')
+      setKataGoBenchmarkStatus('failed')
+      setKataGoBenchmarkMessage(t('benchmarkFailedMessage'))
     }
+  }
+
+  async function cancelKataGoBenchmarkTask(): Promise<void> {
+    benchmarkManualCancelRef.current = true
+    const result = await window.goagent.cancelKataGoBenchmark({ runId: katagoBenchmarkRunIdRef.current || undefined })
+    if (result.cancelled) {
+      setKataGoBenchmarkStatus('cancelled')
+      setKataGoBenchmarkMessage(t('benchmarkCancelledMessage'))
+    } else {
+      benchmarkManualCancelRef.current = false
+    }
+  }
+
+  async function setAutoBenchmarkEnabled(enabled: boolean): Promise<void> {
+    if (!enabled && katagoBenchmarkStatus === 'running') await cancelKataGoBenchmarkTask()
+    const next = await window.goagent.updateSettings({ katagoAutoBenchmarkEnabled: enabled })
+    setDashboard(next)
+    if (enabled) autoBenchmarkAttemptRef.current = ''
   }
 
   async function installOfficialKataGoModel(presetId: KataGoModelPresetId): Promise<void> {
@@ -1629,11 +1709,30 @@ export function App(): ReactElement {
         }
       }
     } catch (cause) {
+      if (/KataGoAssetInstallPausedError|资源下载已暂停|資源下載已暫停/i.test(String(cause))) {
+        const message = '下载已暂停。再次点击即可从已下载的位置继续。'
+        setKataGoInstallMessage(message)
+        setKataGoInstallProgress((current) => ({
+          stage: 'paused',
+          message,
+          receivedBytes: current?.receivedBytes,
+          totalBytes: current?.totalBytes,
+          percent: current?.percent
+        }))
+        return
+      }
       const message = uiError(cause, 'katago-install')
       setKataGoInstallMessage(message)
       setKataGoInstallProgress({ stage: 'error', message })
     } finally {
       setBusy('')
+    }
+  }
+
+  async function pauseKataGoAssetInstall(): Promise<void> {
+    const result = await window.goagent.cancelKataGoAssetInstall()
+    if (result.cancelled) {
+      setKataGoInstallMessage('正在暂停，已下载的内容会保留。')
     }
   }
 
@@ -1763,6 +1862,7 @@ export function App(): ReactElement {
       if (!isActiveTeacherRun(runId) || /老师任务已停止|KataGo 分析已取消|AbortError|已取消/i.test(String(cause))) {
         throw new Error('老师任务已停止')
       }
+      void window.goagent.getDashboard().then(setDashboard).catch(() => undefined)
       updateMessage(assistantMessageId, (message) => ({
         ...message,
         status: 'error',
@@ -2201,7 +2301,7 @@ export function App(): ReactElement {
         status: `已复用缓存 ${formatVisits(cachedVisits)}`,
         visits: cachedVisits,
         bestVisits: cachedBestVisits,
-        visitsPerSecond: dashboard.settings.katagoBenchmarkVisitsPerSecond,
+        visitsPerSecond: 0,
         targetMoveNumber: targetMove,
         round: 0
       })
@@ -2636,7 +2736,16 @@ export function App(): ReactElement {
     }
   }
 
+  function ensureAiTeacherReady(): boolean {
+    const ready = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
+    if (ready) return true
+    setLlmTestMessage(t('llmSetupRequired'))
+    setSettingsOpen(true)
+    return false
+  }
+
   async function runMoveAnalysisAt(targetMoveNumber: number): Promise<void> {
+    if (!ensureAiTeacherReady()) return
     if (!record || !selectedGame || busy !== '') {
       return
     }
@@ -2721,6 +2830,7 @@ export function App(): ReactElement {
   }
 
   async function runTeacherQuickTask(text: string): Promise<void> {
+    if (!ensureAiTeacherReady()) return
     if (busy !== '') {
       return
     }
@@ -2803,6 +2913,7 @@ export function App(): ReactElement {
     if (!text || busy !== '') {
       return
     }
+    if (!ensureAiTeacherReady()) return
     setPrompt('')
     appendMessage({ role: 'student', content: text })
     const assistantMessageId = appendMessage({ role: 'teacher', content: '', status: 'running', toolLogs: [] })
@@ -2910,6 +3021,7 @@ export function App(): ReactElement {
     await submitTeacherPromptText(prompt)
   }
 
+  const llmReady = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
   const statusItems: StatusPill[] = [
     {
       label: localizeKataGoStatus(
@@ -2921,15 +3033,29 @@ export function App(): ReactElement {
       tone: dashboard.systemProfile.katagoReady ? 'good' : 'warn'
     },
     {
-      label: dashboard.systemProfile.hasLlmApiKey ? t('llmReady') : t('llmMissing'),
-      tone: dashboard.systemProfile.hasLlmApiKey ? 'good' : 'warn'
+      label: llmReady ? t('llmReady') : t('llmMissing'),
+      tone: llmReady ? 'good' : 'warn'
     }
   ]
-  const liveAnalysisDisabled = busy === 'katago-install' || busy === 'katago-benchmark'
+  const liveAnalysisDisabled = busy === 'katago-install'
   const timelineFinalRecordScore = record && moveNumber === record.moves.length ? gameResultLeadForUi(record.game, t) : null
+  const onboarding = dashboardLoaded && dashboard.settings.onboardingVersion < FIRST_RUN_ONBOARDING_VERSION
+    ? (
+        <FirstRunOnboarding
+          dashboard={dashboard}
+          katagoAssets={katagoAssets}
+          installBusy={busy === 'katago-install'}
+          installProgress={katagoInstallProgress}
+          installMessage={katagoInstallMessage}
+          onDashboardUpdated={setDashboard}
+          onInstallModel={() => void installOfficialKataGoModel(dashboard.settings.katagoModelPreset)}
+          onPauseInstall={() => void pauseKataGoAssetInstall()}
+        />
+      )
+    : undefined
 
   return (
-    <DiagnosticsGate>
+    <DiagnosticsGate ready={dashboardLoaded} onboarding={onboarding}>
       <div className="desktop-shell">
         <DesktopTitleBar statusItems={statusItems} onCommand={runDesktopCommand} t={t} />
         <div className={`studio ${libraryCollapsed ? 'studio--collapsed' : ''}`}>
@@ -3083,6 +3209,7 @@ export function App(): ReactElement {
             prompt={prompt}
             busy={busy}
             dashboard={dashboard}
+            llmReady={llmReady}
             t={t}
             error={error}
             teacherSessions={teacherSessions}
@@ -3103,6 +3230,10 @@ export function App(): ReactElement {
             onNewTeacherSession={() => void startNewTeacherSession()}
             onRestoreTeacherSession={(sessionId) => void restoreTeacherSessionById(sessionId)}
             onDeleteTeacherSession={(sessionId) => void deleteTeacherSessionById(sessionId)}
+            onConnectLlm={() => {
+              setLlmTestMessage(t('llmSetupRequired'))
+              setSettingsOpen(true)
+            }}
           />
         </aside>
       </div>
@@ -3110,7 +3241,7 @@ export function App(): ReactElement {
           graphBusy={graphBusy}
           graphProgress={graphProgress}
           katagoReady={katagoAssets?.ready || dashboard.systemProfile.katagoReady}
-          llmReady={dashboard.systemProfile.hasLlmApiKey}
+          llmReady={llmReady}
           busy={busy}
           t={t}
         />
@@ -3130,6 +3261,7 @@ export function App(): ReactElement {
           busy={busy}
           llmTestMessage={llmTestMessage}
           katagoBenchmark={katagoBenchmark}
+          katagoBenchmarkStatus={katagoBenchmarkStatus}
           katagoBenchmarkMessage={katagoBenchmarkMessage}
           katagoInstallMessage={katagoInstallMessage}
           katagoInstallProgress={katagoInstallProgress}
@@ -3137,8 +3269,11 @@ export function App(): ReactElement {
           onClose={() => setSettingsOpen(false)}
           onSave={(form) => void saveSettings(form)}
           onTest={(form) => void testLlmSettings(form)}
-          onBenchmark={() => void runKataGoBenchmark()}
+          onBenchmark={() => void startKataGoBenchmarkTask(false)}
+          onCancelBenchmark={() => void cancelKataGoBenchmarkTask()}
+          onAutoBenchmarkChange={(enabled) => void setAutoBenchmarkEnabled(enabled)}
           onInstallOfficialModel={(presetId) => void installOfficialKataGoModel(presetId)}
+          onPauseKataGoInstall={() => void pauseKataGoAssetInstall()}
           onRefreshKataGoAssets={() => void refreshKataGoAssets()}
           onDashboardUpdated={setDashboard}
         />
@@ -3346,8 +3481,8 @@ function DesktopStatusBar({
   return (
     <footer className="desktop-statusbar">
       <span>{graphBusy ? t('winrateAnalyzing', { progress: graphProgress || t('timelineLoading') }) : t('winrateReady')}</span>
-      <span data-ready={katagoReady}>{t('katagoEngine')}</span>
-      <span data-ready={llmReady}>{t('visionLlm')}</span>
+      <span data-ready={katagoReady}>{katagoReady ? t('katagoEngine') : t('katagoMissing')}</span>
+      <span data-ready={llmReady}>{llmReady ? t('llmReady') : t('llmMissing')}</span>
       <em>{busy ? t('appStatusTask', { busy }) : t('appStatusReady')}</em>
     </footer>
   )
@@ -3438,6 +3573,7 @@ function DesktopPreferencesModal({
   busy,
   llmTestMessage,
   katagoBenchmark,
+  katagoBenchmarkStatus,
   katagoBenchmarkMessage,
   katagoInstallMessage,
   katagoInstallProgress,
@@ -3445,7 +3581,10 @@ function DesktopPreferencesModal({
   onSave,
   onTest,
   onBenchmark,
+  onCancelBenchmark,
+  onAutoBenchmarkChange,
   onInstallOfficialModel,
+  onPauseKataGoInstall,
   onRefreshKataGoAssets,
   onDashboardUpdated,
   t
@@ -3456,6 +3595,7 @@ function DesktopPreferencesModal({
   busy: string
   llmTestMessage: string
   katagoBenchmark: KataGoBenchmarkResult | null
+  katagoBenchmarkStatus: KataGoBenchmarkTaskStatus | 'idle'
   katagoBenchmarkMessage: string
   katagoInstallMessage: string
   katagoInstallProgress: KataGoAssetInstallProgress | null
@@ -3463,7 +3603,10 @@ function DesktopPreferencesModal({
   onSave: (form: HTMLFormElement) => void
   onTest: (form: HTMLFormElement) => void
   onBenchmark: () => void
+  onCancelBenchmark: () => void
+  onAutoBenchmarkChange: (enabled: boolean) => void
   onInstallOfficialModel: (presetId: KataGoModelPresetId) => void
+  onPauseKataGoInstall: () => void
   onRefreshKataGoAssets: () => void
   onDashboardUpdated: (dashboard: DashboardData) => void
   t: UiTranslator
@@ -3472,7 +3615,7 @@ function DesktopPreferencesModal({
     return null
   }
   const katagoReady = katagoAssets?.ready || dashboard.systemProfile.katagoReady
-  const llmReady = dashboard.systemProfile.hasLlmApiKey
+  const llmReady = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
   return (
     <div className="desktop-preferences" role="dialog" aria-modal="true" aria-label={t('settingsTitle')} onMouseDown={onClose}>
       <section className="desktop-preferences__window" onMouseDown={(event) => event.stopPropagation()}>
@@ -3497,13 +3640,17 @@ function DesktopPreferencesModal({
           busy={busy}
           llmTestMessage={llmTestMessage}
           katagoBenchmark={katagoBenchmark}
+          katagoBenchmarkStatus={katagoBenchmarkStatus}
           katagoBenchmarkMessage={katagoBenchmarkMessage}
           katagoInstallMessage={katagoInstallMessage}
           katagoInstallProgress={katagoInstallProgress}
           onSave={onSave}
           onTest={onTest}
           onBenchmark={onBenchmark}
+          onCancelBenchmark={onCancelBenchmark}
+          onAutoBenchmarkChange={onAutoBenchmarkChange}
           onInstallOfficialModel={onInstallOfficialModel}
+          onPauseKataGoInstall={onPauseKataGoInstall}
           onRefreshKataGoAssets={onRefreshKataGoAssets}
           onDashboardUpdated={onDashboardUpdated}
           t={t}
@@ -3934,6 +4081,7 @@ function TeacherPanel({
   prompt,
   busy,
   dashboard,
+  llmReady,
   t,
   error,
   teacherSessions,
@@ -3953,12 +4101,14 @@ function TeacherPanel({
   onAnalyzeMove,
   onNewTeacherSession,
   onRestoreTeacherSession,
-  onDeleteTeacherSession
+  onDeleteTeacherSession,
+  onConnectLlm
 }: {
   messages: ChatMessage[]
   prompt: string
   busy: string
   dashboard: DashboardData
+  llmReady: boolean
   t: UiTranslator
   error: string
   teacherSessions: TeacherSession[]
@@ -3979,6 +4129,7 @@ function TeacherPanel({
   onNewTeacherSession: () => void
   onRestoreTeacherSession: (sessionId: string) => void
   onDeleteTeacherSession: (sessionId: string) => void
+  onConnectLlm: () => void
 }): ReactElement {
   const [historyOpen, setHistoryOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -4363,11 +4514,21 @@ function TeacherPanel({
         </aside>
       ) : null}
 
+      {!llmReady ? (
+        <section className="teacher-connect-banner">
+          <div>
+            <strong>{t('connectAiTeacher')}</strong>
+            <p>{t('connectAiTeacherDetail')}</p>
+          </div>
+          <button type="button" onClick={onConnectLlm}>{t('connectAiTeacher')}</button>
+        </section>
+      ) : null}
+
       <div
         className={`message-list agent-thread ${messages.length === 0 && !hasRunningTask ? 'agent-thread--empty' : ''}`}
         aria-label={t('teacherThread')}
       >
-        {messages.length === 0 && !hasRunningTask ? (
+        {messages.length === 0 && !hasRunningTask && llmReady ? (
           <section className="teacher-empty-state" aria-label={t('teacherEmptyTitle')}>
             <div className="teacher-empty-state__bubble" aria-hidden="true">
               <span />
@@ -4425,10 +4586,11 @@ function TeacherPanel({
         <div ref={threadBottomRef} className="agent-thread__bottom" />
       </div>
 
-      {error ? <div className="error-line">{error}</div> : null}
+      {error ? <UserFacingError message={error} t={t} /> : null}
       <TeacherComposerPro
         value={prompt}
         busy={busy !== ''}
+        placeholder={llmReady ? undefined : t('connectAiTeacher')}
         onChange={onPrompt}
         onSubmit={onSubmit}
         onStop={onStop}
@@ -4438,7 +4600,23 @@ function TeacherPanel({
   )
 }
 
-type SettingsPageId = 'ai' | 'katago' | 'remote' | 'voice' | 'general' | 'about'
+function UserFacingError({ message, t }: { message: string; t: UiTranslator }): ReactElement {
+  const [summary, ...technicalParts] = message.split(/\n\n+/)
+  const technical = technicalParts.join('\n\n').trim()
+  return (
+    <div className="error-line" role="alert">
+      <span>{summary}</span>
+      {technical ? (
+        <details>
+          <summary>{t('technicalDetails')}</summary>
+          <pre>{technical}</pre>
+        </details>
+      ) : null}
+    </div>
+  )
+}
+
+type SettingsPageId = 'general' | 'ai' | 'katago' | 'voice' | 'about'
 
 function SettingsDrawer({
   dashboard,
@@ -4447,13 +4625,17 @@ function SettingsDrawer({
   t,
   llmTestMessage,
   katagoBenchmark,
+  katagoBenchmarkStatus,
   katagoBenchmarkMessage,
   katagoInstallMessage,
   katagoInstallProgress,
   onSave,
   onTest,
   onBenchmark,
+  onCancelBenchmark,
+  onAutoBenchmarkChange,
   onInstallOfficialModel,
+  onPauseKataGoInstall,
   onRefreshKataGoAssets,
   onDashboardUpdated
 }: {
@@ -4463,13 +4645,17 @@ function SettingsDrawer({
   t: UiTranslator
   llmTestMessage: string
   katagoBenchmark: KataGoBenchmarkResult | null
+  katagoBenchmarkStatus: KataGoBenchmarkTaskStatus | 'idle'
   katagoBenchmarkMessage: string
   katagoInstallMessage: string
   katagoInstallProgress: KataGoAssetInstallProgress | null
   onSave: (form: HTMLFormElement) => void
   onTest: (form: HTMLFormElement) => void
   onBenchmark: () => void
+  onCancelBenchmark: () => void
+  onAutoBenchmarkChange: (enabled: boolean) => void
   onInstallOfficialModel: (presetId: KataGoModelPresetId) => void
+  onPauseKataGoInstall: () => void
   onRefreshKataGoAssets: () => void
   onDashboardUpdated: (dashboard: DashboardData) => void
 }): ReactElement {
@@ -4572,16 +4758,18 @@ function SettingsDrawer({
         setRefreshedLlmModels(models)
         setLlmModelsFetched(true)
         if (!models.length) {
-          setSelectedLlmModel('')
+          setLlmModelRefreshMessage(`${t('noModelReturned')}。${t('modelPickerEmpty')}`)
         } else if (!models.includes(selectedLlmModel)) {
           const fallback = models.includes(dashboard.settings.llmModel) ? dashboard.settings.llmModel : models[0]
           setSelectedLlmModel(fallback)
           autoSave({ llmModel: fallback }, 0)
         }
       }
-      setLlmModelRefreshMessage(result.message)
-    } catch (cause) {
-      setLlmModelRefreshMessage(t('modelRefreshFailed', { error: String(cause) }))
+      if (result.models.length) {
+        setLlmModelRefreshMessage(`${t('refreshModels')} · ${result.models.length}`)
+      }
+    } catch {
+      setLlmModelRefreshMessage(t('modelPickerEmpty'))
     } finally {
       setLlmModelsRefreshing(false)
     }
@@ -4804,7 +4992,7 @@ function SettingsDrawer({
   const zhiziNeedsLogin = /Zhizi Cloud Login Required|智子云需登录|智子云未登录/i.test(zhiziRawStatus)
   const zhiziStatusLabel = zhiziReady ? '已启用' : zhiziEnabled && zhiziNeedsLogin ? '需登录' : zhiziEnabled ? '待检测' : '未启用'
   const zhiziStatusClassName = zhiziReady ? 'settings-status-chip is-ready' : zhiziNeedsLogin ? 'settings-status-chip is-warning' : 'settings-status-chip'
-  const llmReady = dashboard.systemProfile.hasLlmApiKey
+  const llmReady = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
   const katagoReady = Boolean(katagoAssets?.ready || dashboard.systemProfile.katagoReady)
   const voiceReady = dashboard.settings.ttsEnabled
   const settingsPages: Array<{
@@ -4817,56 +5005,47 @@ function SettingsDrawer({
     statusClassName: string
   }> = [
     {
+      id: 'general',
+      icon: '语',
+      title: t('settingsGeneralTitle'),
+      subtitle: t('settingsGeneralSubtitle'),
+      summary: t('settingsGeneralSummary'),
+      status: t('ready'),
+      statusClassName: 'settings-status-chip is-ready'
+    },
+    {
       id: 'ai',
       icon: 'AI',
-      title: 'AI 模型',
-      subtitle: '大模型连接与选择',
-      summary: '连接用于看棋盘图、解释 KataGo 证据和回答问题的多模态模型。',
+      title: t('settingsAiTitle'),
+      subtitle: t('settingsAiSubtitle'),
+      summary: t('settingsAiSummary'),
       status: llmReady ? t('ready') : t('pendingConfig'),
       statusClassName: llmReady ? 'settings-status-chip is-ready' : 'settings-status-chip'
     },
     {
       id: 'katago',
       icon: '棋',
-      title: 'KataGo 引擎',
-      subtitle: '本地权重、测速与分析',
-      summary: '管理本地分析引擎、官方权重下载和一键测速。',
+      title: t('settingsAnalysisTitle'),
+      subtitle: t('settingsAnalysisSubtitle'),
+      summary: t('settingsAnalysisSummary'),
       status: katagoReady ? t('ready') : t('pendingConfig'),
       statusClassName: katagoReady ? 'settings-status-chip is-ready' : 'settings-status-chip'
     },
     {
-      id: 'remote',
-      icon: '云',
-      title: '智子云算力',
-      subtitle: '远程 KataGo 算力',
-      summary: '默认使用本机分析。只有手动启用智子云时，当前局面才会发送到远程算力。',
-      status: zhiziStatusLabel,
-      statusClassName: zhiziStatusClassName
-    },
-    {
       id: 'voice',
       icon: '声',
-      title: '语音朗读',
-      subtitle: 'TTS、音色与播放',
-      summary: '选择离线或云端语音，让老师讲解可以自然播放。',
+      title: t('settingsVoiceTitle'),
+      subtitle: t('settingsVoiceSubtitle'),
+      summary: t('settingsVoiceSummary'),
       status: voiceReady ? t('ready') : t('pendingConfig'),
       statusClassName: voiceReady ? 'settings-status-chip is-ready' : 'settings-status-chip'
     },
     {
-      id: 'general',
-      icon: '语',
-      title: '棋谱与语言',
-      subtitle: '语言、保存与本地数据',
-      summary: '设置界面语言和复盘讲解语言，保留本地优先的使用方式。',
-      status: t('ready'),
-      statusClassName: 'settings-status-chip is-ready'
-    },
-    {
       id: 'about',
       icon: 'i',
-      title: '关于',
-      subtitle: '版本、开源与支持',
-      summary: '查看 GoAgent 的项目定位、开源信息和用户反馈入口。',
+      title: t('settingsAboutTitle'),
+      subtitle: t('settingsAboutSubtitle'),
+      summary: t('settingsAboutSummary'),
       status: 'GoAgent',
       statusClassName: 'settings-status-chip is-ready'
     }
@@ -4875,7 +5054,7 @@ function SettingsDrawer({
 
   return (
     <div className="settings-drawer">
-      <aside className="settings-drawer__nav" aria-label="设置分类">
+      <aside className="settings-drawer__nav" aria-label={t('settingsNavLabel')}>
         {settingsPages.map((page) => (
           <button
             key={page.id}
@@ -4909,10 +5088,10 @@ function SettingsDrawer({
       <section id="settings-ai" className="settings-section settings-section-llm" hidden={activeSettingsPage !== 'ai'}>
         <header className="settings-section__head">
           <div>
-            <h3>多模态大模型</h3>
-            <p>用于围棋老师对话、看棋盘图和解释 KataGo 证据。填写服务地址、访问密钥并选择模型即可。</p>
+            <h3>{t('settingsAiSectionTitle')}</h3>
+            <p>{t('settingsAiSectionDescription')}</p>
           </div>
-          <span className={dashboard.systemProfile.hasLlmApiKey ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{dashboard.systemProfile.hasLlmApiKey ? t('ready') : t('pendingConfig')}</span>
+          <span className={llmReady ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{llmReady ? t('ready') : t('pendingConfig')}</span>
         </header>
         <label>
           {t('llmBaseUrl')}
@@ -4966,29 +5145,25 @@ function SettingsDrawer({
         <label>
           {t('multimodalModel')}
           <div className="llm-model-picker">
-            <select
+            <input
               className="llm-model-select"
               name="llmModel"
+              list="settings-llm-models"
               value={selectedLlmModel}
+              placeholder={t('selectMultimodalModel')}
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
               onChange={(event) => {
                 const next = event.target.value
                 setSelectedLlmModel(next)
                 autoSave({ llmModel: next }, 0)
               }}
               aria-label={t('selectMultimodalModel')}
-            >
-              {llmModelOptions.length ? (
-                llmModelOptions.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))
-              ) : (
-                <option value="" disabled>
-                  {dashboard.settings.llmBaseUrl && dashboard.systemProfile.hasLlmApiKey ? t('noModelReturned') : t('modelPickerEmpty')}
-                </option>
-              )}
-            </select>
+            />
+            <datalist id="settings-llm-models">
+              {llmModelOptions.map((model) => <option key={model} value={model} />)}
+            </datalist>
             <button
               className="ghost-button"
               type="button"
@@ -5009,14 +5184,18 @@ function SettingsDrawer({
             {autoSaveBusy ? t('autoSaving') : t('autoSaved')}
           </span>
         </div>
-        {llmTestMessage ? <div className="test-message">{llmTestMessage}</div> : null}
+        {llmTestMessage ? (
+          llmTestMessage.includes('\n\n')
+            ? <UserFacingError message={llmTestMessage} t={t} />
+            : <div className="test-message">{llmTestMessage}</div>
+        ) : null}
       </section>
 
       <section id="settings-katago" className="settings-section settings-section-katago" hidden={activeSettingsPage !== 'katago'}>
         <header className="settings-section__head">
           <div>
-            <h3>KataGo 分析</h3>
-            <p>选择官方权重、检查本地资源，并用一键测速让分析速度更稳定。</p>
+            <h3>{t('settingsAnalysisSectionTitle')}</h3>
+            <p>{t('settingsAnalysisSectionDescription')}</p>
           </div>
           <span className={katagoAssets?.ready || dashboard.systemProfile.katagoReady ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{katagoAssets?.ready || dashboard.systemProfile.katagoReady ? t('ready') : t('pendingConfig')}</span>
         </header>
@@ -5053,6 +5232,7 @@ function SettingsDrawer({
           installProgress={katagoInstallProgress}
           installMessage={katagoInstallMessage}
           onInstall={() => onInstallOfficialModel(selectedPreset?.id ?? dashboard.settings.katagoModelPreset)}
+          onPause={onPauseKataGoInstall}
           onRefresh={onRefreshKataGoAssets}
           t={t}
         />
@@ -5060,13 +5240,17 @@ function SettingsDrawer({
           settings={dashboard.settings}
           result={katagoBenchmark}
           message={katagoBenchmarkMessage}
-          busy={busy === 'katago-benchmark'}
+          status={katagoBenchmarkStatus}
           onRun={onBenchmark}
+          onCancel={onCancelBenchmark}
+          onAutoBenchmarkChange={onAutoBenchmarkChange}
           t={t}
         />
       </section>
 
-      <section id="settings-remote" className="settings-section settings-section-analysis-engine" hidden={activeSettingsPage !== 'remote'}>
+      <details className="settings-advanced settings-remote-advanced" hidden={activeSettingsPage !== 'katago'}>
+        <summary>{t('remoteComputeAdvanced')}</summary>
+        <section id="settings-remote" className="settings-section settings-section-analysis-engine">
         <header className="settings-section__head">
           <div>
             <h3>智子云远程算力</h3>
@@ -5302,7 +5486,8 @@ function SettingsDrawer({
             </label>
           </div>
         </details>
-      </section>
+        </section>
+      </details>
       <section id="settings-general" className="settings-section settings-section-language" hidden={activeSettingsPage !== 'general'}>
         <header className="settings-section__head">
           <div>
@@ -5329,8 +5514,8 @@ function SettingsDrawer({
         <section id="settings-voice" className="settings-section settings-section-voice" hidden={activeSettingsPage !== 'voice'}>
           <header className="settings-section__head">
             <div>
-              <h3>语音讲解</h3>
-              <p>选择离线 Kokoro 或云端 TTS，控制讲解朗读、音色和播放节奏。</p>
+              <h3>{t('settingsVoiceSectionTitle')}</h3>
+              <p>{t('settingsVoiceSectionDescription')}</p>
             </div>
             <span className={dashboard.settings.ttsEnabled ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{dashboard.settings.ttsEnabled ? t('ready') : t('pendingConfig')}</span>
           </header>
@@ -5343,8 +5528,8 @@ function SettingsDrawer({
         <section id="settings-about" className="settings-section settings-section-about" hidden={activeSettingsPage !== 'about'}>
           <header className="settings-section__head">
             <div>
-              <h3>关于 GoAgent</h3>
-              <p>GoAgent 是开源、免费的围棋智能体：KataGo 负责事实分析，AI 老师负责把局面讲清楚。</p>
+              <h3>{t('settingsAboutTitle')} GoAgent</h3>
+              <p>{t('settingsAboutDescription')}</p>
             </div>
             <span className="settings-status-chip is-ready">MIT</span>
           </header>
@@ -5375,46 +5560,56 @@ function KataGoBenchmarkPanel({
   settings,
   result,
   message,
-  busy,
+  status,
   onRun,
+  onCancel,
+  onAutoBenchmarkChange,
   t
 }: {
   settings: DashboardData['settings']
   result: KataGoBenchmarkResult | null
   message: string
-  busy: boolean
+  status: KataGoBenchmarkTaskStatus | 'idle'
   onRun: () => void
+  onCancel: () => void
+  onAutoBenchmarkChange: (enabled: boolean) => void
   t: UiTranslator
 }): ReactElement {
   const bestThreads = result?.recommendedThreads || settings.katagoBenchmarkThreads
   const bestSpeed = result?.visitsPerSecond || settings.katagoBenchmarkVisitsPerSecond
   const tunedAt = result?.updatedAt || settings.katagoBenchmarkUpdatedAt
+  const running = status === 'running'
   return (
     <section className="runtime-card katago-benchmark-card">
       <header>
         <strong>{t('katagoBenchmarkTitle')}</strong>
         <span className={bestThreads ? 'runtime-pill runtime-pill--ready' : 'runtime-pill runtime-pill--warn'}>
-          {bestThreads ? `${bestThreads} threads` : t('benchmarkNotRun')}
+          {running ? t('benchmarkRunning') : bestThreads ? t('ready') : t('benchmarkNotRun')}
         </span>
       </header>
-      <p>{t('benchmarkDescription')}</p>
-      <div className="runtime-list">
-        <div><span>{t('recommendedThreads')}</span><strong>{bestThreads || t('benchmarkPending')}</strong></div>
-        <div><span>{t('benchmarkSpeed')}</span><strong>{bestSpeed ? formatSearchSpeed(bestSpeed) : t('benchmarkPending')}</strong></div>
-        <div><span>{t('analysisConfig')}</span><strong>{settings.katagoAnalysisThreads || 'auto'} × {settings.katagoSearchThreadsPerAnalysisThread || 1}</strong></div>
-        <div><span>{t('batchSize')}</span><strong>{settings.katagoMaxBatchSize || 32}</strong></div>
-        {tunedAt ? <div><span>{t('updatedAt')}</span><strong>{new Date(tunedAt).toLocaleString()}</strong></div> : null}
+      <label className="settings-inline-toggle benchmark-auto-toggle">
+        <input type="checkbox" checked={settings.katagoAutoBenchmarkEnabled} onChange={(event) => onAutoBenchmarkChange(event.target.checked)} />
+        <span><strong>{t('autoBenchmark')}</strong><small>{t('autoBenchmarkHelp')}</small></span>
+      </label>
+      <p>{t('benchmarkBalancedFallback')}</p>
+      <div className="settings-actions settings-actions--compact">
+        {running ? (
+          <button className="ghost-button" type="button" onClick={onCancel}>{t('cancelBenchmark')}</button>
+        ) : (
+          <button className="primary-button" type="button" onClick={onRun}>{t('benchmarkRun')}</button>
+        )}
       </div>
-      <button className="primary-button" type="button" onClick={onRun} disabled={busy}>
-        {busy ? t('benchmarkRunning') : t('benchmarkRun')}
-      </button>
       {message ? <p className="test-message">{message}</p> : null}
-      {result?.tested.length ? (
-        <div className="benchmark-results">
-          {result.tested.map((item) => (
-            <span key={item.threads}>{item.threads}T · {formatSearchSpeed(item.visitsPerSecond)}</span>
-          ))}
-        </div>
+      {bestThreads ? (
+        <details className="settings-advanced benchmark-technical-details">
+          <summary>{t('analysisConfig')}</summary>
+          <div className="runtime-list">
+            <div><span>{t('recommendedThreads')}</span><strong>{bestThreads}</strong></div>
+            <div><span>{t('benchmarkSpeed')}</span><strong>{bestSpeed ? formatSearchSpeed(bestSpeed) : t('benchmarkPending')}</strong></div>
+            <div><span>{t('batchSize')}</span><strong>{settings.katagoMaxBatchSize || 32}</strong></div>
+            {tunedAt ? <div><span>{t('updatedAt')}</span><strong>{new Date(tunedAt).toLocaleString()}</strong></div> : null}
+          </div>
+        </details>
       ) : null}
     </section>
   )

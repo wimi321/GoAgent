@@ -66,6 +66,17 @@ export interface ProviderProbeResult {
   message: string
   supportsImage?: boolean
   technicalDetail?: string
+  capabilities?: {
+    text: ProviderCapabilityCheck
+    vision: ProviderCapabilityCheck
+    tools: ProviderCapabilityCheck
+  }
+}
+
+export interface ProviderCapabilityCheck {
+  ok: boolean
+  message: string
+  technicalDetail?: string
 }
 
 export interface LlmProvider {

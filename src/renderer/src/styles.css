@@ -4638,6 +4638,32 @@ label small {
   background: #f7ded9;
 }
 
+.error-line > span {
+  display: block;
+  white-space: pre-line;
+  line-height: 1.55;
+}
+
+.error-line details {
+  margin-top: 7px;
+  color: color-mix(in srgb, currentColor 76%, var(--text-muted));
+}
+
+.error-line summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.error-line pre {
+  max-height: 140px;
+  margin: 7px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 @media (max-width: 1180px) {
   .studio,
   .studio--collapsed {

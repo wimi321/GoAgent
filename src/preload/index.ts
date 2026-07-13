@@ -17,6 +17,11 @@ import type {
   KataGoAssetStatus,
   KataGoBenchmarkRequest,
   KataGoBenchmarkResult,
+  KataGoBenchmarkStartRequest,
+  KataGoBenchmarkStartResult,
+  KataGoBenchmarkCancelRequest,
+  KataGoBenchmarkCancelResult,
+  KataGoBenchmarkProgress,
   KataGoCancelAnalysisRequest,
   KataGoCancelAnalysisResult,
   LibraryDeleteRequest,
@@ -82,6 +87,13 @@ const api = {
   cancelKataGoAnalysis: (payload: KataGoCancelAnalysisRequest): Promise<KataGoCancelAnalysisResult> => ipcRenderer.invoke('katago:cancel-analysis', payload),
   getAnalysisSchedulerStats: (): Promise<AnalysisSchedulerStats> => ipcRenderer.invoke('analysis-scheduler:stats'),
   benchmarkKataGo: (payload?: KataGoBenchmarkRequest): Promise<KataGoBenchmarkResult> => ipcRenderer.invoke('katago:benchmark', payload ?? {}),
+  startKataGoBenchmark: (payload?: KataGoBenchmarkStartRequest): Promise<KataGoBenchmarkStartResult> => ipcRenderer.invoke('katago:benchmark-start', payload ?? {}),
+  cancelKataGoBenchmark: (payload?: KataGoBenchmarkCancelRequest): Promise<KataGoBenchmarkCancelResult> => ipcRenderer.invoke('katago:benchmark-cancel', payload ?? {}),
+  onKataGoBenchmarkProgress: (handler: (payload: KataGoBenchmarkProgress) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, payload: KataGoBenchmarkProgress): void => handler(payload)
+    ipcRenderer.on('katago:benchmark-progress', listener)
+    return () => ipcRenderer.removeListener('katago:benchmark-progress', listener)
+  },
   onAnalyzePositionProgress: (handler: (payload: AnalyzePositionProgress) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: AnalyzePositionProgress): void => handler(payload)
     ipcRenderer.on('katago:analyze-position-progress', listener)
@@ -100,6 +112,7 @@ const api = {
   getDiagnostics: (): Promise<DiagnosticsReport> => ipcRenderer.invoke('diagnostics:get'),
   inspectKataGoAssets: (): Promise<KataGoAssetStatus> => ipcRenderer.invoke('katago-assets:inspect'),
   installKataGoOfficialModel: (payload: KataGoAssetInstallRequest): Promise<KataGoAssetInstallResult> => ipcRenderer.invoke('katago-assets:install-official-model', payload),
+  cancelKataGoAssetInstall: (): Promise<{ cancelled: boolean }> => ipcRenderer.invoke('katago-assets:cancel-install'),
   onKataGoAssetInstallProgress: (handler: (payload: KataGoAssetInstallProgress) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: KataGoAssetInstallProgress): void => handler(payload)
     ipcRenderer.on('katago-assets:install-progress', listener)

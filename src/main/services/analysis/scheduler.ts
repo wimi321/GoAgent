@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { KataGoAnalysisGroup } from '@main/lib/types'
 import { cancelKataGoAnalysis } from '../katago'
+import { cancelKataGoBenchmark } from '../katagoBenchmark'
 
 export type ScheduledAnalysisPriority = 'live' | 'teacher' | 'quick' | 'background'
 
@@ -133,6 +134,7 @@ function pump(): void {
 }
 
 export function runScheduledAnalysis<T>(input: ScheduledAnalysisInput, task: () => Promise<T>): Promise<T> {
+  cancelKataGoBenchmark()
   const id = input.runId || randomUUID()
   const priority = input.priority ?? priorityForGroup(input.group)
   if (input.replaceGroup && input.group) {

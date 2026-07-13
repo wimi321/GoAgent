@@ -50,6 +50,7 @@ export function KataGoAssetsPanel({
   installProgress,
   installMessage,
   onInstall,
+  onPause,
   onRefresh,
   t: providedT
 }: {
@@ -59,6 +60,7 @@ export function KataGoAssetsPanel({
   installProgress?: KataGoAssetInstallProgress | null
   installMessage?: string
   onInstall?: () => void
+  onPause?: () => void
   onRefresh?: () => void
   t?: UiTranslator
 }): ReactElement {
@@ -81,6 +83,8 @@ export function KataGoAssetsPanel({
       engineNeedPrepare: ' KataGo 引擎还需要准备。',
       assetStatusMissing: '尚未读取资源状态。',
       applying: '应用中',
+      pauseDownload: '暂停下载',
+      resumeDownload: '继续下载',
       applySelectedWeight: '应用选择的权重',
       recheck: '重新检查'
     }
@@ -138,9 +142,13 @@ export function KataGoAssetsPanel({
       ) : null}
       {installMessage && !installProgress ? <p className="test-message">{installMessage}</p> : null}
       <div className="katago-assets-card__actions">
-        <button className="primary-button" type="button" onClick={onInstall} disabled={!onInstall || busy}>
-          {busy ? t('applying') : t('applySelectedWeight')}
-        </button>
+        {busy ? (
+          <button className="primary-button" type="button" onClick={onPause} disabled={!onPause}>{t('pauseDownload')}</button>
+        ) : (
+          <button className="primary-button" type="button" onClick={onInstall} disabled={!onInstall}>
+            {installProgress?.stage === 'paused' ? t('resumeDownload') : t('applySelectedWeight')}
+          </button>
+        )}
         <button className="ghost-button" type="button" onClick={onRefresh}>{t('recheck')}</button>
       </div>
     </section>

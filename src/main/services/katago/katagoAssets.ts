@@ -56,6 +56,14 @@ interface KataGoEditionMetadata {
 
 const execFileAsync = promisify(execFile)
 const WINDOWS_OPENCL_RUNTIME_URL = 'https://github.com/wimi321/lizzieyzy-next/releases/download/1.0.0-next-2026-05-02.3/2026-05-02-windows64.opencl.portable.zip'
+let activeInstallController: AbortController | null = null
+
+class KataGoAssetInstallPausedError extends Error {
+  constructor() {
+    super('KataGo 资源下载已暂停。再次点击下载即可继续。')
+    this.name = 'KataGoAssetInstallPausedError'
+  }
+}
 
 function platformKey(): string {
   return `${process.platform}-${process.arch}`
@@ -134,7 +142,7 @@ function absoluteUrl(value: string): string {
   return new URL(value, 'https://katagotraining.org').toString()
 }
 
-async function discoverModelDownloadUrl(presetId?: string): Promise<string> {
+async function discoverModelDownloadUrl(presetId?: string, signal?: AbortSignal): Promise<string> {
   const preset = getKataGoModelPreset(presetId)
   if (preset.downloadUrl) {
     return preset.downloadUrl
@@ -145,7 +153,8 @@ async function discoverModelDownloadUrl(presetId?: string): Promise<string> {
   const fallback = `https://media.katagotraining.org/uploaded/networks/models/kata1/${preset.fileName}`
   try {
     const response = await fetch(preset.sourceUrl, {
-      headers: { 'User-Agent': 'GoAgent KataGo asset installer' }
+      headers: { 'User-Agent': 'GoAgent KataGo asset installer' },
+      signal
     })
     if (!response.ok) {
       return fallback
@@ -188,7 +197,8 @@ async function downloadFile(
     exists: '官方权重已存在，跳过下载。',
     active: '正在下载 KataGo 官方权重。',
     done: '官方权重下载完成。'
-  }
+  },
+  signal?: AbortSignal
 ): Promise<boolean> {
   const targetExists = await exists(target)
   if (targetExists) {
@@ -197,15 +207,35 @@ async function downloadFile(
   }
   const tmp = `${target}.download`
   await mkdir(dirname(target), { recursive: true })
-  await unlink(tmp).catch(() => undefined)
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'GoAgent KataGo asset installer' }
+  let existingBytes = await stat(tmp).then((value) => value.size).catch(() => 0)
+  const request = async (resumeAt: number): Promise<Response> => fetch(url, {
+    headers: {
+      'User-Agent': 'GoAgent KataGo asset installer',
+      ...(resumeAt > 0 ? { Range: `bytes=${resumeAt}-` } : {})
+    },
+    signal
   })
+  let response = await request(existingBytes)
+  if (response.status === 416 && existingBytes > 0) {
+    await unlink(tmp).catch(() => undefined)
+    existingBytes = 0
+    response = await request(0)
+  }
   if (!response.ok || !response.body) {
     throw new Error(`官方权重下载失败: HTTP ${response.status}`)
   }
-  const totalBytes = Number(response.headers.get('content-length') ?? 0) || undefined
-  let receivedBytes = 0
+  const resumed = existingBytes > 0 && response.status === 206
+  const contentRangeTotal = Number(/\/(\d+)$/.exec(response.headers.get('content-range') ?? '')?.[1] ?? 0) || undefined
+  const responseBytes = Number(response.headers.get('content-length') ?? 0) || undefined
+  const totalBytes = contentRangeTotal ?? (responseBytes ? (resumed ? existingBytes + responseBytes : responseBytes) : undefined)
+  let receivedBytes = resumed ? existingBytes : 0
+  onProgress?.({
+    stage,
+    message: resumed ? `${messages.active} 已从 ${Math.round(existingBytes / 1024 / 1024)} MB 处继续。` : messages.active,
+    receivedBytes,
+    totalBytes,
+    percent: progressPercent(receivedBytes, totalBytes)
+  })
   const progressStream = new Transform({
     transform(chunk: Buffer, _encoding, callback) {
       receivedBytes += chunk.length
@@ -219,7 +249,19 @@ async function downloadFile(
       callback(null, chunk)
     }
   })
-  await pipeline(Readable.fromWeb(response.body as never), progressStream, createWriteStream(tmp))
+  try {
+    await pipeline(
+      Readable.fromWeb(response.body as never),
+      progressStream,
+      createWriteStream(tmp, { flags: resumed ? 'a' : 'w' }),
+      { signal }
+    )
+  } catch (error) {
+    if (signal?.aborted) {
+      throw new KataGoAssetInstallPausedError()
+    }
+    throw error
+  }
   await rename(tmp, target)
   onProgress?.({ stage, message: messages.done, receivedBytes, totalBytes, percent: 100 })
   return true
@@ -254,7 +296,8 @@ async function downloadPlatformRuntimeIfAvailable(
   root: string,
   manifest: KataGoAssetManifest,
   key: string,
-  onProgress?: (progress: KataGoAssetInstallProgress) => void
+  onProgress?: (progress: KataGoAssetInstallProgress) => void,
+  signal?: AbortSignal
 ): Promise<{ path: string; copied: boolean }> {
   const platform = manifest.supportedPlatforms[key]
   if (!platform) {
@@ -274,7 +317,7 @@ async function downloadPlatformRuntimeIfAvailable(
     exists: 'KataGo Windows OpenCL 运行库已下载，跳过下载。',
     active: '正在下载 KataGo Windows OpenCL 运行库。',
     done: 'KataGo Windows OpenCL 运行库下载完成。'
-  })
+  }, signal)
 
   const extractionDir = join(root, 'runtime-downloads', 'win32-x64-opencl')
   await rm(extractionDir, { recursive: true, force: true })
@@ -299,7 +342,8 @@ async function copyPlatformBinaryIfAvailable(
   root: string,
   manifest: KataGoAssetManifest,
   key: string,
-  onProgress?: (progress: KataGoAssetInstallProgress) => void
+  onProgress?: (progress: KataGoAssetInstallProgress) => void,
+  signal?: AbortSignal
 ): Promise<{ path: string; copied: boolean }> {
   const platform = manifest.supportedPlatforms[key]
   if (!platform) {
@@ -316,7 +360,7 @@ async function copyPlatformBinaryIfAvailable(
     .filter((candidateRoot) => candidateRoot !== root)
     .map((candidateRoot) => join(candidateRoot, platform.binaryPath)))
   if (!source) {
-    return downloadPlatformRuntimeIfAvailable(root, manifest, key, onProgress)
+    return downloadPlatformRuntimeIfAvailable(root, manifest, key, onProgress, signal)
   }
   await mkdir(dirname(target), { recursive: true })
   await copyFile(source, target)
@@ -431,9 +475,10 @@ async function findBundledModelPath(preset: { id: string; fileName: string; netw
   return ''
 }
 
-export async function installOfficialKataGoModel(
+async function installOfficialKataGoModelInternal(
   request: KataGoAssetInstallRequest = {},
-  onProgress?: (progress: KataGoAssetInstallProgress) => void
+  onProgress?: (progress: KataGoAssetInstallProgress) => void,
+  signal?: AbortSignal
 ): Promise<KataGoAssetInstallResult> {
   const key = platformKey()
   const userRoot = userKatagoRoot()
@@ -458,7 +503,7 @@ export async function installOfficialKataGoModel(
       modelPath: `models/${preset.fileName}`,
       modelSha256: await sha256(bundledMatch).catch(() => '')
     }
-    const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress)
+    const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress, signal)
     onProgress?.({ stage: 'writing-manifest', message: '正在写入本机 KataGo 资源配置。' })
     await mkdir(userRoot, { recursive: true })
     await writeFile(join(userRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
@@ -479,9 +524,9 @@ export async function installOfficialKataGoModel(
   }
 
   onProgress?.({ stage: 'discovering', message: `准备安装 ${preset.label}。` })
-  const downloadUrl = await discoverModelDownloadUrl(preset.id)
+  const downloadUrl = await discoverModelDownloadUrl(preset.id, signal)
   const modelPath = join(userRoot, 'models', preset.fileName)
-  const downloadedModel = await downloadFile(downloadUrl, modelPath, onProgress)
+  const downloadedModel = await downloadFile(downloadUrl, modelPath, onProgress, 'downloading-model', undefined, signal)
 
   onProgress?.({ stage: 'copying-binary', message: '正在检查当前平台 KataGo 引擎。' })
   const manifest: KataGoAssetManifest = {
@@ -492,7 +537,7 @@ export async function installOfficialKataGoModel(
     modelPath: `models/${preset.fileName}`,
     modelSha256: await sha256(modelPath).catch(() => '')
   }
-  const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress)
+  const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress, signal)
   onProgress?.({ stage: 'writing-manifest', message: '正在写入本机 KataGo 资源配置。' })
   await mkdir(userRoot, { recursive: true })
   await writeFile(join(userRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
@@ -510,5 +555,38 @@ export async function installOfficialKataGoModel(
     downloadedModel,
     copiedBinary: binary.copied,
     detail
+  }
+}
+
+export function cancelKataGoAssetInstall(): boolean {
+  if (!activeInstallController || activeInstallController.signal.aborted) {
+    return false
+  }
+  activeInstallController.abort()
+  return true
+}
+
+export async function installOfficialKataGoModel(
+  request: KataGoAssetInstallRequest = {},
+  onProgress?: (progress: KataGoAssetInstallProgress) => void
+): Promise<KataGoAssetInstallResult> {
+  if (activeInstallController && !activeInstallController.signal.aborted) {
+    throw new Error('已有 KataGo 资源下载正在进行。')
+  }
+  const controller = new AbortController()
+  activeInstallController = controller
+  try {
+    return await installOfficialKataGoModelInternal(request, onProgress, controller.signal)
+  } catch (error) {
+    if (controller.signal.aborted || error instanceof KataGoAssetInstallPausedError) {
+      const paused = new KataGoAssetInstallPausedError()
+      onProgress?.({ stage: 'paused', message: paused.message })
+      throw paused
+    }
+    throw error
+  } finally {
+    if (activeInstallController === controller) {
+      activeInstallController = null
+    }
   }
 }

@@ -81,6 +81,8 @@ export interface VisionEvidenceReport {
   createdAt: string
 }
 
+export type LlmSetupStatus = 'unconfigured' | 'verified' | 'skipped' | 'needs-attention'
+
 export interface AppSettings {
   katagoBin: string
   katagoConfig: string
@@ -93,6 +95,9 @@ export interface AppSettings {
   katagoBenchmarkThreads: number
   katagoBenchmarkVisitsPerSecond: number
   katagoBenchmarkUpdatedAt: string
+  katagoBenchmarkEngineFingerprint: string
+  katagoBenchmarkLastCompletedAt: string
+  katagoAutoBenchmarkEnabled: boolean
   katagoEngineMode: KataGoEngineMode
   katagoAnalysisSpeedMode: KataGoAnalysisSpeedMode
   localAnalysisDefaultApplied: boolean
@@ -114,6 +119,9 @@ export interface AppSettings {
   llmBaseUrl: string
   llmApiKey: string
   llmModel: string
+  onboardingVersion: number
+  llmSetupStatus: LlmSetupStatus
+  llmLastVerifiedAt: string
   reviewLanguage: 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'ko-KR' | 'th-TH' | 'vi-VN'
   defaultPlayerName: string
   ttsEnabled: boolean
@@ -370,6 +378,36 @@ export interface KataGoBenchmarkRequest {
   numPositions?: number
   secondsPerMove?: number
   threads?: number[]
+  timeoutMs?: number
+}
+
+export type KataGoBenchmarkTaskStatus = 'running' | 'completed' | 'cancelled' | 'timed-out' | 'failed' | 'skipped'
+
+export interface KataGoBenchmarkStartRequest extends KataGoBenchmarkRequest {
+  automatic?: boolean
+  onlyIfNeeded?: boolean
+}
+
+export interface KataGoBenchmarkStartResult {
+  runId: string
+  status: 'running' | 'skipped'
+  message: string
+}
+
+export interface KataGoBenchmarkCancelRequest {
+  runId?: string
+}
+
+export interface KataGoBenchmarkCancelResult {
+  cancelled: boolean
+  runId?: string
+}
+
+export interface KataGoBenchmarkProgress {
+  runId: string
+  status: KataGoBenchmarkTaskStatus
+  message: string
+  result?: KataGoBenchmarkResult
 }
 
 export interface KataGoBenchmarkThreadResult {
@@ -388,13 +426,14 @@ export interface KataGoBenchmarkResult {
   command: string
   outputTail: string
   updatedAt: string
+  engineFingerprint: string
 }
 
 export interface KataGoAssetInstallRequest {
   presetId?: KataGoModelPresetId
 }
 
-export type KataGoAssetInstallStage = 'discovering' | 'downloading-binary' | 'downloading-model' | 'copying-binary' | 'writing-manifest' | 'done' | 'error'
+export type KataGoAssetInstallStage = 'discovering' | 'downloading-binary' | 'downloading-model' | 'copying-binary' | 'writing-manifest' | 'paused' | 'done' | 'error'
 
 export interface KataGoAssetInstallProgress {
   stage: KataGoAssetInstallStage
@@ -412,6 +451,10 @@ export interface KataGoAssetInstallResult {
   downloadedModel: boolean
   copiedBinary: boolean
   detail: string
+}
+
+export interface KataGoAssetInstallCancelResult {
+  cancelled: boolean
 }
 
 export type ReleaseReadinessStatus = 'pass' | 'warn' | 'fail' | 'unknown'
@@ -1227,6 +1270,17 @@ export interface LlmSettingsTestRequest {
 export interface LlmSettingsTestResult {
   ok: boolean
   message: string
+  capabilities: {
+    text: LlmCapabilityCheck
+    vision: LlmCapabilityCheck
+    tools: LlmCapabilityCheck
+  }
+}
+
+export interface LlmCapabilityCheck {
+  ok: boolean
+  message: string
+  technicalDetail?: string
 }
 
 export interface LlmModelsListRequest {
