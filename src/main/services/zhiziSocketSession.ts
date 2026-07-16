@@ -350,7 +350,9 @@ export class ZhiziPersistentSession {
       }
       if (predicate()) return
       if (this.dependencies.now() - started >= timeoutMs) {
-        const detail = redactZhiziText(this.stderr.trim().slice(-800))
+        const stderrDetail = redactZhiziText(this.stderr.trim().slice(-800))
+        const stdoutDetail = redactZhiziText(this.stdout.trim().slice(-800))
+        const detail = [stderrDetail, stdoutDetail].filter(Boolean).join(' | ')
         throw new ZhiziRemoteError(
           'timeout',
           `${description}超时。${detail ? ` ${detail}` : ''}`,

@@ -82,6 +82,7 @@ test('Zhizi cloud engine uses real GTP kata-analyze output instead of iKataGo an
   assert.match(engine, /GoAgent 直连|queryZhiziSocketGtpAnalysisBatch/)
   assert.match(engine, /session\.runExclusive/)
   assert.match(engine, /channel\.restart/)
+  assert.match(engine, /ZHIZI_COLD_START_GTP_TIMEOUT_MS = 60_000/)
   assert.match(engine, /queryZhiziSpawnGtpAnalysisBatch/)
   assert.match(renderer, /智子云远程算力/)
   assert.match(renderer, /默认本机，远程手动启用/)

@@ -12,7 +12,7 @@ import { listLlmModels, testLlmSettings } from './services/llm'
 import { analyzeTrialPositionWithProgress, cancelKataGoAnalysis } from './services/katago'
 import { benchmarkKataGo } from './services/katagoBenchmark'
 import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
-import { getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
+import { cancelScheduledAnalysis, getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
 import { analyzeGameQuickRuntime, analyzePositionRuntime, analyzePositionWithProgressRuntime } from './services/analysis/runtimeIntegration'
 import { collectDiagnostics } from './services/diagnostics'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
@@ -511,7 +511,7 @@ app.whenReady().then(() => {
     }
   })
   ipcMain.handle('katago:cancel-analysis', async (_event, payload: KataGoCancelAnalysisRequest) =>
-    cancelKataGoAnalysis(payload)
+    cancelScheduledAnalysis(payload)
   )
   ipcMain.handle('analysis-scheduler:stats', async () => getAnalysisSchedulerStats())
   ipcMain.handle('katago:engine-pool-stats', async () => getKataGoEnginePoolStats())

@@ -303,7 +303,12 @@ export async function analyzePositionWithProgressRuntime(input: RuntimeAnalyzePo
       input.onProgress?.(attachRuntimeAnalysisEvidence({ analysis, profile, cache: progressCache, cacheKey }), isFinal)
     },
     input.reportDuringSearchEvery ?? profile.reportDuringSearchEvery,
-    input.onSearchProgress
+    input.onSearchProgress,
+    {
+      runId: input.runId,
+      group: input.group,
+      replaceGroup: input.group === 'live' || !input.runId
+    }
   )
   const enriched = attachRuntimeAnalysisEvidence({ analysis: final, profile, cache: lookup, cacheKey })
   const written = writeAnalysisCache(keyInput, enriched, lookup.entry)

@@ -1047,7 +1047,12 @@ export async function analyzePositionWithProgress(
     visits: number
     visitsPerSecond: number
     isDuringSearch: boolean
-  }) => void
+  }) => void,
+  options: {
+    runId?: string
+    group?: KataGoAnalysisGroup
+    replaceGroup?: boolean
+  } = {}
 ): Promise<KataGoMoveAnalysis> {
   maxVisits = effectiveVisitsForSpeedMode(maxVisits, 'position')
   const indexedGame = findGame(gameId)
@@ -1136,9 +1141,9 @@ export async function analyzePositionWithProgress(
         onProgress?.(partial, !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && !latestActual?.isDuringSearch)
       }
     }, {
-      runId: `${gameId}-live-${moveNumber}`,
-      group: 'live',
-      replaceGroup: true,
+      runId: options.runId ?? `${gameId}-live-${moveNumber}`,
+      group: options.group ?? 'live',
+      replaceGroup: options.replaceGroup ?? true,
       onSearchProgress
     })
   } catch (error) {

@@ -60,6 +60,7 @@ type GtpQuery = {
 }
 
 const activeZhiziProcesses = new Map<string, ActiveZhiziProcess>()
+const ZHIZI_COLD_START_GTP_TIMEOUT_MS = 60_000
 function splitCommandLine(input: string): string[] {
   const args: string[] = []
   let current = ''
@@ -267,7 +268,13 @@ async function queryZhiziSocketGtpAnalysisBatch(request: ZhiziGtpAnalysisBatchRe
     const start = channel.output().stdout.length
     const disconnectVersion = channel.captureDisconnectVersion()
     channel.send(`${commandLines.join('\n')}\n`)
-    const timeoutMs = Math.max(10_000, commandLines.length * 600)
+    // The Socket.IO runner can emit "ready" before a cold 28B KataGo model has
+    // finished loading. Keep commands buffered and allow the same startup
+    // window used by the mature LizzieYZY remote flow.
+    const timeoutMs = Math.max(
+      ZHIZI_COLD_START_GTP_TIMEOUT_MS,
+      commandLines.length * 1_200
+    )
     await channel.waitUntil(
       () => countGtpResponses(channel.output().stdout.slice(start)) >= commandLines.length,
       timeoutMs,
