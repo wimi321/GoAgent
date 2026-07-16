@@ -188,11 +188,17 @@ export interface ZhiziCloudLoginResult {
 export interface ZhiziCloudConnectionTestResult {
   ok: boolean
   message: string
+  state?: 'logged-out' | 'ready' | 'token-expired' | 'network-error' | 'worker-unavailable' | 'entitlement-error' | 'error'
   candidateCount?: number
   topMove?: string
   visits?: number
   winrate?: number
   scoreMean?: number
+  visitsPerSecond?: number
+  readyMillis?: number
+  analysisMillis?: number
+  sessionReused?: boolean
+  gpuType?: string
   tokenValid?: boolean
   isMembership?: boolean
   membershipExpiresAt?: string
@@ -229,6 +235,7 @@ export interface SystemProfile {
   proxyApiKey: string
   proxyModels: string[]
   hasLlmApiKey: boolean
+  hasZhiziToken: boolean
   notes: string[]
 }
 

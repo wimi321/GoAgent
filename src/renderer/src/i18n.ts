@@ -1285,6 +1285,9 @@ export function localizeKataGoStatus(
   if (/Zhizi Cloud Direct Ready/i.test(rawStatus)) {
     return `${t('zhiziCloudDirectReady')} · ${t('ready')}`
   }
+  if (/Zhizi Cloud Ready To Connect/i.test(rawStatus)) {
+    return `${t('zhiziCloudDirectReady')} · ${t('pendingConfig')}`
+  }
   if (/iKataGo Remote Ready/i.test(rawStatus)) {
     return `iKataGo · ${t('ready')}`
   }

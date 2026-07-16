@@ -301,8 +301,18 @@ function migrateLocalAnalysisDefault(settings: AppSettings): AppSettings {
   return migrated
 }
 
+function migrateZhiziLoginIdentifier(settings: AppSettings): AppSettings {
+  if (!/^zz[-_]/i.test(settings.zhiziUsername.trim())) {
+    return settings
+  }
+  settingsStore.set('zhiziUsername', '')
+  return { ...settings, zhiziUsername: '' }
+}
+
 export function getSettings(): AppSettings {
-  const persisted = migrateLocalAnalysisDefault(migratePlaintextSecrets({ ...defaults, ...settingsStore.store }))
+  const persisted = migrateZhiziLoginIdentifier(
+    migrateLocalAnalysisDefault(migratePlaintextSecrets({ ...defaults, ...settingsStore.store }))
+  )
   return {
     ...persisted,
     llmApiKey: decryptSecret(secretStore.get('llmApiKey')),

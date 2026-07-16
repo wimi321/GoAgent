@@ -1,19 +1,25 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { io, type Socket } from 'socket.io-client'
 import type { AppSettings, GameMove, KataGoAnalysisGroup } from '@main/lib/types'
+import {
+  classifyZhiziRemoteError,
+  getZhiziPersistentSession,
+  redactZhiziText,
+  type ZhiziPersistentSession
+} from './zhiziSocketSession'
+import {
+  buildZhiziRemoteArgs,
+  parseKataAnalyzeInfo,
+  zhiziAnalysisReachedVisits,
+  zhiziResponseVisitTotal,
+  type ZhiziGtpAnalysisResponse
+} from './zhiziGtpProtocol'
 
-export type ZhiziGtpAnalysisResponse = Record<string, unknown> & {
-  id?: string
-  error?: string
-  isDuringSearch?: boolean
-  rootInfo?: {
-    currentPlayer?: GameMove['color']
-    winrate?: number
-    scoreLead?: number
-    scoreMean?: number
-  }
-  moveInfos?: Array<Record<string, unknown>>
-}
+export {
+  buildZhiziRemoteArgs,
+  parseKataAnalyzeInfo,
+  zhiziAnalysisReachedVisits
+} from './zhiziGtpProtocol'
+export type { ZhiziGtpAnalysisResponse } from './zhiziGtpProtocol'
 
 export interface ZhiziGtpAnalysisBatchRequest {
   settings: AppSettings
@@ -54,28 +60,6 @@ type GtpQuery = {
 }
 
 const activeZhiziProcesses = new Map<string, ActiveZhiziProcess>()
-const ZHIZI_SOCKET_TOKEN_URL = 'https://www.zhizigo.com/api/cluster/account/fetch-socketio-token'
-const GTP_VALUE_KEYS = new Set([
-  'move',
-  'visits',
-  'edgeVisits',
-  'utility',
-  'winrate',
-  'scoreMean',
-  'scoreStdev',
-  'scoreLead',
-  'scoreSelfplay',
-  'prior',
-  'lcb',
-  'order',
-  'pv',
-  'pvVisits',
-  'isSymmetryOf',
-  'ownership',
-  'ownershipStdev',
-  'rootInfo'
-])
-
 function splitCommandLine(input: string): string[] {
   const args: string[] = []
   let current = ''
@@ -114,36 +98,8 @@ function splitCommandLine(input: string): string[] {
   return args
 }
 
-function shellQuote(value: string): string {
-  if (/^[A-Za-z0-9_./:=+-]+$/.test(value)) return value
-  return `'${value.replace(/'/g, `'\\''`)}'`
-}
-
-function directSocketArgs(settings: AppSettings): string {
-  const gpuType = settings.zhiziGpuType?.trim() || 'vip-share'
-  const args = [
-    '--platform', 'all',
-    '--engine-type', 'go',
-    '--gpu-type', gpuType,
-    '--kata-name', 'katago-TENSORRT',
-    '--kata-weight', '28bnbt'
-  ]
-  args.push(...splitCommandLine(settings.zhiziExtraArgs).filter((arg) => arg !== '--token'))
-  return args.map(shellQuote).join(' ')
-}
-
-function chunkToText(chunk: unknown): string {
-  if (typeof chunk === 'string') return chunk
-  if (Buffer.isBuffer(chunk)) return chunk.toString('utf8')
-  if (chunk instanceof ArrayBuffer) return Buffer.from(chunk).toString('utf8')
-  if (ArrayBuffer.isView(chunk)) return Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength).toString('utf8')
-  return String(chunk ?? '')
-}
-
 function redactZhiziLog(text: string): string {
-  return text
-    .replace(/zz-\d{4,}/g, 'zz-[redacted]')
-    .replace(/(token=|--token\s+|zz-socketio-token[=:])\S+/gi, '$1[redacted]')
+  return redactZhiziText(text)
 }
 
 function cleanVertex(move: string): string {
@@ -174,13 +130,6 @@ function analysisMillis(maxVisits: number | undefined): number {
   return 5600
 }
 
-function responseVisitTotal(response: ZhiziGtpAnalysisResponse): number {
-  return (response.moveInfos ?? []).reduce((sum, move) => {
-    const visits = Number(move.visits ?? 0)
-    return sum + (Number.isFinite(visits) && visits > 0 ? visits : 0)
-  }, 0)
-}
-
 function emitAnalyzeProgress(
   request: ZhiziGtpAnalysisBatchRequest,
   queryId: string,
@@ -192,7 +141,7 @@ function emitAnalyzeProgress(
   if (!/\binfo\s+/.test(text)) return
   const response = parseKataAnalyzeInfo(text, player, queryId)
   if (response.error || !response.moveInfos?.length) return
-  const visits = responseVisitTotal(response)
+  const visits = zhiziResponseVisitTotal(response)
   if (visits <= state.lastVisits) return
   const now = Date.now()
   const elapsedSeconds = Math.max(0.1, (now - state.lastSampleAt) / 1000)
@@ -209,17 +158,6 @@ function emitAnalyzeProgress(
   })
 }
 
-function normalizeRate(value: number): number {
-  if (!Number.isFinite(value)) return 0
-  if (Math.abs(value) > 1.00001) return value / 10000
-  return value
-}
-
-function numericToken(tokens: string[], index: number): number | undefined {
-  const value = Number(tokens[index])
-  return Number.isFinite(value) ? value : undefined
-}
-
 function hasGtpTerminator(text: string): boolean {
   return /\r?\n\r?\n/.test(text)
 }
@@ -230,113 +168,6 @@ function countGtpResponses(text: string): number {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function isSocketConnectFailure(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error)
-  return /Socket (未连接|连接失败|已断开)|websocket error|xhr poll error|transport error|timeout|KataGo 启动超时/i.test(message)
-}
-
-function isZhiziNoCreditError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error)
-  return /not_enough_credit|余额不足|not enough credit/i.test(message)
-}
-
-function zhiziNoCreditError(): Error {
-  return new Error('智子云远程 worker 返回 not_enough_credit：主账号 token 可用，但当前连接账号/GPU 算力额度没有被远程 worker 接受。请在智子官方 App 确认远程算力权益已开通并同步到连接账号。')
-}
-
-function parseKeyValues(text: string): Record<string, number> {
-  const tokens = text.split(/\s+/).filter(Boolean)
-  const values: Record<string, number> = {}
-  for (let i = 0; i < tokens.length - 1; i += 1) {
-    const key = tokens[i]
-    const value = numericToken(tokens, i + 1)
-    if (value === undefined) continue
-    if (key === 'winrate' || key === 'prior' || key === 'lcb') values[key] = normalizeRate(value)
-    else values[key] = value
-    i += 1
-  }
-  return values
-}
-
-export function parseKataAnalyzeInfo(text: string, player: GameMove['color'], id: string): ZhiziGtpAnalysisResponse {
-  const compact = text
-    .replace(/\r/g, '\n')
-    .replace(/^=.*$/gm, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-  const rootInfoText = compact.match(/\brootInfo\s+(.+?)(?:\s+ownership\s+|$)/)?.[1] ?? ''
-  const rootInfo = parseKeyValues(rootInfoText)
-  const segments = compact.split(/\binfo\s+/).map((segment) => segment.trim()).filter(Boolean)
-  const moveInfos: Array<Record<string, unknown>> = []
-
-  for (const segment of segments) {
-    const moveSegment = segment.split(/\brootInfo\b/)[0]
-    const tokens = moveSegment.split(/\s+/).filter(Boolean)
-    const info: Record<string, unknown> = {}
-    for (let i = 0; i < tokens.length; i += 1) {
-      const key = tokens[i]
-      if (!GTP_VALUE_KEYS.has(key)) continue
-      if (key === 'rootInfo' || key === 'ownership' || key === 'ownershipStdev') break
-      if (key === 'pv') {
-        const pv: string[] = []
-        for (let j = i + 1; j < tokens.length; j += 1) {
-          if (GTP_VALUE_KEYS.has(tokens[j])) break
-          pv.push(tokens[j])
-          i = j
-        }
-        info.pv = pv.slice(0, 24)
-        continue
-      }
-      if (key === 'pvVisits') {
-        const pvVisits: number[] = []
-        for (let j = i + 1; j < tokens.length; j += 1) {
-          if (GTP_VALUE_KEYS.has(tokens[j])) break
-          const value = Number(tokens[j])
-          if (Number.isFinite(value)) pvVisits.push(value)
-          i = j
-        }
-        info.pvVisits = pvVisits.slice(0, 24)
-        continue
-      }
-      if (key === 'move' || key === 'isSymmetryOf') {
-        info[key] = tokens[i + 1] ?? ''
-        i += 1
-        continue
-      }
-      const value = numericToken(tokens, i + 1)
-      if (value !== undefined) {
-        if (key === 'winrate' || key === 'prior' || key === 'lcb') info[key] = normalizeRate(value)
-        else info[key] = value
-        i += 1
-      }
-    }
-    if (typeof info.move === 'string' && info.move) {
-      moveInfos.push(info)
-    }
-  }
-
-  moveInfos.sort((a, b) => Number(a.order ?? 9999) - Number(b.order ?? 9999))
-  const best = moveInfos[0]
-  if (!best) {
-    return {
-      id,
-      error: '智子云 KataGo GTP 没有返回候选点。',
-      rootInfo: { currentPlayer: player, winrate: 0.5, scoreLead: 0 },
-      moveInfos: []
-    }
-  }
-  return {
-    id,
-    rootInfo: {
-      currentPlayer: player,
-      winrate: Number(rootInfo.winrate ?? best.winrate ?? 0.5),
-      scoreLead: Number(rootInfo.scoreLead ?? rootInfo.scoreMean ?? best.scoreLead ?? best.scoreMean ?? 0),
-      scoreMean: Number(rootInfo.scoreMean ?? rootInfo.scoreLead ?? best.scoreMean ?? best.scoreLead ?? 0)
-    },
-    moveInfos
-  }
 }
 
 export function zhiziGtpConfigured(settings: AppSettings): boolean {
@@ -396,136 +227,78 @@ function asGtpQuery(query: Record<string, unknown> & { id?: string }): GtpQuery 
   }
 }
 
-async function fetchZhiziSocketToken(token: string, args: string): Promise<{ socketIOURL: string; token: string }> {
-  let response: Response
-  try {
-    response = await fetch(ZHIZI_SOCKET_TOKEN_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({ args })
-    })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`智子云连接令牌获取失败：网络连接中断，请稍后重试。${message ? ` (${redactZhiziLog(message)})` : ''}`)
-  }
-  const rawText = await response.text()
-  let json: Record<string, unknown> = {}
-  try {
-    json = rawText ? JSON.parse(rawText) as Record<string, unknown> : {}
-  } catch {
-    json = {}
-  }
-  if (!response.ok) {
-    const key = String(json.key ?? json.error ?? json.message ?? '').trim()
-    if (response.status === 401 || /invalid|token|auth/i.test(key)) {
-      throw new Error('智子云 token 已失效，请重新登录。')
-    }
-    if (/not_enough_credit|credit/i.test(key)) {
-      throw zhiziNoCreditError()
-    }
-    throw new Error(`智子云连接令牌获取失败：HTTP ${response.status}${key ? ` · ${key}` : ''}`)
-  }
-  const socketIOURL = typeof json.socketIOURL === 'string' ? json.socketIOURL.trim() : ''
-  const socketToken = typeof json.token === 'string' ? json.token.trim() : ''
-  if (!socketIOURL || !socketToken) {
-    throw new Error('智子云连接令牌响应不完整，请稍后重试。')
-  }
-  return { socketIOURL, token: socketToken }
-}
-
 async function queryZhiziSocketGtpAnalysisBatch(request: ZhiziGtpAnalysisBatchRequest): Promise<Map<string, ZhiziGtpAnalysisResponse>> {
+  if (!request.queries.length) return new Map()
   const token = request.settings.zhiziToken.trim()
   if (!token) {
     throw new Error('智子云未登录：请先在 GoAgent 中输入账号密码登录。')
   }
 
   const runId = request.runId || `zhizi-direct-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  let socket: Socket | null = null
+  const controller = new AbortController()
   const activeEntry: ActiveZhiziProcess = {
     group: request.group,
     cancelled: false,
-    stop: () => socket?.disconnect()
+    stop: () => controller.abort()
   }
   activeZhiziProcesses.set(runId, activeEntry)
-
-  let stdout = ''
-  let stderr = ''
-  let socketError: Error | null = null
-  let closing = false
-  let remoteReady = false
-  let socketBoardKey = ''
 
   function cleanup(): void {
     const current = activeZhiziProcesses.get(runId)
     if (current === activeEntry) activeZhiziProcesses.delete(runId)
   }
 
-  function waitUntil(predicate: () => boolean, timeoutMs: number, description: string): Promise<void> {
-    const started = Date.now()
-    return new Promise((resolve, reject) => {
-      const timer = setInterval(() => {
-        if (activeEntry.cancelled) {
-          clearInterval(timer)
-          reject(new Error('智子云分析已取消'))
-          return
-        }
-        if (socketError) {
-          clearInterval(timer)
-          reject(socketError)
-          return
-        }
-        if (predicate()) {
-          clearInterval(timer)
-          resolve()
-          return
-        }
-        if (Date.now() - started > timeoutMs) {
-          clearInterval(timer)
-          reject(new Error(`${description}超时。\n${redactZhiziLog(stderr.trim().slice(-1200))}`))
-        }
-      }, 50)
-    })
-  }
+  const args = buildZhiziRemoteArgs(request.settings)
+  const session = getZhiziPersistentSession({
+    accountToken: token,
+    args,
+    gpuType: request.settings.zhiziGpuType?.trim() || 'vip-share'
+  })
+  const overallDeadline = Date.now() + (
+    request.timeoutMs ?? Math.max(240_000, request.queries.length * 9_000)
+  )
 
-  function sendRaw(text: string): void {
-    if (socketError) {
-      throw socketError
-    }
-    if (!socket?.connected) {
-      const tail = redactZhiziLog(stderr.trim().slice(-1200))
-      throw new Error(`智子云 Socket 未连接。${tail ? `\n${tail}` : ''}`)
-    }
-    socket.emit('stdin', text)
-  }
-
-  async function sendCommands(commandLines: string[], description: string): Promise<string> {
+  async function sendCommands(
+    channel: ZhiziPersistentSession,
+    commandLines: string[],
+    description: string
+  ): Promise<string> {
     if (!commandLines.length) return ''
-    const start = stdout.length
-    sendRaw(`${commandLines.join('\n')}\n`)
+    const start = channel.output().stdout.length
+    const disconnectVersion = channel.captureDisconnectVersion()
+    channel.send(`${commandLines.join('\n')}\n`)
     const timeoutMs = Math.max(10_000, commandLines.length * 600)
-    await waitUntil(() => countGtpResponses(stdout.slice(start)) >= commandLines.length, timeoutMs, description)
-    const text = stdout.slice(start)
+    await channel.waitUntil(
+      () => countGtpResponses(channel.output().stdout.slice(start)) >= commandLines.length,
+      timeoutMs,
+      description,
+      controller.signal,
+      disconnectVersion
+    )
+    const text = channel.output().stdout.slice(start)
     if (/(?:^|\n)\?/.test(text.trim())) {
       throw new Error(`${description}失败。\n${redactZhiziLog(text.trim().slice(0, 1200))}`)
     }
     return text
   }
 
-  async function analyzeQuery(query: GtpQuery): Promise<ZhiziGtpAnalysisResponse> {
+  async function analyzeQuery(
+    channel: ZhiziPersistentSession,
+    query: GtpQuery,
+    boardState: { key: string }
+  ): Promise<ZhiziGtpAnalysisResponse> {
+    channel.clearOutput()
     const boardXSize = Math.max(2, Math.round(query.boardXSize || 19))
     const boardYSize = Math.max(2, Math.round(query.boardYSize || boardXSize))
     const boardKey = `${boardXSize}x${boardYSize}`
     const setupCommands: string[] = []
-    if (socketBoardKey !== boardKey) {
+    if (boardState.key !== boardKey) {
       setupCommands.push(
         boardXSize === boardYSize ? `boardsize ${boardXSize}` : `rectangular_boardsize ${boardXSize} ${boardYSize}`,
         'kata-set-rules chinese',
         'time_settings 0 5 1'
       )
-      socketBoardKey = boardKey
+      boardState.key = boardKey
     }
     setupCommands.push(
       `komi ${Number.isFinite(query.komi) ? query.komi : 7.5}`,
@@ -537,148 +310,107 @@ async function queryZhiziSocketGtpAnalysisBatch(request: ZhiziGtpAnalysisBatchRe
     for (const [color, point] of query.moves) {
       setupCommands.push(`play ${color} ${cleanVertex(point)}`)
     }
-    await sendCommands(setupCommands, '智子云 GTP 初始化局面')
+    await sendCommands(channel, setupCommands, '智子云 GTP 初始化局面')
     const player = sideToMove(query)
     const allow = (query.allowMoves ?? [])
       .filter((entry) => entry.player && entry.moves?.length)
       .map((entry) => `allow ${entry.player} ${entry.moves.map(cleanVertex).join(',')} ${Math.max(1, Math.round(entry.untilDepth || 1))}`)
       .join(' ')
-    const start = stdout.length
-    const commandLine = `kata-analyze ${player} 8 rootInfo true maxmoves 20${allow ? ` ${allow}` : ''}`
-    sendRaw(`${commandLine}\n`)
+    const start = channel.output().stdout.length
+    const disconnectVersion = channel.captureDisconnectVersion()
+    const commandLine = `kata-analyze ${player} 25 rootInfo true maxmoves 20${allow ? ` ${allow}` : ''}`
+    channel.send(`${commandLine}\n`)
     const searchStartedAt = Date.now()
     const progressState = { lastVisits: 0, lastSampleAt: searchStartedAt }
-    const durationMs = analysisMillis(query.maxVisits)
-    while (Date.now() - searchStartedAt < durationMs) {
-      await delay(300)
+    const targetVisits = Math.max(1, Math.round(query.maxVisits ?? 120))
+    const queryTimeoutMs = Math.max(15_000, Math.min(120_000, targetVisits * 220))
+    let latestResponse: ZhiziGtpAnalysisResponse | null = null
+
+    while (Date.now() - searchStartedAt < queryTimeoutMs && Date.now() < overallDeadline) {
+      await delay(100)
       if (activeEntry.cancelled) throw new Error('智子云分析已取消')
-      emitAnalyzeProgress(request, query.id, player, stdout.slice(start), progressState, true)
+      const output = channel.output().stdout.slice(start)
+      if (!/\binfo\s+/.test(output)) continue
+      const response = parseKataAnalyzeInfo(output, player, query.id)
+      if (response.error || !response.moveInfos?.length) continue
+      latestResponse = response
+      emitAnalyzeProgress(request, query.id, player, output, progressState, true)
+      if (zhiziAnalysisReachedVisits(response, targetVisits)) break
     }
-    sendRaw('\n')
-    await waitUntil(() => hasGtpTerminator(stdout.slice(start)), 15_000, '智子云 kata-analyze')
-    const response = parseKataAnalyzeInfo(stdout.slice(start), player, query.id)
-    emitAnalyzeProgress(request, query.id, player, stdout.slice(start), progressState, false)
+
+    if (!latestResponse?.moveInfos?.length) {
+      throw new Error('智子云已连接，但在限定时间内没有返回候选点。')
+    }
+    channel.send('stop\n')
+    await channel.waitUntil(
+      () => hasGtpTerminator(channel.output().stdout.slice(start)),
+      12_000,
+      '智子云 kata-analyze',
+      controller.signal,
+      disconnectVersion
+    )
+    const finalOutput = channel.output().stdout.slice(start)
+    const parsedFinal = parseKataAnalyzeInfo(finalOutput, player, query.id)
+    const response = parsedFinal.moveInfos?.length ? parsedFinal : latestResponse
+    emitAnalyzeProgress(request, query.id, player, finalOutput, progressState, false)
     request.onResponse?.(response)
     return response
   }
 
-  async function connectRemoteSocket(): Promise<void> {
-    const maxConnectAttempts = 3
-    for (let attempt = 1; attempt <= maxConnectAttempts; attempt += 1) {
-      if (activeEntry.cancelled) throw new Error('智子云分析已取消')
-      stdout = ''
-      stderr = ''
-      socketError = null
-      remoteReady = false
-      socketBoardKey = ''
-      if (socket) {
-        socket.removeAllListeners()
-        socket.disconnect()
-        socket = null
-      }
-      const socketInfo = await fetchZhiziSocketToken(token, directSocketArgs(request.settings))
-      socket = io(socketInfo.socketIOURL, {
-        path: '/socket.io.v4',
-        query: { 'zz-socketio-token': socketInfo.token },
-        transports: ['websocket'],
-        timeout: 20_000,
-        reconnection: false,
-        forceNew: true
-      })
-      socket.on('stdout', (chunk) => {
-        stdout += chunkToText(chunk)
-      })
-      socket.on('stderr', (chunk) => {
-        stderr = (stderr + chunkToText(chunk)).slice(-40_000)
-      })
-      socket.on('connect_error', (error) => {
-        socketError = new Error(`智子云 Socket 连接失败：${error.message}`)
-      })
-      socket.on('ready', () => {
-        remoteReady = true
-      })
-      socket.on('disconnect', (reason) => {
-        if (!closing && !activeEntry.cancelled) {
-          const tail = redactZhiziLog(stderr.trim().slice(-1200))
-          socketError = /not_enough_credit|not enough credit/i.test(tail)
-            ? zhiziNoCreditError()
-            : new Error(`智子云 Socket 已断开：${reason}\n${tail}`)
-        }
-      })
-      try {
-        await waitUntil(() => Boolean(socket?.connected && (remoteReady || /GTP ready|beginning main protocol loop/i.test(stderr + stdout))), 90_000, '智子云 KataGo 启动')
-        return
-      } catch (error) {
-        if (socket) {
-          socket.removeAllListeners()
-          socket.disconnect()
-          socket = null
-        }
-        if (isZhiziNoCreditError(error)) {
-          throw zhiziNoCreditError()
-        }
-        if (attempt >= maxConnectAttempts || !isSocketConnectFailure(error)) {
-          throw error
-        }
-        console.warn(`Zhizi direct Socket.IO connect attempt ${attempt} failed; retrying.`, error)
-        await delay(800 * attempt)
-      }
-    }
-    throw new Error('智子云 Socket 连接失败，请稍后重试。')
-  }
-
   try {
-    await connectRemoteSocket()
-    const results = new Map<string, ZhiziGtpAnalysisResponse>()
-    for (const rawQuery of request.queries) {
-      const query = asGtpQuery(rawQuery)
-      let lastError: unknown
-      for (let attempt = 1; attempt <= 3; attempt += 1) {
-        try {
-          if (!(socket as Socket | null)?.connected || socketError) {
-            await connectRemoteSocket()
+    return await session.runExclusive(controller.signal, async (channel) => {
+      const results = new Map<string, ZhiziGtpAnalysisResponse>()
+      const boardState = { key: '' }
+      let firstCompletedAt = 0
+      for (const rawQuery of request.queries) {
+        const query = asGtpQuery(rawQuery)
+        let lastError: ReturnType<typeof classifyZhiziRemoteError> | null = null
+        for (let attempt = 1; attempt <= 3; attempt += 1) {
+          try {
+            if (attempt > 1) {
+              await channel.restart(controller.signal)
+              boardState.key = ''
+            }
+            const response = await analyzeQuery(channel, query, boardState)
+            if (response.id) results.set(response.id, response)
+            if (!firstCompletedAt) firstCompletedAt = Date.now()
+            lastError = null
+            break
+          } catch (cause) {
+            lastError = classifyZhiziRemoteError(
+              cause,
+              request.settings.zhiziGpuType?.trim() || 'vip-share'
+            )
+            if (
+              !lastError.retryable ||
+              lastError.code === 'cancelled' ||
+              activeEntry.cancelled ||
+              attempt >= 3
+            ) {
+              throw lastError
+            }
+            await delay(attempt * 500)
           }
-          const response = await analyzeQuery(query)
-          if (response.id) results.set(response.id, response)
-          lastError = undefined
+        }
+        if (lastError) throw lastError
+        if (
+          request.resolvePartialAfterMs &&
+          results.size < request.queries.length &&
+          firstCompletedAt > 0 &&
+          Date.now() - firstCompletedAt >= request.resolvePartialAfterMs
+        ) {
           break
-        } catch (error) {
-          lastError = error
-          if (isZhiziNoCreditError(error) || activeEntry.cancelled) {
-            throw error
-          }
-          if (!isSocketConnectFailure(error) || attempt >= 3) {
-            throw error
-          }
-          const currentSocket = socket as Socket | null
-          if (currentSocket) {
-            currentSocket.removeAllListeners()
-            currentSocket.disconnect()
-            socket = null
-          }
-          socketError = null
-          remoteReady = false
-          socketBoardKey = ''
-          console.warn(`Zhizi direct Socket.IO query ${query.id} failed; reconnecting (${attempt}/3).`, error)
-          await delay(500 * attempt)
         }
       }
-      if (lastError) throw lastError
-    }
-    closing = true
-    const currentSocket = socket as Socket | null
-    if (currentSocket?.connected) {
-      currentSocket.emit('stdin', 'quit\n')
-    }
-    currentSocket?.disconnect()
+      return results
+    })
+  } catch (cause) {
+    throw classifyZhiziRemoteError(
+      cause,
+      request.settings.zhiziGpuType?.trim() || 'vip-share'
+    )
+  } finally {
     cleanup()
-    return results
-  } catch (error) {
-    closing = true
-    activeEntry.cancelled = true
-    ;(socket as Socket | null)?.disconnect()
-    cleanup()
-    throw error
   }
 }
 

@@ -166,6 +166,7 @@ const emptyDashboard: DashboardData = {
     proxyApiKey: '',
     proxyModels: [],
     hasLlmApiKey: false,
+    hasZhiziToken: false,
     notes: []
   }
 }
@@ -4775,16 +4776,52 @@ function SettingsDrawer({
         onDashboardUpdated(result.dashboard)
       }
       const detail = result.ok && result.topMove
-        ? `首选 ${result.topMove}${typeof result.visits === 'number' ? ` · ${result.visits} visits` : ''}`
+        ? [
+            `首选 ${result.topMove}`,
+            typeof result.visits === 'number' ? `${result.visits} visits` : '',
+            typeof result.visitsPerSecond === 'number' ? formatSearchSpeed(result.visitsPerSecond) : ''
+          ].filter(Boolean).join(' · ')
         : ''
-      const accountDetail = [
-        result.tokenValid ? '主账号 token 有效' : '',
-        result.isMembership ? `会员有效${result.membershipExpiresAt ? `至 ${new Date(result.membershipExpiresAt).toLocaleDateString()}` : ''}` : '未检测到会员状态',
-        result.hasConnectAccount ? `连接账号 ${result.connectUsernameMasked || '已绑定'}` : '未绑定连接账号'
-      ].filter(Boolean).join(' · ')
-      setZhiziTestMessage(`${result.message}${detail ? `（${detail}）` : ''}${accountDetail ? `\n${accountDetail}` : ''}`)
+      const timingDetail = result.ok
+        ? [
+            result.sessionReused ? '已复用远程引擎' : '',
+            typeof result.readyMillis === 'number' && result.readyMillis > 0 ? `启动 ${(result.readyMillis / 1000).toFixed(1)} 秒` : '',
+            typeof result.analysisMillis === 'number' ? `检测 ${(result.analysisMillis / 1000).toFixed(1)} 秒` : ''
+          ].filter(Boolean).join(' · ')
+        : ''
+      const accountDetail = result.tokenValid
+        ? [
+            '主账号 token 有效',
+            result.isMembership ? `会员有效${result.membershipExpiresAt ? `至 ${new Date(result.membershipExpiresAt).toLocaleDateString()}` : ''}` : '未检测到会员状态',
+            result.hasConnectAccount ? `连接账号 ${result.connectUsernameMasked || '已绑定'}` : '未绑定连接账号'
+          ].join(' · ')
+        : ''
+      setZhiziTestMessage(
+        `${result.message}${detail ? `（${detail}）` : ''}${timingDetail ? `\n${timingDetail}` : ''}${accountDetail ? `\n${accountDetail}` : ''}`
+      )
     } catch (cause) {
       setZhiziTestMessage(`智子云连接检测失败：${String(cause).replace(/^Error:\s*/, '')}`)
+    } finally {
+      setZhiziTestBusy(false)
+    }
+  }
+
+  async function enableZhiziCloudConnection(): Promise<void> {
+    setZhiziTestMessage('')
+    setZhiziTestBusy(true)
+    try {
+      const result = await window.goagent.enableZhiziCloud()
+      if (result.dashboard) onDashboardUpdated(result.dashboard)
+      const detail = result.ok && result.topMove
+        ? [
+            `首选 ${result.topMove}`,
+            typeof result.visits === 'number' ? `${result.visits} visits` : '',
+            typeof result.visitsPerSecond === 'number' ? formatSearchSpeed(result.visitsPerSecond) : ''
+          ].filter(Boolean).join(' · ')
+        : ''
+      setZhiziTestMessage(`${result.message}${detail ? `（${detail}）` : ''}`)
+    } catch (cause) {
+      setZhiziTestMessage(`智子云启用失败：${String(cause).replace(/^Error:\s*/, '')}`)
     } finally {
       setZhiziTestBusy(false)
     }
@@ -4796,13 +4833,24 @@ function SettingsDrawer({
   }
 
   const katagoEngineModeForSettings: KataGoEngineMode =
-    dashboard.settings.katagoEngineMode === 'ikatago' ? 'auto' : dashboard.settings.katagoEngineMode
+    dashboard.settings.katagoEngineMode === 'ikatago' || dashboard.settings.katagoEngineMode === 'zhizi'
+      ? 'auto'
+      : dashboard.settings.katagoEngineMode
   const zhiziRawStatus = dashboard.systemProfile.katagoStatus ?? ''
   const zhiziEnabled = dashboard.settings.katagoEngineMode === 'zhizi'
+  const zhiziLoggedIn = dashboard.systemProfile.hasZhiziToken
   const zhiziReady = /Zhizi Cloud Direct Ready|智子云直连/i.test(zhiziRawStatus)
     || (zhiziEnabled && dashboard.systemProfile.katagoReady && /智子|Zhizi/i.test(zhiziRawStatus))
   const zhiziNeedsLogin = /Zhizi Cloud Login Required|智子云需登录|智子云未登录/i.test(zhiziRawStatus)
-  const zhiziStatusLabel = zhiziReady ? '已启用' : zhiziEnabled && zhiziNeedsLogin ? '需登录' : zhiziEnabled ? '待检测' : '未启用'
+  const zhiziStatusLabel = zhiziReady
+    ? '已启用'
+    : zhiziEnabled && zhiziNeedsLogin
+      ? '需登录'
+      : zhiziEnabled
+        ? '待检测'
+        : zhiziLoggedIn
+          ? '已登录'
+          : '未登录'
   const zhiziStatusClassName = zhiziReady ? 'settings-status-chip is-ready' : zhiziNeedsLogin ? 'settings-status-chip is-warning' : 'settings-status-chip'
   const llmReady = dashboard.systemProfile.hasLlmApiKey
   const katagoReady = Boolean(katagoAssets?.ready || dashboard.systemProfile.katagoReady)
@@ -5077,7 +5125,7 @@ function SettingsDrawer({
         <div className="zhizi-remote-card">
           <div>
             <strong>默认本机，远程手动启用</strong>
-            <p>本机分析不上传棋谱。需要智子云时，先登录账号，再点击启用直连；不用时点“回到本地分析”。</p>
+            <p>本机分析不上传棋谱。需要智子云时，先登录账号，再点击“检测并启用”；不用时点“回到本地分析”。</p>
           </div>
           <ol className="zhizi-flow">
             <li><span>1</span>登录账号</li>
@@ -5096,7 +5144,6 @@ function SettingsDrawer({
               <option value="auto">默认本机：自动选择最佳本地引擎</option>
               <option value="persistent">本地常驻：低延迟分析</option>
               <option value="spawn">本地兼容：传统启动方式</option>
-              <option value="zhizi">手动远程：智子云直连</option>
             </select>
             <small>默认本机不会上传局面；只有选择或启用智子云直连时才会使用远程算力。</small>
           </label>
@@ -5132,10 +5179,10 @@ function SettingsDrawer({
           <button
             className="primary-button"
             type="button"
-            disabled={busy !== '' || zhiziEnabled}
-            onClick={() => autoSave({ katagoEngineMode: 'zhizi', zhiziUseWhenLocalSlow: false }, 0)}
+            disabled={busy !== '' || zhiziEnabled || zhiziTestBusy || !zhiziLoggedIn}
+            onClick={() => void enableZhiziCloudConnection()}
           >
-            启用智子云直连
+            {zhiziTestBusy ? '正在连接...' : zhiziEnabled ? '智子云已启用' : '检测并启用'}
           </button>
           <button
             className="ghost-button"
@@ -5148,14 +5195,20 @@ function SettingsDrawer({
           <button
             className="ghost-button"
             type="button"
-            disabled={busy !== '' || zhiziLoginBusy || zhiziTestBusy}
+            disabled={busy !== '' || zhiziLoginBusy || zhiziTestBusy || !zhiziLoggedIn}
             onClick={() => void testZhiziCloudConnection()}
           >
-            {zhiziTestBusy ? '检测中...' : '检测连接'}
+            {zhiziTestBusy ? '检测中...' : '只检测连接'}
           </button>
-          <small>{zhiziEnabled ? '当前已选择智子云。若分析提示需登录，请先完成下面的账号登录。' : '当前使用本机 KataGo，不会连接智子云。'}</small>
+          <small>
+            {zhiziEnabled
+              ? '当前使用智子云分析。切回本机后会立即释放远程连接。'
+              : zhiziLoggedIn
+                ? '账号已登录。检测通过后才会切换远程分析，失败不会影响本机 KataGo。'
+                : '请先登录智子云。当前仍使用本机 KataGo，不会上传局面。'}
+          </small>
         </div>
-        {zhiziTestMessage ? <div className="test-message">{zhiziTestMessage}</div> : null}
+        {zhiziTestMessage ? <div className="test-message" role="status" aria-live="polite">{zhiziTestMessage}</div> : null}
         <div className="settings-subsection zhizi-login-panel">
           <h4>登录智子云</h4>
           <p>请使用智子云主账号手机号或邮箱登录。zz- 开头的是连接账号，不能直接换取 GoAgent 远程算力 token。</p>
@@ -5194,9 +5247,9 @@ function SettingsDrawer({
               disabled={busy !== '' || zhiziLoginBusy || !zhiziUsernameInput.trim() || !zhiziLoginPassword.trim()}
               onClick={() => void loginZhiziCloud()}
             >
-              {zhiziLoginBusy ? '正在登录智子云...' : '登录并连接智子云'}
+              {zhiziLoginBusy ? '正在登录智子云...' : '登录智子云'}
             </button>
-            <small>密码只用于本次登录。手机号和邮箱可登录；zz- 连接账号需要先在智子官方账号体系里绑定。</small>
+            <small>密码只用于本次登录。登录后再点击上方“检测并启用”，确认远程引擎可用后才会切换。</small>
           </div>
           <label>
             <span>短信验证码</span>
@@ -5232,12 +5285,12 @@ function SettingsDrawer({
             </button>
             <small>登录成功后，GoAgent 会保存 token；后续只需要打开 GoAgent，不需要启动其它应用。</small>
           </div>
-          {zhiziLoginMessage ? <div className="test-message">{zhiziLoginMessage}</div> : null}
+          {zhiziLoginMessage ? <div className="test-message" role="status" aria-live="polite">{zhiziLoginMessage}</div> : null}
           <div className="settings-actions settings-actions--compact">
             <button
               className="ghost-button"
               type="button"
-              disabled={busy !== '' || zhiziLoginBusy}
+              disabled={busy !== '' || zhiziLoginBusy || !zhiziLoggedIn}
               onClick={() => void logoutZhiziCloud()}
             >
               退出智子云登录

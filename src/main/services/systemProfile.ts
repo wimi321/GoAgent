@@ -7,6 +7,7 @@ import type { AppSettings, SystemProfile } from '@main/lib/types'
 import { hydrateKataGoSettings, KATAGO_MODEL_PRESETS, resolveKataGoRuntime } from './katagoRuntime'
 import { ikatagoClientConfigured, shouldPreferIKataGoEngine } from './ikatagoClientEngine'
 import { shouldPreferZhiziGtpEngine, zhiziGtpConfigured } from './zhiziGtpEngine'
+import { getZhiziPersistentSessionTelemetry } from './zhiziSocketSession'
 
 const execFileAsync = promisify(execFile)
 
@@ -102,22 +103,32 @@ async function detectCliproxy(): Promise<Pick<SystemProfile, 'proxyBaseUrl' | 'p
 
 export async function detectSystemProfile(settings?: AppSettings): Promise<SystemProfile> {
   const katago = resolveKataGoRuntime(settings)
-  const zhiziReady = settings ? shouldPreferZhiziGtpEngine(settings, katago.ready) && zhiziGtpConfigured(settings) : false
+  const zhiziSelected = settings ? shouldPreferZhiziGtpEngine(settings, katago.ready) && zhiziGtpConfigured(settings) : false
+  const zhiziConnected = zhiziSelected && getZhiziPersistentSessionTelemetry().ready
   const zhiziMissing = settings?.katagoEngineMode === 'zhizi' && !zhiziGtpConfigured(settings)
   const ikatagoReady = settings ? shouldPreferIKataGoEngine(settings, katago.ready) && ikatagoClientConfigured(settings) : false
   const proxy = await detectCliproxy()
   return {
-    katagoBin: zhiziReady ? 'zhizi-cloud-socket' : ikatagoReady && settings ? settings.ikatagoClientBin : katago.katagoBin,
+    katagoBin: zhiziSelected ? 'zhizi-cloud-socket' : ikatagoReady && settings ? settings.ikatagoClientBin : katago.katagoBin,
     katagoConfig: katago.katagoConfig,
     katagoModel: katago.katagoModel,
-    katagoReady: zhiziMissing ? false : zhiziReady || ikatagoReady || katago.ready,
-    katagoStatus: zhiziMissing ? 'Zhizi Cloud Login Required' : zhiziReady ? 'Zhizi Cloud Direct Ready' : ikatagoReady ? 'iKataGo Remote Ready' : katago.status,
+    katagoReady: zhiziMissing ? false : zhiziSelected || ikatagoReady || katago.ready,
+    katagoStatus: zhiziMissing
+      ? 'Zhizi Cloud Login Required'
+      : zhiziConnected
+        ? 'Zhizi Cloud Direct Ready'
+        : zhiziSelected
+          ? 'Zhizi Cloud Ready To Connect'
+          : ikatagoReady
+            ? 'iKataGo Remote Ready'
+            : katago.status,
     katagoModelPreset: katago.modelPreset.id,
     katagoModelPresets: KATAGO_MODEL_PRESETS,
     proxyBaseUrl: proxy.proxyBaseUrl,
     proxyApiKey: proxy.proxyApiKey,
     proxyModels: proxy.proxyModels,
     hasLlmApiKey: false,
+    hasZhiziToken: Boolean(settings?.zhiziToken.trim()),
     notes: [...katago.notes, ...proxy.notes],
   }
 }
