@@ -12,7 +12,7 @@ import { listLlmModels, testLlmSettings } from './services/llm'
 import { analyzeTrialPositionWithProgress, cancelKataGoAnalysis } from './services/katago'
 import { benchmarkKataGo } from './services/katagoBenchmark'
 import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
-import { getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
+import { cancelScheduledAnalysis, getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
 import { analyzeGameQuickRuntime, analyzePositionRuntime, analyzePositionWithProgressRuntime } from './services/analysis/runtimeIntegration'
 import { collectDiagnostics } from './services/diagnostics'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
@@ -30,8 +30,9 @@ import {
 } from './services/studentProfile'
 import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 import { clearTtsCache, inspectTtsAssets, listTtsVoices, synthesizeTts, testTtsSettings } from './services/tts'
-import { getZhiziCloudAccountStatus, loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode } from './services/zhiziCloudAuth'
-import { queryZhiziGtpAnalysisBatch } from './services/zhiziGtpEngine'
+import { loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode } from './services/zhiziCloudAuth'
+import { probeZhiziCloudConnection } from './services/zhiziConnectionProbe'
+import { resetZhiziPersistentSession } from './services/zhiziSocketSession'
 
 let mainWindow: BrowserWindow | null = null
 type DesktopCommand =
@@ -117,21 +118,13 @@ function requestTeacherBoardImages(event: IpcMainInvokeEvent, request: TeacherBo
   })
 }
 
-function humanizeZhiziConnectionError(error: unknown): string {
-  const text = error instanceof Error ? error.message : String(error)
-  if (/not_enough_credit|余额不足|not enough credit|没有可用算力/i.test(text)) {
-    return '智子云登录有效，但远程 worker 返回 not_enough_credit。请在智子官方 App 确认远程算力权益已经开通，并且已同步到当前连接账号；普通会员有效不一定代表远程 GPU worker 已可分配。'
-  }
-  if (/invalid_status|NoSuchKey|ssh\.json|colab/i.test(text)) {
-    return '智子云远程平台没有找到当前账号的可用 worker 配置。请确认该账号已开通对应远程算力。'
-  }
-  if (/token 已失效|401|invalid.*token|auth/i.test(text)) {
-    return '智子云 token 已失效，请退出后重新登录智子云。'
-  }
-  if (/websocket error|Socket 连接失败|Socket 已断开|transport error|xhr poll error|timeout|超时/i.test(text)) {
-    return `智子云 Socket 连接失败：${text.slice(0, 260)}`
-  }
-  return `智子云连接检测失败：${text.slice(0, 320)}`
+function zhiziSessionConfigurationChanged(before: AppSettings, after: AppSettings): boolean {
+  return (
+    before.zhiziToken !== after.zhiziToken ||
+    before.zhiziGpuType !== after.zhiziGpuType ||
+    before.zhiziExtraArgs !== after.zhiziExtraArgs ||
+    (before.katagoEngineMode === 'zhizi' && after.katagoEngineMode !== 'zhizi')
+  )
 }
 
 function attachTextEditingContextMenu(window: BrowserWindow): void {
@@ -313,7 +306,12 @@ app.whenReady().then(() => {
   ipcMain.handle('dashboard:get', async () => dashboard())
 
   ipcMain.handle('settings:update', async (_event, payload: Partial<AppSettings>) => {
-    setSettings(payload)
+    const before = getSettings()
+    const after = setSettings(payload)
+    if (zhiziSessionConfigurationChanged(before, after)) {
+      cancelKataGoAnalysis({})
+      resetZhiziPersistentSession()
+    }
     return dashboard()
   })
 
@@ -513,7 +511,7 @@ app.whenReady().then(() => {
     }
   })
   ipcMain.handle('katago:cancel-analysis', async (_event, payload: KataGoCancelAnalysisRequest) =>
-    cancelKataGoAnalysis(payload)
+    cancelScheduledAnalysis(payload)
   )
   ipcMain.handle('analysis-scheduler:stats', async () => getAnalysisSchedulerStats())
   ipcMain.handle('katago:engine-pool-stats', async () => getKataGoEnginePoolStats())
@@ -547,14 +545,14 @@ app.whenReady().then(() => {
   }))
   ipcMain.handle('zhizi:login-password', async (_event, payload: ZhiziCloudLoginRequest): Promise<ZhiziCloudLoginResult> => {
     const result = await loginZhiziCloudByPassword(payload)
+    resetZhiziPersistentSession()
     setSettings({
       zhiziUsername: payload.phone.trim(),
-      zhiziToken: result.token,
-      katagoEngineMode: 'zhizi'
+      zhiziToken: result.token
     })
     return {
       ok: true,
-      message: `${result.message} GoAgent 可直接连接智子云。`,
+      message: `${result.message} 请点击“检测并启用”，确认远程引擎真正可用。`,
       hasToken: true,
       dashboard: await dashboard()
     }
@@ -568,20 +566,21 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('zhizi:login-code', async (_event, payload: ZhiziCloudLoginCodeRequest): Promise<ZhiziCloudLoginResult> => {
     const result = await loginZhiziCloudByCode(payload)
+    resetZhiziPersistentSession()
     setSettings({
       zhiziUsername: payload.phone.trim(),
-      zhiziToken: result.token,
-      katagoEngineMode: 'zhizi'
+      zhiziToken: result.token
     })
     return {
       ok: true,
-      message: `${result.message} GoAgent 可直接连接智子云。`,
+      message: `${result.message} 请点击“检测并启用”，确认远程引擎真正可用。`,
       hasToken: true,
       dashboard: await dashboard()
     }
   })
   ipcMain.handle('zhizi:logout', async (): Promise<ZhiziCloudLoginResult> => {
     cancelKataGoAnalysis({})
+    resetZhiziPersistentSession()
     setSettings({
       zhiziToken: '',
       katagoEngineMode: 'auto',
@@ -595,71 +594,19 @@ app.whenReady().then(() => {
     }
   })
   ipcMain.handle('zhizi:test-connection', async (): Promise<ZhiziCloudConnectionTestResult> => {
-    const settings = getSettings()
-    if (!settings.zhiziToken.trim()) {
-      return {
-        ok: false,
-        message: '智子云未登录：请先用账号密码或短信验证码登录。'
-      }
-    }
-    const accountStatus = await getZhiziCloudAccountStatus(settings.zhiziToken)
-    if (!accountStatus.tokenValid) {
-      return {
-        ok: false,
-        message: '智子云 token 已失效，请重新登录。',
-        ...accountStatus
-      }
-    }
-    try {
-      const results = await queryZhiziGtpAnalysisBatch({
-        settings: {
-          ...settings,
-          katagoEngineMode: 'zhizi',
-          zhiziClientBin: ''
-        },
-        runId: `zhizi-smoke-${Date.now()}`,
-        group: 'quick',
-        timeoutMs: 120_000,
-        queries: [
-          {
-            id: 'zhizi-smoke',
-            boardXSize: 19,
-            boardYSize: 19,
-            komi: 7.5,
-            initialPlayer: 'B',
-            moves: [
-              ['B', 'D4'],
-              ['W', 'Q16'],
-              ['B', 'Q4']
-            ],
-            maxVisits: 48
-          }
-        ]
-      })
-      const result = results.get('zhizi-smoke')
-      const best = result?.moveInfos?.[0]
-      if (!best) {
-        return {
-          ok: false,
-          message: '智子云已连接，但没有返回候选点。请稍后重试。'
-        }
-      }
-      return {
-        ok: true,
-        message: '智子云连接成功，远程 KataGo 已返回候选点。',
-        candidateCount: result?.moveInfos?.length ?? 0,
-        topMove: typeof best.move === 'string' ? best.move : undefined,
-        visits: typeof best.visits === 'number' ? best.visits : undefined,
-        winrate: typeof best.winrate === 'number' ? best.winrate : undefined,
-        scoreMean: typeof best.scoreMean === 'number' ? best.scoreMean : typeof best.scoreLead === 'number' ? best.scoreLead : undefined,
-        ...accountStatus
-      }
-    } catch (error) {
-      return {
-        ok: false,
-        message: humanizeZhiziConnectionError(error),
-        ...accountStatus
-      }
+    return probeZhiziCloudConnection(getSettings())
+  })
+  ipcMain.handle('zhizi:enable', async (): Promise<ZhiziCloudConnectionTestResult> => {
+    const result = await probeZhiziCloudConnection(getSettings())
+    if (!result.ok) return result
+    setSettings({
+      katagoEngineMode: 'zhizi',
+      zhiziUseWhenLocalSlow: false
+    })
+    return {
+      ...result,
+      message: `${result.message} 已切换为智子云分析。`,
+      dashboard: await dashboard()
     }
   })
   ipcMain.handle('tts:inspect-assets', async () => inspectTtsAssets())
@@ -703,4 +650,8 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+app.on('before-quit', () => {
+  resetZhiziPersistentSession()
 })

@@ -110,7 +110,7 @@ function maskZhiziUsername(value: unknown): string {
   return text.replace(/(\d{3})\d+(\d{2})/, '$1***$2')
 }
 
-async function getZhiziJson(url: string, token: string, timeoutMs = 15_000): Promise<{ status: number; ok: boolean; json: unknown; rawText: string }> {
+async function getZhiziJsonOnce(url: string, token: string, timeoutMs = 15_000): Promise<{ status: number; ok: boolean; json: unknown; rawText: string }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -140,9 +140,32 @@ async function getZhiziJson(url: string, token: string, timeoutMs = 15_000): Pro
   }
 }
 
+async function getZhiziJson(url: string, token: string, timeoutMs = 15_000): Promise<{ status: number; ok: boolean; json: unknown; rawText: string }> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await getZhiziJsonOnce(url, token, timeoutMs)
+    } catch (cause) {
+      lastError = cause
+      if (attempt >= 2) throw cause
+      await new Promise((resolve) => setTimeout(resolve, 650))
+    }
+  }
+  throw lastError
+}
+
 function objectValue(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object') return {}
   return value as Record<string, unknown>
+}
+
+function responsePayload(value: unknown): Record<string, unknown> {
+  const root = objectValue(value)
+  for (const key of ['data', 'result', 'account', 'user']) {
+    const nested = objectValue(root[key])
+    if (Object.keys(nested).length) return nested
+  }
+  return root
 }
 
 export async function getZhiziCloudAccountStatus(token: string): Promise<ZhiziCloudAccountStatus> {
@@ -152,16 +175,23 @@ export async function getZhiziCloudAccountStatus(token: string): Promise<ZhiziCl
   }
   const meResponse = await getZhiziJson(ZHIZI_ME_URL, trimmed)
   if (!meResponse.ok) {
-    return { tokenValid: false, isMembership: false, hasConnectAccount: false }
+    if (meResponse.status === 401 || meResponse.status === 403) {
+      return { tokenValid: false, isMembership: false, hasConnectAccount: false }
+    }
+    throw new Error(`智子云账号资料暂时不可用（HTTP ${meResponse.status}）。`)
   }
-  const me = objectValue(meResponse.json)
+  const me = responsePayload(meResponse.json)
   const connectResponse = await getZhiziJson(ZHIZI_CONNECT_ACCOUNT_FETCH_URL, trimmed)
-  const connect = connectResponse.ok ? objectValue(connectResponse.json) : {}
-  const connectAccountId = typeof connect.id === 'string' ? connect.id : undefined
+  const connect = connectResponse.ok ? responsePayload(connectResponse.json) : {}
+  const rawConnectAccountId = connect.id ?? connect.connectAccountId
+  const connectAccountId = typeof rawConnectAccountId === 'string' || typeof rawConnectAccountId === 'number'
+    ? String(rawConnectAccountId)
+    : undefined
+  const membershipExpiresAt = me.membershipExpiresAt ?? me.membershipExpiredAt ?? me.expiredAt
   return {
     tokenValid: true,
-    isMembership: me.isMembership === true,
-    membershipExpiresAt: typeof me.membershipExpiresAt === 'string' ? me.membershipExpiresAt : undefined,
+    isMembership: me.isMembership === true || me.membership === true,
+    membershipExpiresAt: typeof membershipExpiresAt === 'string' ? membershipExpiresAt : undefined,
     hasConnectAccount: Boolean(connectAccountId || connect.connectUsername),
     connectAccountId,
     connectUsernameMasked: maskZhiziUsername(connect.connectUsername)

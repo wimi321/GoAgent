@@ -120,6 +120,7 @@ declare global {
       loginZhiziCloudCode: (payload: ZhiziCloudLoginCodeRequest) => Promise<ZhiziCloudLoginResult>
       logoutZhiziCloud: () => Promise<ZhiziCloudLoginResult>
       testZhiziCloudConnection: () => Promise<ZhiziCloudConnectionTestResult>
+      enableZhiziCloud: () => Promise<ZhiziCloudConnectionTestResult>
       inspectTtsAssets: () => Promise<TtsAssetStatus>
       listTtsVoices: () => Promise<TtsVoice[]>
       synthesizeTts: (payload: TtsSynthesisRequest) => Promise<TtsSynthesisResult>

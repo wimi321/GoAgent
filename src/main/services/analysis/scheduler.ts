@@ -70,7 +70,20 @@ function priorityForGroup(group?: KataGoAnalysisGroup): ScheduledAnalysisPriorit
 }
 
 function updateRecent(snapshot: ScheduledAnalysisSnapshot): void {
-  recent.set(snapshot.id, { ...snapshot })
+  recent.set(snapshot.id, {
+    id: snapshot.id,
+    runId: snapshot.runId,
+    group: snapshot.group,
+    priority: snapshot.priority,
+    description: snapshot.description,
+    status: snapshot.status,
+    queuedAt: snapshot.queuedAt,
+    startedAt: snapshot.startedAt,
+    endedAt: snapshot.endedAt,
+    queueWaitMs: snapshot.queueWaitMs,
+    runMs: snapshot.runMs,
+    error: snapshot.error
+  })
   const ordered = Array.from(recent.values()).sort((a, b) => b.queuedAt.localeCompare(a.queuedAt))
   for (const stale of ordered.slice(MAX_RECENT)) recent.delete(stale.id)
 }

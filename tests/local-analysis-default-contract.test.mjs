@@ -31,5 +31,5 @@ test('GoAgent defaults analysis to local KataGo and migrates old remote preferen
   assert.match(katago, /settings\.zhiziUseWhenLocalSlow/)
   assert.match(katago, /opt-in slow-machine mode/)
   assert.match(renderer, /默认本机：自动选择最佳本地引擎/)
-  assert.match(renderer, /当前使用本机 KataGo，不会连接智子云/)
+  assert.match(renderer, /当前仍使用本机 KataGo，不会上传局面/)
 })
