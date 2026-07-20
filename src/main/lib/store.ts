@@ -24,6 +24,26 @@ function defaultPythonBin(): string {
   return process.platform === 'win32' ? 'python' : 'python3'
 }
 
+function defaultReviewLanguage(): AppSettings['reviewLanguage'] {
+  let systemLocale = ''
+  try {
+    systemLocale = app.getLocale()
+  } catch {
+    // Electron may not expose app locale before ready on every platform.
+  }
+  const locale = (systemLocale || Intl.DateTimeFormat().resolvedOptions().locale).replaceAll('_', '-').toLowerCase()
+  const traditionalChinese =
+    (locale.startsWith('zh') || locale.startsWith('yue')) &&
+    (locale.startsWith('yue') || locale.includes('hant') || /-(tw|hk|mo)(?:-|\.|$)/.test(locale))
+  if (traditionalChinese) return 'zh-TW'
+  if (locale.startsWith('zh')) return 'zh-CN'
+  if (locale.startsWith('ja')) return 'ja-JP'
+  if (locale.startsWith('ko')) return 'ko-KR'
+  if (locale.startsWith('th')) return 'th-TH'
+  if (locale.startsWith('vi')) return 'vi-VN'
+  return 'en-US'
+}
+
 const defaults: AppSettings = {
   katagoBin: '',
   katagoConfig: '',
@@ -36,6 +56,9 @@ const defaults: AppSettings = {
   katagoBenchmarkThreads: 0,
   katagoBenchmarkVisitsPerSecond: 0,
   katagoBenchmarkUpdatedAt: '',
+  katagoBenchmarkEngineFingerprint: '',
+  katagoBenchmarkLastCompletedAt: '',
+  katagoAutoBenchmarkEnabled: true,
   katagoEngineMode: 'auto',
   katagoAnalysisSpeedMode: 'auto',
   localAnalysisDefaultApplied: false,
@@ -57,7 +80,10 @@ const defaults: AppSettings = {
   llmBaseUrl: 'https://api.openai.com/v1',
   llmApiKey: '',
   llmModel: 'gpt-5-mini',
-  reviewLanguage: 'zh-CN',
+  onboardingVersion: 0,
+  llmSetupStatus: 'unconfigured',
+  llmLastVerifiedAt: '',
+  reviewLanguage: defaultReviewLanguage(),
   defaultPlayerName: '',
   ttsEnabled: true,
   ttsAutoPlay: false,
@@ -357,6 +383,18 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
     Object.prototype.hasOwnProperty.call(safeNext, 'ikatagoUseWhenLocalSlow') ||
     Object.prototype.hasOwnProperty.call(safeNext, 'zhiziUseWhenLocalSlow')
   settingsStore.set(shouldMarkLocalDefaultApplied ? { ...safeNext, localAnalysisDefaultApplied: true } : safeNext)
+  const llmConfigChanged =
+    Object.prototype.hasOwnProperty.call(next, 'llmBaseUrl') ||
+    Object.prototype.hasOwnProperty.call(next, 'llmApiKey') ||
+    Object.prototype.hasOwnProperty.call(next, 'llmModel')
+  if (llmConfigChanged && !Object.prototype.hasOwnProperty.call(next, 'llmSetupStatus')) {
+    const current = getSettings()
+    const configured = Boolean(current.llmBaseUrl.trim() && current.llmApiKey.trim() && current.llmModel.trim())
+    settingsStore.set({
+      llmSetupStatus: configured ? 'needs-attention' : 'unconfigured',
+      llmLastVerifiedAt: ''
+    })
+  }
   return getSettings()
 }
 

@@ -122,9 +122,30 @@ test('probe sends a valid PNG image payload to the multimodal provider', async (
   try {
     await withMockChatServer((body) => {
       requests.push(body)
+      if (Array.isArray(body.tools) && body.tools.some((tool) => tool.function?.name === 'readiness_check')) {
+        return {
+          payload: {
+            choices: [{
+              finish_reason: 'tool_calls',
+              message: {
+                content: '',
+                tool_calls: [{
+                  id: 'call_readiness',
+                  type: 'function',
+                  function: { name: 'readiness_check', arguments: '{"value":"goagent"}' }
+                }]
+              }
+            }],
+            usage: { prompt_tokens: 8, completion_tokens: 1, total_tokens: 9 }
+          }
+        }
+      }
+      const hasImage = body.messages?.some((message) =>
+        Array.isArray(message.content) && message.content.some((part) => part.type === 'image_url')
+      )
       return {
         payload: {
-          choices: [{ finish_reason: 'stop', message: { content: 'OK' } }],
+          choices: [{ finish_reason: 'stop', message: { content: hasImage ? 'BLUE' : 'OK' } }],
           usage: { prompt_tokens: 8, completion_tokens: 1, total_tokens: 9 }
         }
       }
@@ -132,9 +153,12 @@ test('probe sends a valid PNG image payload to the multimodal provider', async (
       const result = await probeOpenAICompatibleProvider(settings(baseUrl))
       assert.equal(result.ok, true)
       assert.equal(result.supportsImage, true)
+      assert.equal(result.capabilities?.text.ok, true)
+      assert.equal(result.capabilities?.vision.ok, true)
+      assert.equal(result.capabilities?.tools.ok, true)
     })
 
-    const imagePart = requests[0].messages
+    const imagePart = requests.flatMap((request) => request.messages ?? [])
       .flatMap((message) => Array.isArray(message.content) ? message.content : [])
       .find((part) => part.type === 'image_url')
     assert.ok(imagePart, 'probe should include an image part')
@@ -144,6 +168,42 @@ test('probe sends a valid PNG image payload to the multimodal provider', async (
     assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
     assert.equal(bytes.readUInt32BE(16), 64)
     assert.equal(bytes.readUInt32BE(20), 64)
+  } finally {
+    await cleanup()
+  }
+})
+
+test('probe rejects a model that accepts image payloads but does not identify the image', async () => {
+  const { probeOpenAICompatibleProvider, cleanup } = await importProviderForTest()
+  try {
+    await withMockChatServer((body) => {
+      if (Array.isArray(body.tools)) {
+        return {
+          payload: {
+            choices: [{
+              finish_reason: 'tool_calls',
+              message: {
+                content: '',
+                tool_calls: [{
+                  id: 'call_readiness',
+                  type: 'function',
+                  function: { name: 'readiness_check', arguments: '{"value":"goagent"}' }
+                }]
+              }
+            }]
+          }
+        }
+      }
+      return {
+        payload: { choices: [{ finish_reason: 'stop', message: { content: 'OK' } }] }
+      }
+    }, async (baseUrl) => {
+      const result = await probeOpenAICompatibleProvider(settings(baseUrl))
+      assert.equal(result.ok, false)
+      assert.equal(result.capabilities?.text.ok, true)
+      assert.equal(result.capabilities?.vision.ok, false)
+      assert.equal(result.capabilities?.tools.ok, true)
+    })
   } finally {
     await cleanup()
   }

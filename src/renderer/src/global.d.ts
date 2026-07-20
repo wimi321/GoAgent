@@ -16,6 +16,11 @@ import type {
   KataGoAssetStatus,
   KataGoBenchmarkRequest,
   KataGoBenchmarkResult,
+  KataGoBenchmarkStartRequest,
+  KataGoBenchmarkStartResult,
+  KataGoBenchmarkCancelRequest,
+  KataGoBenchmarkCancelResult,
+  KataGoBenchmarkProgress,
   KataGoCancelAnalysisRequest,
   KataGoCancelAnalysisResult,
   LibraryDeleteRequest,
@@ -83,12 +88,16 @@ declare global {
       cancelKataGoAnalysis: (payload: KataGoCancelAnalysisRequest) => Promise<KataGoCancelAnalysisResult>
       getAnalysisSchedulerStats: () => Promise<AnalysisSchedulerStats>
       benchmarkKataGo: (payload?: KataGoBenchmarkRequest) => Promise<KataGoBenchmarkResult>
+      startKataGoBenchmark: (payload?: KataGoBenchmarkStartRequest) => Promise<KataGoBenchmarkStartResult>
+      cancelKataGoBenchmark: (payload?: KataGoBenchmarkCancelRequest) => Promise<KataGoBenchmarkCancelResult>
+      onKataGoBenchmarkProgress: (handler: (payload: KataGoBenchmarkProgress) => void) => () => void
       onAnalyzePositionProgress: (handler: (payload: AnalyzePositionProgress) => void) => () => void
       onAnalyzePositionSearchProgress: (handler: (payload: AnalyzePositionSearchProgress) => void) => () => void
       onAnalyzeGameQuickProgress: (handler: (payload: AnalyzeGameQuickProgress) => void) => () => void
       getDiagnostics: () => Promise<DiagnosticsReport>
       inspectKataGoAssets: () => Promise<KataGoAssetStatus>
       installKataGoOfficialModel: (payload: KataGoAssetInstallRequest) => Promise<KataGoAssetInstallResult>
+      cancelKataGoAssetInstall: () => Promise<{ cancelled: boolean }>
       onKataGoAssetInstallProgress: (handler: (payload: KataGoAssetInstallProgress) => void) => () => void
       listStudentProfiles: () => Promise<StudentProfile[]>
       suggestStudentBindings: (payload: { blackName?: string; whiteName?: string; source?: string; foxNickname?: string }) => Promise<StudentBindingSuggestion[]>

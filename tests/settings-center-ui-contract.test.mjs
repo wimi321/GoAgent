@@ -9,19 +9,20 @@ function read(path) {
   return readFileSync(join(root, path), 'utf8')
 }
 
-test('settings center uses page-based navigation instead of one long anchor form', () => {
+test('settings center uses five user-facing pages and keeps remote compute in advanced analysis settings', () => {
   const app = read('src/renderer/src/App.tsx')
 
-  assert.match(app, /type SettingsPageId = 'ai' \| 'katago' \| 'remote' \| 'voice' \| 'general' \| 'about'/)
+  assert.match(app, /type SettingsPageId = 'general' \| 'ai' \| 'katago' \| 'voice' \| 'about'/)
   assert.match(app, /const \[activeSettingsPage, setActiveSettingsPage\]/)
   assert.match(app, /className=\{`settings-nav-button/)
   assert.match(app, /aria-current=\{activeSettingsPage === page\.id \? 'page' : undefined\}/)
   assert.match(app, /hidden=\{activeSettingsPage !== 'ai'\}/)
   assert.match(app, /hidden=\{activeSettingsPage !== 'katago'\}/)
-  assert.match(app, /hidden=\{activeSettingsPage !== 'remote'\}/)
   assert.match(app, /hidden=\{activeSettingsPage !== 'voice'\}/)
   assert.match(app, /hidden=\{activeSettingsPage !== 'general'\}/)
   assert.match(app, /hidden=\{activeSettingsPage !== 'about'\}/)
+  assert.match(app, /settings-remote-advanced" hidden=\{activeSettingsPage !== 'katago'\}/)
+  assert.doesNotMatch(app, /id:\s*'remote'/)
   assert.doesNotMatch(app, /<a href="#settings-ai"/)
   assert.doesNotMatch(app, /面向普通用户|每一页只处理一类事情|普通用户只需要|普通用户不需要|普通用户留空|兼容 API、Key/)
 })
