@@ -26,6 +26,8 @@ const requiredAssets = [
   `GoAgent-${version}-mac-arm64.dmg`,
   `GoAgent-${version}-mac-x64.dmg`,
   `GoAgent-${version}-win-x64-portable.zip`,
+  `GoAgent-${version}-win-x64.exe`,
+  `GoAgent-${version}-win-x64-nvidia.exe`,
   `GoAgent-${version}-win-x64-nvidia-portable.7z`
 ]
 const forbiddenAssets = [
@@ -33,32 +35,18 @@ const forbiddenAssets = [
   `GoAgent-${version}-mac-x64-lite.dmg`,
   `GoAgent-${version}-win-x64-lite.exe`,
   `GoAgent-${version}-win-x64-lite-portable.zip`,
-  `GoAgent-${version}-win-x64.exe`,
-  `GoAgent-${version}-win-x64-nvidia.exe`,
   `GoAgent-${version}-win-x64-nvidia-portable.7z.001`
 ]
 const requiredTopics = [
-  'grounded shape recognition engine',
-  'local pattern matcher',
-  'knowledge source-policy gates',
-  'optimized move-range review',
-  'quality checks and eval gates',
-  'Real Eval / engine silver fixture gate',
-  'KataGo engine pool telemetry',
-  'Release artifact smoke',
-  'student level',
-  'student age',
-  'teacher persona style settings with evidence boundary',
-  'teacher sessions',
-  'selective PR #6 integration',
-  'Kokoro',
-  'selected-provider TTS',
-  'offline synthesis',
-  'Windows OpenCL runtime bundle',
-  'KataGo OpenCL adjacent runtime files',
-  'GPU vendor OpenCL drivers',
-  'layiku',
-  'wimi321'
+  'first-run',
+  'system language',
+  'text, image, and tool',
+  '30-second',
+  'resumable',
+  'local KataGo remains the default',
+  'persistent Zhizi Cloud',
+  'vip-share',
+  'official Zhizi app'
 ]
 
 const failures = []
@@ -72,7 +60,8 @@ for (const asset of requiredAssets) {
 }
 if (!body.includes('OpenCL')) failures.push('missing OpenCL edition label')
 if (!body.includes('CUDA')) failures.push('missing CUDA edition label')
-if (!body.includes('免安装') || !body.includes('portable')) failures.push('recommended Windows downloads must emphasize portable packages')
+if (!body.includes('免安装') || !body.includes('portable')) failures.push('Windows downloads must distinguish portable packages')
+if (!body.includes('安装版') || !body.includes('installer')) failures.push('Windows downloads must distinguish installer packages')
 if (body.includes('| SHA256SUMS.txt |') || body.includes('| Checksums |') || body.includes('| 校验文件 |') || body.includes('| 校驗檔 |')) {
   failures.push('recommended download tables must not advertise checksum files')
 }

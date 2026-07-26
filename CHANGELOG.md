@@ -4,6 +4,30 @@ All notable changes to GoAgent will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.4.19 - First-Run Setup and Reliable Zhizi Cloud
+
+### Added
+
+- Added a versioned, one-time first-run guide that follows the operating system language and supports all seven GoAgent UI languages.
+- Added optional AI teacher setup with separate text, image, and tool-call verification, plus manual model entry when a provider does not expose `/models`.
+- Added cancellable background KataGo benchmarking with a 30-second cap, balanced defaults, analysis-task preemption, and preservation of the last valid result.
+- Added resumable KataGo model downloads with pause, resume, validation, and explicit apply actions.
+- Added a persistent Zhizi Cloud Socket.IO/GTP analysis session with live visits-per-second, bounded reconnect, cancellation, and idle release.
+- Added an in-app link to the official Zhizi app for account and subscription management.
+
+### Changed
+
+- Local KataGo remains the default. Logging in to Zhizi Cloud does not switch engines; remote analysis is enabled only after the user explicitly runs a successful connection check.
+- Settings keep five primary user-facing pages, with runtime and remote-engine details moved into advanced analysis settings.
+- Unconfigured AI actions now open the AI teacher settings page instead of exposing an IPC error.
+- The top analysis-speed indicator continues to show live search speed only, never a historical benchmark value.
+
+### Verified
+
+- First-run onboarding, system-language detection, AI verification, benchmark cancellation, and settings contracts.
+- Real Zhizi VIP shared-engine login, persistent two-position analysis, cancellation, live speed, and scheduler telemetry.
+- macOS, Windows, and Linux CI plus the P0 release-candidate checks.
+
 ## 0.4.12 - Local KataGo Default Hotfix
 
 ### Fixed

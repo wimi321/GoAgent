@@ -13,11 +13,13 @@ test('release notes include multilingual download guidance', () => {
   }
 })
 
-test('release notes list recommended portable Windows artifacts', () => {
+test('release notes link every published desktop artifact', () => {
   for (const asset of [
     `GoAgent-${packageJson.version}-mac-arm64.dmg`,
     `GoAgent-${packageJson.version}-mac-x64.dmg`,
     `GoAgent-${packageJson.version}-win-x64-portable.zip`,
+    `GoAgent-${packageJson.version}-win-x64.exe`,
+    `GoAgent-${packageJson.version}-win-x64-nvidia.exe`,
     `GoAgent-${packageJson.version}-win-x64-nvidia-portable.7z`
   ]) {
     assert.ok(notes.includes(asset), `missing ${asset}`)
@@ -37,14 +39,12 @@ test('release notes label Windows editions as OpenCL and CUDA without checksum c
   assert.doesNotMatch(notes, /\| 校驗檔 \|/)
 })
 
-test('release notes do not list retired Lite artifacts or Windows installers', () => {
+test('release notes do not list retired Lite or split NVIDIA artifacts', () => {
   for (const asset of [
     `GoAgent-${packageJson.version}-mac-arm64-lite.dmg`,
     `GoAgent-${packageJson.version}-mac-x64-lite.dmg`,
     `GoAgent-${packageJson.version}-win-x64-lite.exe`,
     `GoAgent-${packageJson.version}-win-x64-lite-portable.zip`,
-    `GoAgent-${packageJson.version}-win-x64.exe`,
-    `GoAgent-${packageJson.version}-win-x64-nvidia.exe`,
     `GoAgent-${packageJson.version}-win-x64-nvidia-portable.7z.001`
   ]) {
     assert.equal(notes.includes(asset), false, `must not advertise ${asset}`)
