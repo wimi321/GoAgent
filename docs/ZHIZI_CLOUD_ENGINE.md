@@ -83,7 +83,7 @@ GoAgent 不会把智子 token 写入普通设置文件，也不会在日志中�
 - `验证码不正确或已过期`：重新发送验证码后再登录。
 - `当前没有空闲算力`：GoAgent 会按有限次数自动重试。这通常是 worker 暂时繁忙，不等于账号余额不足。
 - VIP 共享返回 `not_enough_credit`：GoAgent 会明确提示“VIP 权益/连接账号未同步”，不会把它误报成独享余额不足。先退出并重新登录；持续失败时请让智子官方检查 VIP 与连接账号的 worker 权益。
-- 独享 1x / 3x / 6x 返回 `not_enough_credit`：这是按量档位的余额或档位问题，请在智子官方 App 检查。
+- 独享 1x / 3x / 6x 返回 `not_enough_credit`：这是按量档位的余额或档位问题，请在智子官方 App 检查。设置页可直接打开 [智子官方 App 下载页](https://zhizigo.com/download)。
 - 官方 Postman 中的 `connectAccount/login` 只用于验证连接账号凭据，不返回 GoAgent 直连所需的 token，也不会替代主账号登录流程。
 - `智子云 KataGo 启动超时`：检查 token 是否有效，或在 GoAgent 中重新登录。
 - `智子云 GTP 命令失败`：可能是远端引擎尚未 ready、账号状态异常，或智子云当前连接不可用。

@@ -6,6 +6,8 @@ const ZHIZI_FAST_LOGIN_URL = 'https://www.zhizigo.com/api/cluster/account/fast-l
 const ZHIZI_ME_URL = 'https://www.zhizigo.com/api/cluster/account/me'
 const ZHIZI_CONNECT_ACCOUNT_FETCH_URL = 'https://www.zhizigo.com/api/cluster/account/connectAccount/fetch'
 
+export const ZHIZI_OFFICIAL_APP_DOWNLOAD_URL = 'https://zhizigo.com/download'
+
 export interface ZhiziCloudAccountStatus {
   tokenValid: boolean
   isMembership: boolean

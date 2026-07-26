@@ -167,6 +167,7 @@ const api = {
   logoutZhiziCloud: (): Promise<ZhiziCloudLoginResult> => ipcRenderer.invoke('zhizi:logout'),
   testZhiziCloudConnection: (): Promise<ZhiziCloudConnectionTestResult> => ipcRenderer.invoke('zhizi:test-connection'),
   enableZhiziCloud: (): Promise<ZhiziCloudConnectionTestResult> => ipcRenderer.invoke('zhizi:enable'),
+  openZhiziOfficialApp: (): Promise<{ ok: boolean; url: string }> => ipcRenderer.invoke('zhizi:open-official-app'),
   inspectTtsAssets: (): Promise<TtsAssetStatus> => ipcRenderer.invoke('tts:inspect-assets'),
   listTtsVoices: (): Promise<TtsVoice[]> => ipcRenderer.invoke('tts:list-voices'),
   synthesizeTts: (payload: TtsSynthesisRequest): Promise<TtsSynthesisResult> => ipcRenderer.invoke('tts:synthesize', payload),
