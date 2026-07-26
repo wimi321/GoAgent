@@ -1,5 +1,5 @@
 import type { AppSettings, LlmModelsListRequest, LlmModelsListResult, LlmSettingsTestRequest, LlmSettingsTestResult } from '@main/lib/types'
-import { getSettings } from '@main/lib/store'
+import { getSettings, setSettings } from '@main/lib/store'
 import { listOpenAICompatibleModels, postOpenAICompatibleChat, probeOpenAICompatibleProvider, streamOpenAICompatibleChat } from './llm/openaiCompatibleProvider'
 import type { ChatMessage, ProviderSettings } from './llm/provider'
 
@@ -72,9 +72,20 @@ export async function testLlmSettings(payload: LlmSettingsTestRequest): Promise<
     llmModel: payload.llmModel.trim() || saved.llmModel
   }
   const result = await probeOpenAICompatibleProvider(settings)
+  const capabilities = result.capabilities ?? {
+    text: { ok: result.ok, message: result.message, technicalDetail: result.technicalDetail },
+    vision: { ok: Boolean(result.supportsImage), message: result.message, technicalDetail: result.technicalDetail },
+    tools: { ok: false, message: '尚未验证工具调用。' }
+  }
+  const verifiedAt = result.ok ? new Date().toISOString() : ''
+  setSettings({
+    llmSetupStatus: result.ok ? 'verified' : 'needs-attention',
+    llmLastVerifiedAt: verifiedAt
+  })
   return {
     ok: result.ok,
-    message: result.technicalDetail ? `${result.message} ${result.technicalDetail}` : result.message
+    message: result.message,
+    capabilities
   }
 }
 

@@ -10,29 +10,44 @@ export const SUPPORTED_UI_LOCALES: Array<{ value: UiLocale; label: string; nativ
   { value: 'vi-VN', label: 'Tiếng Việt', nativeName: 'Tiếng Việt' }
 ]
 
+function matchUiLocale(value: unknown): UiLocale | null {
+  if (typeof value !== 'string') return null
+  const locale = value.trim().replaceAll('_', '-').toLowerCase()
+  if (!locale) return null
+
+  const primaryLanguage = locale.split(/[-.]/, 1)[0]
+  if (primaryLanguage === 'zh' || primaryLanguage === 'yue') {
+    const traditional =
+      primaryLanguage === 'yue' ||
+      locale.includes('-hant') ||
+      /-(tw|hk|mo)(?:-|\.|$)/.test(locale)
+    return traditional ? 'zh-TW' : 'zh-CN'
+  }
+  if (primaryLanguage === 'en') return 'en-US'
+  if (primaryLanguage === 'ja') return 'ja-JP'
+  if (primaryLanguage === 'ko') return 'ko-KR'
+  if (primaryLanguage === 'th') return 'th-TH'
+  if (primaryLanguage === 'vi') return 'vi-VN'
+  return null
+}
+
 export function normalizeUiLocale(value: unknown): UiLocale {
-  if (
-    value === 'zh-CN' ||
-    value === 'zh-TW' ||
-    value === 'en-US' ||
-    value === 'ja-JP' ||
-    value === 'ko-KR' ||
-    value === 'th-TH' ||
-    value === 'vi-VN'
-  ) {
-    return value
+  return matchUiLocale(value) ?? 'zh-CN'
+}
+
+/** Selects the first supported locale from the operating system's preference order. */
+export function detectSystemUiLocale(preferredLanguages?: readonly string[]): UiLocale {
+  const systemLanguages = preferredLanguages
+    ? [...preferredLanguages]
+    : typeof navigator === 'undefined'
+      ? []
+      : [...(navigator.languages ?? []), navigator.language]
+
+  for (const language of systemLanguages) {
+    const locale = matchUiLocale(language)
+    if (locale) return locale
   }
-  if (typeof value === 'string') {
-    const locale = value.toLowerCase()
-    if (locale === 'zh-hk' || locale === 'zh-mo' || locale === 'zh-hant') return 'zh-TW'
-    if (locale === 'zh' || locale === 'zh-cn' || locale === 'zh-sg' || locale === 'zh-hans') return 'zh-CN'
-    if (locale.startsWith('en')) return 'en-US'
-    if (locale.startsWith('ja')) return 'ja-JP'
-    if (locale.startsWith('ko')) return 'ko-KR'
-    if (locale.startsWith('th')) return 'th-TH'
-    if (locale.startsWith('vi')) return 'vi-VN'
-  }
-  return 'zh-CN'
+  return 'en-US'
 }
 
 export function localeNativeName(localeInput: unknown): string {
@@ -48,6 +63,8 @@ const ZH_CN = {
   benchmarkFailed: 'KataGo 测速失败',
   katagoInstallPreparing: '正在准备 KataGo 官方权重安装。',
   katagoInstallFailed: 'KataGo 官方权重安装失败',
+  pauseDownload: '暂停下载',
+  resumeDownload: '继续下载',
   languageLabel: '界面语言',
   languageHelp: '同时影响 AI 老师默认讲解语言和错误提示语言。',
   reviewLanguage: '复盘语言',
@@ -77,10 +94,10 @@ const ZH_CN = {
   opening: '开局',
   even: '均势',
   toAnalyze: '待分析',
-  appStatusReady: 'Ready',
-  appStatusTask: 'Task: {{busy}}',
-  winrateReady: 'Winrate ready',
-  winrateAnalyzing: 'Winrate {{progress}}',
+  appStatusReady: '工作台就绪',
+  appStatusTask: '正在处理：{{busy}}',
+  winrateReady: '胜率图待命',
+  winrateAnalyzing: '胜率图 {{progress}}',
   katagoMissing: 'KataGo 缺失',
   katagoEngine: 'KataGo 引擎',
   localCompatibleModel: '本机兼容模型',
@@ -179,6 +196,31 @@ const ZH_CN = {
   settingsSubtitle: '模型、分析与语音',
   settingsDescription: '管理 AI 老师、棋盘分析和讲解语音。',
   settingsStatus: '设置状态',
+  settingsNavLabel: '设置分类',
+  settingsGeneralTitle: '通用',
+  settingsGeneralSubtitle: '语言与本地数据',
+  settingsGeneralSummary: '设置界面语言和本地使用偏好。',
+  settingsAiTitle: 'AI 老师',
+  settingsAiSubtitle: '连接与选择模型',
+  settingsAiSummary: '连接能看棋盘图、使用工具并讲解围棋的模型。',
+  settingsAiSectionTitle: 'AI 老师模型',
+  settingsAiSectionDescription: '填写服务地址、访问密钥和多模态模型即可。',
+  settingsAnalysisTitle: '围棋分析',
+  settingsAnalysisSubtitle: 'KataGo、权重与速度',
+  settingsAnalysisSummary: '管理本机分析引擎、官方权重和速度优化。',
+  settingsAnalysisSectionTitle: 'KataGo 分析',
+  settingsAnalysisSectionDescription: '选择官方权重、检查本机资源，并按需优化分析速度。',
+  settingsVoiceTitle: '语音',
+  settingsVoiceSubtitle: '声音与播放',
+  settingsVoiceSummary: '选择老师讲解的声音和播放方式。',
+  settingsVoiceSectionTitle: '语音讲解',
+  settingsVoiceSectionDescription: '选择离线或云端语音，并调整音色和播放节奏。',
+  settingsAboutTitle: '关于',
+  settingsAboutSubtitle: '版本、开源与支持',
+  settingsAboutSummary: '查看 GoAgent 的开源信息和反馈入口。',
+  settingsAboutDescription: 'GoAgent 是开源、免费的围棋智能体。KataGo 负责事实分析，AI 老师负责把局面讲清楚。',
+  remoteComputeAdvanced: '远程算力与高级引擎设置',
+  technicalDetails: '技术详情',
   katagoWeights: 'KataGo 官方权重',
   officialWeights: '官方权重',
   modelGroupZhizi: '官网推荐 zhizi 模型',
@@ -247,6 +289,16 @@ const ZH_CN = {
   benchmarkPending: '待测速',
   benchmarkRunning: '测速中',
   benchmarkRun: '一键测速并优化',
+  autoBenchmark: '自动优化分析速度',
+  autoBenchmarkHelp: '仅在需要时后台运行；可以随时取消或永久关闭。',
+  cancelBenchmark: '取消测速',
+  benchmarkBalancedFallback: '不测速也能正常分析，GoAgent 会使用均衡设置。',
+  benchmarkStartedMessage: '正在后台优化分析速度。',
+  benchmarkAlreadyReadyMessage: '当前引擎已经使用有效的优化配置。',
+  benchmarkCompletedMessage: '分析速度已优化为 {{threads}} 个搜索线程。',
+  benchmarkCancelledMessage: '测速已取消，继续使用均衡设置。',
+  benchmarkTimedOutMessage: '测速未在 30 秒内完成，继续使用均衡设置。',
+  benchmarkFailedMessage: '测速没有完成，继续使用均衡设置。',
   betaAcceptance: 'P0 Beta 验收',
   publicBetaReady: 'Public Beta Ready',
   publicBetaNotReady: 'Public Beta 未就绪',
@@ -277,7 +329,7 @@ const ZH_CN = {
   refreshModels: '刷新模型',
   modelPickerHelp: '从可用模型中选择；如果没有看到新模型，请先刷新。',
   modelRefreshFailed: '模型刷新失败: {{error}}',
-  imageTest: '图片测试',
+  imageTest: '验证 AI 能力',
   releaseReadinessFailed: 'Beta 验收状态读取失败: {{error}}',
   katagoBundledAssets: 'KataGo 内置资源',
   claudeProxy: 'Claude 兼容代理',
@@ -287,6 +339,9 @@ const ZH_CN = {
   teacherUiReadyDetail: '关键手、工具日志、结构化结果卡已接入',
   llmModelDetail: '模型 {{model}}',
   llmApiMissingDetail: '未配置 API Key，老师多模态讲解不可用',
+  connectAiTeacher: '连接 AI 老师',
+  connectAiTeacherDetail: '连接支持棋盘图片和工具调用的模型，即可开始讲解。',
+  llmSetupRequired: '连接并验证 AI 模型后，就可以使用老师讲解。KataGo 分析不受影响。',
   commandPalette: 'Command Palette',
   commandPlaceholder: '输入任务或命令，例如：分析当前手、导入棋谱、打开设置',
   commandAnalyzeCurrent: '分析当前手',
@@ -477,6 +532,8 @@ const ZH_TW: Record<TranslationKey, string> = {
   ...ZH_CN,
   taskFailed: '任務失敗',
   settingsSaved: '設定已儲存',
+  pauseDownload: '暫停下載',
+  resumeDownload: '繼續下載',
   languageLabel: '介面語言',
   languageHelp: '同時影響 AI 老師預設講解語言與錯誤提示語言。',
   reviewLanguage: '複盤語言',
@@ -487,6 +544,13 @@ const ZH_TW: Record<TranslationKey, string> = {
   copyFailed: '複製失敗',
   ready: '就緒',
   pendingConfig: '待設定',
+  autoBenchmark: '自動最佳化分析速度',
+  autoBenchmarkHelp: '只在需要時於背景執行；可以隨時取消或永久關閉。',
+  cancelBenchmark: '取消測速',
+  benchmarkBalancedFallback: '不測速也能正常分析，GoAgent 會使用均衡設定。',
+  connectAiTeacher: '連接 AI 老師',
+  connectAiTeacherDetail: '連接支援棋盤圖片與工具呼叫的模型，即可開始講解。',
+  llmSetupRequired: '連接並驗證 AI 模型後，就可以使用老師講解。KataGo 分析不受影響。',
   notConfigured: '未設定',
   cached: '已快取',
   remoteOnly: '僅列表',
@@ -505,6 +569,10 @@ const ZH_TW: Record<TranslationKey, string> = {
   llmReady: 'LLM 就緒',
   llmMissing: 'LLM 未設定',
   visionLlm: '多模態 LLM',
+  appStatusReady: '工作台就緒',
+  appStatusTask: '正在處理：{{busy}}',
+  winrateReady: '勝率圖待命',
+  winrateAnalyzing: '勝率圖 {{progress}}',
   library: '棋譜庫',
   toggleLibrary: '切換棋譜欄',
   foxNicknamePlaceholder: '輸入野狐暱稱',
@@ -538,6 +606,31 @@ const ZH_TW: Record<TranslationKey, string> = {
   settingsTitle: 'GoAgent 設定',
   settingsSubtitle: '模型、分析與語音',
   settingsDescription: '管理 AI 老師、棋盤分析和講解語音。',
+  settingsNavLabel: '設定分類',
+  settingsGeneralTitle: '一般',
+  settingsGeneralSubtitle: '語言與本機資料',
+  settingsGeneralSummary: '設定介面語言與本機使用偏好。',
+  settingsAiTitle: 'AI 老師',
+  settingsAiSubtitle: '連線與選擇模型',
+  settingsAiSummary: '連接能查看棋盤圖片、使用工具並講解圍棋的模型。',
+  settingsAiSectionTitle: 'AI 老師模型',
+  settingsAiSectionDescription: '填寫服務位址、存取金鑰和多模態模型即可。',
+  settingsAnalysisTitle: '圍棋分析',
+  settingsAnalysisSubtitle: 'KataGo、權重與速度',
+  settingsAnalysisSummary: '管理本機分析引擎、官方權重和速度最佳化。',
+  settingsAnalysisSectionTitle: 'KataGo 分析',
+  settingsAnalysisSectionDescription: '選擇官方權重、檢查本機資源，並按需最佳化分析速度。',
+  settingsVoiceTitle: '語音',
+  settingsVoiceSubtitle: '聲音與播放',
+  settingsVoiceSummary: '選擇老師講解的聲音與播放方式。',
+  settingsVoiceSectionTitle: '語音講解',
+  settingsVoiceSectionDescription: '選擇離線或雲端語音，並調整音色與播放節奏。',
+  settingsAboutTitle: '關於',
+  settingsAboutSubtitle: '版本、開源與支援',
+  settingsAboutSummary: '查看 GoAgent 的開源資訊與意見回饋入口。',
+  settingsAboutDescription: 'GoAgent 是開源、免費的圍棋智能體。KataGo 負責事實分析，AI 老師負責把局面講清楚。',
+  remoteComputeAdvanced: '遠端算力與進階引擎設定',
+  technicalDetails: '技術詳情',
   katagoWeights: 'KataGo 官方權重',
   modelGroupZhizi: '官網推薦 zhizi 模型',
   modelGroupB18: '18b 官方推薦 / 日常教學',
@@ -582,6 +675,12 @@ const ZH_TW: Record<TranslationKey, string> = {
   recheck: '重新檢查',
   katagoBenchmarkTitle: 'KataGo 一鍵測速',
   benchmarkRun: '一鍵測速並最佳化',
+  benchmarkStartedMessage: '正在背景最佳化分析速度。',
+  benchmarkAlreadyReadyMessage: '目前引擎已使用有效的最佳化設定。',
+  benchmarkCompletedMessage: '分析速度已最佳化為 {{threads}} 個搜尋執行緒。',
+  benchmarkCancelledMessage: '測速已取消，繼續使用均衡設定。',
+  benchmarkTimedOutMessage: '測速未在 30 秒內完成，繼續使用均衡設定。',
+  benchmarkFailedMessage: '測速未完成，繼續使用均衡設定。',
   commandAnalyzeCurrent: '分析目前這手',
   commandAnalyzeGame: '分析整盤圍棋',
   commandAnalyzeRecent: '分析近 10 局',
@@ -634,6 +733,8 @@ const EN_US: Record<TranslationKey, string> = {
   benchmarkFailed: 'KataGo benchmark failed',
   katagoInstallPreparing: 'Preparing the official KataGo model install.',
   katagoInstallFailed: 'KataGo official model install failed',
+  pauseDownload: 'Pause download',
+  resumeDownload: 'Resume download',
   languageLabel: 'Interface language',
   languageHelp: 'Also controls the default AI teacher language and error messages.',
   reviewLanguage: 'Review language',
@@ -663,7 +764,10 @@ const EN_US: Record<TranslationKey, string> = {
   opening: 'Opening',
   even: 'Even',
   toAnalyze: 'Analyze first',
+  appStatusReady: 'Workbench ready',
   appStatusTask: 'Task: {{busy}}',
+  winrateReady: 'Winrate ready',
+  winrateAnalyzing: 'Winrate {{progress}}',
   katagoMissing: 'KataGo missing',
   katagoEngine: 'KataGo engine',
   localCompatibleModel: 'Local-compatible model',
@@ -761,6 +865,31 @@ const EN_US: Record<TranslationKey, string> = {
   settingsSubtitle: 'Models, analysis, and voice',
   settingsDescription: 'Manage the AI teacher, board analysis, and spoken explanations.',
   settingsStatus: 'Settings status',
+  settingsNavLabel: 'Settings categories',
+  settingsGeneralTitle: 'General',
+  settingsGeneralSubtitle: 'Language and local data',
+  settingsGeneralSummary: 'Choose the interface language and local preferences.',
+  settingsAiTitle: 'AI teacher',
+  settingsAiSubtitle: 'Connect and choose a model',
+  settingsAiSummary: 'Connect a model that can see the board, use tools, and explain Go.',
+  settingsAiSectionTitle: 'AI teacher model',
+  settingsAiSectionDescription: 'Enter the service URL, access key, and multimodal model.',
+  settingsAnalysisTitle: 'Go analysis',
+  settingsAnalysisSubtitle: 'KataGo, models, and speed',
+  settingsAnalysisSummary: 'Manage the local engine, official models, and speed optimization.',
+  settingsAnalysisSectionTitle: 'KataGo analysis',
+  settingsAnalysisSectionDescription: 'Choose an official model, check local resources, and optimize speed when needed.',
+  settingsVoiceTitle: 'Voice',
+  settingsVoiceSubtitle: 'Sound and playback',
+  settingsVoiceSummary: 'Choose how the teacher sounds and plays explanations.',
+  settingsVoiceSectionTitle: 'Spoken explanations',
+  settingsVoiceSectionDescription: 'Choose offline or cloud speech, then adjust the voice and playback pace.',
+  settingsAboutTitle: 'About',
+  settingsAboutSubtitle: 'Version, open source, and support',
+  settingsAboutSummary: 'View GoAgent open-source information and feedback links.',
+  settingsAboutDescription: 'GoAgent is a free, open-source Go agent. KataGo supplies the facts; the AI teacher explains them clearly.',
+  remoteComputeAdvanced: 'Remote compute and advanced engine settings',
+  technicalDetails: 'Technical details',
   katagoWeights: 'Official KataGo model',
   officialWeights: 'Official models',
   modelGroupZhizi: 'Official zhizi recommendations',
@@ -829,6 +958,16 @@ const EN_US: Record<TranslationKey, string> = {
   benchmarkPending: 'Pending',
   benchmarkRunning: 'Benchmarking',
   benchmarkRun: 'Benchmark and optimize',
+  autoBenchmark: 'Optimize analysis speed automatically',
+  autoBenchmarkHelp: 'Runs in the background only when needed. Cancel it or turn it off at any time.',
+  cancelBenchmark: 'Cancel benchmark',
+  benchmarkBalancedFallback: 'Analysis works without a benchmark by using balanced settings.',
+  benchmarkStartedMessage: 'Optimizing analysis speed in the background.',
+  benchmarkAlreadyReadyMessage: 'This engine already has a valid optimized configuration.',
+  benchmarkCompletedMessage: 'Analysis speed is optimized for {{threads}} search threads.',
+  benchmarkCancelledMessage: 'Benchmark cancelled. Balanced settings remain active.',
+  benchmarkTimedOutMessage: 'The benchmark did not finish within 30 seconds. Balanced settings remain active.',
+  benchmarkFailedMessage: 'The benchmark did not finish. Balanced settings remain active.',
   betaAcceptance: 'P0 Beta acceptance',
   publicBetaNotReady: 'Public Beta not ready',
   pass: 'Pass',
@@ -856,7 +995,7 @@ const EN_US: Record<TranslationKey, string> = {
   refreshModels: 'Refresh models',
   modelPickerHelp: 'Choose an available model. Refresh if a new model is missing.',
   modelRefreshFailed: 'Model refresh failed: {{error}}',
-  imageTest: 'Image test',
+  imageTest: 'Verify AI capabilities',
   releaseReadinessFailed: 'Failed to read beta acceptance state: {{error}}',
   katagoBundledAssets: 'Bundled KataGo assets',
   claudeProxy: 'Claude-compatible proxy',
@@ -866,6 +1005,9 @@ const EN_US: Record<TranslationKey, string> = {
   teacherUiReadyDetail: 'Key moves, tool trace, and structured result cards are wired',
   llmModelDetail: 'Model {{model}}',
   llmApiMissingDetail: 'No API key configured; multimodal teacher explanations are unavailable',
+  connectAiTeacher: 'Connect AI teacher',
+  connectAiTeacherDetail: 'Connect a model with board-image and tool support to start explanations.',
+  llmSetupRequired: 'Connect and verify an AI model to use teacher explanations. KataGo analysis remains available.',
   commandPlaceholder: 'Type a task or command, such as analyze current move, import SGF, open settings',
   commandAnalyzeCurrent: 'Analyze current move',
   commandAnalyzeCurrentDetail: 'Capture the board, run KataGo, then ask the teacher',
@@ -1047,14 +1189,20 @@ const EN_US: Record<TranslationKey, string> = {
 }
 
 const JA_JP: Record<TranslationKey, string> = { ...EN_US,
-  languageLabel: '表示言語', reviewLanguage: '検討言語', settings: '設定', close: '閉じる', save: '保存', cancel: 'キャンセル',
+  languageLabel: '表示言語', reviewLanguage: '検討言語', settings: '設定', close: '閉じる', save: '保存', cancel: 'キャンセル', pauseDownload: 'ダウンロードを一時停止', resumeDownload: 'ダウンロードを再開',
   library: '棋譜ライブラリ', foxNicknamePlaceholder: '野狐ニックネーム', foxSearch: '野狐棋譜を検索', importSgf: 'SGF棋譜をインポート',
   noGameSelected: '棋譜が選択されていません', chooseGameHint: '左の棋譜を選ぶか、新しいSGFをインポートしてください。', emptyBoard: '左の棋譜を選んで検討を開始',
   black: '黒', white: '白', opening: '序盤', playedMove: '実戦', boardCandidate: '候補手',
   timelineTitle: '勝率推移', timelineSubtitle: '勝率 / 目差曲線', timelineCurrentLoss: '現在の勝率差', timelineCurrentBlackWinrate: '現在の黒勝率', timelinePreviousMove: '前の手', timelineNextMove: '次の手', timelineBlackWinrate: '黒勝率',
   issueList: '問題手', pauseAnalysis: '解析を一時停止', startAnalysis: '解析開始',
-  settingsTitle: 'GoAgent 設定', settingsSubtitle: 'モデル、分析、音声', katagoWeights: 'KataGo 公式モデル', applySelectedWeight: '選択したモデルを適用',
-  katagoEngine: 'KataGo エンジン', localCompatibleModel: 'ローカル互換モデル', llmReady: 'LLM 準備完了', llmMissing: 'LLM 未設定', visionLlm: '画像対応 LLM',
+  settingsTitle: 'GoAgent 設定', settingsSubtitle: 'モデル、分析、音声', settingsNavLabel: '設定カテゴリ',
+  settingsGeneralTitle: '一般', settingsGeneralSubtitle: '言語とローカルデータ', settingsGeneralSummary: '表示言語とローカル設定を選びます。',
+  settingsAiTitle: 'AI 先生', settingsAiSubtitle: 'モデルの接続と選択', settingsAiSummary: '盤面を見てツールを使い、囲碁を説明できるモデルを接続します。', settingsAiSectionTitle: 'AI 先生モデル', settingsAiSectionDescription: 'サービス URL、アクセスキー、マルチモーダルモデルを入力します。',
+  settingsAnalysisTitle: '囲碁解析', settingsAnalysisSubtitle: 'KataGo、モデル、速度', settingsAnalysisSummary: 'ローカルエンジン、公式モデル、速度最適化を管理します。', settingsAnalysisSectionTitle: 'KataGo 解析', settingsAnalysisSectionDescription: '公式モデルとローカル資源を確認し、必要な時だけ速度を最適化します。',
+  settingsVoiceTitle: '音声', settingsVoiceSubtitle: '声と再生', settingsVoiceSummary: '先生の声と再生方法を選びます。', settingsVoiceSectionTitle: '音声解説', settingsVoiceSectionDescription: 'オフラインまたはクラウド音声を選び、声と再生速度を調整します。',
+  settingsAboutTitle: 'このアプリについて', settingsAboutSubtitle: 'バージョン、オープンソース、サポート', settingsAboutSummary: 'GoAgent のオープンソース情報とフィードバック窓口を確認します。', settingsAboutDescription: 'GoAgent は無料のオープンソース囲碁エージェントです。KataGo が事実を分析し、AI 先生が分かりやすく説明します。', remoteComputeAdvanced: 'リモート計算と高度なエンジン設定', technicalDetails: '技術詳細',
+  katagoWeights: 'KataGo 公式モデル', applySelectedWeight: '選択したモデルを適用',
+  katagoEngine: 'KataGo エンジン', localCompatibleModel: 'ローカル互換モデル', llmReady: 'LLM 準備完了', llmMissing: 'LLM 未設定', visionLlm: '画像対応 LLM', appStatusReady: 'ワークスペース準備完了', appStatusTask: '処理中：{{busy}}', winrateReady: '勝率グラフ待機中', winrateAnalyzing: '勝率グラフ {{progress}}',
   modelGroupZhizi: '公式 zhizi 推奨モデル', modelGroupB18: '18b 推奨 / 日常指導', modelGroupB20: '20b 高速解析 / 旧機種向け', modelGroupB28: '28b 精密検討', modelGroupB40: '40b フラッグシップ / 高性能機向け',
   presetOfficialB18RecommendedLabel: 'b18 README 日常推奨', presetOfficialB18RecommendedBadge: '日常推奨', presetOfficialB18RecommendedSize: '汎用', presetOfficialB18RecommendedDescription: 'KataGo README の一般的な第一候補。強く正確で負荷も中程度、日常指導と自動勝率グラフに向きます。',
   presetOfficialB18StableLabel: 'b18 安定候補', presetOfficialB18StableBadge: '軽快', presetOfficialB18StableSize: '汎用', presetOfficialB18StableDescription: '同じ b18c384nbt 系の高評価モデル。解析速度を軽く保ちたい環境に向きます。',
@@ -1065,6 +1213,8 @@ const JA_JP: Record<TranslationKey, string> = { ...EN_US,
   presetOfficialB40LatestLabel: 'zhizi b40 公式最新', presetOfficialB40LatestBadge: '最新', presetOfficialB40LatestSize: 'かなり遅い', presetOfficialB40LatestDescription: 'katagotraining.org の Latest network。重く強いモデルで、高性能 GPU による重要局面の深掘り向けです。',
   presetOfficialB40ClassicLabel: 'b40 クラシック c256', presetOfficialB40ClassicBadge: '40b 安定', presetOfficialB40ClassicSize: 'かなり遅い', presetOfficialB40ClassicDescription: '定番の b40c256 高強度モデル。最新旗艦より負荷を抑えつつ 40b 級の判断を使いたい場合に向きます。',
   katagoBenchmarkTitle: 'KataGo ワンクリック速度測定', benchmarkRun: '測定して最適化',
+  autoBenchmark: '解析速度を自動最適化', autoBenchmarkHelp: '必要な時だけバックグラウンドで実行します。いつでも中止・無効化できます。', cancelBenchmark: '速度測定を中止', benchmarkBalancedFallback: '測定しなくてもバランス設定で解析できます。', benchmarkStartedMessage: 'バックグラウンドで解析速度を最適化しています。', benchmarkAlreadyReadyMessage: 'このエンジンには有効な最適化設定があります。', benchmarkCompletedMessage: '検索スレッド {{threads}} 個に最適化しました。', benchmarkCancelledMessage: '速度測定を中止しました。バランス設定を使用します。', benchmarkTimedOutMessage: '30 秒以内に完了しなかったため、バランス設定を使用します。', benchmarkFailedMessage: '速度測定を完了できませんでした。バランス設定を使用します。',
+  connectAiTeacher: 'AI 先生を接続', connectAiTeacherDetail: '盤面画像とツールに対応するモデルを接続すると解説を始められます。', llmSetupRequired: 'AI モデルを接続して確認すると先生の解説を使えます。KataGo 解析は利用できます。',
   teacherPanelTitle: 'AI 先生', newSession: '新規セッション', historySession: '履歴', teachingSettings: '指導設定',
   teacherEmptyTitle: 'いつでも質問できます。AI先生が答えます。', teacherEmptyDescription: '勝率判断、重要手、布石の考え方、形勢判断を質問できます。',
   jumpToReferencedMove: '{{move}}手目へ移動', flashReferencedPoint: '盤上で {{point}} を強調表示',
@@ -1074,14 +1224,20 @@ const JA_JP: Record<TranslationKey, string> = { ...EN_US,
 }
 
 const KO_KR: Record<TranslationKey, string> = { ...EN_US,
-  languageLabel: '인터페이스 언어', reviewLanguage: '복기 언어', settings: '설정', close: '닫기', save: '저장', cancel: '취소',
+  languageLabel: '인터페이스 언어', reviewLanguage: '복기 언어', settings: '설정', close: '닫기', save: '저장', cancel: '취소', pauseDownload: '다운로드 일시정지', resumeDownload: '다운로드 계속',
   library: '기보 라이브러리', foxNicknamePlaceholder: '야후 닉네임 입력', foxSearch: '야후 기보 검색', importSgf: 'SGF 기보 가져오기',
   noGameSelected: '선택한 기보 없음', chooseGameHint: '왼쪽 기보를 선택하거나 새 SGF를 가져오세요.', emptyBoard: '왼쪽 기보를 선택해 복기를 시작하세요',
   black: '흑', white: '백', opening: '초반', playedMove: '실전', boardCandidate: '후보점',
   timelineTitle: '승률 흐름', timelineSubtitle: '승률 / 집 차이 곡선', timelineCurrentLoss: '현재 승률 차', timelineCurrentBlackWinrate: '현재 흑 승률', timelinePreviousMove: '이전 수', timelineNextMove: '다음 수', timelineBlackWinrate: '흑 승률',
   issueList: '문제수', pauseAnalysis: '분석 일시정지', startAnalysis: '분석 시작',
-  settingsTitle: 'GoAgent 설정', settingsSubtitle: '모델, 분석, 음성', katagoWeights: 'KataGo 공식 모델', applySelectedWeight: '선택한 모델 적용',
-  katagoEngine: 'KataGo 엔진', localCompatibleModel: '로컬 호환 모델', llmReady: 'LLM 준비됨', llmMissing: 'LLM 미설정', visionLlm: '비전 LLM',
+  settingsTitle: 'GoAgent 설정', settingsSubtitle: '모델, 분석, 음성', settingsNavLabel: '설정 분류',
+  settingsGeneralTitle: '일반', settingsGeneralSubtitle: '언어와 로컬 데이터', settingsGeneralSummary: '인터페이스 언어와 로컬 사용 설정을 선택합니다.',
+  settingsAiTitle: 'AI 선생님', settingsAiSubtitle: '모델 연결 및 선택', settingsAiSummary: '바둑판을 보고 도구를 사용해 설명할 수 있는 모델을 연결합니다.', settingsAiSectionTitle: 'AI 선생님 모델', settingsAiSectionDescription: '서비스 URL, 접근 키, 멀티모달 모델을 입력하세요.',
+  settingsAnalysisTitle: '바둑 분석', settingsAnalysisSubtitle: 'KataGo, 모델, 속도', settingsAnalysisSummary: '로컬 엔진, 공식 모델, 속도 최적화를 관리합니다.', settingsAnalysisSectionTitle: 'KataGo 분석', settingsAnalysisSectionDescription: '공식 모델과 로컬 리소스를 확인하고 필요할 때 속도를 최적화합니다.',
+  settingsVoiceTitle: '음성', settingsVoiceSubtitle: '목소리와 재생', settingsVoiceSummary: '선생님 목소리와 재생 방식을 선택합니다.', settingsVoiceSectionTitle: '음성 해설', settingsVoiceSectionDescription: '오프라인 또는 클라우드 음성을 선택하고 목소리와 재생 속도를 조절합니다.',
+  settingsAboutTitle: '정보', settingsAboutSubtitle: '버전, 오픈 소스, 지원', settingsAboutSummary: 'GoAgent 오픈 소스 정보와 피드백 링크를 확인합니다.', settingsAboutDescription: 'GoAgent는 무료 오픈 소스 바둑 에이전트입니다. KataGo가 사실을 분석하고 AI 선생님이 쉽게 설명합니다.', remoteComputeAdvanced: '원격 연산 및 고급 엔진 설정', technicalDetails: '기술 세부 정보',
+  katagoWeights: 'KataGo 공식 모델', applySelectedWeight: '선택한 모델 적용',
+  katagoEngine: 'KataGo 엔진', localCompatibleModel: '로컬 호환 모델', llmReady: 'LLM 준비됨', llmMissing: 'LLM 미설정', visionLlm: '비전 LLM', appStatusReady: '작업 공간 준비됨', appStatusTask: '처리 중: {{busy}}', winrateReady: '승률 그래프 대기 중', winrateAnalyzing: '승률 그래프 {{progress}}',
   modelGroupZhizi: '공식 zhizi 추천 모델', modelGroupB18: '18b 추천 / 일상 지도', modelGroupB20: '20b 빠른 분석 / 구형 기기', modelGroupB28: '28b 정밀 복기', modelGroupB40: '40b 플래그십 / 고사양',
   presetOfficialB18RecommendedLabel: 'b18 README 일상 추천', presetOfficialB18RecommendedBadge: '일상 추천', presetOfficialB18RecommendedSize: '범용', presetOfficialB18RecommendedDescription: 'KataGo README의 일반 추천 모델입니다. 강하고 정확하며 부담이 적어 일상 지도와 자동 승률 그래프에 좋습니다.',
   presetOfficialB18StableLabel: 'b18 안정 대안', presetOfficialB18StableBadge: '가벼움', presetOfficialB18StableSize: '범용', presetOfficialB18StableDescription: '같은 b18c384nbt 계열의 고평가 대안으로, 분석 속도를 가볍게 유지하고 싶은 환경에 적합합니다.',
@@ -1092,6 +1248,8 @@ const KO_KR: Record<TranslationKey, string> = { ...EN_US,
   presetOfficialB40LatestLabel: 'zhizi b40 공식 최신', presetOfficialB40LatestBadge: '최신', presetOfficialB40LatestSize: '매우 느림', presetOfficialB40LatestDescription: 'katagotraining.org의 Latest network입니다. 더 무겁고 강해서 고성능 GPU의 핵심 국면 심층 분석에 적합합니다.',
   presetOfficialB40ClassicLabel: 'b40 클래식 c256', presetOfficialB40ClassicBadge: '40b 안정', presetOfficialB40ClassicSize: '매우 느림', presetOfficialB40ClassicDescription: '전통적인 b40c256 고강도 모델로, 최신 플래그십보다 부담을 낮추면서 40b급 판단을 쓰고 싶을 때 적합합니다.',
   katagoBenchmarkTitle: 'KataGo 원클릭 벤치마크', benchmarkRun: '벤치마크 및 최적화',
+  autoBenchmark: '분석 속도 자동 최적화', autoBenchmarkHelp: '필요할 때만 백그라운드에서 실행하며 언제든 취소하거나 끌 수 있습니다.', cancelBenchmark: '속도 측정 취소', benchmarkBalancedFallback: '측정하지 않아도 균형 설정으로 정상 분석됩니다.', benchmarkStartedMessage: '백그라운드에서 분석 속도를 최적화하고 있습니다.', benchmarkAlreadyReadyMessage: '현재 엔진에 유효한 최적화 설정이 있습니다.', benchmarkCompletedMessage: '검색 스레드 {{threads}}개로 최적화했습니다.', benchmarkCancelledMessage: '속도 측정을 취소했습니다. 균형 설정을 사용합니다.', benchmarkTimedOutMessage: '30초 안에 완료되지 않아 균형 설정을 사용합니다.', benchmarkFailedMessage: '속도 측정을 완료하지 못했습니다. 균형 설정을 사용합니다.',
+  connectAiTeacher: 'AI 선생님 연결', connectAiTeacherDetail: '바둑판 이미지와 도구를 지원하는 모델을 연결하면 설명을 시작할 수 있습니다.', llmSetupRequired: 'AI 모델을 연결하고 확인하면 선생님 설명을 사용할 수 있습니다. KataGo 분석은 계속 사용할 수 있습니다.',
   teacherPanelTitle: 'AI 선생님', newSession: '새 세션', historySession: '기록', teachingSettings: '지도 설정',
   teacherEmptyTitle: '언제든 질문하세요. AI 선생님이 도와드립니다.', teacherEmptyDescription: '승률 판단, 핵심 수, 포석 방향, 형세 판단을 물어볼 수 있습니다.',
   jumpToReferencedMove: '{{move}}수로 이동', flashReferencedPoint: '보드에서 {{point}} 강조',
@@ -1101,14 +1259,20 @@ const KO_KR: Record<TranslationKey, string> = { ...EN_US,
 }
 
 const TH_TH: Record<TranslationKey, string> = { ...EN_US,
-  languageLabel: 'ภาษาอินเทอร์เฟซ', reviewLanguage: 'ภาษารีวิว', settings: 'ตั้งค่า', close: 'ปิด', save: 'บันทึก', cancel: 'ยกเลิก',
+  languageLabel: 'ภาษาอินเทอร์เฟซ', reviewLanguage: 'ภาษารีวิว', settings: 'ตั้งค่า', close: 'ปิด', save: 'บันทึก', cancel: 'ยกเลิก', pauseDownload: 'พักการดาวน์โหลด', resumeDownload: 'ดาวน์โหลดต่อ',
   library: 'คลังเกม', foxNicknamePlaceholder: 'ชื่อเล่น Fox', foxSearch: 'ค้นหาเกม Fox', importSgf: 'นำเข้าไฟล์ SGF',
   noGameSelected: 'ยังไม่ได้เลือกเกม', chooseGameHint: 'เลือกเกมทางซ้าย หรือนำเข้า SGF ใหม่', emptyBoard: 'เลือกเกมทางซ้ายเพื่อเริ่มรีวิว',
   black: 'ดำ', white: 'ขาว', opening: 'เปิดเกม', playedMove: 'เดินจริง', boardCandidate: 'จุดแนะนำ',
   timelineTitle: 'กราฟโอกาสชนะ', timelineSubtitle: 'โอกาสชนะ / แต้มต่าง', timelineCurrentLoss: 'ส่วนต่างโอกาสชนะ', timelineCurrentBlackWinrate: 'โอกาสชนะดำปัจจุบัน', timelinePreviousMove: 'ตาก่อนหน้า', timelineNextMove: 'ตาถัดไป', timelineBlackWinrate: 'โอกาสชนะดำ',
   issueList: 'มือปัญหา', pauseAnalysis: 'หยุดวิเคราะห์ชั่วคราว', startAnalysis: 'เริ่มวิเคราะห์',
-  settingsTitle: 'ตั้งค่า GoAgent', settingsSubtitle: 'โมเดล การวิเคราะห์ และเสียง', katagoWeights: 'โมเดล KataGo ทางการ', applySelectedWeight: 'ใช้โมเดลที่เลือก',
-  katagoEngine: 'เอนจิน KataGo', localCompatibleModel: 'โมเดลที่เข้ากับเครื่องนี้', llmReady: 'LLM พร้อม', llmMissing: 'ยังไม่ได้ตั้งค่า LLM', visionLlm: 'Vision LLM',
+  settingsTitle: 'ตั้งค่า GoAgent', settingsSubtitle: 'โมเดล การวิเคราะห์ และเสียง', settingsNavLabel: 'หมวดการตั้งค่า',
+  settingsGeneralTitle: 'ทั่วไป', settingsGeneralSubtitle: 'ภาษาและข้อมูลในเครื่อง', settingsGeneralSummary: 'เลือกภาษาอินเทอร์เฟซและการใช้งานในเครื่อง',
+  settingsAiTitle: 'ครู AI', settingsAiSubtitle: 'เชื่อมต่อและเลือกโมเดล', settingsAiSummary: 'เชื่อมต่อโมเดลที่ดูภาพกระดาน ใช้เครื่องมือ และอธิบายหมากล้อมได้', settingsAiSectionTitle: 'โมเดลครู AI', settingsAiSectionDescription: 'กรอก URL บริการ คีย์เข้าถึง และโมเดลมัลติโหมด',
+  settingsAnalysisTitle: 'วิเคราะห์หมากล้อม', settingsAnalysisSubtitle: 'KataGo โมเดล และความเร็ว', settingsAnalysisSummary: 'จัดการเอนจินในเครื่อง โมเดลทางการ และการปรับความเร็ว', settingsAnalysisSectionTitle: 'การวิเคราะห์ KataGo', settingsAnalysisSectionDescription: 'เลือกโมเดลทางการ ตรวจสอบทรัพยากร และปรับความเร็วเมื่อจำเป็น',
+  settingsVoiceTitle: 'เสียง', settingsVoiceSubtitle: 'เสียงพูดและการเล่น', settingsVoiceSummary: 'เลือกเสียงครูและวิธีเล่นคำอธิบาย', settingsVoiceSectionTitle: 'คำอธิบายด้วยเสียง', settingsVoiceSectionDescription: 'เลือกเสียงออฟไลน์หรือคลาวด์ แล้วปรับเสียงและจังหวะการเล่น',
+  settingsAboutTitle: 'เกี่ยวกับ', settingsAboutSubtitle: 'เวอร์ชัน โอเพนซอร์ส และช่วยเหลือ', settingsAboutSummary: 'ดูข้อมูลโอเพนซอร์สและช่องทางเสนอแนะของ GoAgent', settingsAboutDescription: 'GoAgent เป็นเอเจนต์หมากล้อมโอเพนซอร์สฟรี KataGo วิเคราะห์ข้อเท็จจริง และครู AI อธิบายให้เข้าใจง่าย', remoteComputeAdvanced: 'การคำนวณระยะไกลและการตั้งค่าเอนจินขั้นสูง', technicalDetails: 'รายละเอียดทางเทคนิค',
+  katagoWeights: 'โมเดล KataGo ทางการ', applySelectedWeight: 'ใช้โมเดลที่เลือก',
+  katagoEngine: 'เอนจิน KataGo', localCompatibleModel: 'โมเดลที่เข้ากับเครื่องนี้', llmReady: 'LLM พร้อม', llmMissing: 'ยังไม่ได้ตั้งค่า LLM', visionLlm: 'Vision LLM', appStatusReady: 'พื้นที่ทำงานพร้อม', appStatusTask: 'กำลังทำงาน: {{busy}}', winrateReady: 'กราฟโอกาสชนะพร้อมรอ', winrateAnalyzing: 'กราฟโอกาสชนะ {{progress}}',
   modelGroupZhizi: 'โมเดล zhizi ที่ทางการแนะนำ', modelGroupB18: '18b แนะนำ / สอนประจำวัน', modelGroupB20: '20b วิเคราะห์เร็ว / เครื่องเก่า', modelGroupB28: '28b รีวิวละเอียด', modelGroupB40: '40b เรือธง / เครื่องแรง',
   presetOfficialB18RecommendedLabel: 'b18 README แนะนำประจำวัน', presetOfficialB18RecommendedBadge: 'แนะนำ', presetOfficialB18RecommendedSize: 'ทั่วไป', presetOfficialB18RecommendedDescription: 'ตัวเลือกทั่วไปตาม README ของ KataGo: แรง แม่น และไม่หนักเครื่อง เหมาะกับการสอนประจำวันและกราฟ winrate อัตโนมัติ',
   presetOfficialB18StableLabel: 'b18 ตัวเลือกเสถียร', presetOfficialB18StableBadge: 'เบา', presetOfficialB18StableSize: 'ทั่วไป', presetOfficialB18StableDescription: 'โมเดล b18c384nbt คะแนนสูงอีกตัว เหมาะกับเครื่องที่ต้องการวิเคราะห์ลื่น',
@@ -1119,6 +1283,8 @@ const TH_TH: Record<TranslationKey, string> = { ...EN_US,
   presetOfficialB40LatestLabel: 'zhizi b40 ทางการล่าสุด', presetOfficialB40LatestBadge: 'ล่าสุด', presetOfficialB40LatestSize: 'ช้ามาก', presetOfficialB40LatestDescription: 'Latest network จาก katagotraining.org หนักและแรง เหมาะกับ GPU ระดับสูงสำหรับอ่านตำแหน่งสำคัญลึกมาก',
   presetOfficialB40ClassicLabel: 'b40 classic c256', presetOfficialB40ClassicBadge: '40b เสถียร', presetOfficialB40ClassicSize: 'ช้ามาก', presetOfficialB40ClassicDescription: 'โมเดล b40c256 คลาสสิก เหมาะเมื่ออยากได้การตัดสินระดับ 40b โดยไม่หนักเท่ารุ่นเรือธงล่าสุด',
   katagoBenchmarkTitle: 'ทดสอบความเร็ว KataGo', benchmarkRun: 'ทดสอบและปรับแต่ง',
+  autoBenchmark: 'ปรับความเร็วอัตโนมัติ', autoBenchmarkHelp: 'ทำงานเบื้องหลังเฉพาะเมื่อจำเป็น ยกเลิกหรือปิดได้ทุกเมื่อ', cancelBenchmark: 'ยกเลิกการทดสอบ', benchmarkBalancedFallback: 'ไม่ทดสอบความเร็วก็วิเคราะห์ได้ด้วยค่ามาตรฐานสมดุล', benchmarkStartedMessage: 'กำลังปรับความเร็วการวิเคราะห์ในเบื้องหลัง', benchmarkAlreadyReadyMessage: 'เอนจินนี้มีค่าที่ปรับแล้วและยังใช้ได้', benchmarkCompletedMessage: 'ปรับให้ใช้เธรดค้นหา {{threads}} เธรดแล้ว', benchmarkCancelledMessage: 'ยกเลิกการทดสอบแล้ว ระบบยังใช้ค่ามาตรฐานสมดุล', benchmarkTimedOutMessage: 'การทดสอบไม่เสร็จใน 30 วินาที ระบบจะใช้ค่ามาตรฐานสมดุล', benchmarkFailedMessage: 'การทดสอบไม่สำเร็จ ระบบจะใช้ค่ามาตรฐานสมดุล',
+  connectAiTeacher: 'เชื่อมต่อครู AI', connectAiTeacherDetail: 'เชื่อมต่อโมเดลที่รองรับภาพกระดานและเครื่องมือเพื่อเริ่มคำอธิบาย', llmSetupRequired: 'เชื่อมต่อและตรวจสอบโมเดล AI เพื่อใช้คำอธิบายจากครู ส่วน KataGo ยังใช้งานได้',
   teacherPanelTitle: 'AI ครู', newSession: 'เซสชันใหม่', historySession: 'ประวัติ', teachingSettings: 'ตั้งค่าการสอน',
   teacherEmptyTitle: 'ถามได้ทุกเมื่อ AI ครูพร้อมช่วย', teacherEmptyDescription: 'ถามเรื่องโอกาสชนะ จุดสำคัญ แผนเปิดเกม หรือการประเมินสถานการณ์',
   jumpToReferencedMove: 'ไปที่มือ {{move}}', flashReferencedPoint: 'ไฮไลต์ {{point}} บนกระดาน',
@@ -1128,14 +1294,20 @@ const TH_TH: Record<TranslationKey, string> = { ...EN_US,
 }
 
 const VI_VN: Record<TranslationKey, string> = { ...EN_US,
-  languageLabel: 'Ngôn ngữ giao diện', reviewLanguage: 'Ngôn ngữ phân tích', settings: 'Cài đặt', close: 'Đóng', save: 'Lưu', cancel: 'Hủy',
+  languageLabel: 'Ngôn ngữ giao diện', reviewLanguage: 'Ngôn ngữ phân tích', settings: 'Cài đặt', close: 'Đóng', save: 'Lưu', cancel: 'Hủy', pauseDownload: 'Tạm dừng tải', resumeDownload: 'Tiếp tục tải',
   library: 'Thư viện ván', foxNicknamePlaceholder: 'Biệt danh Fox', foxSearch: 'Tìm ván Fox', importSgf: 'Nhập SGF',
   noGameSelected: 'Chưa chọn ván', chooseGameHint: 'Chọn ván bên trái hoặc nhập SGF mới.', emptyBoard: 'Chọn ván bên trái để bắt đầu review',
   black: 'Đen', white: 'Trắng', opening: 'Khai cuộc', playedMove: 'Nước thực chiến', boardCandidate: 'Ứng viên',
   timelineTitle: 'Diễn biến winrate', timelineSubtitle: 'Winrate / chênh lệch điểm', timelineCurrentLoss: 'Mất winrate hiện tại', timelineCurrentBlackWinrate: 'Winrate đen hiện tại', timelinePreviousMove: 'Nước trước', timelineNextMove: 'Nước sau', timelineBlackWinrate: 'Winrate đen',
   issueList: 'Nước vấn đề', pauseAnalysis: 'Tạm dừng phân tích', startAnalysis: 'Bắt đầu phân tích',
-  settingsTitle: 'Cài đặt GoAgent', settingsSubtitle: 'Model, phân tích và giọng đọc', katagoWeights: 'Model KataGo chính thức', applySelectedWeight: 'Áp dụng model đã chọn',
-  katagoEngine: 'Engine KataGo', localCompatibleModel: 'Model tương thích cục bộ', llmReady: 'LLM sẵn sàng', llmMissing: 'Chưa cấu hình LLM', visionLlm: 'Vision LLM',
+  settingsTitle: 'Cài đặt GoAgent', settingsSubtitle: 'Model, phân tích và giọng đọc', settingsNavLabel: 'Danh mục cài đặt',
+  settingsGeneralTitle: 'Chung', settingsGeneralSubtitle: 'Ngôn ngữ và dữ liệu cục bộ', settingsGeneralSummary: 'Chọn ngôn ngữ giao diện và tùy chọn trên máy.',
+  settingsAiTitle: 'Giáo viên AI', settingsAiSubtitle: 'Kết nối và chọn model', settingsAiSummary: 'Kết nối model có thể xem bàn cờ, dùng công cụ và giảng cờ vây.', settingsAiSectionTitle: 'Model giáo viên AI', settingsAiSectionDescription: 'Nhập URL dịch vụ, khóa truy cập và model đa phương thức.',
+  settingsAnalysisTitle: 'Phân tích cờ vây', settingsAnalysisSubtitle: 'KataGo, model và tốc độ', settingsAnalysisSummary: 'Quản lý engine cục bộ, model chính thức và tối ưu tốc độ.', settingsAnalysisSectionTitle: 'Phân tích KataGo', settingsAnalysisSectionDescription: 'Chọn model chính thức, kiểm tra tài nguyên và tối ưu tốc độ khi cần.',
+  settingsVoiceTitle: 'Giọng đọc', settingsVoiceSubtitle: 'Âm thanh và phát', settingsVoiceSummary: 'Chọn giọng của giáo viên và cách phát lời giảng.', settingsVoiceSectionTitle: 'Lời giảng bằng giọng đọc', settingsVoiceSectionDescription: 'Chọn giọng offline hoặc cloud rồi điều chỉnh giọng và nhịp phát.',
+  settingsAboutTitle: 'Giới thiệu', settingsAboutSubtitle: 'Phiên bản, mã nguồn mở và hỗ trợ', settingsAboutSummary: 'Xem thông tin mã nguồn mở và kênh phản hồi của GoAgent.', settingsAboutDescription: 'GoAgent là agent cờ vây mã nguồn mở và miễn phí. KataGo cung cấp dữ kiện; giáo viên AI giải thích dễ hiểu.', remoteComputeAdvanced: 'Tính toán từ xa và cài đặt engine nâng cao', technicalDetails: 'Chi tiết kỹ thuật',
+  katagoWeights: 'Model KataGo chính thức', applySelectedWeight: 'Áp dụng model đã chọn',
+  katagoEngine: 'Engine KataGo', localCompatibleModel: 'Model tương thích cục bộ', llmReady: 'LLM sẵn sàng', llmMissing: 'Chưa cấu hình LLM', visionLlm: 'Vision LLM', appStatusReady: 'Không gian làm việc đã sẵn sàng', appStatusTask: 'Đang xử lý: {{busy}}', winrateReady: 'Biểu đồ winrate đang chờ', winrateAnalyzing: 'Biểu đồ winrate {{progress}}',
   modelGroupZhizi: 'Model zhizi chính thức khuyến nghị', modelGroupB18: '18b khuyến nghị / dạy hằng ngày', modelGroupB20: '20b phân tích nhanh / máy cũ', modelGroupB28: '28b review sâu', modelGroupB40: '40b flagship / máy mạnh',
   presetOfficialB18RecommendedLabel: 'b18 README khuyến nghị hằng ngày', presetOfficialB18RecommendedBadge: 'Khuyên dùng', presetOfficialB18RecommendedSize: 'Phổ thông', presetOfficialB18RecommendedDescription: 'Lựa chọn chung theo README KataGo: mạnh, chính xác, tải vừa phải; hợp dạy hằng ngày và timeline winrate tự động.',
   presetOfficialB18StableLabel: 'b18 phương án ổn định', presetOfficialB18StableBadge: 'Nhẹ', presetOfficialB18StableSize: 'Phổ thông', presetOfficialB18StableDescription: 'Một model b18c384nbt điểm cao khác, phù hợp khi muốn phân tích nhanh và mượt.',
@@ -1146,6 +1318,8 @@ const VI_VN: Record<TranslationKey, string> = { ...EN_US,
   presetOfficialB40LatestLabel: 'zhizi b40 mới nhất chính thức', presetOfficialB40LatestBadge: 'Mới nhất', presetOfficialB40LatestSize: 'Rất chậm', presetOfficialB40LatestDescription: 'Latest network trên katagotraining.org: zhizi b40, nặng và mạnh hơn, hợp GPU cao cấp cho review sâu cục diện then chốt.',
   presetOfficialB40ClassicLabel: 'b40 classic c256', presetOfficialB40ClassicBadge: '40b ổn định', presetOfficialB40ClassicSize: 'Rất chậm', presetOfficialB40ClassicDescription: 'Model b40c256 kinh điển, phù hợp khi cần phán đoán cấp 40b nhưng muốn nhẹ hơn flagship mới nhất.',
   katagoBenchmarkTitle: 'Benchmark KataGo', benchmarkRun: 'Benchmark và tối ưu',
+  autoBenchmark: 'Tự tối ưu tốc độ phân tích', autoBenchmarkHelp: 'Chỉ chạy nền khi cần; có thể hủy hoặc tắt bất cứ lúc nào.', cancelBenchmark: 'Hủy đo tốc độ', benchmarkBalancedFallback: 'Không đo tốc độ vẫn phân tích bình thường với cấu hình cân bằng.', benchmarkStartedMessage: 'Đang tối ưu tốc độ phân tích trong nền.', benchmarkAlreadyReadyMessage: 'Engine này đã có cấu hình tối ưu còn hiệu lực.', benchmarkCompletedMessage: 'Đã tối ưu cho {{threads}} luồng tìm kiếm.', benchmarkCancelledMessage: 'Đã hủy đo tốc độ. Cấu hình cân bằng vẫn được dùng.', benchmarkTimedOutMessage: 'Đo tốc độ không xong trong 30 giây. Cấu hình cân bằng vẫn được dùng.', benchmarkFailedMessage: 'Đo tốc độ không hoàn tất. Cấu hình cân bằng vẫn được dùng.',
+  connectAiTeacher: 'Kết nối giáo viên AI', connectAiTeacherDetail: 'Kết nối model hỗ trợ ảnh bàn cờ và công cụ để bắt đầu giảng.', llmSetupRequired: 'Kết nối và xác minh model AI để dùng lời giảng. Phân tích KataGo vẫn hoạt động.',
   teacherPanelTitle: 'AI Teacher', newSession: 'Phiên mới', historySession: 'Lịch sử', teachingSettings: 'Cài đặt giảng dạy',
   teacherEmptyTitle: 'Hỏi bất cứ lúc nào. AI teacher sẵn sàng.', teacherEmptyDescription: 'Bạn có thể hỏi về winrate, nước then chốt, khai cuộc hoặc phán đoán thế cờ.',
   jumpToReferencedMove: 'Nhảy tới nước {{move}}', flashReferencedPoint: 'Tô sáng {{point}} trên bàn cờ',

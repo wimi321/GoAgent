@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { getGames, getSettings, replaceSettings, reportsDir } from '@main/lib/store'
+import { getGames, getSettings, replaceSettings, reportsDir, setSettings } from '@main/lib/store'
 import type {
   AgentToolImageResult,
   BoardImageCaptureSelection,
@@ -29,7 +29,7 @@ import type {
   VisionEvidenceImageRole,
   VisionEvidenceReport
 } from '@main/lib/types'
-import type { ChatContentPart, ChatMessage, ChatTool, ChatToolCall, ProviderSettings } from './llm/provider'
+import type { ChatContentPart, ChatMessage, ChatTool, ChatToolCall, ChatTurnResult, ProviderSettings } from './llm/provider'
 import { analyzeGameQuick, analyzePosition, cancelKataGoAnalysis } from './katago'
 import { MOVE_RANGE_KEY_MOVE_LIMIT, MOVE_RANGE_MAX_MOVES, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import { formatMoveRangeSummaryForPrompt, selectMoveNumbersForRangeRefine } from './teacher/moveRangeReview'
@@ -2057,11 +2057,19 @@ async function runTeacherAgentSession(
   for (;;) {
     assertTeacherRunActive(context)
     let streamedThisTurn = ''
-    const result = await streamOpenAICompatibleToolTurn(settings, messages, tools, 4096, (delta) => {
-      streamedThisTurn += delta
-      emittedText += delta
-      emitAssistantDelta(context, delta)
-    }, context?.signal)
+    let result: ChatTurnResult
+    try {
+      result = await streamOpenAICompatibleToolTurn(settings, messages, tools, 4096, (delta) => {
+        streamedThisTurn += delta
+        emittedText += delta
+        emitAssistantDelta(context, delta)
+      }, context?.signal)
+    } catch (error) {
+      if (!isCancellationError(error)) {
+        setSettings({ llmSetupStatus: 'needs-attention', llmLastVerifiedAt: '' })
+      }
+      throw error
+    }
     assertTeacherRunActive(context)
     if (result.toolCalls.length > 0) {
       messages.push({
@@ -2099,9 +2107,17 @@ async function runTeacherAgentSession(
   if (visionIssues.some((issue) => issue.severity === 'error')) {
     messages.push({ role: 'assistant', content: finalText })
     messages.push({ role: 'user', content: `${buildVisionEvidenceRepairNote(visionIssues)}\n\n${formatVisionEvidenceForPrompt(finalVisionEvidence)}` })
-    const repair = await streamOpenAICompatibleToolTurn(settings, messages, tools, 2048, (delta) => {
-      emitAssistantDelta(context, delta)
-    }, context?.signal)
+    let repair: ChatTurnResult
+    try {
+      repair = await streamOpenAICompatibleToolTurn(settings, messages, tools, 2048, (delta) => {
+        emitAssistantDelta(context, delta)
+      }, context?.signal)
+    } catch (error) {
+      if (!isCancellationError(error)) {
+        setSettings({ llmSetupStatus: 'needs-attention', llmLastVerifiedAt: '' })
+      }
+      throw error
+    }
     if (repair.toolCalls.length > 0) {
       throw new Error('LLM 在棋盘图证据修正阶段继续请求工具，请重新发起本次分析。')
     }

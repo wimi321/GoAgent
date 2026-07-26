@@ -26,7 +26,15 @@ function diagnosticsApi(): DiagnosticsApi {
   return (window as unknown as { goagent?: DiagnosticsApi }).goagent ?? {}
 }
 
-export function DiagnosticsGate({ children }: { children: ReactNode }): ReactElement {
+export function DiagnosticsGate({
+  children,
+  ready = true,
+  onboarding
+}: {
+  children: ReactNode
+  ready?: boolean
+  onboarding?: ReactNode
+}): ReactElement {
   async function runDiagnostics(): Promise<void> {
     try {
       const api = diagnosticsApi()
@@ -40,5 +48,14 @@ export function DiagnosticsGate({ children }: { children: ReactNode }): ReactEle
     void runDiagnostics()
   }, [])
 
-  return <>{children}</>
+  if (!ready) {
+    return (
+      <main className="startup-splash" aria-busy="true" aria-label="GoAgent is starting">
+        <span className="startup-splash__mark" aria-hidden="true" />
+        <strong>GoAgent</strong>
+      </main>
+    )
+  }
+
+  return onboarding ? <>{onboarding}</> : <>{children}</>
 }

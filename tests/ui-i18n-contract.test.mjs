@@ -32,7 +32,7 @@ test('settings, teacher prompt, and renderer contracts accept all target locales
   assert.match(app, /t\('commandAnalyzeCurrent'\)/)
   assert.match(app, /t\('quickAnalyzeGamePrompt'\)/)
   assert.match(app, /localizeKataGoStatus/)
-  assert.match(app, /t\('visionLlm'\)/)
+  assert.match(app, /llmReady \? t\('llmReady'\) : t\('llmMissing'\)/)
   assert.match(app, /translateKataGoPreset/)
   assert.doesNotMatch(app, /本机兼容模型 Ready/)
   assert.doesNotMatch(app, /Vision LLM<\/span>/)

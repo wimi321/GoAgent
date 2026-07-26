@@ -1870,3 +1870,44 @@
     height: 220px;
   }
 }
+.teacher-connect-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 12px 0;
+  padding: 11px 12px;
+  border: 1px solid rgb(8 123 120 / 0.18);
+  border-radius: 7px;
+  background: #edf7f4;
+  color: #1f3432;
+}
+
+.teacher-connect-banner strong,
+.teacher-connect-banner p {
+  display: block;
+  margin: 0;
+}
+
+.teacher-connect-banner strong {
+  font-size: 12px;
+}
+
+.teacher-connect-banner p {
+  margin-top: 3px;
+  color: #667775;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.teacher-connect-banner button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 11px;
+  border: 1px solid #087b78;
+  border-radius: 6px;
+  background: #087b78;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+}

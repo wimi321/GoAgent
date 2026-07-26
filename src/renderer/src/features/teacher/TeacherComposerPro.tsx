@@ -6,6 +6,7 @@ import './teacher-pro.css'
 interface TeacherComposerProProps {
   value: string
   busy?: boolean
+  placeholder?: string
   actions?: Array<{
     label: string
     onClick: () => void
@@ -18,7 +19,7 @@ interface TeacherComposerProProps {
   t?: UiTranslator
 }
 
-export function TeacherComposerPro({ value, busy = false, actions = [], onChange, onSubmit, onStop, t }: TeacherComposerProProps): ReactElement {
+export function TeacherComposerPro({ value, busy = false, placeholder, actions = [], onChange, onSubmit, onStop, t }: TeacherComposerProProps): ReactElement {
   const formRef = useRef<HTMLFormElement | null>(null)
   const translate = t ?? ((key: string) => {
     const fallback: Record<string, string> = {
@@ -71,7 +72,7 @@ export function TeacherComposerPro({ value, busy = false, actions = [], onChange
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={handleTextareaKeyDown}
-          placeholder={translate('composerPlaceholder')}
+          placeholder={placeholder ?? translate('composerPlaceholder')}
         />
         <button
           type={busy ? 'button' : 'submit'}

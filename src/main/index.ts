@@ -2,7 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type Conte
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getIkatagoPassword, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, getZhiziToken, hasIkatagoPassword, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, hasZhiziToken, replaceSettings, setSettings, upsertGames } from './lib/store'
 import { BRAND_NAME } from '@shared/brand'
-import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AnalyzeTrialPositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest, ZhiziCloudConnectionTestResult, ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudLoginResult, ZhiziCloudSendCodeRequest, ZhiziCloudSendCodeResult } from './lib/types'
+import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AnalyzeTrialPositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkCancelRequest, KataGoBenchmarkRequest, KataGoBenchmarkStartRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest, ZhiziCloudConnectionTestResult, ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudLoginResult, ZhiziCloudSendCodeRequest, ZhiziCloudSendCodeResult } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
 import { runReview } from './services/review'
@@ -10,13 +10,13 @@ import { applyDetectedDefaults, detectSystemProfile } from './services/systemPro
 import { cancelTeacherRun, runTeacherTask } from './services/teacherAgent'
 import { listLlmModels, testLlmSettings } from './services/llm'
 import { analyzeTrialPositionWithProgress, cancelKataGoAnalysis } from './services/katago'
-import { benchmarkKataGo } from './services/katagoBenchmark'
+import { benchmarkKataGo, cancelKataGoBenchmark, startKataGoBenchmark } from './services/katagoBenchmark'
 import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
 import { cancelScheduledAnalysis, getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
 import { analyzeGameQuickRuntime, analyzePositionRuntime, analyzePositionWithProgressRuntime } from './services/analysis/runtimeIntegration'
 import { collectDiagnostics } from './services/diagnostics'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
-import { inspectKataGoAssets, installOfficialKataGoModel } from './services/katago/katagoAssets'
+import { cancelKataGoAssetInstall, inspectKataGoAssets, installOfficialKataGoModel } from './services/katago/katagoAssets'
 import { bindFoxGamesToStudent, bindSgfGameToStudent, suggestStudentBindings } from './services/library/studentBinding'
 import { deleteLibraryGame } from './services/library/deleteGame'
 import { inspectReleaseReadiness } from './services/release/readiness'
@@ -379,6 +379,7 @@ app.whenReady().then(() => {
       safeSendToRenderer(event, 'katago-assets:install-progress', progress)
     })
   )
+  ipcMain.handle('katago-assets:cancel-install', () => ({ cancelled: cancelKataGoAssetInstall() }))
   ipcMain.handle('student:list', async () => listStudents())
   ipcMain.handle('student:suggest-bindings', async (_event, payload) => suggestStudentBindings(payload))
   ipcMain.handle('student:bind-sgf-game', async (_event, payload) => bindSgfGameToStudent(payload))
@@ -516,6 +517,12 @@ app.whenReady().then(() => {
   ipcMain.handle('analysis-scheduler:stats', async () => getAnalysisSchedulerStats())
   ipcMain.handle('katago:engine-pool-stats', async () => getKataGoEnginePoolStats())
   ipcMain.handle('katago:benchmark', async (_event, payload: KataGoBenchmarkRequest | undefined) => benchmarkKataGo(payload ?? {}))
+  ipcMain.handle('katago:benchmark-start', (event, payload: KataGoBenchmarkStartRequest | undefined) =>
+    startKataGoBenchmark(payload ?? {}, (progress) => safeSendToRenderer(event, 'katago:benchmark-progress', progress))
+  )
+  ipcMain.handle('katago:benchmark-cancel', (_event, payload: KataGoBenchmarkCancelRequest | undefined) =>
+    cancelKataGoBenchmark(payload ?? {})
+  )
   ipcMain.handle('teacher:run', async (event, payload: TeacherRunRequest) =>
     runTeacherTask(payload, (progress) => {
       safeSendToRenderer(event, 'teacher:run-progress', progress)
