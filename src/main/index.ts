@@ -30,7 +30,7 @@ import {
 } from './services/studentProfile'
 import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 import { clearTtsCache, inspectTtsAssets, listTtsVoices, synthesizeTts, testTtsSettings } from './services/tts'
-import { loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode } from './services/zhiziCloudAuth'
+import { loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode, ZHIZI_OFFICIAL_APP_DOWNLOAD_URL } from './services/zhiziCloudAuth'
 import { probeZhiziCloudConnection } from './services/zhiziConnectionProbe'
 import { resetZhiziPersistentSession } from './services/zhiziSocketSession'
 
@@ -615,6 +615,10 @@ app.whenReady().then(() => {
       message: `${result.message} 已切换为智子云分析。`,
       dashboard: await dashboard()
     }
+  })
+  ipcMain.handle('zhizi:open-official-app', async () => {
+    await shell.openExternal(ZHIZI_OFFICIAL_APP_DOWNLOAD_URL)
+    return { ok: true, url: ZHIZI_OFFICIAL_APP_DOWNLOAD_URL }
   })
   ipcMain.handle('tts:inspect-assets', async () => inspectTtsAssets())
   ipcMain.handle('tts:list-voices', async () => listTtsVoices())

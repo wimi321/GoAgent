@@ -5388,6 +5388,14 @@ function SettingsDrawer({
           >
             {zhiziTestBusy ? '检测中...' : '只检测连接'}
           </button>
+          <button
+            className="ghost-button"
+            type="button"
+            title={t('zhiziOfficialAppHint')}
+            onClick={() => void window.goagent.openZhiziOfficialApp()}
+          >
+            {t('zhiziOfficialApp')}
+          </button>
           <small>
             {zhiziEnabled
               ? '当前使用智子云分析。切回本机后会立即释放远程连接。'
