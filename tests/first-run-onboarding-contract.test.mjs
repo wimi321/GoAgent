@@ -87,13 +87,15 @@ test('automatic KataGo benchmark is cancellable, bounded, and preempted by analy
   assert.match(app, /liveAnalysis\.visitsPerSecond > 0/)
 })
 
-test('settings keep five user-facing pages and fold remote engines into advanced analysis settings', () => {
+test('settings keep focused user-facing pages and give official Zhizi its own page', () => {
   const app = read('src/renderer/src/App.tsx')
   const i18n = read('src/renderer/src/i18n.ts')
+  const zhiziPanel = read('src/renderer/src/features/settings/ZhiziCloudSettingsPanel.tsx')
 
-  assert.match(app, /type SettingsPageId = 'general' \| 'ai' \| 'katago' \| 'voice' \| 'about'/)
-  assert.doesNotMatch(app, /id: 'remote',[\s\S]{0,120}settingsPages/)
-  assert.match(app, /settings-remote-advanced" hidden=\{activeSettingsPage !== 'katago'\}/)
+  assert.match(app, /type SettingsPageId = 'general' \| 'ai' \| 'katago' \| 'zhizi' \| 'voice' \| 'about'/)
+  assert.match(app, /id: 'zhizi'/)
+  assert.match(app, /ZhiziCloudSettingsPanel/)
+  assert.match(zhiziPanel, /account: '账户与充值'/)
   assert.match(app, /t\('settingsGeneralTitle'\)/)
   assert.match(app, /t\('settingsAiTitle'\)/)
   assert.match(app, /t\('settingsAnalysisTitle'\)/)

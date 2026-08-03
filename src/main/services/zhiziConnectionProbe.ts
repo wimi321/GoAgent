@@ -36,7 +36,7 @@ export async function probeZhiziCloudConnection(
     accountStatus = {
       tokenValid: true,
       isMembership: false,
-      hasConnectAccount: false
+      recommendedGpuType: '1x'
     }
     accountStatusWarning = '账号资料暂时无法读取，已直接检测远程引擎。'
   }
@@ -45,7 +45,8 @@ export async function probeZhiziCloudConnection(
       ok: false,
       state: 'token-expired',
       message: '智子云登录已失效，请重新登录。',
-      ...accountStatus
+      tokenValid: false,
+      accountOverview: accountStatus
     }
   }
 
@@ -57,8 +58,7 @@ export async function probeZhiziCloudConnection(
     const results = await queryZhiziGtpAnalysisBatch({
       settings: {
         ...settings,
-        katagoEngineMode: 'zhizi',
-        zhiziClientBin: ''
+        katagoEngineMode: 'zhizi'
       },
       runId: `zhizi-smoke-${Date.now()}`,
       group: 'quick',
@@ -90,7 +90,11 @@ export async function probeZhiziCloudConnection(
         ok: false,
         state: 'error',
         message: '智子云已连接，但没有返回候选点。请稍后重试。',
-        ...accountStatus
+        tokenValid: accountStatus.tokenValid,
+        isMembership: accountStatus.isMembership,
+        membershipExpiresAt: accountStatus.membershipExpiresAt,
+        accountOverview: accountStatus,
+        sessionState: getZhiziPersistentSessionTelemetry()
       }
     }
     const after = getZhiziPersistentSessionTelemetry()
@@ -117,7 +121,11 @@ export async function probeZhiziCloudConnection(
       analysisMillis: Date.now() - startedAt,
       sessionReused: before.ready,
       gpuType: settings.zhiziGpuType || 'vip-share',
-      ...accountStatus
+      tokenValid: accountStatus.tokenValid,
+      isMembership: accountStatus.isMembership,
+      membershipExpiresAt: accountStatus.membershipExpiresAt,
+      accountOverview: accountStatus,
+      sessionState: after
     }
   } catch (cause) {
     const error = classifyZhiziRemoteError(cause, settings.zhiziGpuType || 'vip-share')
@@ -126,7 +134,11 @@ export async function probeZhiziCloudConnection(
       state: resultState(error.code),
       message: error.message,
       gpuType: settings.zhiziGpuType || 'vip-share',
-      ...accountStatus
+      tokenValid: accountStatus.tokenValid,
+      isMembership: accountStatus.isMembership,
+      membershipExpiresAt: accountStatus.membershipExpiresAt,
+      accountOverview: accountStatus,
+      sessionState: getZhiziPersistentSessionTelemetry()
     }
   }
 }

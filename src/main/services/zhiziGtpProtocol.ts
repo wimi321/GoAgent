@@ -1,4 +1,10 @@
-import type { AppSettings, GameMove } from '@main/lib/types'
+import type {
+  AppSettings,
+  GameMove,
+  ZhiziGpuType,
+  ZhiziKataName,
+  ZhiziKataWeight
+} from '@main/lib/types'
 
 export type ZhiziGtpAnalysisResponse = Record<string, unknown> & {
   id?: string
@@ -25,6 +31,9 @@ const GTP_VALUE_KEYS = new Set([
   'scoreSelfplay',
   'prior',
   'lcb',
+  'utilityLcb',
+  'weight',
+  'noResultValue',
   'order',
   'pv',
   'pvVisits',
@@ -34,86 +43,55 @@ const GTP_VALUE_KEYS = new Set([
   'rootInfo'
 ])
 
-const MANAGED_REMOTE_OPTIONS = new Set([
-  '--token',
-  '--platform',
-  '--engine-type',
-  '--gpu-type',
-  '--kata-name',
-  '--kata-weight'
-])
+export const ZHIZI_GPU_TYPES = ['vip-share', '1x', '3x', '6x', '12x', '24x'] as const
+export const ZHIZI_KATA_NAMES = ['katago-TENSORRT', 'katago-CUDA'] as const
+export const ZHIZI_KATA_WEIGHTS = ['18bnbt', 'fdx', '28bnbt'] as const
 
-function splitCommandLine(input: string): string[] {
-  const args: string[] = []
-  let current = ''
-  let quote: '"' | "'" | '' = ''
-  let escaping = false
-  for (const char of input) {
-    if (escaping) {
-      current += char
-      escaping = false
-      continue
-    }
-    if (char === '\\') {
-      escaping = true
-      continue
-    }
-    if (quote) {
-      if (char === quote) quote = ''
-      else current += char
-      continue
-    }
-    if (char === '"' || char === "'") {
-      quote = char
-      continue
-    }
-    if (/\s/.test(char)) {
-      if (current) {
-        args.push(current)
-        current = ''
-      }
-      continue
-    }
-    current += char
-  }
-  if (escaping) current += '\\'
-  if (current) args.push(current)
-  return args
-}
-
-function shellQuote(value: string): string {
-  if (/^[A-Za-z0-9_./:=+-]+$/.test(value)) return value
-  return `'${value.replace(/'/g, `'\\''`)}'`
-}
-
-function sanitizedRemoteExtraArgs(input: string): string[] {
-  const source = splitCommandLine(input)
-  const sanitized: string[] = []
-  for (let index = 0; index < source.length; index += 1) {
-    const argument = source[index]
-    const option = argument.split('=', 1)[0]
-    if (MANAGED_REMOTE_OPTIONS.has(option)) {
-      if (!argument.includes('=') && index + 1 < source.length) index += 1
-      continue
-    }
-    sanitized.push(argument)
-  }
-  return sanitized
+function allowedValue<T extends string>(value: string, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? value as T : fallback
 }
 
 export function buildZhiziRemoteArgs(
-  settings: Pick<AppSettings, 'zhiziGpuType' | 'zhiziExtraArgs'>
+  settings: Pick<AppSettings, 'zhiziGpuType' | 'zhiziKataName' | 'zhiziKataWeight'>
 ): string {
-  const gpuType = settings.zhiziGpuType?.trim() || 'vip-share'
-  const args = [
+  const gpuType = allowedValue<ZhiziGpuType>(settings.zhiziGpuType, ZHIZI_GPU_TYPES, 'vip-share')
+  const kataName = allowedValue<ZhiziKataName>(settings.zhiziKataName, ZHIZI_KATA_NAMES, 'katago-TENSORRT')
+  const kataWeight = allowedValue<ZhiziKataWeight>(settings.zhiziKataWeight, ZHIZI_KATA_WEIGHTS, '28bnbt')
+  return [
     '--platform', 'all',
     '--engine-type', 'go',
     '--gpu-type', gpuType,
-    '--kata-name', 'katago-TENSORRT',
-    '--kata-weight', '28bnbt'
-  ]
-  args.push(...sanitizedRemoteExtraArgs(settings.zhiziExtraArgs))
-  return args.map(shellQuote).join(' ')
+    '--kata-name', kataName,
+    '--kata-weight', kataWeight
+  ].join(' ')
+}
+
+export interface GtpCommandResponse {
+  id: number
+  ok: boolean
+  firstLine: string
+}
+
+export function formatGtpCommand(id: number, command: string): string {
+  return `${Math.max(1, Math.trunc(id))} ${command.trim()}\n`
+}
+
+export function parseGtpCommandResponses(text: string): GtpCommandResponse[] {
+  const responses: GtpCommandResponse[] = []
+  for (const rawLine of text.replace(/\r/g, '').split('\n')) {
+    const match = rawLine.match(/^([=?])(\d+)(?:\s+(.*))?$/)
+    if (!match) continue
+    responses.push({
+      id: Number(match[2]),
+      ok: match[1] === '=',
+      firstLine: match[3] ?? ''
+    })
+  }
+  return responses
+}
+
+export function findGtpCommandResponse(text: string, id: number): GtpCommandResponse | undefined {
+  return parseGtpCommandResponses(text).find((response) => response.id === id)
 }
 
 function normalizeRate(value: number): number {

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { io } from 'socket.io-client'
+import { asZhiziApiError, createZhiziSocketToken } from './zhiziApiClient'
 
 export type ZhiziRemoteErrorCode =
   | 'cancelled'
@@ -47,6 +48,7 @@ export interface ZhiziSessionTelemetry {
   reusedConnections: number
   connectionCount: number
   lastReadyMillis: number
+  generation: number
   lastErrorCode?: ZhiziRemoteErrorCode
   lastError?: string
 }
@@ -59,8 +61,6 @@ interface ZhiziSessionDependencies {
 }
 
 const READY_TIMEOUT_MS = 60_000
-const RECONNECT_WAIT_MS = 8_000
-const READY_FALLBACK_MS = 4_000
 const MAX_START_ATTEMPTS = 3
 const OUTPUT_LIMIT = 8 * 1024 * 1024
 const VIP_IDLE_TIMEOUT_MS = 5 * 60_000
@@ -179,81 +179,25 @@ export function zhiziStartupRetryDelayMs(completedAttempt: number): number {
   return 10_000
 }
 
-async function fetchSocketTokenOnce(
-  accountToken: string,
-  args: string
-): Promise<ZhiziSocketToken> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 20_000)
-  try {
-    const response = await fetch(
-      'https://www.zhizigo.com/api/cluster/account/fetch-socketio-token',
-      {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accountToken}`
-        },
-        body: JSON.stringify({ args }),
-        signal: controller.signal
-      }
-    )
-    const rawText = await response.text()
-    let body: Record<string, unknown> = {}
-    try {
-      body = rawText ? JSON.parse(rawText) as Record<string, unknown> : {}
-    } catch {
-      if (!response.ok) {
-        throw classifyZhiziRemoteError(`HTTP ${response.status} ${rawText.slice(0, 240)}`)
-      }
-      const contentType = response.headers.get('content-type') ?? 'unknown'
-      const preview = redactZhiziText(rawText.replace(/\s+/g, ' ').trim().slice(0, 180))
-      throw new ZhiziRemoteError(
-        'protocol',
-        `智子云连接接口返回了无法识别的内容（HTTP ${response.status} · ${contentType}）。${preview ? ` ${preview}` : ''}`,
-        true
-      )
-    }
-    if (!response.ok) {
-      const detail = String(body.key ?? body.error ?? body.message ?? rawText).slice(0, 240)
-      throw classifyZhiziRemoteError(`HTTP ${response.status} ${detail}`)
-    }
-    const socketIOURL = typeof body.socketIOURL === 'string' ? body.socketIOURL.trim() : ''
-    const token = typeof body.token === 'string' ? body.token.trim() : ''
-    if (!socketIOURL || !token) {
-      throw new ZhiziRemoteError(
-        'protocol',
-        '智子云连接信息不完整，请稍后重试。',
-        true
-      )
-    }
-    return { socketIOURL, token }
-  } catch (cause) {
-    if (cause instanceof Error && cause.name === 'AbortError') {
-      throw new ZhiziRemoteError('timeout', '智子云连接令牌获取超时。', true)
-    }
-    throw classifyZhiziRemoteError(cause)
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
 export async function fetchZhiziSocketToken(
   accountToken: string,
   args: string
 ): Promise<ZhiziSocketToken> {
-  let lastError: ZhiziRemoteError | null = null
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
-    try {
-      return await fetchSocketTokenOnce(accountToken, args)
-    } catch (cause) {
-      lastError = classifyZhiziRemoteError(cause)
-      if (!lastError.retryable || attempt >= 2) throw lastError
-      await sleep(650)
+  try {
+    const token = await createZhiziSocketToken(accountToken, args)
+    return { socketIOURL: token.socketIOURL, token: token.token }
+  } catch (cause) {
+    const error = asZhiziApiError(cause)
+    if (error.code === 'insufficient-credit' || error.code === 'capacity-unavailable') {
+      const gpuType = args.includes('--gpu-type vip-share') ? 'vip-share' : '1x'
+      throw classifyZhiziRemoteError(error.key ?? error.message, gpuType)
     }
+    throw new ZhiziRemoteError(
+      error.code === 'unauthorized' ? 'auth' : error.code === 'timeout' ? 'timeout' : 'network',
+      error.message,
+      error.retryable
+    )
   }
-  throw lastError ?? new ZhiziRemoteError('unknown', '智子云连接令牌获取失败。', true)
 }
 
 const defaultDependencies: ZhiziSessionDependencies = {
@@ -280,8 +224,8 @@ export class ZhiziPersistentSession {
   private reusedConnections = 0
   private lastReadyMillis = 0
   private disconnectVersion = 0
+  private generation = 0
   private connectErrorCount = 0
-  private readyFallbackTimer: NodeJS.Timeout | null = null
   private idleTimer: NodeJS.Timeout | null = null
 
   constructor(
@@ -304,6 +248,7 @@ export class ZhiziPersistentSession {
       reusedConnections: this.reusedConnections,
       connectionCount: this.connectionCount,
       lastReadyMillis: this.lastReadyMillis,
+      generation: this.generation,
       lastErrorCode: this.lastError?.code,
       lastError: this.lastError?.message
     }
@@ -320,6 +265,10 @@ export class ZhiziPersistentSession {
 
   captureDisconnectVersion(): number {
     return this.disconnectVersion
+  }
+
+  captureGeneration(): number {
+    return this.generation
   }
 
   send(command: string): void {
@@ -418,14 +367,8 @@ export class ZhiziPersistentSession {
     if (this.closed) throw new ZhiziRemoteError('network', '智子云连接已经关闭。', true)
     if (this.ready && this.socket?.connected) return
 
-    if (this.socket && this.everReady && !this.ready) {
-      try {
-        await this.waitForExistingReconnect(signal)
-        if (this.ready && this.socket?.connected) return
-      } catch (cause) {
-        if (classifyZhiziRemoteError(cause, this.config.gpuType).code === 'cancelled') throw cause
-        this.disposeSocket(false)
-      }
+    if (this.socket && (!this.socket.connected || !this.ready)) {
+      this.disposeSocket(false)
     }
 
     if (!this.connectionPromise) {
@@ -434,16 +377,6 @@ export class ZhiziPersistentSession {
       })
     }
     await this.connectionPromise
-  }
-
-  private async waitForExistingReconnect(signal: AbortSignal): Promise<void> {
-    const started = this.dependencies.now()
-    while (this.dependencies.now() - started < RECONNECT_WAIT_MS) {
-      if (signal.aborted) throw new ZhiziRemoteError('cancelled', '智子云分析已取消。', false)
-      if (this.ready && this.socket?.connected) return
-      await this.dependencies.sleep(50)
-    }
-    throw new ZhiziRemoteError('network', '智子云自动重连未及时恢复。', true)
   }
 
   private async startWithRetries(signal: AbortSignal): Promise<void> {
@@ -470,6 +403,7 @@ export class ZhiziPersistentSession {
     this.ready = false
     this.lastError = null
     this.connectErrorCount = 0
+    this.generation += 1
     this.clearOutput()
 
     const socketToken = await this.dependencies.fetchSocketToken(
@@ -483,10 +417,7 @@ export class ZhiziPersistentSession {
       query: { 'zz-socketio-token': socketToken.token },
       transports: ['websocket'],
       timeout: 30_000,
-      reconnection: true,
-      reconnectionAttempts: Number.POSITIVE_INFINITY,
-      reconnectionDelay: 1_200,
-      reconnectionDelayMax: 8_000,
+      reconnection: false,
       forceNew: true,
       autoConnect: false
     })
@@ -517,8 +448,7 @@ export class ZhiziPersistentSession {
       if (!isCurrent()) return
       this.connectErrorCount = 0
       this.lastError = null
-      this.state = this.everReady ? 'reconnecting' : 'connecting'
-      if (this.everReady) this.scheduleReadyFallback(socket)
+      this.state = 'connecting'
     })
     socket.on('ready', () => {
       if (!isCurrent()) return
@@ -527,9 +457,6 @@ export class ZhiziPersistentSession {
     socket.on('stdout', (payload) => {
       if (!isCurrent()) return
       this.stdout = this.appendLimited(this.stdout, decodeZhiziSocketPayload(payload))
-      if (!this.ready && socket.connected && /GTP ready|beginning main protocol loop/i.test(this.stdout)) {
-        this.markReady()
-      }
     })
     socket.on('stderr', (payload) => {
       if (!isCurrent()) return
@@ -537,9 +464,6 @@ export class ZhiziPersistentSession {
       this.stderr = this.appendLimited(this.stderr, text)
       if (!this.ready && /not_enough_credit|unauthorized|forbidden|no worker|worker unavailable/i.test(text)) {
         this.lastError = classifyZhiziRemoteError(text, this.config.gpuType)
-      }
-      if (!this.ready && socket.connected && /GTP ready|beginning main protocol loop/i.test(text)) {
-        this.markReady()
       }
     })
     socket.on('connect_error', (cause) => {
@@ -552,7 +476,7 @@ export class ZhiziPersistentSession {
       if (!isCurrent()) return
       this.ready = false
       this.disconnectVersion += 1
-      this.clearReadyFallback()
+      this.generation += 1
       this.state = 'reconnecting'
       const detail = typeof reason === 'string' ? reason : String(reason ?? '')
       const stderrTail = this.stderr.trim().slice(-800)
@@ -564,27 +488,10 @@ export class ZhiziPersistentSession {
   }
 
   private markReady(): void {
-    this.clearReadyFallback()
     this.ready = true
     this.everReady = true
     this.lastError = null
     this.state = 'ready'
-  }
-
-  private scheduleReadyFallback(socket: ZhiziSocketLike): void {
-    this.clearReadyFallback()
-    this.readyFallbackTimer = setTimeout(() => {
-      if (!this.closed && this.socket === socket && socket.connected && !this.ready && this.everReady) {
-        this.markReady()
-      }
-    }, READY_FALLBACK_MS)
-  }
-
-  private clearReadyFallback(): void {
-    if (this.readyFallbackTimer) {
-      clearTimeout(this.readyFallbackTimer)
-      this.readyFallbackTimer = null
-    }
   }
 
   private appendLimited(current: string, next: string): string {
@@ -593,7 +500,6 @@ export class ZhiziPersistentSession {
   }
 
   private disposeSocket(sendQuit: boolean): void {
-    this.clearReadyFallback()
     const socket = this.socket
     this.socket = null
     this.ready = false
@@ -652,7 +558,8 @@ export function getZhiziPersistentSessionTelemetry(): ZhiziSessionTelemetry {
     ready: false,
     reusedConnections: 0,
     connectionCount: 0,
-    lastReadyMillis: 0
+    lastReadyMillis: 0,
+    generation: 0
   }
 }
 

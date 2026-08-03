@@ -109,12 +109,17 @@ export interface AppSettings {
   ikatagoExtraArgs: string
   ikatagoUseWhenLocalSlow: boolean
   ikatagoSlowThresholdVisitsPerSecond: number
-  zhiziClientBin: string
+  /** @deprecated Migration-only; official Zhizi integration never launches a local connector. */
+  zhiziClientBin?: string
   zhiziUsername: string
   zhiziToken: string
-  zhiziGpuType: string
-  zhiziExtraArgs: string
-  zhiziUseWhenLocalSlow: boolean
+  zhiziGpuType: ZhiziGpuType
+  zhiziKataName: ZhiziKataName
+  zhiziKataWeight: ZhiziKataWeight
+  /** @deprecated Migration-only; official Zhizi options are allowlisted fields. */
+  zhiziExtraArgs?: string
+  /** @deprecated Migration-only; remote analysis is only enabled explicitly. */
+  zhiziUseWhenLocalSlow?: boolean
   pythonBin: string
   llmBaseUrl: string
   llmApiKey: string
@@ -167,18 +172,160 @@ export type KataGoEngineMode = 'auto' | 'persistent' | 'spawn' | 'ikatago' | 'zh
 export type KataGoAnalysisSpeedMode = 'auto' | 'fast' | 'balanced' | 'deep'
 export type KataGoModelPresetId = string
 
+export type ZhiziGpuType = 'vip-share' | '1x' | '3x' | '6x' | '12x' | '24x'
+export type ZhiziKataName = 'katago-TENSORRT' | 'katago-CUDA'
+export type ZhiziKataWeight = '18bnbt' | 'fdx' | '28bnbt'
+
+export interface ZhiziIdentifier {
+  kind: 'phone' | 'email'
+  value: string
+}
+
+export interface ZhiziEngineProfile {
+  gpuType: ZhiziGpuType
+  kataName: ZhiziKataName
+  kataWeight: ZhiziKataWeight
+}
+
+export type ZhiziApiErrorCode =
+  | 'invalid-data'
+  | 'invalid-credentials'
+  | 'invalid-verification-code'
+  | 'too-frequent'
+  | 'not-found'
+  | 'unauthorized'
+  | 'insufficient-credit'
+  | 'capacity-unavailable'
+  | 'payment-failed'
+  | 'network-error'
+  | 'timeout'
+  | 'server-error'
+  | 'protocol-error'
+  | 'unknown'
+
+export interface ZhiziApiError {
+  code: ZhiziApiErrorCode
+  status?: number
+  key?: string
+  retryable: boolean
+  message: string
+}
+
+export interface ZhiziAccountOverview {
+  tokenValid: boolean
+  identifierMasked?: string
+  isMembership: boolean
+  membershipExpiresAt?: string
+  membershipAutoRenew?: boolean
+  recommendedGpuType: ZhiziGpuType
+  balance?: ZhiziBalanceInfo
+  warning?: ZhiziApiError
+}
+
+export interface ZhiziBalanceInfo {
+  totalCashAmount: number
+  totalCouponAmount: number
+  totalProductAmount: number
+  totalAmount: number
+  totalConsumption: number
+  totalCouponConsumption: number
+  remainingBalance: number
+  yesterdayConsumption: number
+  totalDuration: number
+  last24HrsShareDuration: number
+  last24HrsVIPShareDuration: number
+  currentNumOfMyConnections: number
+  currentNumOfNodes: number
+}
+
+export interface ZhiziMembershipProduct {
+  name: 'MEMBERSHIP_1_MONTH' | 'MEMBERSHIP_3_MONTH' | 'MEMBERSHIP_6_MONTH' | 'MEMBERSHIP_12_MONTH'
+  type: 'MEMBERSHIP'
+  priceFen: number
+}
+
+export interface ZhiziUsageRecord {
+  id: string
+  startedAt?: string
+  endedAt?: string
+  finished: boolean
+  ready: boolean
+  durationSeconds: number
+  totalCostYuan: number
+  gpuType?: string
+  pricePerHourYuan?: number
+  vip: boolean
+  share: boolean
+}
+
+export interface ZhiziUsagePage {
+  total: number
+  page: number
+  pageSize: number
+  items: ZhiziUsageRecord[]
+}
+
+export interface ZhiziCreditRecord {
+  id: string
+  creditType: 'CASH' | 'COUPON' | 'PURCHASE_PRODUCT' | string
+  amountYuan: number
+  source?: string
+  productName?: string
+  createdAt?: string
+}
+
+export interface ZhiziCreditPage {
+  total: number
+  page: number
+  pageSize: number
+  items: ZhiziCreditRecord[]
+}
+
+export type ZhiziPaymentKind = 'top-up' | 'membership'
+export type ZhiziPaymentStatus = 'PENDING' | 'SUCCESS' | 'FAIL' | 'CANCELLED'
+
+export interface ZhiziPaymentCreateRequest {
+  kind: ZhiziPaymentKind
+  amountFen?: number
+  productName?: ZhiziMembershipProduct['name']
+}
+
+export interface ZhiziPaymentSession {
+  orderId: string
+  kind: ZhiziPaymentKind
+  amountFen: number
+  productName?: ZhiziMembershipProduct['name']
+  status: ZhiziPaymentStatus
+  qrImageDataUrl?: string
+  createdAt?: string
+  paidAt?: string
+  error?: ZhiziApiError
+}
+
+export interface ZhiziAccountData {
+  overview: ZhiziAccountOverview
+  products: ZhiziMembershipProduct[]
+}
+
 export interface ZhiziCloudLoginRequest {
-  phone: string
+  identifier: ZhiziIdentifier
   password: string
 }
 
 export interface ZhiziCloudSendCodeRequest {
-  phone: string
+  identifier: ZhiziIdentifier
+  purpose?: 'fast_login' | 'reset_password'
 }
 
 export interface ZhiziCloudLoginCodeRequest {
-  phone: string
+  identifier: ZhiziIdentifier
   verificationCode: string
+}
+
+export interface ZhiziCloudResetPasswordRequest {
+  identifier: ZhiziIdentifier
+  verificationCode: string
+  password: string
 }
 
 export interface ZhiziCloudSendCodeResult {
@@ -206,13 +353,25 @@ export interface ZhiziCloudConnectionTestResult {
   readyMillis?: number
   analysisMillis?: number
   sessionReused?: boolean
-  gpuType?: string
+  gpuType?: ZhiziGpuType
   tokenValid?: boolean
   isMembership?: boolean
   membershipExpiresAt?: string
-  hasConnectAccount?: boolean
-  connectUsernameMasked?: string
+  accountOverview?: ZhiziAccountOverview
+  sessionState?: ZhiziEngineSessionState
   dashboard?: DashboardData
+}
+
+export interface ZhiziEngineSessionState {
+  state: 'idle' | 'connecting' | 'ready' | 'reconnecting' | 'error' | 'closed'
+  connected: boolean
+  ready: boolean
+  generation: number
+  reusedConnections: number
+  connectionCount: number
+  lastReadyMillis: number
+  lastErrorCode?: string
+  lastError?: string
 }
 
 export interface KataGoModelPreset {

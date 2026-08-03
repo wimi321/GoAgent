@@ -27,14 +27,15 @@ test('iKataGo remote engine is a first-class KataGo engine mode', async () => {
   assert.match(persistent, /mode === 'auto' \|\| mode === 'persistent'/)
 })
 
-test('iKataGo remains a backend compatibility engine but is hidden from the remote compute UI', async () => {
+test('iKataGo remains a backend compatibility engine while official Zhizi has a focused UI', async () => {
   const renderer = await text('src/renderer/src/App.tsx')
+  const zhiziPanel = await text('src/renderer/src/features/settings/ZhiziCloudSettingsPanel.tsx')
   const preload = await text('src/preload/index.ts')
   const main = await text('src/main/index.ts')
   const docs = await text('docs/IKATAGO_REMOTE_ENGINE.md')
 
-  assert.match(renderer, /智子云算力/)
-  assert.match(renderer, /智子云直连/)
+  assert.match(zhiziPanel, /智子云/)
+  assert.match(zhiziPanel, /远程算力/)
   assert.doesNotMatch(renderer, /iKataGo 远程算力/)
   assert.doesNotMatch(renderer, /getSavedIkatagoPassword/)
   assert.match(preload, /ikatago:get-saved-password/)

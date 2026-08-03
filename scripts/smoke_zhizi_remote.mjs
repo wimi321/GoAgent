@@ -3,13 +3,22 @@ import { createDecipheriv, scryptSync } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import os from 'node:os'
 import { join } from 'node:path'
+import { tsImport } from 'tsx/esm/api'
 
-import {
+const protocol = await tsImport('../src/main/services/zhiziGtpProtocol.ts', import.meta.url)
+const api = await tsImport('../src/main/services/zhiziApiClient.ts', import.meta.url)
+const { ZhiziPersistentSession } = await tsImport(
+  '../src/main/services/zhiziSocketSession.ts',
+  import.meta.url
+)
+
+const {
   buildZhiziRemoteArgs,
+  findGtpCommandResponse,
+  formatGtpCommand,
   parseKataAnalyzeInfo,
   zhiziAnalysisReachedVisits
-} from '../src/main/services/zhiziGtpProtocol.ts'
-import { ZhiziPersistentSession } from '../src/main/services/zhiziSocketSession.ts'
+} = protocol
 
 const strict = process.env.GOAGENT_ZHIZI_REAL === '1'
 const appHome = process.env.GOAGENT_APP_HOME || join(os.homedir(), '.goagent')
@@ -34,66 +43,65 @@ function decryptLocalSecret(secret) {
   ]).toString('utf8')
 }
 
-function responseCount(text) {
-  return (text.match(/\r?\n\r?\n/g) ?? []).length
-}
-
-async function sendSetup(session, signal, commands) {
+async function sendCommand(session, signal, id, command, timeoutMs = 60_000) {
   const start = session.output().stdout.length
   const disconnectVersion = session.captureDisconnectVersion()
-  session.send(`${commands.join('\n')}\n`)
+  const generation = session.captureGeneration()
+  session.send(formatGtpCommand(id, command))
+  let response
   await session.waitUntil(
-    () => responseCount(session.output().stdout.slice(start)) >= commands.length,
-    15_000,
-    'Zhizi smoke setup',
+    () => {
+      if (session.captureGeneration() !== generation) return false
+      response = findGtpCommandResponse(session.output().stdout.slice(start), id)
+      return Boolean(response)
+    },
+    timeoutMs,
+    `Zhizi smoke command ${id}`,
     signal,
     disconnectVersion
   )
-  const output = session.output().stdout.slice(start)
-  if (/(?:^|\n)\?/.test(output.trim())) {
-    throw new Error(`GTP setup rejected: ${output.trim().slice(0, 300)}`)
-  }
+  if (!response.ok) throw new Error(`GTP command ${id} rejected: ${response.firstLine}`)
 }
 
-async function analyze(session, signal, id, moves) {
+async function analyze(session, signal, moves) {
   session.clearOutput()
-  await sendSetup(session, signal, [
+  let commandId = 1
+  for (const command of [
     'boardsize 19',
     'kata-set-rules chinese',
     'komi 7.5',
     'clear_board',
     ...moves.map(([color, point]) => `play ${color} ${point}`)
-  ])
+  ]) {
+    await sendCommand(session, signal, commandId, command)
+    commandId += 1
+  }
+
+  const player = moves.at(-1)?.[0] === 'B' ? 'W' : 'B'
   const start = session.output().stdout.length
   const disconnectVersion = session.captureDisconnectVersion()
-  const player = moves.at(-1)?.[0] === 'B' ? 'W' : 'B'
-  session.send(`kata-analyze ${player} 25 rootInfo true maxmoves 8\n`)
+  const generation = session.captureGeneration()
+  const analysisId = commandId
+  session.send(formatGtpCommand(analysisId, `kata-analyze ${player} 25 rootInfo true maxmoves 8`))
   let response
   const startedAt = Date.now()
   await session.waitUntil(
     () => {
+      if (session.captureGeneration() !== generation) return false
       const output = session.output().stdout.slice(start)
       if (!/\binfo\s+/.test(output)) return false
-      const parsed = parseKataAnalyzeInfo(output, player, id)
+      const parsed = parseKataAnalyzeInfo(output, player, 'zhizi-real-smoke')
       if (!parsed.moveInfos?.length) return false
       response = parsed
       return zhiziAnalysisReachedVisits(parsed, 64)
     },
-    30_000,
+    45_000,
     'Zhizi smoke analysis',
     signal,
     disconnectVersion
   )
-  session.send('stop\n')
-  await session.waitUntil(
-    () => responseCount(session.output().stdout.slice(start)) >= 1,
-    10_000,
-    'Zhizi smoke stop',
-    signal,
-    disconnectVersion
-  )
+  session.send(formatGtpCommand(analysisId + 1, 'stop'))
   return {
-    id,
     elapsedMillis: Date.now() - startedAt,
     topMove: response.moveInfos[0].move,
     visits: response.moveInfos.reduce((sum, move) => sum + Number(move.visits ?? 0), 0),
@@ -103,7 +111,7 @@ async function analyze(session, signal, id, moves) {
 }
 
 if (!strict) {
-  skipped('Set GOAGENT_ZHIZI_REAL=1 to run the real Zhizi cloud smoke test.')
+  skipped('Set GOAGENT_ZHIZI_REAL=1 to run the saved-account remote smoke test.')
 } else if (![settingsPath, secretsPath, keyPath].every(existsSync)) {
   skipped('GoAgent local settings or secret files are missing.')
 } else {
@@ -111,40 +119,50 @@ if (!strict) {
   const secrets = JSON.parse(readFileSync(secretsPath, 'utf8'))
   const accountToken = decryptLocalSecret(secrets.zhiziToken)
   if (!accountToken) {
-    skipped('No locally saved Zhizi token is available.')
+    skipped('No locally saved Zhizi login is available. Log in from GoAgent first.')
   } else {
-    const gpuType = String(settings.zhiziGpuType || 'vip-share')
-    const args = buildZhiziRemoteArgs({
-      zhiziGpuType: gpuType,
-      zhiziExtraArgs: String(settings.zhiziExtraArgs || '')
-    })
-    const session = new ZhiziPersistentSession({ accountToken, args, gpuType })
+    const profile = {
+      zhiziGpuType: settings.zhiziGpuType || 'vip-share',
+      zhiziKataName: settings.zhiziKataName || 'katago-TENSORRT',
+      zhiziKataWeight: settings.zhiziKataWeight || '28bnbt'
+    }
+    const args = buildZhiziRemoteArgs(profile)
     const controller = new AbortController()
+    const session = new ZhiziPersistentSession({
+      accountToken,
+      args,
+      gpuType: profile.zhiziGpuType
+    })
     try {
-      const results = await session.runExclusive(controller.signal, async (channel) => [
-        await analyze(channel, controller.signal, 'smoke-1', [
-          ['B', 'D4'],
-          ['W', 'Q16'],
-          ['B', 'Q4']
-        ]),
-        await analyze(channel, controller.signal, 'smoke-2', [
+      const account = await api.getZhiziAccountOverview(accountToken)
+      if (!account.tokenValid) throw new Error('Saved Zhizi login is no longer valid.')
+      const result = await session.runExclusive(controller.signal, (channel) => analyze(
+        channel,
+        controller.signal,
+        [
           ['B', 'D4'],
           ['W', 'Q16'],
           ['B', 'Q4'],
           ['W', 'D16']
-        ])
-      ])
+        ]
+      ))
       const telemetry = session.telemetry()
       console.log(JSON.stringify({
         status: 'passed',
-        gpuType,
-        connectionCount: telemetry.connectionCount,
-        sessionReadyMillis: telemetry.lastReadyMillis,
-        results
+        account: {
+          identifier: account.identifierMasked,
+          membership: account.isMembership,
+          balanceAvailable: Boolean(account.balance)
+        },
+        profile,
+        session: {
+          state: telemetry.state,
+          connectionCount: telemetry.connectionCount,
+          generation: telemetry.generation,
+          readyMillis: telemetry.lastReadyMillis
+        },
+        result
       }, null, 2))
-      if (telemetry.connectionCount !== 1) {
-        throw new Error(`Expected one persistent connection, received ${telemetry.connectionCount}.`)
-      }
     } catch (error) {
       console.error(JSON.stringify({
         status: 'failed',

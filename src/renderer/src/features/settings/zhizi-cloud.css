@@ -1,0 +1,364 @@
+.zhizi-settings {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.zhizi-settings__tabs,
+.zhizi-login-modes,
+.zhizi-history-tabs {
+  display: flex;
+  gap: 4px;
+  width: fit-content;
+  padding: 4px;
+  border: 1px solid var(--line-subtle, #dfe5e2);
+  border-radius: 8px;
+  background: var(--surface-muted, #f4f7f5);
+}
+
+.zhizi-settings__tabs button,
+.zhizi-login-modes button,
+.zhizi-history-tabs button {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary, #5d6b66);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.zhizi-settings__tabs button.is-active,
+.zhizi-login-modes button.is-active,
+.zhizi-history-tabs button.is-active {
+  background: var(--surface-raised, #fff);
+  color: var(--text-primary, #17201d);
+  box-shadow: 0 1px 3px rgba(22, 40, 34, 0.1);
+}
+
+.zhizi-page {
+  display: grid;
+  gap: 18px;
+}
+
+.zhizi-page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.zhizi-page__head h3,
+.zhizi-billing-section h4 {
+  margin: 0;
+  color: var(--text-primary, #17201d);
+  letter-spacing: 0;
+}
+
+.zhizi-page__head h3 { font-size: 18px; }
+.zhizi-billing-section h4 { font-size: 14px; }
+.zhizi-page__head p {
+  max-width: 660px;
+  margin: 5px 0 0;
+  color: var(--text-secondary, #66736e);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.zhizi-engine-status,
+.zhizi-recommendation,
+.zhizi-login-card,
+.zhizi-billing-section {
+  border: 1px solid var(--line-subtle, #dfe5e2);
+  border-radius: 8px;
+  background: var(--surface-raised, #fff);
+}
+
+.zhizi-engine-status {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 18px;
+  padding: 16px 18px;
+}
+
+.zhizi-engine-status > span,
+.zhizi-account-summary span,
+.zhizi-history-row > span {
+  color: var(--text-secondary, #66736e);
+  font-size: 12px;
+}
+
+.zhizi-engine-status strong {
+  justify-self: end;
+  color: var(--accent-strong, #087f67);
+  font-size: 14px;
+}
+
+.zhizi-engine-status small {
+  grid-column: 1 / -1;
+  color: var(--text-tertiary, #7b8782);
+}
+
+.zhizi-recommendation {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 15px 16px 15px 18px;
+  overflow: hidden;
+  background: linear-gradient(115deg, rgba(17, 151, 119, 0.08), rgba(76, 133, 176, 0.04)), var(--surface-raised, #fff);
+}
+
+.zhizi-recommendation::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: #119777;
+}
+
+.zhizi-recommendation > span {
+  color: #087f67;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.zhizi-recommendation > strong { font-size: 14px; }
+.zhizi-recommendation p {
+  grid-column: 1 / 3;
+  margin: 0;
+  color: var(--text-secondary, #66736e);
+  font-size: 12px;
+}
+.zhizi-recommendation button { grid-column: 3; grid-row: 1 / 3; }
+
+.zhizi-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.zhizi-profile-grid label,
+.zhizi-login-card label,
+.zhizi-topup-row label {
+  display: grid;
+  gap: 7px;
+  color: var(--text-secondary, #5d6b66);
+  font-size: 12px;
+}
+
+.zhizi-profile-grid select,
+.zhizi-login-card input,
+.zhizi-topup-row input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 39px;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong, #ccd6d1);
+  border-radius: 7px;
+  outline: 0;
+  background: var(--surface-raised, #fff);
+  color: var(--text-primary, #17201d);
+  font: inherit;
+}
+
+.zhizi-profile-grid select:focus,
+.zhizi-login-card input:focus,
+.zhizi-topup-row input:focus {
+  border-color: #179a7b;
+  box-shadow: 0 0 0 3px rgba(23, 154, 123, 0.12);
+}
+
+.zhizi-paid-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 14px;
+  border: 1px solid rgba(174, 119, 28, 0.25);
+  border-radius: 7px;
+  background: rgba(207, 158, 64, 0.07);
+  color: var(--text-secondary, #665c48);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.zhizi-actions,
+.zhizi-account-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.zhizi-login-card {
+  display: grid;
+  gap: 15px;
+  max-width: 560px;
+  padding: 18px;
+}
+
+.zhizi-code-row,
+.zhizi-topup-row {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+.zhizi-code-row input { flex: 1; }
+
+.zhizi-account-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line-subtle, #dfe5e2);
+  border-radius: 8px;
+  background: var(--line-subtle, #dfe5e2);
+}
+
+.zhizi-account-summary > div {
+  display: grid;
+  gap: 5px;
+  min-height: 72px;
+  padding: 13px 14px;
+  background: var(--surface-raised, #fff);
+}
+
+.zhizi-account-summary strong {
+  color: var(--text-primary, #17201d);
+  font-size: 18px;
+  font-weight: 650;
+}
+.zhizi-account-summary small { color: var(--text-tertiary, #7b8782); font-size: 10px; }
+
+.zhizi-billing-section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.zhizi-product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.zhizi-product-grid button,
+.zhizi-topup-row > button:not(.primary-button) {
+  display: grid;
+  gap: 3px;
+  min-height: 68px;
+  padding: 10px;
+  border: 1px solid var(--line-subtle, #dfe5e2);
+  border-radius: 7px;
+  background: var(--surface-muted, #f7f9f8);
+  color: var(--text-primary, #17201d);
+  font: inherit;
+  cursor: pointer;
+}
+.zhizi-product-grid button:hover,
+.zhizi-topup-row > button:not(.primary-button):hover { border-color: #65aa98; background: rgba(17, 151, 119, 0.06); }
+.zhizi-product-grid button span,
+.zhizi-product-grid button small { color: var(--text-secondary, #66736e); font-size: 11px; }
+.zhizi-product-grid button strong { font-size: 15px; }
+
+.zhizi-topup-row > button:not(.primary-button) {
+  min-width: 62px;
+  min-height: 39px;
+}
+.zhizi-topup-row label { flex: 1; min-width: 120px; }
+
+.zhizi-message {
+  padding: 11px 13px;
+  border-radius: 7px;
+  background: rgba(17, 151, 119, 0.08);
+  color: var(--text-primary, #20302a);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.zhizi-empty {
+  display: grid;
+  min-height: 110px;
+  place-items: center;
+  border: 1px dashed var(--line-strong, #ccd6d1);
+  border-radius: 8px;
+  color: var(--text-secondary, #66736e);
+  font-size: 13px;
+}
+
+.zhizi-history-list {
+  overflow: hidden;
+  border: 1px solid var(--line-subtle, #dfe5e2);
+  border-radius: 8px;
+}
+
+.zhizi-history-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) minmax(100px, 1fr) minmax(90px, .7fr) minmax(80px, .6fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line-subtle, #e6ebe8);
+  font-size: 12px;
+}
+.zhizi-history-row:last-child { border-bottom: 0; }
+.zhizi-history-row > span:last-child { justify-self: end; color: var(--text-primary, #17201d); }
+
+.zhizi-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.zhizi-pagination button {
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--line-subtle, #dfe5e2);
+  border-radius: 6px;
+  background: var(--surface-raised, #fff);
+  color: var(--text-secondary, #66736e);
+}
+
+.zhizi-payment-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(24, 32, 29, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.zhizi-payment-dialog {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(360px, 100%);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 8px;
+  background: var(--surface-raised, #fff);
+  box-shadow: 0 24px 70px rgba(13, 32, 25, 0.22);
+  text-align: center;
+}
+.zhizi-payment-dialog h3,
+.zhizi-payment-dialog p { margin: 0; }
+.zhizi-payment-dialog img { width: 240px; height: 240px; border-radius: 7px; }
+.zhizi-payment-dialog > strong { font-size: 24px; }
+.zhizi-payment-dialog p,
+.zhizi-payment-dialog small { color: var(--text-secondary, #66736e); font-size: 12px; line-height: 1.5; }
+
+.zhizi-account-actions .is-danger { color: #a04c4c; }
+
+@media (max-width: 880px) {
+  .zhizi-profile-grid,
+  .zhizi-account-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .zhizi-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .zhizi-topup-row { flex-wrap: wrap; }
+}
