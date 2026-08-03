@@ -70,12 +70,11 @@ const defaults: AppSettings = {
   ikatagoExtraArgs: '',
   ikatagoUseWhenLocalSlow: false,
   ikatagoSlowThresholdVisitsPerSecond: 120,
-  zhiziClientBin: '',
   zhiziUsername: '',
   zhiziToken: '',
   zhiziGpuType: 'vip-share',
-  zhiziExtraArgs: '',
-  zhiziUseWhenLocalSlow: false,
+  zhiziKataName: 'katago-TENSORRT',
+  zhiziKataWeight: '28bnbt',
   pythonBin: defaultPythonBin(),
   llmBaseUrl: 'https://api.openai.com/v1',
   llmApiKey: '',
@@ -315,13 +314,11 @@ function migrateLocalAnalysisDefault(settings: AppSettings): AppSettings {
     ...settings,
     katagoEngineMode: settings.katagoEngineMode === 'zhizi' || settings.katagoEngineMode === 'ikatago' ? 'auto' : settings.katagoEngineMode,
     ikatagoUseWhenLocalSlow: false,
-    zhiziUseWhenLocalSlow: false,
     localAnalysisDefaultApplied: true
   }
   settingsStore.set({
     katagoEngineMode: migrated.katagoEngineMode,
     ikatagoUseWhenLocalSlow: false,
-    zhiziUseWhenLocalSlow: false,
     localAnalysisDefaultApplied: true
   })
   return migrated
@@ -335,9 +332,47 @@ function migrateZhiziLoginIdentifier(settings: AppSettings): AppSettings {
   return { ...settings, zhiziUsername: '' }
 }
 
+function migrateZhiziOfficialSettings(settings: AppSettings): AppSettings {
+  const gpuTypes = new Set(['vip-share', '1x', '3x', '6x', '12x', '24x'])
+  const kataNames = new Set(['katago-TENSORRT', 'katago-CUDA'])
+  const kataWeights = new Set(['18bnbt', 'fdx', '28bnbt'])
+  const {
+    zhiziClientBin: legacyClientBin,
+    zhiziExtraArgs: legacyExtraArgs,
+    zhiziUseWhenLocalSlow: legacyAutoRemote,
+    ...currentSettings
+  } = settings
+  const migrated: AppSettings = {
+    ...currentSettings,
+    zhiziGpuType: gpuTypes.has(settings.zhiziGpuType) ? settings.zhiziGpuType : 'vip-share',
+    zhiziKataName: kataNames.has(settings.zhiziKataName) ? settings.zhiziKataName : 'katago-TENSORRT',
+    zhiziKataWeight: kataWeights.has(settings.zhiziKataWeight) ? settings.zhiziKataWeight : '28bnbt'
+  }
+  if (
+    legacyClientBin !== undefined ||
+    legacyExtraArgs !== undefined ||
+    legacyAutoRemote !== undefined ||
+    migrated.zhiziGpuType !== settings.zhiziGpuType ||
+    migrated.zhiziKataName !== settings.zhiziKataName ||
+    migrated.zhiziKataWeight !== settings.zhiziKataWeight
+  ) {
+    settingsStore.delete('zhiziClientBin')
+    settingsStore.delete('zhiziExtraArgs')
+    settingsStore.delete('zhiziUseWhenLocalSlow')
+    settingsStore.set({
+      zhiziGpuType: migrated.zhiziGpuType,
+      zhiziKataName: migrated.zhiziKataName,
+      zhiziKataWeight: migrated.zhiziKataWeight
+    })
+  }
+  return migrated
+}
+
 export function getSettings(): AppSettings {
-  const persisted = migrateZhiziLoginIdentifier(
-    migrateLocalAnalysisDefault(migratePlaintextSecrets({ ...defaults, ...settingsStore.store }))
+  const persisted = migrateZhiziOfficialSettings(
+    migrateZhiziLoginIdentifier(
+      migrateLocalAnalysisDefault(migratePlaintextSecrets({ ...defaults, ...settingsStore.store }))
+    )
   )
   return {
     ...persisted,
@@ -378,10 +413,12 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
     zhiziToken: _zhiziToken,
     ...safeNext
   } = next
+  delete safeNext.zhiziClientBin
+  delete safeNext.zhiziExtraArgs
+  delete safeNext.zhiziUseWhenLocalSlow
   const shouldMarkLocalDefaultApplied =
     Object.prototype.hasOwnProperty.call(safeNext, 'katagoEngineMode') ||
-    Object.prototype.hasOwnProperty.call(safeNext, 'ikatagoUseWhenLocalSlow') ||
-    Object.prototype.hasOwnProperty.call(safeNext, 'zhiziUseWhenLocalSlow')
+    Object.prototype.hasOwnProperty.call(safeNext, 'ikatagoUseWhenLocalSlow')
   settingsStore.set(shouldMarkLocalDefaultApplied ? { ...safeNext, localAnalysisDefaultApplied: true } : safeNext)
   const llmConfigChanged =
     Object.prototype.hasOwnProperty.call(next, 'llmBaseUrl') ||
@@ -417,7 +454,13 @@ export function replaceSettings(next: AppSettings): AppSettings {
   if (next.zhiziToken.trim()) {
     saveZhiziToken(next.zhiziToken)
   }
-  settingsStore.store = { ...next, localAnalysisDefaultApplied: true, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
+  const {
+    zhiziClientBin: _zhiziClientBin,
+    zhiziExtraArgs: _zhiziExtraArgs,
+    zhiziUseWhenLocalSlow: _zhiziUseWhenLocalSlow,
+    ...currentSettings
+  } = next
+  settingsStore.store = { ...currentSettings, localAnalysisDefaultApplied: true, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
   return getSettings()
 }
 

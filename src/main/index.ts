@@ -2,7 +2,42 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type Conte
 import { isAbsolute, relative, resolve, join } from 'node:path'
 import { appHome, findGame, getGames, getIkatagoPassword, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, getZhiziToken, hasIkatagoPassword, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, hasZhiziToken, replaceSettings, setSettings, upsertGames } from './lib/store'
 import { BRAND_NAME } from '@shared/brand'
-import type { AnalyzeGameQuickRequest, AnalyzePositionRequest, AnalyzeTrialPositionRequest, AppSettings, DashboardData, FoxSyncRequest, KataGoAssetInstallRequest, KataGoBenchmarkCancelRequest, KataGoBenchmarkRequest, KataGoBenchmarkStartRequest, KataGoCancelAnalysisRequest, LibraryDeleteRequest, LlmModelsListRequest, LlmSettingsTestRequest, ReviewRequest, TeacherBoardImageRenderImage, TeacherBoardImageRenderRequest, TeacherBoardImageRenderResponse, TeacherChatMessage, TeacherRunCancelRequest, TeacherRunRequest, ZhiziCloudConnectionTestResult, ZhiziCloudLoginCodeRequest, ZhiziCloudLoginRequest, ZhiziCloudLoginResult, ZhiziCloudSendCodeRequest, ZhiziCloudSendCodeResult } from './lib/types'
+import type {
+  AnalyzeGameQuickRequest,
+  AnalyzePositionRequest,
+  AnalyzeTrialPositionRequest,
+  AppSettings,
+  DashboardData,
+  FoxSyncRequest,
+  KataGoAssetInstallRequest,
+  KataGoBenchmarkCancelRequest,
+  KataGoBenchmarkRequest,
+  KataGoBenchmarkStartRequest,
+  KataGoCancelAnalysisRequest,
+  LibraryDeleteRequest,
+  LlmModelsListRequest,
+  LlmSettingsTestRequest,
+  ReviewRequest,
+  TeacherBoardImageRenderImage,
+  TeacherBoardImageRenderRequest,
+  TeacherBoardImageRenderResponse,
+  TeacherChatMessage,
+  TeacherRunCancelRequest,
+  TeacherRunRequest,
+  ZhiziAccountData,
+  ZhiziCloudConnectionTestResult,
+  ZhiziCloudLoginCodeRequest,
+  ZhiziCloudLoginRequest,
+  ZhiziCloudLoginResult,
+  ZhiziCloudResetPasswordRequest,
+  ZhiziCloudSendCodeRequest,
+  ZhiziCloudSendCodeResult,
+  ZhiziCreditPage,
+  ZhiziEngineProfile,
+  ZhiziPaymentCreateRequest,
+  ZhiziPaymentSession,
+  ZhiziUsagePage
+} from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
 import { runReview } from './services/review'
@@ -30,8 +65,25 @@ import {
 } from './services/studentProfile'
 import { archiveTeacherSession, createTeacherSession, deleteTeacherSession, getActiveTeacherSession, listTeacherSessions, updateTeacherSessionMessages } from './services/teacherSession'
 import { clearTtsCache, inspectTtsAssets, listTtsVoices, synthesizeTts, testTtsSettings } from './services/tts'
-import { loginZhiziCloudByCode, loginZhiziCloudByPassword, sendZhiziCloudLoginCode, ZHIZI_OFFICIAL_APP_DOWNLOAD_URL } from './services/zhiziCloudAuth'
+import {
+  loginZhiziCloudByCode,
+  loginZhiziCloudByPassword,
+  resetZhiziCloudPassword,
+  sendZhiziCloudLoginCode,
+  ZHIZI_OFFICIAL_APP_DOWNLOAD_URL
+} from './services/zhiziCloudAuth'
+import {
+  getZhiziAccountOverview,
+  listZhiziCredits,
+  listZhiziMembershipProducts,
+  listZhiziUsages
+} from './services/zhiziApiClient'
 import { probeZhiziCloudConnection } from './services/zhiziConnectionProbe'
+import {
+  cancelZhiziPaymentSession,
+  createZhiziPaymentSession,
+  refreshZhiziPaymentSession
+} from './services/zhiziPayment'
 import { resetZhiziPersistentSession } from './services/zhiziSocketSession'
 
 let mainWindow: BrowserWindow | null = null
@@ -122,7 +174,8 @@ function zhiziSessionConfigurationChanged(before: AppSettings, after: AppSetting
   return (
     before.zhiziToken !== after.zhiziToken ||
     before.zhiziGpuType !== after.zhiziGpuType ||
-    before.zhiziExtraArgs !== after.zhiziExtraArgs ||
+    before.zhiziKataName !== after.zhiziKataName ||
+    before.zhiziKataWeight !== after.zhiziKataWeight ||
     (before.katagoEngineMode === 'zhizi' && after.katagoEngineMode !== 'zhizi')
   )
 }
@@ -546,20 +599,17 @@ app.whenReady().then(() => {
     hasPassword: hasIkatagoPassword(),
     password: getIkatagoPassword()
   }))
-  ipcMain.handle('zhizi:get-saved-token', async () => ({
-    hasToken: hasZhiziToken(),
-    token: getZhiziToken()
-  }))
   ipcMain.handle('zhizi:login-password', async (_event, payload: ZhiziCloudLoginRequest): Promise<ZhiziCloudLoginResult> => {
     const result = await loginZhiziCloudByPassword(payload)
     resetZhiziPersistentSession()
     setSettings({
-      zhiziUsername: payload.phone.trim(),
-      zhiziToken: result.token
+      zhiziUsername: payload.identifier.value.trim(),
+      zhiziToken: result.token,
+      katagoEngineMode: 'auto'
     })
     return {
       ok: true,
-      message: `${result.message} 请点击“检测并启用”，确认远程引擎真正可用。`,
+      message: `${result.message} 远程算力尚未启用，你可以先查看账户或检测连接。`,
       hasToken: true,
       dashboard: await dashboard()
     }
@@ -575,27 +625,85 @@ app.whenReady().then(() => {
     const result = await loginZhiziCloudByCode(payload)
     resetZhiziPersistentSession()
     setSettings({
-      zhiziUsername: payload.phone.trim(),
-      zhiziToken: result.token
+      zhiziUsername: payload.identifier.value.trim(),
+      zhiziToken: result.token,
+      katagoEngineMode: 'auto'
     })
     return {
       ok: true,
-      message: `${result.message} 请点击“检测并启用”，确认远程引擎真正可用。`,
+      message: `${result.message} 远程算力尚未启用，你可以先查看账户或检测连接。`,
       hasToken: true,
       dashboard: await dashboard()
     }
   })
+  ipcMain.handle('zhizi:reset-password', async (_event, payload: ZhiziCloudResetPasswordRequest): Promise<ZhiziCloudLoginResult> => {
+    const result = await resetZhiziCloudPassword(payload)
+    resetZhiziPersistentSession()
+    setSettings({
+      zhiziUsername: payload.identifier.value.trim(),
+      zhiziToken: result.token,
+      katagoEngineMode: 'auto'
+    })
+    return {
+      ok: true,
+      message: `${result.message} 当前仍使用本机分析。`,
+      hasToken: true,
+      dashboard: await dashboard()
+    }
+  })
+  ipcMain.handle('zhizi:account-data', async (): Promise<ZhiziAccountData> => {
+    const token = getZhiziToken().trim()
+    const productsPromise = listZhiziMembershipProducts()
+    if (!token) {
+      return {
+        overview: {
+          tokenValid: false,
+          isMembership: false,
+          recommendedGpuType: '1x'
+        },
+        products: await productsPromise
+      }
+    }
+    const [overview, products] = await Promise.all([
+      getZhiziAccountOverview(token),
+      productsPromise
+    ])
+    return { overview, products }
+  })
+  ipcMain.handle('zhizi:usages', async (_event, page = 0, pageSize = 20): Promise<ZhiziUsagePage> => {
+    const token = getZhiziToken().trim()
+    if (!token) throw new Error('请先登录智子云。')
+    return listZhiziUsages(token, page, pageSize)
+  })
+  ipcMain.handle('zhizi:credits', async (_event, page = 0, pageSize = 20): Promise<ZhiziCreditPage> => {
+    const token = getZhiziToken().trim()
+    if (!token) throw new Error('请先登录智子云。')
+    return listZhiziCredits(token, page, pageSize)
+  })
+  ipcMain.handle('zhizi:payment-create', async (_event, payload: ZhiziPaymentCreateRequest): Promise<ZhiziPaymentSession> => {
+    const token = getZhiziToken().trim()
+    if (!token) throw new Error('请先登录智子云。')
+    return createZhiziPaymentSession(token, payload)
+  })
+  ipcMain.handle('zhizi:payment-refresh', async (_event, orderId: string): Promise<ZhiziPaymentSession> => {
+    const token = getZhiziToken().trim()
+    if (!token) throw new Error('请先登录智子云。')
+    return refreshZhiziPaymentSession(token, orderId)
+  })
+  ipcMain.handle('zhizi:payment-cancel', async (_event, orderId: string): Promise<ZhiziPaymentSession | null> =>
+    cancelZhiziPaymentSession(orderId)
+  )
   ipcMain.handle('zhizi:logout', async (): Promise<ZhiziCloudLoginResult> => {
     cancelKataGoAnalysis({})
     resetZhiziPersistentSession()
     setSettings({
       zhiziToken: '',
-      katagoEngineMode: 'auto',
-      zhiziUseWhenLocalSlow: false
+      zhiziUsername: '',
+      katagoEngineMode: 'auto'
     })
     return {
       ok: true,
-      message: '已退出智子云登录，已清除本地 token，并切回自动分析模式。重新登录后会自动连接智子云。',
+      message: '已退出智子云并切回本机分析。',
       hasToken: false,
       dashboard: await dashboard()
     }
@@ -603,16 +711,34 @@ app.whenReady().then(() => {
   ipcMain.handle('zhizi:test-connection', async (): Promise<ZhiziCloudConnectionTestResult> => {
     return probeZhiziCloudConnection(getSettings())
   })
-  ipcMain.handle('zhizi:enable', async (): Promise<ZhiziCloudConnectionTestResult> => {
-    const result = await probeZhiziCloudConnection(getSettings())
+  ipcMain.handle('zhizi:enable', async (_event, profile: ZhiziEngineProfile): Promise<ZhiziCloudConnectionTestResult> => {
+    cancelKataGoAnalysis({})
+    resetZhiziPersistentSession()
+    const settings = setSettings({
+      katagoEngineMode: 'auto',
+      zhiziGpuType: profile.gpuType,
+      zhiziKataName: profile.kataName,
+      zhiziKataWeight: profile.kataWeight
+    })
+    const result = await probeZhiziCloudConnection(settings)
     if (!result.ok) return result
     setSettings({
-      katagoEngineMode: 'zhizi',
-      zhiziUseWhenLocalSlow: false
+      katagoEngineMode: 'zhizi'
     })
     return {
       ...result,
-      message: `${result.message} 已切换为智子云分析。`,
+      message: `${result.message} 已由你确认切换为智子云分析。`,
+      dashboard: await dashboard()
+    }
+  })
+  ipcMain.handle('zhizi:disable', async (): Promise<ZhiziCloudLoginResult> => {
+    cancelKataGoAnalysis({})
+    resetZhiziPersistentSession()
+    setSettings({ katagoEngineMode: 'auto' })
+    return {
+      ok: true,
+      message: '已停用智子云，当前使用本机分析。',
+      hasToken: hasZhiziToken(),
       dashboard: await dashboard()
     }
   })

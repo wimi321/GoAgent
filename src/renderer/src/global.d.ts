@@ -49,12 +49,19 @@ import type {
   TtsSynthesisRequest,
   TtsSynthesisResult,
   TtsVoice,
+  ZhiziAccountData,
   ZhiziCloudConnectionTestResult,
   ZhiziCloudLoginCodeRequest,
   ZhiziCloudLoginRequest,
   ZhiziCloudLoginResult,
+  ZhiziCloudResetPasswordRequest,
   ZhiziCloudSendCodeRequest,
-  ZhiziCloudSendCodeResult
+  ZhiziCloudSendCodeResult,
+  ZhiziCreditPage,
+  ZhiziEngineProfile,
+  ZhiziPaymentCreateRequest,
+  ZhiziPaymentSession,
+  ZhiziUsagePage
 } from '@main/lib/types'
 import type { DiagnosticsReport } from '@main/services/diagnostics/types'
 import type { AnalysisSchedulerStats } from '@main/services/analysis/scheduler'
@@ -123,13 +130,20 @@ declare global {
       listLlmModels: (payload: LlmModelsListRequest) => Promise<LlmModelsListResult>
       getSavedLlmApiKey: () => Promise<{ hasKey: boolean; apiKey: string }>
       getSavedIkatagoPassword: () => Promise<{ hasPassword: boolean; password: string }>
-      getSavedZhiziToken: () => Promise<{ hasToken: boolean; token: string }>
       loginZhiziCloudPassword: (payload: ZhiziCloudLoginRequest) => Promise<ZhiziCloudLoginResult>
       sendZhiziCloudLoginCode: (payload: ZhiziCloudSendCodeRequest) => Promise<ZhiziCloudSendCodeResult>
       loginZhiziCloudCode: (payload: ZhiziCloudLoginCodeRequest) => Promise<ZhiziCloudLoginResult>
+      resetZhiziCloudPassword: (payload: ZhiziCloudResetPasswordRequest) => Promise<ZhiziCloudLoginResult>
+      getZhiziAccountData: () => Promise<ZhiziAccountData>
+      getZhiziUsages: (page?: number, pageSize?: number) => Promise<ZhiziUsagePage>
+      getZhiziCredits: (page?: number, pageSize?: number) => Promise<ZhiziCreditPage>
+      createZhiziPayment: (payload: ZhiziPaymentCreateRequest) => Promise<ZhiziPaymentSession>
+      refreshZhiziPayment: (orderId: string) => Promise<ZhiziPaymentSession>
+      cancelZhiziPayment: (orderId: string) => Promise<ZhiziPaymentSession | null>
       logoutZhiziCloud: () => Promise<ZhiziCloudLoginResult>
       testZhiziCloudConnection: () => Promise<ZhiziCloudConnectionTestResult>
-      enableZhiziCloud: () => Promise<ZhiziCloudConnectionTestResult>
+      enableZhiziCloud: (profile: ZhiziEngineProfile) => Promise<ZhiziCloudConnectionTestResult>
+      disableZhiziCloud: () => Promise<ZhiziCloudLoginResult>
       openZhiziOfficialApp: () => Promise<{ ok: boolean; url: string }>
       inspectTtsAssets: () => Promise<TtsAssetStatus>
       listTtsVoices: () => Promise<TtsVoice[]>

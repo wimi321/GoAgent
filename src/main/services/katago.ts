@@ -20,8 +20,7 @@ import {
 import {
   cancelZhiziGtpAnalysis,
   queryZhiziGtpAnalysisBatch,
-  shouldPreferZhiziGtpEngine,
-  zhiziGtpConfigured
+  shouldPreferZhiziGtpEngine
 } from './zhiziGtpEngine'
 import { normalizeSgfKomiForAnalysis } from './sgfScoring'
 import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
@@ -572,22 +571,6 @@ async function queryKataGoBatch(
     })
     return results as Map<string, KataGoResponse>
   }
-  function canUseZhiziAutoFallback(error: unknown): boolean {
-    const text = String(error)
-    return Boolean(
-      !/cancel|取消/i.test(text) &&
-      !zhiziPreferred &&
-      settings.katagoEngineMode === 'auto' &&
-      settings.zhiziUseWhenLocalSlow &&
-      zhiziGtpConfigured(settings)
-    )
-  }
-  async function queryZhiziAfterLocalFailure(error: unknown): Promise<Map<string, KataGoResponse>> {
-    console.warn('Local KataGo analysis failed in opt-in slow-machine mode; falling back to Zhizi cloud.', error)
-    const results = await queryZhiziRemote()
-    engineLease.finish('done')
-    return results
-  }
   if (zhiziPreferred) {
     try {
       const results = await queryZhiziRemote()
@@ -651,9 +634,6 @@ async function queryKataGoBatch(
       return results as Map<string, KataGoResponse>
     } catch (error) {
       const status = String(error).includes('已取消') || String(error).includes('cancel') ? 'cancelled' : 'error'
-      if (canUseZhiziAutoFallback(error)) {
-        return queryZhiziAfterLocalFailure(error)
-      }
       if (status === 'cancelled' || !persistentKataGoFallbackEnabled()) {
         engineLease.finish(status)
         throw error
@@ -669,9 +649,6 @@ async function queryKataGoBatch(
     })
   } catch (error) {
     const normalizedError = normalizeLocalKataGoProcessError(error, command[0])
-    if (canUseZhiziAutoFallback(error)) {
-      return queryZhiziAfterLocalFailure(error)
-    }
     throw normalizedError
   }
 
@@ -860,12 +837,7 @@ async function queryKataGoBatch(
     }
     child.stdin.end()
   })
-  return localSpawnPromise.catch(async (error) => {
-    if (!canUseZhiziAutoFallback(error)) {
-      throw error
-    }
-    return queryZhiziAfterLocalFailure(error)
-  })
+  return localSpawnPromise
 }
 
 async function queryKataGo(
