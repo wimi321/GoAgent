@@ -7,7 +7,6 @@ interface Props {
 
 const { lang = 'zh-CN' } = Astro.props
 const catalogUrl = 'https://download.goagent.top/channels/stable/catalog.json'
-const directDownloadPage = 'https://download.goagent.top/'
 const releaseHistory = 'https://github.com/wimi321/lizzieyzy-next/releases'
 
 const copyByLang = {
@@ -31,7 +30,7 @@ const copyByLang = {
     history: '历史版本',
     error: '版本列表暂时没有加载出来，请重试。',
     retry: '重新加载',
-    openDirect: '打开下载页面',
+    openDirect: '打开 GitHub 备用下载',
     rows: {
       nvidia: ['NVIDIA 显卡', 'RTX 20 / 30 / 40 系'],
       rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'],
@@ -48,7 +47,7 @@ const copyByLang = {
     windowsLead: '依顯示卡選擇；不確定時優先使用 CPU 通用版', macLead: '選擇與 Mac 晶片相符的版本', download: '下載', recommended: '推薦',
     unavailable: '暫不可用', volume1: '分卷 1', volume2: '分卷 2', macTip: '下載後拖到「應用程式」即可安裝', updateTitle: '已經使用免安裝版？',
     updateText: '只更新主程式', updateAction: '下載小更新', help: '安裝說明', history: '歷史版本', error: '版本清單暫時無法載入，請重試。',
-    retry: '重新載入', openDirect: '開啟下載頁面',
+    retry: '重新載入', openDirect: '開啟 GitHub 備用下載',
     rows: { nvidia: ['NVIDIA 顯示卡', 'RTX 20 / 30 / 40 系'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT 高效能版', 'RTX 20 至 50 · 兩個分卷都要下載'], opencl: ['OpenCL 相容版', 'AMD / Intel 顯示卡'], cpu: ['CPU 通用版', '沒有獨立顯示卡也能用'], noEngine: ['無引擎版', '已有自己的 KataGo'], apple: ['Apple 晶片', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel 晶片', '舊款 Intel Mac'] }
   },
   en: {
@@ -56,7 +55,7 @@ const copyByLang = {
     windowsLead: 'Choose by graphics card; use the CPU build if unsure', macLead: 'Choose the build for your Mac chip', download: 'Download', recommended: 'Recommended',
     unavailable: 'Unavailable', volume1: 'Part 1', volume2: 'Part 2', macTip: 'Drag the app to Applications after downloading', updateTitle: 'Already use the portable edition?',
     updateText: 'Update the app only', updateAction: 'Small update', help: 'Install help', history: 'Older releases', error: 'The version list could not be loaded. Please try again.',
-    retry: 'Reload', openDirect: 'Open downloads',
+    retry: 'Reload', openDirect: 'Open GitHub backup',
     rows: { nvidia: ['NVIDIA graphics', 'RTX 20 / 30 / 40 series'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT performance', 'RTX 20–50 · download both parts'], opencl: ['OpenCL compatible', 'AMD / Intel graphics'], cpu: ['CPU universal', 'Works without dedicated graphics'], noEngine: ['No-engine build', 'For your own KataGo'], apple: ['Apple silicon', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel chip', 'Older Intel Macs'] }
   },
   ja: {
@@ -64,7 +63,7 @@ const copyByLang = {
     windowsLead: 'GPU に合わせて選択。不明な場合は CPU 版', macLead: 'Mac のチップに合う版を選択', download: 'ダウンロード', recommended: 'おすすめ',
     unavailable: '利用不可', volume1: '分割 1', volume2: '分割 2', macTip: 'ダウンロード後「アプリケーション」へドラッグ', updateTitle: 'ポータブル版を利用中ですか？',
     updateText: '本体だけ更新', updateAction: '小型更新', help: 'インストール案内', history: '過去の版', error: 'バージョン一覧を読み込めませんでした。再試行してください。',
-    retry: '再読み込み', openDirect: 'ダウンロードを開く',
+    retry: '再読み込み', openDirect: 'GitHub の予備ダウンロードを開く',
     rows: { nvidia: ['NVIDIA GPU', 'RTX 20 / 30 / 40 シリーズ'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT 高性能版', 'RTX 20〜50 · 両方の分割を取得'], opencl: ['OpenCL 互換版', 'AMD / Intel GPU'], cpu: ['CPU 汎用版', '専用 GPU なしでも利用可能'], noEngine: ['エンジンなし', '自分の KataGo を使用'], apple: ['Apple シリコン', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel チップ', '旧型 Intel Mac'] }
   },
   ko: {
@@ -72,7 +71,7 @@ const copyByLang = {
     windowsLead: '그래픽 카드에 맞게 선택하고, 잘 모르겠다면 CPU 버전을 사용하세요', macLead: 'Mac 칩에 맞는 버전을 선택하세요', download: '다운로드', recommended: '추천',
     unavailable: '사용 불가', volume1: '분할 1', volume2: '분할 2', macTip: '다운로드 후 응용 프로그램으로 드래그하세요', updateTitle: '포터블 버전을 이미 사용 중인가요?',
     updateText: '프로그램만 업데이트', updateAction: '작은 업데이트', help: '설치 도움말', history: '이전 버전', error: '버전 목록을 불러오지 못했습니다. 다시 시도해 주세요.',
-    retry: '다시 불러오기', openDirect: '다운로드 열기',
+    retry: '다시 불러오기', openDirect: 'GitHub 예비 다운로드 열기',
     rows: { nvidia: ['NVIDIA 그래픽', 'RTX 20 / 30 / 40 시리즈'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT 고성능', 'RTX 20~50 · 두 파일 모두 다운로드'], opencl: ['OpenCL 호환', 'AMD / Intel 그래픽'], cpu: ['CPU 범용', '외장 그래픽 없이 사용'], noEngine: ['엔진 없음', '자체 KataGo 사용'], apple: ['Apple 실리콘', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel 칩', '구형 Intel Mac'] }
   },
   th: {
@@ -80,7 +79,7 @@ const copyByLang = {
     windowsLead: 'เลือกตามการ์ดจอ หากไม่แน่ใจให้ใช้รุ่น CPU', macLead: 'เลือกรุ่นให้ตรงกับชิป Mac', download: 'ดาวน์โหลด', recommended: 'แนะนำ',
     unavailable: 'ยังใช้ไม่ได้', volume1: 'ส่วน 1', volume2: 'ส่วน 2', macTip: 'ดาวน์โหลดแล้วลากไปยัง Applications', updateTitle: 'ใช้รุ่นพกพาอยู่แล้ว?',
     updateText: 'อัปเดตเฉพาะโปรแกรม', updateAction: 'อัปเดตขนาดเล็ก', help: 'วิธีติดตั้ง', history: 'รุ่นก่อนหน้า', error: 'โหลดรายการเวอร์ชันไม่สำเร็จ โปรดลองอีกครั้ง',
-    retry: 'โหลดใหม่', openDirect: 'เปิดหน้าดาวน์โหลด',
+    retry: 'โหลดใหม่', openDirect: 'เปิดดาวน์โหลดสำรองบน GitHub',
     rows: { nvidia: ['การ์ดจอ NVIDIA', 'RTX 20 / 30 / 40'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT ประสิทธิภาพสูง', 'RTX 20–50 · ต้องดาวน์โหลดทั้งสองส่วน'], opencl: ['รุ่น OpenCL', 'การ์ดจอ AMD / Intel'], cpu: ['รุ่น CPU', 'ใช้ได้โดยไม่มีการ์ดจอแยก'], noEngine: ['ไม่มีเอนจิน', 'สำหรับ KataGo ของคุณเอง'], apple: ['ชิป Apple', 'M1 / M2 / M3 / M4 / M5'], intel: ['ชิป Intel', 'Mac Intel รุ่นเก่า'] }
   },
   vi: {
@@ -88,7 +87,7 @@ const copyByLang = {
     windowsLead: 'Chọn theo GPU; nếu không chắc hãy dùng bản CPU', macLead: 'Chọn bản phù hợp với chip Mac', download: 'Tải xuống', recommended: 'Khuyên dùng',
     unavailable: 'Chưa có', volume1: 'Phần 1', volume2: 'Phần 2', macTip: 'Sau khi tải, kéo ứng dụng vào Applications', updateTitle: 'Đã dùng bản portable?',
     updateText: 'Chỉ cập nhật chương trình', updateAction: 'Bản cập nhật nhỏ', help: 'Hướng dẫn cài', history: 'Phiên bản cũ', error: 'Không tải được danh sách phiên bản. Hãy thử lại.',
-    retry: 'Tải lại', openDirect: 'Mở trang tải xuống',
+    retry: 'Tải lại', openDirect: 'Mở bản tải dự phòng trên GitHub',
     rows: { nvidia: ['Đồ họa NVIDIA', 'Dòng RTX 20 / 30 / 40'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT hiệu năng cao', 'RTX 20–50 · cần tải cả hai phần'], opencl: ['Tương thích OpenCL', 'Đồ họa AMD / Intel'], cpu: ['CPU phổ thông', 'Dùng được không cần GPU rời'], noEngine: ['Không kèm engine', 'Dùng KataGo riêng'], apple: ['Chip Apple', 'M1 / M2 / M3 / M4 / M5'], intel: ['Chip Intel', 'Mac Intel đời cũ'] }
   }
 } as const
@@ -138,7 +137,7 @@ const macRows = [
       <strong>{copy.error}</strong>
       <div>
         <button type="button" data-download-retry>{copy.retry}</button>
-        <a href={directDownloadPage}>{copy.openDirect}</a>
+        <a href={releaseHistory}>{copy.openDirect}</a>
       </div>
     </div>
 
@@ -212,13 +211,13 @@ const macRows = [
       <a href={releaseHistory}><img src="/images/download-icons/clock-history.svg" alt="" width="18" height="18" />{copy.history}</a>
     </nav>
 
-    <noscript><p class="noscript-note"><a href={directDownloadPage}>{copy.openDirect}</a></p></noscript>
+    <noscript><p class="noscript-note"><a href={releaseHistory}>{copy.openDirect}</a></p></noscript>
   </div>
 </section>
 
 <script is:inline>
   (() => {
-    const allowedHosts = new Set(['download.goagent.top'])
+    const allowedHosts = new Set(['download.goagent.top', 'github.com'])
     const catalogFetchAttempts = 3
     const catalogRetryBaseDelayMs = 450
 

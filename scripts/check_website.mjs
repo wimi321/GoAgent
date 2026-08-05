@@ -54,6 +54,7 @@ requireFile('website/public/site.webmanifest')
 requireFile('website/public/llms.txt')
 requireFile('website/public/llms-full.txt')
 requireFile('website/public/ai.txt')
+requireFile('website/public/_worker.js')
 
 const index = read('website/src/pages/index.astro')
 const downloadPage = read('website/src/pages/download.astro')
@@ -72,6 +73,7 @@ const manifest = read('website/public/site.webmanifest')
 const llms = read('website/public/llms.txt')
 const llmsFull = read('website/public/llms-full.txt')
 const ai = read('website/public/ai.txt')
+const edgeWorker = read('website/public/_worker.js')
 const chooserCopy = ['不会选', '也没关系'].join('')
 
 if (!index.includes('LizzieYzy Next')) fail('homepage must contain LizzieYzy Next')
@@ -92,6 +94,8 @@ if (!index.includes('下载顺序很简单')) fail('homepage download section mu
 if (!downloadPage.includes('<DownloadChooser lang="zh-CN" />')) fail('download page must render the unified download chooser')
 for (const keyword of [
   'download.goagent.top/channels/stable/catalog.json',
+  "new Set(['download.goagent.top', 'github.com'])",
+  'https://github.com/wimi321/lizzieyzy-next/releases',
   'catalogFetchAttempts = 3',
   'fetchCatalogWithRetry',
   'TensorRT 高性能版',
@@ -102,6 +106,11 @@ for (const keyword of [
 ]) {
   if (!downloadChooser.includes(keyword)) fail(`download chooser must contain: ${keyword}`)
 }
+for (const keyword of ['www.goagent.top', 'goagent.top', 'Response.redirect', 'env.ASSETS.fetch']) {
+  if (!edgeWorker.includes(keyword)) fail(`edge worker must contain: ${keyword}`)
+}
+if (!edgeWorker.includes('301')) fail('edge worker must permanently redirect www to the apex domain')
+if (existsSync(join(root, 'website/public/_redirects'))) fail('legacy _redirects must not compete with the edge worker')
 for (const keyword of ['Cloudflare R2', 'mirrorUrls', 'SHA256', 'manifest']) {
   if (downloadChooser.includes(keyword)) fail(`download chooser should avoid implementation wording: ${keyword}`)
 }
