@@ -142,8 +142,7 @@ for (const keyword of ['Cloudflare Pages', 'Cloudflare R2', 'download.goagent.to
   if (!deployment.includes(keyword)) fail(`DEPLOYMENT.md must contain ${keyword}`)
 }
 for (const keyword of [
-  'cloudflare/wrangler-action@v4',
-  'packageManager: npm',
+  'pnpm dlx wrangler@4.118.0',
   'CLOUDFLARE_API_TOKEN',
   'pages deploy website/dist --project-name=goagent',
 ]) {
