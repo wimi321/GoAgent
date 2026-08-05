@@ -141,7 +141,12 @@ for (const keyword of ['本地', 'LLM', 'TTS']) {
 for (const keyword of ['Cloudflare Pages', 'Cloudflare R2', 'download.goagent.top', 'lizzieyzy-next-downloads']) {
   if (!deployment.includes(keyword)) fail(`DEPLOYMENT.md must contain ${keyword}`)
 }
-for (const keyword of ['cloudflare/wrangler-action@v3', 'CLOUDFLARE_API_TOKEN', 'pages deploy website/dist --project-name=goagent']) {
+for (const keyword of [
+  'cloudflare/wrangler-action@v4',
+  'packageManager: npm',
+  'CLOUDFLARE_API_TOKEN',
+  'pages deploy website/dist --project-name=goagent',
+]) {
   if (!workflow.includes(keyword)) fail(`deploy-website.yml must contain ${keyword}`)
 }
 for (const keyword of [
