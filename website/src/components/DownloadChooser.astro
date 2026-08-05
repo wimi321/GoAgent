@@ -219,6 +219,33 @@ const macRows = [
 <script is:inline>
   (() => {
     const allowedHosts = new Set(['download.goagent.top'])
+    const catalogFetchAttempts = 3
+    const catalogRetryBaseDelayMs = 450
+
+    function wait(milliseconds) {
+      return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+    }
+
+    async function fetchCatalogWithRetry(url) {
+      let lastError
+      for (let attempt = 1; attempt <= catalogFetchAttempts; attempt += 1) {
+        try {
+          const response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const catalog = await response.json()
+          if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.assets) || !catalog.releaseTag) {
+            throw new Error('Invalid catalog')
+          }
+          return catalog
+        } catch (error) {
+          lastError = error
+          if (attempt < catalogFetchAttempts) {
+            await wait(catalogRetryBaseDelayMs * attempt)
+          }
+        }
+      }
+      throw lastError
+    }
 
     function formatSize(bytes) {
       if (!Number.isFinite(bytes) || bytes <= 0) return '—'
@@ -302,10 +329,7 @@ const macRows = [
       hub.setAttribute('aria-busy', 'true')
       if (error) error.hidden = true
       try {
-        const response = await fetch(hub.dataset.catalogUrl, { cache: 'no-store', headers: { Accept: 'application/json' } })
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        const catalog = await response.json()
-        if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.assets) || !catalog.releaseTag) throw new Error('Invalid catalog')
+        const catalog = await fetchCatalogWithRetry(hub.dataset.catalogUrl)
         hub.querySelectorAll('[data-entry]').forEach((entry) => fillEntry(hub, entry, catalog))
         if (status) status.textContent = `${hub.dataset.releaseLabel} · ${catalog.releaseTag}`
       } catch {
