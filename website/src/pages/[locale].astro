@@ -283,6 +283,16 @@ export function getStaticPaths() {
 const locale = Astro.params.locale as keyof typeof locales
 const page = locales[locale] ?? locales.en
 const home = homeCopy[locale] ?? homeCopy.en
+const lizzieDownload = `/${locale}/download`
+const officialDownloadCopy = {
+  'zh-hant': { note: 'Windows 與 macOS 版本已依硬體整理好，直接選擇即可。', lead: '進入官方下載中心，選擇與顯示卡或 Mac 晶片相符的 LizzieYzy Next。' },
+  en: { note: 'Windows and macOS builds are organized by hardware.', lead: 'Open the official download center and choose the LizzieYzy Next build for your graphics card or Mac chip.' },
+  ja: { note: 'Windows と macOS の各版をハードウェア別に整理しています。', lead: '公式ダウンロードセンターで GPU または Mac チップに合う LizzieYzy Next を選んでください。' },
+  ko: { note: 'Windows와 macOS 버전을 하드웨어별로 정리했습니다.', lead: '공식 다운로드 센터에서 그래픽 카드 또는 Mac 칩에 맞는 LizzieYzy Next를 선택하세요.' },
+  th: { note: 'จัดรุ่น Windows และ macOS ตามฮาร์ดแวร์ให้เลือกได้ทันที', lead: 'เปิดศูนย์ดาวน์โหลดอย่างเป็นทางการ แล้วเลือกรุ่น LizzieYzy Next ให้ตรงกับการ์ดจอหรือชิป Mac' },
+  vi: { note: 'Các bản Windows và macOS đã được sắp theo phần cứng.', lead: 'Mở trung tâm tải xuống chính thức và chọn LizzieYzy Next theo GPU hoặc chip Mac của bạn.' }
+} as const
+const officialDownload = officialDownloadCopy[locale] ?? officialDownloadCopy.en
 ---
 <BaseLayout title={home.title} description={home.description} lang={page.lang} canonical={`https://goagent.top/${locale}`} pageKey="home">
   <section class="home-hero">
@@ -293,11 +303,13 @@ const home = homeCopy[locale] ?? homeCopy.en
       </h1>
       <p class="lead">{home.lead}</p>
       <div class="button-row hero-actions" aria-label="Download choices">
-        <a class="button primary" href={lizzieReleases}>
-          <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 2.5a9.6 9.6 0 0 0-3 18.8c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.8.1-.7.4-1.1.7-1.4-2.3-.3-4.6-1.2-4.6-5a4 4 0 0 1 1.1-2.8c-.1-.3-.5-1.3.1-2.7 0 0 .8-.3 2.8 1a9.8 9.8 0 0 1 5.1 0c2-1.3 2.8-1 2.8-1 .6 1.4.2 2.4.1 2.7a4 4 0 0 1 1.1 2.8c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8v2.7c0 .3.2.6.7.5A9.6 9.6 0 0 0 12 2.5Z" />
+        <a class="button primary" href={lizzieDownload}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4v10" />
+            <path d="m8 10 4 4 4-4" />
+            <path d="M5 18h14" />
           </svg>
-          <span>{home.githubCta}</span>
+          <span>{page.firstCta}</span>
         </a>
         <a class="button subtle" href={goAgentReleases}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -315,7 +327,7 @@ const home = homeCopy[locale] ?? homeCopy.en
           <path d="M12 3 19 6v5c0 4.5-2.8 8-7 10-4.2-2-7-5.5-7-10V6l7-3Z" />
           <path d="m8.8 12 2.1 2.1 4.4-4.7" />
         </svg>
-        <span>{home.note}</span>
+        <span>{officialDownload.note}</span>
       </p>
     </div>
   </section>
@@ -374,7 +386,7 @@ const home = homeCopy[locale] ?? homeCopy.en
             <p>{product.summary}</p>
             <ul>{product.points.map((point) => <li>{point}</li>)}</ul>
             <div class="button-row compact">
-              <a class="button primary" href={product.release}>{product.primary}</a>
+              <a class="button primary" href={product.featured ? lizzieDownload : product.release}>{product.primary}</a>
               <a class="button subtle" href={product.repo}>{product.secondary}</a>
             </div>
           </div>
@@ -404,7 +416,7 @@ const home = homeCopy[locale] ?? homeCopy.en
   <section id="download" class="section-block download-section">
     <div class="section-head centered">
       <h2>{page.downloadTitle}</h2>
-      <p>{home.downloadLead}</p>
+      <p>{officialDownload.lead}</p>
     </div>
     <div class="download-list">
       <article class="download-row featured">
@@ -413,7 +425,7 @@ const home = homeCopy[locale] ?? homeCopy.en
           <p>{home.proofs[0]} · {home.proofs[1]}</p>
         </div>
         <div class="button-row compact">
-          <a class="button primary" href={lizzieReleases}>{home.githubCta}</a>
+          <a class="button primary" href={lizzieDownload}>{page.firstCta}</a>
         </div>
       </article>
       <article class="download-row">

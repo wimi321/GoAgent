@@ -3,12 +3,12 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 
 const faqs = [
   ['我应该先下载哪个？', '先下载 LizzieYzy Next。它是首推的稳定复盘工具，适合大多数棋友日常看胜率、目差和关键失误。'],
-  ['百度网盘和 GitHub 该点哪个？', '国内用户优先用百度网盘下载。GitHub 是备用下载入口。'],
+  ['我该点哪个下载？', '直接进入官网下载中心。先选 Windows 或 macOS，再按显卡或芯片选择；不确定 Windows 显卡时可选 CPU 通用版。'],
   ['GoAgent 要不要一起下载？', '不用一开始就下载。GoAgent 是实验围棋智能体，适合想尝试 AI 讲棋、AI 问答的人。只想稳定复盘，先不用管它。'],
   ['下载后我该做什么？', '安装 LizzieYzy Next，打开或导入 SGF 棋谱，然后先看胜率曲线、目差变化和关键失误。'],
   ['支持哪些电脑？', 'LizzieYzy Next 支持 Windows、macOS、Linux。GoAgent 目前更适合想尝鲜的 Windows / macOS 用户。'],
-  ['GitHub 页面是英文怎么办？', '不用读完整英文。找到最新版本，下载与你电脑系统对应的安装包即可；不确定时优先使用百度网盘。'],
-  ['为什么官网不直接放安装包？', '安装包比较大，官网负责把入口放清楚。大文件放在百度网盘和 GitHub，方便下载、更新和回退版本。'],
+  ['需要看英文 GitHub 页面吗？', '普通用户不需要。官网下载中心已经把稳定版按电脑类型整理好，直接点击对应版本即可。'],
+  ['安装包从哪里下载？', '官网下载中心会提供当前稳定版的直接下载按钮；历史版本和开源代码仍可从 GitHub 查看。'],
   ['会不会上传我的棋谱？', '官网本身不上传棋谱。LizzieYzy Next 是桌面复盘工具；GoAgent 只有在你自己配置 AI 服务并主动使用讲解时，才会调用你配置的服务。'],
   ['KataGo、AI、LLM 这些词我不懂怎么办？', '不用先懂。日常复盘先看 LizzieYzy Next 的胜率、目差和推荐点就够了；想深入时再了解 GoAgent 和 AI 讲棋。'],
   ['如何反馈问题？', '可以在 GitHub Issues 反馈，也欢迎加入 GoAgent QQ 1030632742 或 LizzieYzy Next QQ 299419120 交流。']
@@ -27,7 +27,7 @@ const jsonLd = {
   }))
 }
 ---
-<BaseLayout title="常见问题 - LizzieYzy Next 和 GoAgent" description="普通用户常见问题：该下载哪个、百度网盘和 GitHub 怎么选、GoAgent 是否必须、隐私和反馈方式。" pageKey="faq" jsonLd={jsonLd}>
+<BaseLayout title="常见问题 - LizzieYzy Next 和 GoAgent" description="普通用户常见问题：该下载哪个、怎么选择电脑版本、GoAgent 是否必须、隐私和反馈方式。" pageKey="faq" jsonLd={jsonLd}>
   <section class="page-hero">
     <h1>常见问题</h1>
     <p class="lead">不讲复杂术语，先回答最常见的问题：下载哪个、点哪里、装完怎么开始、GoAgent 要不要用。</p>

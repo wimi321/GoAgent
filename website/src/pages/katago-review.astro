@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
+const lizzieDownload = 'https://goagent.top/download'
 const lizzieGithub = 'https://github.com/wimi321/lizzieyzy-next'
 
 const features = [
@@ -13,7 +13,7 @@ const features = [
 const faq = [
   ['KataGo 复盘软件先装哪个？', '大多数用户先装 LizzieYzy Next。它是更成熟的 KataGo 复盘工作台，适合日常看棋谱、找转折点、比较候选点。'],
   ['LizzieYzy Next 和 GoAgent 是什么关系？', 'LizzieYzy Next 是首推的专业复盘工具；GoAgent 是实验围棋智能体，适合在需要自然语言讲解时尝试。'],
-  ['官网为什么不直接托管安装包？', '国内用户优先用百度网盘。如果百度网盘打不开，也可以从 GitHub 下载。官网负责把入口放清楚。']
+  ['我该下载哪个版本？', '进入官网下载中心，Windows 按显卡选择，Mac 按芯片选择；不确定 Windows 显卡时可先用 CPU 通用版。']
 ]
 
 const jsonLd = {
@@ -25,7 +25,7 @@ const jsonLd = {
       applicationCategory: 'GameApplication',
       operatingSystem: 'Windows, macOS, Linux',
       url: 'https://goagent.top/katago-review',
-      downloadUrl: lizzieReleases,
+      downloadUrl: lizzieDownload,
       description: 'LizzieYzy Next 是面向围棋棋友的专业 KataGo 复盘工作台。',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
     },
@@ -58,7 +58,7 @@ const jsonLd = {
     <h1>KataGo 复盘，先把整盘看清楚</h1>
     <p class="lead">如果你搜索“围棋 AI 复盘”“KataGo 复盘软件”，真正需要的不是一堆术语，而是能快速告诉你：这盘棋在哪里变坏、下一次该怎么避免。</p>
     <div class="button-row">
-      <a class="button primary" href={lizzieReleases}>下载 LizzieYzy Next</a>
+      <a class="button primary" href={lizzieDownload}>下载 LizzieYzy Next</a>
       <a class="button subtle" href={lizzieGithub}>查看开源仓库</a>
     </div>
   </section>
