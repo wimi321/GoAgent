@@ -90,7 +90,16 @@ if (!layout.includes('QQ 1030632742')) fail('site layout must expose QQ communit
 if (index.includes('Trust')) fail('homepage should not include Trust section')
 if (!index.includes('下载顺序很简单')) fail('homepage download section must use simple download sequence copy')
 if (!downloadPage.includes('<DownloadChooser lang="zh-CN" />')) fail('download page must render the unified download chooser')
-for (const keyword of ['download.goagent.top/channels/stable/catalog.json', 'TensorRT 高性能版', 'CPU 通用版', 'Apple 芯片', 'Intel 芯片', '下载小更新']) {
+for (const keyword of [
+  'download.goagent.top/channels/stable/catalog.json',
+  'catalogFetchAttempts = 3',
+  'fetchCatalogWithRetry',
+  'TensorRT 高性能版',
+  'CPU 通用版',
+  'Apple 芯片',
+  'Intel 芯片',
+  '下载小更新',
+]) {
   if (!downloadChooser.includes(keyword)) fail(`download chooser must contain: ${keyword}`)
 }
 for (const keyword of ['Cloudflare R2', 'mirrorUrls', 'SHA256', 'manifest']) {
