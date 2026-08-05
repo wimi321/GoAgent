@@ -92,6 +92,7 @@ if (!layout.includes('QQ 1030632742')) fail('site layout must expose QQ communit
 if (index.includes('Trust')) fail('homepage should not include Trust section')
 if (!index.includes('下载顺序很简单')) fail('homepage download section must use simple download sequence copy')
 if (!downloadPage.includes('<DownloadChooser lang="zh-CN" />')) fail('download page must render the unified download chooser')
+if (!downloadPage.includes('canonical="https://goagent.top/download/"')) fail('download page must use the trailing-slash canonical URL')
 for (const keyword of [
   'download.goagent.top/channels/stable/catalog.json',
   "new Set(['download.goagent.top', 'github.com'])",
