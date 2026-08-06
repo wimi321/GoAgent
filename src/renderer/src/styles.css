@@ -1784,7 +1784,8 @@ label,
 }
 
 .board-contextbar__metric--speed {
-  min-width: 48px;
+  min-width: 82px;
+  max-width: 132px;
 }
 
 .board-contextbar__metric span {
@@ -4380,6 +4381,18 @@ label small {
 .analysis-toggle-button.is-running .analysis-toggle-button__dot {
   background: var(--ks-orange);
   box-shadow: 0 0 0 3px rgb(185 117 69 / 0.16);
+  animation: analysis-live-pulse 1.15s ease-in-out infinite;
+}
+
+@keyframes analysis-live-pulse {
+  0%, 100% {
+    transform: scale(0.88);
+    box-shadow: 0 0 0 3px rgb(185 117 69 / 0.14);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 6px rgb(185 117 69 / 0.08);
+  }
 }
 
 .timeline-panel {

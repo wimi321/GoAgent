@@ -89,7 +89,7 @@ declare global {
       syncFox: (payload: FoxSyncRequest) => Promise<FoxSyncResponse>
       startReview: (payload: ReviewRequest) => Promise<ReviewResult>
       analyzePosition: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis>
-      analyzePositionStream: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis>
+      analyzePositionStream: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis | null>
       analyzeTrialPositionStream: (payload: AnalyzeTrialPositionRequest) => Promise<KataGoMoveAnalysis | null>
       analyzeGameQuick: (payload: AnalyzeGameQuickRequest) => Promise<KataGoMoveAnalysis[]>
       cancelKataGoAnalysis: (payload: KataGoCancelAnalysisRequest) => Promise<KataGoCancelAnalysisResult>

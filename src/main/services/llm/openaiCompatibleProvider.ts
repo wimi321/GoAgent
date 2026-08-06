@@ -119,6 +119,40 @@ function retryableParameterError(status: number, text: string): boolean {
   return status === 400 && /max_completion_tokens|max_tokens|temperature|reasoning_effort|modalities|unsupported|unknown parameter|unrecognized/i.test(text)
 }
 
+const TOOL_STREAM_MAX_ATTEMPTS = 3
+const TOOL_STREAM_RETRY_DELAYS_MS = [350, 900]
+
+export function isTransientOpenAICompatibleError(error: unknown): boolean {
+  const message = String(error)
+  return /(?:\b408\b|\b425\b|\b429\b|\b500\b|\b502\b|\b503\b|\b504\b|\bEOF\b|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|fetch failed|network error|请求超时)/i.test(message)
+}
+
+export function isLlmSetupConfigurationError(error: unknown): boolean {
+  if (isTransientOpenAICompatibleError(error)) {
+    return false
+  }
+  const message = String(error)
+  return /(?:\b400\b|\b401\b|\b403\b|\b404\b|\b405\b|\b415\b|\b422\b|invalid api.?key|unauthori[sz]ed|forbidden|model[^\n]*(?:not found|unknown|unsupported)|(?:image|vision|tool)[^\n]*(?:not supported|unsupported)|尚未填写完整配置)/i.test(message)
+}
+
+async function waitForToolStreamRetry(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) {
+    throw signal.reason instanceof Error ? signal.reason : new Error('LLM 请求已取消')
+  }
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, delayMs)
+    const onAbort = (): void => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      reject(signal?.reason instanceof Error ? signal.reason : new Error('LLM 请求已取消'))
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
 function shouldRetryBudgetAfterEmpty(json: ChatResponse, budget: number): boolean {
   const reason = finishReason(json).toLowerCase()
   if (/length|max.?tokens/.test(reason)) {
@@ -589,7 +623,7 @@ export async function streamOpenAICompatibleChat(
   throw new Error('LLM 流式请求没有返回文本内容。')
 }
 
-export async function postOpenAICompatibleChat(
+async function postOpenAICompatibleChatOnce(
   settings: ProviderSettings,
   messages: ChatMessage[],
   maxTokens = 4096
@@ -625,7 +659,26 @@ export async function postOpenAICompatibleChat(
   throw emptyResponseError(firstAttempt.json, settings.llmModel)
 }
 
-export async function postOpenAICompatibleToolTurn(
+export async function postOpenAICompatibleChat(
+  settings: ProviderSettings,
+  messages: ChatMessage[],
+  maxTokens = 4096
+): Promise<string> {
+  for (let attempt = 0; attempt < TOOL_STREAM_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await postOpenAICompatibleChatOnce(settings, messages, maxTokens)
+    } catch (error) {
+      const canRetry = isTransientOpenAICompatibleError(error) && attempt < TOOL_STREAM_MAX_ATTEMPTS - 1
+      if (!canRetry) {
+        throw error
+      }
+      await waitForToolStreamRetry(TOOL_STREAM_RETRY_DELAYS_MS[attempt] ?? 900)
+    }
+  }
+  throw new Error('LLM 请求重试后仍未完成。')
+}
+
+async function postOpenAICompatibleToolTurnOnce(
   settings: ProviderSettings,
   messages: ChatMessage[],
   tools: ChatTool[],
@@ -633,6 +686,29 @@ export async function postOpenAICompatibleToolTurn(
   signal?: AbortSignal
 ): Promise<ChatTurnResult> {
   return attemptOpenAICompatibleToolTurn(settings, messages, tools, maxTokens, signal)
+}
+
+export async function postOpenAICompatibleToolTurn(
+  settings: ProviderSettings,
+  messages: ChatMessage[],
+  tools: ChatTool[],
+  maxTokens = 4096,
+  signal?: AbortSignal
+): Promise<ChatTurnResult> {
+  for (let attempt = 0; attempt < TOOL_STREAM_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await postOpenAICompatibleToolTurnOnce(settings, messages, tools, maxTokens, signal)
+    } catch (error) {
+      const canRetry = !signal?.aborted &&
+        isTransientOpenAICompatibleError(error) &&
+        attempt < TOOL_STREAM_MAX_ATTEMPTS - 1
+      if (!canRetry) {
+        throw error
+      }
+      await waitForToolStreamRetry(TOOL_STREAM_RETRY_DELAYS_MS[attempt] ?? 900, signal)
+    }
+  }
+  throw new Error('LLM 工具请求重试后仍未完成。')
 }
 
 export async function streamOpenAICompatibleToolTurn(
@@ -643,11 +719,30 @@ export async function streamOpenAICompatibleToolTurn(
   onDelta?: (delta: string) => void,
   signal?: AbortSignal
 ): Promise<ChatTurnResult> {
-  const streamed = await attemptOpenAICompatibleToolStream(settings, messages, tools, maxTokens, onDelta, signal)
-  if (streamed && (streamed.text || streamed.toolCalls.length > 0)) {
-    return streamed
+  let emittedVisibleText = false
+  const guardedDelta = (delta: string): void => {
+    emittedVisibleText = true
+    onDelta?.(delta)
   }
-  return postOpenAICompatibleToolTurn(settings, messages, tools, maxTokens, signal)
+  for (let attempt = 0; attempt < TOOL_STREAM_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const streamed = await attemptOpenAICompatibleToolStream(settings, messages, tools, maxTokens, guardedDelta, signal)
+      if (streamed && (streamed.text || streamed.toolCalls.length > 0)) {
+        return streamed
+      }
+      return await postOpenAICompatibleToolTurnOnce(settings, messages, tools, maxTokens, signal)
+    } catch (error) {
+      const canRetry = !emittedVisibleText &&
+        !signal?.aborted &&
+        isTransientOpenAICompatibleError(error) &&
+        attempt < TOOL_STREAM_MAX_ATTEMPTS - 1
+      if (!canRetry) {
+        throw error
+      }
+      await waitForToolStreamRetry(TOOL_STREAM_RETRY_DELAYS_MS[attempt] ?? 900, signal)
+    }
+  }
+  throw new Error('LLM 工具请求重试后仍未完成。')
 }
 
 export async function probeOpenAICompatibleProvider(settings: ProviderSettings): Promise<ProviderProbeResult> {
