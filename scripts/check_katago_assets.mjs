@@ -6,6 +6,7 @@ import { execFile } from 'node:child_process'
 import { join, relative, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import process from 'node:process'
+import { inspectKataGoBinaryMetadata, kataGoVersionSatisfies } from './lib/katago_asset_metadata.mjs'
 
 const root = resolve(process.cwd())
 const manifestPath = join(root, 'data', 'katago', 'manifest.json')
@@ -102,7 +103,7 @@ async function main() {
   const binaryOk = await fileOk(binaryPath, true)
   const modelOk = await fileOk(modelPath, false)
   const fallbackModels = modelOk ? [] : (await walkFiles(modelDir)).filter((file) => file.toLowerCase().endsWith('.bin.gz'))
-  const releaseModelOk = modelOk || fallbackModels.length > 0
+  const usableModelOk = mode === 'release' ? modelOk : modelOk || fallbackModels.length > 0
 
   if (binaryOk) {
     console.log(`[check-katago-assets] binary OK: ${platform.binaryPath}`)
@@ -114,6 +115,22 @@ async function main() {
     if (platform.sha256) {
       const actual = await sha256(binaryPath)
       if (actual !== platform.sha256) throw new Error(`Binary checksum mismatch: expected ${platform.sha256}, got ${actual}`)
+    }
+    const metadata = await inspectKataGoBinaryMetadata(binaryPath, key)
+    const expectedVersion = platform.engineVersion ?? ''
+    const minimumVersion = platform.minimumEngineVersion ?? expectedVersion
+    if (!metadata.version) {
+      const message = `Could not detect KataGo engine version for ${platform.binaryPath}`
+      if (mode === 'release') throw new Error(message)
+      console.warn(`[check-katago-assets] warning: ${message}`)
+    } else {
+      console.log(`[check-katago-assets] engine KataGo v${metadata.version} · ${platform.backend ?? 'unknown backend'} (${metadata.source})`)
+      if (!kataGoVersionSatisfies(metadata.version, minimumVersion)) {
+        throw new Error(`KataGo engine is too old: expected ${minimumVersion}+, got ${metadata.version}`)
+      }
+      if (mode === 'release' && expectedVersion && metadata.version !== expectedVersion) {
+        throw new Error(`KataGo release version mismatch: expected exactly ${expectedVersion}, got ${metadata.version}`)
+      }
     }
   } else {
     console.warn(`[check-katago-assets] missing binary: ${platform.binaryPath}`)
@@ -131,11 +148,11 @@ async function main() {
     console.warn(`[check-katago-assets] missing model: ${manifest.modelPath}`)
   }
 
-  if (mode === 'release' && (!binaryOk || !releaseModelOk)) {
-    throw new Error('Release packaging requires a KataGo binary and at least one bundled model. Run scripts/prepare_katago_assets.mjs first.')
+  if (mode === 'release' && (!binaryOk || !modelOk)) {
+    throw new Error('Release packaging requires the KataGo binary and the exact default model declared by manifest.json. Run the asset preparation scripts first.')
   }
 
-  if (!binaryOk || !releaseModelOk) {
+  if (!binaryOk || !usableModelOk) {
     console.warn('[check-katago-assets] development warning only. Diagnostics should show missing assets to the user.')
   }
 }

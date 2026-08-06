@@ -88,7 +88,7 @@ const emptyDashboard: DashboardData = {
     katagoBin: '',
     katagoConfig: '',
     katagoModel: '',
-    katagoModelPreset: 'official-b28-strong',
+    katagoModelPreset: 'official-transformer-balanced',
     katagoAnalysisThreads: 0,
     katagoSearchThreadsPerAnalysisThread: 1,
     katagoMaxBatchSize: 32,
@@ -169,7 +169,7 @@ const emptyDashboard: DashboardData = {
     katagoModel: '',
     katagoReady: false,
     katagoStatus: 'KataGo Missing',
-    katagoModelPreset: 'official-b28-strong',
+    katagoModelPreset: 'official-transformer-balanced',
     katagoModelPresets: [],
     proxyBaseUrl: '',
     proxyApiKey: '',
@@ -4712,6 +4712,8 @@ function SettingsDrawer({
       groups.set(group, [...(groups.get(group) ?? []), preset])
     }
     const groupOrder = [
+      t('modelGroupTransformer'),
+      t('modelGroupClassic'),
       t('modelGroupZhizi'),
       t('modelGroupB18'),
       t('modelGroupB20'),
