@@ -21,7 +21,7 @@ This checklist is manual required before tagging `v0.2.0-beta.1`. A GitHub Windo
 
 - [ ] User data directory is writable under the Chinese username path.
 - [ ] `resources/data/katago/bin/win32-x64/katago.exe` exists.
-- [ ] KataGo reports `v1.16.4`.
+- [ ] KataGo reports `v1.17.1` for the standard OpenCL and NVIDIA CUDA editions.
 - [ ] Default model is readable.
 - [ ] First-launch diagnostics are not blocked by missing KataGo.
 - [ ] If LLM credentials are absent, diagnostics show warning, not a crash.

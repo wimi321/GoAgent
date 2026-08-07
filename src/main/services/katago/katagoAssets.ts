@@ -1,19 +1,23 @@
 import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { constants } from 'node:fs'
-import { access, chmod, copyFile, cp, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
+import { access, chmod, cp, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises'
 import { createWriteStream } from 'node:fs'
 import { Transform, Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { basename, dirname, join } from 'node:path'
 import { promisify } from 'node:util'
 import { getKataGoModelPreset } from '../katagoRuntime'
+import { kataGoVersionSatisfies, probeKataGoVersion } from './version'
 import { appHome, legacyElectronUserData } from '@main/lib/store'
 import type { KataGoAssetInstallProgress, KataGoAssetInstallRequest, KataGoAssetInstallResult } from '@main/lib/types'
 
 export interface KataGoPlatformAsset {
   binaryPath: string
   sha256?: string
+  engineVersion?: string
+  minimumEngineVersion?: string
+  backend?: string
 }
 
 export interface KataGoBundledModel {
@@ -40,6 +44,10 @@ export interface KataGoAssetStatus {
   binaryPath: string
   binaryFound: boolean
   binaryExecutable: boolean
+  engineVersion?: string
+  expectedEngineVersion?: string
+  engineBackend?: string
+  engineVersionCompatible?: boolean
   modelPath: string
   modelFound: boolean
   modelDisplayName: string
@@ -52,10 +60,13 @@ interface KataGoEditionMetadata {
   binaryPath?: string
   flavor?: string
   platform?: string
+  engineVersion?: string
+  minimumEngineVersion?: string
+  backend?: string
 }
 
 const execFileAsync = promisify(execFile)
-const WINDOWS_OPENCL_RUNTIME_URL = 'https://github.com/wimi321/lizzieyzy-next/releases/download/1.0.0-next-2026-05-02.3/2026-05-02-windows64.opencl.portable.zip'
+const WINDOWS_OPENCL_RUNTIME_URL = 'https://github.com/wimi321/lizzieyzy-next/releases/download/next-2026-08-05.1/2026-08-05-windows64.opencl.portable.zip'
 let activeInstallController: AbortController | null = null
 
 class KataGoAssetInstallPausedError extends Error {
@@ -118,6 +129,21 @@ async function executable(path: string): Promise<boolean> {
 async function sha256(path: string): Promise<string> {
   const bytes = await readFile(path)
   return createHash('sha256').update(bytes).digest('hex')
+}
+
+async function assertPresetModelIntegrity(
+  path: string,
+  preset: { label: string; sha256?: string; sizeBytes?: number }
+): Promise<string> {
+  const file = await stat(path)
+  if (preset.sizeBytes && file.size !== preset.sizeBytes) {
+    throw new Error(`${preset.label} 文件大小不正确：期望 ${preset.sizeBytes} 字节，实际 ${file.size} 字节。`)
+  }
+  const actual = await sha256(path)
+  if (preset.sha256 && actual !== preset.sha256) {
+    throw new Error(`${preset.label} 校验失败：下载文件的 SHA-256 与官方值不一致。`)
+  }
+  return actual
 }
 
 async function readEditionMetadata(root: string): Promise<KataGoEditionMetadata | null> {
@@ -354,7 +380,19 @@ async function copyPlatformBinaryIfAvailable(
     if (process.platform !== 'win32') {
       await chmod(target, 0o755).catch(() => undefined)
     }
-    return { path: target, copied: false }
+    try {
+      const probe = await probeKataGoVersion(target)
+      if (kataGoVersionSatisfies(probe.version, platform.minimumEngineVersion)) {
+        return { path: target, copied: false }
+      }
+      onProgress?.({
+        stage: 'copying-binary',
+        message: `正在升级 KataGo ${probe.version || '旧版本'} → ${platform.engineVersion || platform.minimumEngineVersion}。`
+      })
+    } catch {
+      onProgress?.({ stage: 'copying-binary', message: '现有 KataGo 引擎无法启动，正在重新安装。' })
+    }
+    await rm(target, { force: true })
   }
   const source = await firstExisting(candidateRoots()
     .filter((candidateRoot) => candidateRoot !== root)
@@ -362,22 +400,36 @@ async function copyPlatformBinaryIfAvailable(
   if (!source) {
     return downloadPlatformRuntimeIfAvailable(root, manifest, key, onProgress, signal)
   }
-  await mkdir(dirname(target), { recursive: true })
-  await copyFile(source, target)
+  const sourceDir = dirname(source)
+  const targetDir = dirname(target)
+  await rm(targetDir, { recursive: true, force: true })
+  await mkdir(dirname(targetDir), { recursive: true })
+  await cp(sourceDir, targetDir, { recursive: true, force: true })
   if (process.platform !== 'win32') {
     await chmod(target, 0o755).catch(() => undefined)
+  }
+  const probe = await probeKataGoVersion(target)
+  if (!kataGoVersionSatisfies(probe.version, platform.minimumEngineVersion)) {
+    throw new Error(`KataGo 引擎版本 ${probe.version || '未知'} 不满足 ${platform.minimumEngineVersion || '当前'} 要求。`)
   }
   return { path: target, copied: true }
 }
 
 export async function readKataGoAssetManifest(): Promise<{ manifest: KataGoAssetManifest | null; root: string }> {
+  const candidates: Array<{ manifest: KataGoAssetManifest; root: string }> = []
   for (const root of candidateRoots()) {
     const manifestPath = join(root, 'manifest.json')
     if (await exists(manifestPath)) {
-      const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as KataGoAssetManifest
-      return { manifest, root }
+      try {
+        const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as KataGoAssetManifest
+        candidates.push({ manifest, root })
+      } catch {
+        // Ignore a damaged user manifest and continue to the packaged manifest.
+      }
     }
   }
+  candidates.sort((left, right) => (right.manifest.version || 0) - (left.manifest.version || 0))
+  if (candidates[0]) return candidates[0]
   return { manifest: null, root: candidateRoots()[0] }
 }
 
@@ -427,6 +479,25 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
   const binaryExecutable = binaryFound ? await executable(binaryPath) : false
   const modelFound = await exists(modelPath)
   let checksumDetail = ''
+  let engineVersion = ''
+  let probedBackend = ''
+  const expectedEngineVersion = edition?.engineVersion || platform.engineVersion || platform.minimumEngineVersion || ''
+  const minimumEngineVersion = edition?.minimumEngineVersion || platform.minimumEngineVersion || expectedEngineVersion
+  const engineBackend = edition?.backend || platform.backend || ''
+
+  if (binaryExecutable) {
+    try {
+      const probe = await probeKataGoVersion(binaryPath)
+      engineVersion = probe.version
+      probedBackend = probe.backend
+      if (!engineVersion) checksumDetail += '无法识别 KataGo 版本；'
+      else if (!kataGoVersionSatisfies(engineVersion, minimumEngineVersion)) {
+        checksumDetail += `KataGo ${engineVersion} 版本过旧，需要 ${minimumEngineVersion}+；`
+      }
+    } catch (error) {
+      checksumDetail += `KataGo 版本检测失败: ${String(error)}；`
+    }
+  }
 
   try {
     if (binaryFound && platform.sha256) {
@@ -443,7 +514,7 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
 
   const ready = binaryFound && binaryExecutable && modelFound && !checksumDetail
   const detail = ready
-    ? `已找到 ${basename(binaryPath)} 和 ${edition?.flavor === 'nvidia' ? 'NVIDIA bundled model' : manifest.defaultModelDisplayName}。`
+    ? `KataGo ${engineVersion}${engineBackend || probedBackend ? ` · ${engineBackend || probedBackend}` : ''} 与 ${edition?.flavor === 'nvidia' ? 'NVIDIA bundled model' : manifest.defaultModelDisplayName} 已就绪。`
     : [
         binaryFound ? '' : `缺少引擎: ${displayBinaryPath}`,
         binaryFound && !binaryExecutable ? `引擎不可执行: ${displayBinaryPath}` : '',
@@ -457,6 +528,10 @@ export async function inspectKataGoAssets(): Promise<KataGoAssetStatus> {
     binaryPath,
     binaryFound,
     binaryExecutable,
+    engineVersion,
+    expectedEngineVersion,
+    engineBackend: engineBackend || probedBackend,
+    engineVersionCompatible: Boolean(engineVersion && kataGoVersionSatisfies(engineVersion, minimumEngineVersion)),
     modelPath,
     modelFound,
     modelDisplayName: edition?.flavor === 'nvidia' ? 'KataGo NVIDIA bundled model' : manifest.defaultModelDisplayName,
@@ -494,6 +569,7 @@ async function installOfficialKataGoModelInternal(
   // If this preset is already bundled with the app or previously installed into the app home, reuse it.
   const bundledMatch = await findBundledModelPath(preset)
   if (bundledMatch) {
+    const modelSha256 = await assertPresetModelIntegrity(bundledMatch, preset)
     onProgress?.({ stage: 'discovering', message: `${preset.label} 已随安装包提供，无需下载。`, percent: 100 })
     const manifest: KataGoAssetManifest = {
       ...baseManifest,
@@ -501,7 +577,7 @@ async function installOfficialKataGoModelInternal(
       defaultModelFileName: preset.fileName,
       defaultModelDisplayName: `KataGo ${preset.label}`,
       modelPath: `models/${preset.fileName}`,
-      modelSha256: await sha256(bundledMatch).catch(() => '')
+      modelSha256
     }
     const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress, signal)
     onProgress?.({ stage: 'writing-manifest', message: '正在写入本机 KataGo 资源配置。' })
@@ -526,7 +602,15 @@ async function installOfficialKataGoModelInternal(
   onProgress?.({ stage: 'discovering', message: `准备安装 ${preset.label}。` })
   const downloadUrl = await discoverModelDownloadUrl(preset.id, signal)
   const modelPath = join(userRoot, 'models', preset.fileName)
+  if (await exists(modelPath)) {
+    try {
+      await assertPresetModelIntegrity(modelPath, preset)
+    } catch {
+      await unlink(modelPath).catch(() => undefined)
+    }
+  }
   const downloadedModel = await downloadFile(downloadUrl, modelPath, onProgress, 'downloading-model', undefined, signal)
+  const modelSha256 = await assertPresetModelIntegrity(modelPath, preset)
 
   onProgress?.({ stage: 'copying-binary', message: '正在检查当前平台 KataGo 引擎。' })
   const manifest: KataGoAssetManifest = {
@@ -535,7 +619,7 @@ async function installOfficialKataGoModelInternal(
     defaultModelFileName: preset.fileName,
     defaultModelDisplayName: `KataGo ${preset.label}`,
     modelPath: `models/${preset.fileName}`,
-    modelSha256: await sha256(modelPath).catch(() => '')
+    modelSha256
   }
   const binary = await copyPlatformBinaryIfAvailable(userRoot, manifest, key, onProgress, signal)
   onProgress?.({ stage: 'writing-manifest', message: '正在写入本机 KataGo 资源配置。' })

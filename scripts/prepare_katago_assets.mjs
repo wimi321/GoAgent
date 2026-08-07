@@ -3,6 +3,7 @@ import { chmod, copyFile, cp, mkdir, readdir, readFile, rm, stat, writeFile } fr
 import { createHash } from 'node:crypto'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import process from 'node:process'
+import { inspectKataGoBinaryMetadata, kataGoVersionSatisfies } from './lib/katago_asset_metadata.mjs'
 
 const root = resolve(process.cwd())
 const manifestPath = join(root, 'data', 'katago', 'manifest.json')
@@ -154,7 +155,7 @@ async function writeEditionMetadata(metadata) {
   console.log(`[prepare-katago-assets] wrote edition metadata: ${relative(root, editionPath)}`)
 }
 
-async function writePreparedManifest(manifest, platform, modelTarget, binaryTarget, flavor, bundledExtras = []) {
+async function writePreparedManifest(manifest, platform, modelTarget, binaryTarget, flavor, binaryMetadata, backend, bundledExtras = []) {
   const baseNext = {
     ...manifest,
     defaultModelFileName: basename(modelTarget),
@@ -167,6 +168,9 @@ async function writePreparedManifest(manifest, platform, modelTarget, binaryTarg
       ...manifest.supportedPlatforms,
       [platform]: {
         ...manifest.supportedPlatforms[platform],
+        engineVersion: binaryMetadata.version,
+        minimumEngineVersion: manifest.supportedPlatforms[platform].minimumEngineVersion ?? binaryMetadata.version,
+        backend,
         sha256: await sha256(binaryTarget)
       }
     }
@@ -191,6 +195,9 @@ async function main() {
   const copyRuntimeDir = hasFlag('copy-runtime-dir')
   const preserveModelName = hasFlag('preserve-model-name')
   const flavor = arg('flavor', process.env.GOAGENT_KATAGO_FLAVOR ?? 'standard')
+  const backend = arg('backend', process.env.GOAGENT_KATAGO_BACKEND ?? (
+    flavor === 'nvidia' ? 'cuda' : flavor === 'opencl' ? 'opencl' : key.startsWith('darwin-') ? 'metal' : platform.backend ?? ''
+  ))
   const sourceLabel = arg('source-label', process.env.GOAGENT_KATAGO_SOURCE_LABEL ?? (assetDir || 'manual'))
   const extraModels = collectExtraModelArgs()
 
@@ -208,6 +215,16 @@ async function main() {
     ? await copyRuntimeDirectory(resolvedBinarySource, binaryTarget, `binary ${key}`)
     : await copyIfProvided(resolvedBinarySource, binaryTarget, `binary ${key}`)
   const copiedModel = await copyIfProvided(resolvedModelSource, modelTarget, preserveModelName ? 'bundled model' : 'default model')
+  const binaryMetadata = copiedBinary ? await inspectKataGoBinaryMetadata(binaryTarget, key) : { version: '', source: '' }
+  if (copiedBinary && !binaryMetadata.version) {
+    throw new Error(`Could not detect the KataGo version in ${binaryTarget}`)
+  }
+  if (copiedBinary && !kataGoVersionSatisfies(binaryMetadata.version, platform.minimumEngineVersion)) {
+    throw new Error(`KataGo ${binaryMetadata.version} is older than required ${platform.minimumEngineVersion}`)
+  }
+  if (copiedBinary && platform.engineVersion && binaryMetadata.version !== platform.engineVersion) {
+    throw new Error(`KataGo release version mismatch: expected ${platform.engineVersion}, got ${binaryMetadata.version}`)
+  }
 
   const bundledExtras = []
   for (const extraSource of extraModels) {
@@ -223,13 +240,16 @@ async function main() {
       platform: key,
       source: sourceLabel,
       binaryPath: platform.binaryPath,
+      engineVersion: binaryMetadata.version,
+      minimumEngineVersion: platform.minimumEngineVersion ?? binaryMetadata.version,
+      backend,
       modelPath: relative(join(root, 'data', 'katago'), modelTarget).replaceAll('\\', '/'),
       preparedAt: new Date().toISOString()
     })
   }
 
   if (copiedBinary && copiedModel) {
-    await writePreparedManifest(manifest, key, modelTarget, binaryTarget, flavor, bundledExtras)
+    await writePreparedManifest(manifest, key, modelTarget, binaryTarget, flavor, binaryMetadata, backend, bundledExtras)
   } else if (bundledExtras.length > 0) {
     // Even without a binary+model pair, persist the extras list so the runtime can find them.
     await persistBundledExtras(manifest, bundledExtras)

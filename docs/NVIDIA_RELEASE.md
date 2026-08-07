@@ -8,9 +8,13 @@ The release workflow defaults to the NVIDIA runtime bundle from:
 
 ```text
 wimi321/lizzieyzy-next
-1.0.0-next-2026-05-02.3
+next-2026-08-05.1
 *windows64.nvidia.portable.zip
 ```
+
+This package uses KataGo `v1.17.1` with CUDA/CUDNN. KataGo `v1.17.2` is only
+for a separately labelled TensorRT build and is not substituted into this
+edition.
 
 The workflow can be overridden from `workflow_dispatch` with:
 

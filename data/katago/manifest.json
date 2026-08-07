@@ -1,25 +1,36 @@
 {
-  "version": 1,
-  "defaultModelId": "official-b28-strong",
-  "defaultModelFileName": "kata1-zhizi-b28c512nbt-muonfd2.bin.gz",
-  "defaultModelDisplayName": "KataGo zhizi b28 Official Strongest",
-  "modelPath": "models/kata1-zhizi-b28c512nbt-muonfd2.bin.gz",
-  "modelSha256": "",
+  "version": 2,
+  "defaultModelId": "official-transformer-balanced",
+  "defaultModelFileName": "b10c512h8nbt3tflrs-fson-silu-rsnh.bin.gz",
+  "defaultModelDisplayName": "KataGo Transformer 10B Balanced",
+  "modelPath": "models/b10c512h8nbt3tflrs-fson-silu-rsnh.bin.gz",
+  "modelSha256": "c04db4a503721d948bb720324f3cbdac6088cc9eb243632f020e4b6846f58995",
   "supportedPlatforms": {
     "darwin-arm64": {
       "binaryPath": "bin/darwin-arm64/katago",
+      "engineVersion": "1.17.1",
+      "minimumEngineVersion": "1.17.1",
+      "backend": "metal",
       "sha256": ""
     },
     "darwin-x64": {
       "binaryPath": "bin/darwin-x64/katago",
+      "engineVersion": "1.17.1",
+      "minimumEngineVersion": "1.17.1",
+      "backend": "metal",
       "sha256": ""
     },
     "win32-x64": {
       "binaryPath": "bin/win32-x64/katago.exe",
+      "engineVersion": "1.17.1",
+      "minimumEngineVersion": "1.17.1",
+      "backend": "opencl",
       "sha256": ""
     }
   },
   "notes": [
+    "KataGo v1.17.1 is the current release for Metal, OpenCL, CUDA, Eigen, and other non-TensorRT backends.",
+    "KataGo v1.17.2 only changes TensorRT and should be used for an explicit TensorRT edition.",
     "Actual binary/model files are release assets or Git LFS assets, not ordinary Git blobs.",
     "prepare_katago_assets.mjs can copy them from local paths or CI-provided artifact directories."
   ]
