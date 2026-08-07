@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { open } from 'node:fs/promises'
 import { promisify } from 'node:util'
 
 export const KATAGO_NON_TENSORRT_RELEASE = '1.17.1'
@@ -40,17 +41,70 @@ export function parseKataGoBackend(value: string): string {
   return ''
 }
 
-export async function probeKataGoVersion(path: string, timeoutMs = 5_000): Promise<KataGoVersionProbe> {
-  const { stdout, stderr } = await execFileAsync(path, ['version'], {
-    encoding: 'utf8',
-    timeout: timeoutMs,
-    maxBuffer: 1024 * 1024,
-    windowsHide: true
-  })
-  const output = `${stdout ?? ''}\n${stderr ?? ''}`.trim()
-  return {
-    version: parseKataGoVersion(output),
-    backend: parseKataGoBackend(output),
-    output
+async function readEmbeddedKataGoVersion(path: string): Promise<string> {
+  const handle = await open(path, 'r')
+  try {
+    const chunkSize = 4 * 1024 * 1024
+    const buffer = Buffer.allocUnsafe(chunkSize)
+    let position = 0
+    let carry = ''
+    while (true) {
+      const { bytesRead } = await handle.read(buffer, 0, chunkSize, position)
+      if (!bytesRead) return ''
+      const text = carry + buffer.subarray(0, bytesRead).toString('latin1')
+      const version = parseKataGoVersion(text)
+      if (version) return version
+      carry = text.slice(-128)
+      position += bytesRead
+    }
+  } finally {
+    await handle.close()
   }
+}
+
+function failedProbeOutput(error: unknown): string {
+  if (!error || typeof error !== 'object') return ''
+  const value = error as { stdout?: unknown; stderr?: unknown }
+  return `${value.stdout ?? ''}\n${value.stderr ?? ''}`.trim()
+}
+
+export async function probeKataGoVersion(path: string, timeoutMs = 5_000): Promise<KataGoVersionProbe> {
+  let output = ''
+  let executableError: unknown
+  try {
+    const { stdout, stderr } = await execFileAsync(path, ['version'], {
+      encoding: 'utf8',
+      timeout: timeoutMs,
+      maxBuffer: 1024 * 1024,
+      windowsHide: true
+    })
+    output = `${stdout ?? ''}\n${stderr ?? ''}`.trim()
+  } catch (error) {
+    executableError = error
+    output = failedProbeOutput(error)
+  }
+
+  const executableVersion = parseKataGoVersion(output)
+  if (executableVersion) {
+    return {
+      version: executableVersion,
+      backend: parseKataGoBackend(output),
+      output
+    }
+  }
+
+  // CUDA/CUDNN builds can fail before printing `version` on a runner without
+  // the matching GPU runtime. Their embedded build string still lets us verify
+  // the engine version without pretending that the backend itself was started.
+  const embeddedVersion = await readEmbeddedKataGoVersion(path).catch(() => '')
+  if (embeddedVersion) {
+    return {
+      version: embeddedVersion,
+      backend: parseKataGoBackend(output),
+      output: [output, `KataGo v${embeddedVersion} (embedded binary metadata)`].filter(Boolean).join('\n')
+    }
+  }
+
+  if (executableError) throw executableError
+  return { version: '', backend: parseKataGoBackend(output), output }
 }
