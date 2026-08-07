@@ -38,15 +38,16 @@ const forbiddenAssets = [
   `GoAgent-${version}-win-x64-nvidia-portable.7z.001`
 ]
 const requiredTopics = [
-  'first-run',
-  'system language',
-  'text, image, and tool',
-  '30-second',
-  'resumable',
+  'KataGo 1.17.1',
+  'Transformer 10B Balanced',
+  'Metal',
+  'CUDA/CUDNN',
+  'SHA-256',
   'local KataGo remains the default',
-  'persistent Zhizi Cloud',
-  'vip-share',
-  'official Zhizi app'
+  'official Zhizi API',
+  'download center',
+  'KataGo 1.17.2',
+  'TensorRT'
 ]
 
 const failures = []
