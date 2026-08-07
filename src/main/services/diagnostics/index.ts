@@ -6,7 +6,7 @@ import { resolveKataGoRuntime } from '../katagoRuntime'
 import { ikatagoClientConfigured, shouldPreferIKataGoEngine } from '../ikatagoClientEngine'
 import { shouldPreferZhiziGtpEngine, zhiziGtpConfigured } from '../zhiziGtpEngine'
 import { inspectKataGoAssets } from '../katago/katagoAssets'
-import { isLitePackagedRuntime } from '../release/packageRuntime'
+import { inspectPackagedRuntime, isLitePackagedRuntime } from '../release/packageRuntime'
 import type { DiagnosticCheck, DiagnosticsReport, DiagnosticsOverall } from './types'
 
 function isReleaseRuntime(): boolean {
@@ -73,6 +73,18 @@ async function checkKatagoBinary(): Promise<DiagnosticCheck> {
   const liteRuntime = isLitePackagedRuntime()
   const required = isReleaseRuntime() && !liteRuntime
   if (!runtime.katagoBin) {
+    const packagedRuntime = inspectPackagedRuntime()
+    if (required && packagedRuntime.flavor === 'nvidia') {
+      return {
+        id: 'katago-binary',
+        title: 'KataGo 引擎',
+        status: 'fail',
+        required,
+        detail: '已安装 NVIDIA 版 KataGo，但当前电脑无法启动 CUDA 分析引擎。',
+        action: '请确认电脑配有受支持的 NVIDIA 显卡，并更新 NVIDIA 驱动；普通电脑请安装 GoAgent 标准版。',
+        technicalDetail: runtime.notes.join('\n')
+      }
+    }
     return {
       id: 'katago-binary',
       title: 'KataGo 引擎',

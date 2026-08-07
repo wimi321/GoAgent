@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { setTimeout as delay } from 'node:timers/promises'
 import process from 'node:process'
+import { isExpectedNvidiaRunnerLimitation } from './lib/windows_packaged_smoke_policy.mjs'
 
 const root = resolve(process.cwd())
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
@@ -197,9 +198,19 @@ async function main() {
     }
     if (!report.hasApi) failures.push('window.goagent API is missing.')
 
+    const expectedEnvironmentLimitations = []
     const requiredDiagnosticFailures = (report.diagnostics?.checks ?? []).filter((check) => check.required && check.status === 'fail')
     for (const check of requiredDiagnosticFailures) {
-      failures.push(`Required diagnostic failed: ${check.id} - ${check.detail}`)
+      if (isExpectedNvidiaRunnerLimitation({
+        mode,
+        check,
+        katagoAssets: report.katagoAssets,
+        releaseReadiness: report.releaseReadiness
+      })) {
+        expectedEnvironmentLimitations.push(`${check.id}: ${check.detail}`)
+      } else {
+        failures.push(`Required diagnostic failed: ${check.id} - ${check.detail}`)
+      }
     }
 
     const readinessFailures = (report.releaseReadiness?.items ?? []).filter((entry) => entry.status === 'fail')
@@ -227,6 +238,7 @@ async function main() {
       katagoDetail: report.katagoAssets?.detail,
       releaseReadinessStatus: report.releaseReadiness?.status,
       releaseReadinessFlags: report.releaseReadiness?.flags,
+      expectedEnvironmentLimitations,
       failures
     }
     const evidencePath = arg('evidence', '')
