@@ -5,6 +5,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
+import { isExpectedNvidiaRunnerLimitation } from '../scripts/lib/windows_packaged_smoke_policy.mjs'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json')
@@ -43,4 +44,27 @@ test('release packaging refreshes checksums after signing and supports GPU-less 
   assert.match(versionSource, /readEmbeddedKataGoVersion/)
   assert.match(versionSource, /embedded binary metadata/)
   assert.match(versionSource, /if \(executableError\) throw executableError/)
+})
+
+test('NVIDIA packaged smoke accepts only the expected GPU-less runner limitation', () => {
+  const validContext = {
+    mode: 'nvidia',
+    check: { id: 'katago-binary', required: true, status: 'fail' },
+    katagoAssets: { ready: true, engineBackend: 'cuda' },
+    releaseReadiness: { status: 'pass' }
+  }
+  assert.equal(isExpectedNvidiaRunnerLimitation(validContext), true)
+  assert.equal(isExpectedNvidiaRunnerLimitation({ ...validContext, mode: 'full' }), false)
+  assert.equal(isExpectedNvidiaRunnerLimitation({
+    ...validContext,
+    katagoAssets: { ready: false, engineBackend: 'cuda' }
+  }), false)
+  assert.equal(isExpectedNvidiaRunnerLimitation({
+    ...validContext,
+    check: { id: 'katago-assets', required: true, status: 'fail' }
+  }), false)
+  assert.equal(isExpectedNvidiaRunnerLimitation({
+    ...validContext,
+    releaseReadiness: { status: 'fail' }
+  }), false)
 })
