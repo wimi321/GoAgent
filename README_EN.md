@@ -49,18 +49,20 @@ KataGo is the source of truth. The LLM is the teacher that turns those facts int
 
 Current release:
 
-[GoAgent v0.4.1](https://github.com/wimi321/GoAgent/releases/tag/v0.4.1)
+[GoAgent v0.4.20](https://github.com/wimi321/GoAgent/releases/tag/v0.4.20)
 
 | Platform | Download |
 | --- | --- |
-| macOS Apple Silicon | [GoAgent-0.4.1-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-arm64.dmg) |
-| macOS Intel | [GoAgent-0.4.1-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-x64.dmg) |
-| Windows x64 portable ZIP | [GoAgent-0.4.1-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64-portable.zip) |
-| Windows x64 installer | [GoAgent-0.4.1-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64.exe) |
+| macOS Apple Silicon | [GoAgent-0.4.20-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-arm64.dmg) |
+| macOS Intel | [GoAgent-0.4.20-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-x64.dmg) |
+| Windows x64 Standard portable ZIP | [GoAgent-0.4.20-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-portable.zip) |
+| Windows x64 Standard installer | [GoAgent-0.4.20-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64.exe) |
+| Windows x64 NVIDIA portable 7z | [GoAgent-0.4.20-win-x64-nvidia-portable.7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA installer | [GoAgent-0.4.20-win-x64-nvidia.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia.exe) |
 
 Release caveats:
 
-- macOS packages are not yet Developer ID signed or notarized.
+- macOS apps are Developer ID signed, Apple-notarized, and distributed with a stapled ticket. CI verifies the signature, Gatekeeper acceptance, ticket, and DMG integrity before upload.
 - Windows packages are unsigned and may trigger SmartScreen.
 - Windows ARM64 is not supported in this beta.
 - Large KataGo binaries and models are not committed as normal Git files.

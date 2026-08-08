@@ -374,6 +374,75 @@ jobs:
           fi
           ${{ matrix.command }}
 
+      - name: Notarize final macOS disk images
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Missing required macOS notarization secret: ${name}" >&2
+              exit 1
+            fi
+          done
+
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          dmgs=(
+            "release/${version}/GoAgent-${version}-mac-x64.dmg"
+            "release/${version}/GoAgent-${version}-mac-arm64.dmg"
+          )
+
+          for dmg in "${dmgs[@]}"; do
+            test -f "$dmg" || { echo "Missing packaged DMG: $dmg" >&2; exit 1; }
+            result_file="${dmg}.notary-result.json"
+            xcrun notarytool submit "$dmg" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --wait \
+              --output-format json > "$result_file"
+            node -e '
+              const report = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))
+              if (report.status !== "Accepted") {
+                console.error(`Apple notarization did not accept ${process.argv[2]}: ${report.status || "unknown"}`)
+                process.exit(1)
+              }
+            ' "$result_file" "$dmg"
+            rm -f "$result_file"
+            xcrun stapler staple "$dmg"
+          done
+
+      - name: Verify macOS signing and notarization
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          apps=(
+            "release/${version}/mac/GoAgent.app"
+            "release/${version}/mac-arm64/GoAgent.app"
+          )
+          dmgs=(
+            "release/${version}/GoAgent-${version}-mac-x64.dmg"
+            "release/${version}/GoAgent-${version}-mac-arm64.dmg"
+          )
+
+          for app in "${apps[@]}"; do
+            test -d "$app" || { echo "Missing packaged app: $app" >&2; exit 1; }
+            codesign --verify --deep --strict --verbose=2 "$app"
+            spctl --assess --type execute --verbose=4 "$app"
+            xcrun stapler validate "$app"
+          done
+
+          for dmg in "${dmgs[@]}"; do
+            test -f "$dmg" || { echo "Missing packaged DMG: $dmg" >&2; exit 1; }
+            xcrun stapler validate "$dmg"
+            spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg"
+            hdiutil verify "$dmg"
+          done
+
       - name: Smoke packaged Windows app
         if: runner.os == 'Windows'
         run: node scripts/smoke_windows_packaged_app.mjs --mode=full --require-katago
