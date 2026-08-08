@@ -46,6 +46,8 @@ xcrun stapler validate "release/$version/mac-arm64/GoAgent.app"
 xcrun stapler validate "release/$version/mac/GoAgent.app"
 xcrun stapler validate "release/$version/GoAgent-$version-mac-arm64.dmg"
 xcrun stapler validate "release/$version/GoAgent-$version-mac-x64.dmg"
+codesign --verify --verbose=2 "release/$version/GoAgent-$version-mac-arm64.dmg"
+codesign --verify --verbose=2 "release/$version/GoAgent-$version-mac-x64.dmg"
 spctl --assess --type open --context context:primary-signature --verbose=4 "release/$version/GoAgent-$version-mac-arm64.dmg"
 spctl --assess --type open --context context:primary-signature --verbose=4 "release/$version/GoAgent-$version-mac-x64.dmg"
 hdiutil verify "release/$version/GoAgent-$version-mac-arm64.dmg"
@@ -53,16 +55,19 @@ hdiutil verify "release/$version/GoAgent-$version-mac-x64.dmg"
 ```
 
 electron-builder signs and notarizes each application bundle first. The public
-release workflow then submits each final DMG to Apple's notary service, requires
-an `Accepted` result, staples the DMG ticket, and runs all checks above before
-upload. A missing Developer ID signature, a rejected Gatekeeper assessment, a
-missing application or DMG ticket, or a damaged DMG blocks publication.
+release workflow then signs each final DMG with the same Developer ID identity,
+submits it to Apple's notary service, requires an `Accepted` result, staples the
+DMG ticket, and runs all checks above before upload. A missing Developer ID
+signature, a rejected Gatekeeper assessment, a missing application or DMG
+ticket, or a damaged DMG blocks publication.
 
 If notarization is not handled automatically by electron-builder, submit and staple manually:
 
 ```bash
+codesign --force --timestamp --sign "Developer ID Application: YOUR NAME (TEAMID)" "release/$version/GoAgent-$version-mac-arm64.dmg"
 xcrun notarytool submit "release/$version/GoAgent-$version-mac-arm64.dmg" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait
 xcrun stapler staple "release/$version/GoAgent-$version-mac-arm64.dmg"
+codesign --verify --verbose=2 "release/$version/GoAgent-$version-mac-arm64.dmg"
 xcrun stapler validate "release/$version/GoAgent-$version-mac-arm64.dmg"
 spctl --assess --type open --context context:primary-signature --verbose=4 "release/$version/GoAgent-$version-mac-arm64.dmg"
 ```
