@@ -394,15 +394,9 @@ jobs:
             "release/${version}/GoAgent-${version}-mac-x64.dmg"
             "release/${version}/GoAgent-${version}-mac-arm64.dmg"
           )
-          identity="$(security find-identity -v -p codesigning | awk -F'"' '/Developer ID Application:/ { print $2; exit }')"
-          if [[ -z "$identity" ]]; then
-            echo "Developer ID Application identity is unavailable after packaging." >&2
-            exit 1
-          fi
 
           for dmg in "${dmgs[@]}"; do
             test -f "$dmg" || { echo "Missing packaged DMG: $dmg" >&2; exit 1; }
-            codesign --force --timestamp --sign "$identity" "$dmg"
             codesign --verify --verbose=2 "$dmg"
             result_file="${dmg}.notary-result.json"
             xcrun notarytool submit "$dmg" \
