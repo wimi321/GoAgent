@@ -49,22 +49,20 @@ KataGo 是事实裁判，LLM 是讲棋老师。GoAgent 的目标是让学生不�
 
 当前发布版本：
 
-[GoAgent v0.4.8](https://github.com/wimi321/GoAgent/releases/tag/v0.4.8)
+[GoAgent v0.4.20](https://github.com/wimi321/GoAgent/releases/tag/v0.4.20)
 
 | 平台 | 下载 |
 | --- | --- |
-| macOS Apple Silicon | [GoAgent-0.4.8-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-mac-arm64.dmg) |
-| macOS Intel | [GoAgent-0.4.8-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-mac-x64.dmg) |
-| Windows x64 免安装 ZIP | [GoAgent-0.4.8-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-win-x64-portable.zip) |
-| Windows x64 安装版 | [GoAgent-0.4.8-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-win-x64.exe) |
-| Windows NVIDIA 安装版 | [GoAgent-0.4.8-win-x64-nvidia.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-win-x64-nvidia.exe) |
-| Windows NVIDIA 免安装 7z 分卷 | [Part 1](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-win-x64-nvidia-portable.7z.001) · [Part 2](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-win-x64-nvidia-portable.7z.002) · [Part 3](https://github.com/wimi321/GoAgent/releases/download/v0.4.8/GoAgent-0.4.8-win-x64-nvidia-portable.7z.003) |
-
-后续版本会同时提供 Lite 轻量包：先下载小安装包，再在设置里一键安装 KataGo 引擎和官方权重。Full / NVIDIA 包继续面向希望离线开箱即用或需要高性能 GPU runtime 的用户。
+| macOS Apple Silicon | [GoAgent-0.4.20-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-arm64.dmg) |
+| macOS Intel | [GoAgent-0.4.20-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-x64.dmg) |
+| Windows x64 标准版免安装 ZIP | [GoAgent-0.4.20-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-portable.zip) |
+| Windows x64 标准版安装包 | [GoAgent-0.4.20-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64.exe) |
+| Windows x64 NVIDIA 免安装 7z | [GoAgent-0.4.20-win-x64-nvidia-portable.7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA 安装包 | [GoAgent-0.4.20-win-x64-nvidia.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia.exe) |
 
 发布说明：
 
-- macOS 包已使用 Apple Developer ID 签名；本机发布流程中 Apple 公证等待超时，暂未完成 notarization，首次打开仍可能出现 Gatekeeper 提示。
+- macOS 应用已使用 Apple Developer ID 签名、通过 Apple notarization，并附带 stapled ticket；发布流程会在上传前执行代码签名、Gatekeeper、公证票据和 DMG 完整性检查。
 - Windows 包目前未签名，可能出现 SmartScreen 提示。
 - Windows ARM64 暂不支持。
 - 大型 KataGo 二进制和模型不会作为普通 Git 文件提交。
@@ -239,7 +237,7 @@ data/katago/
 - [x] 推荐点、实战点、变化图预览和胜率走势。
 - [x] 多模态 AI 老师、流式回复、本地知识库和学生画像。
 - [x] macOS / Windows Beta 安装包。
-- [ ] macOS Developer ID 签名和公证。
+- [x] macOS Developer ID 签名、Apple 公证和 Gatekeeper 验收。
 - [ ] Windows 代码签名。
 - [ ] 自动更新。
 - [ ] 更完整的训练计划、题库系统和多语言 UI。
