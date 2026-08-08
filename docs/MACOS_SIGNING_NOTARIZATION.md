@@ -54,10 +54,11 @@ hdiutil verify "release/$version/GoAgent-$version-mac-arm64.dmg"
 hdiutil verify "release/$version/GoAgent-$version-mac-x64.dmg"
 ```
 
-electron-builder signs and notarizes each application bundle first. The public
-release workflow then signs each final DMG with the same Developer ID identity,
-submits it to Apple's notary service, requires an `Accepted` result, staples the
-DMG ticket, and runs all checks above before upload. A missing Developer ID
+electron-builder signs and notarizes each application bundle first, then signs
+each final DMG through `build.dmg.sign=true` while its temporary signing
+keychain is still active. The public release workflow submits each signed DMG
+to Apple's notary service, requires an `Accepted` result, staples the DMG
+ticket, and runs all checks above before upload. A missing Developer ID
 signature, a rejected Gatekeeper assessment, a missing application or DMG
 ticket, or a damaged DMG blocks publication.
 

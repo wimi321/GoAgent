@@ -7,6 +7,7 @@ const read = (path) => readFile(`${root}/${path}`, 'utf8')
 
 test('macOS release notarizes and verifies apps and final DMGs before upload', async () => {
   const workflow = await read('.github/workflows/release.yml')
+  const packageJson = JSON.parse(await read('package.json'))
   const notarizeStep = workflow.indexOf('name: Notarize final macOS disk images')
   const verifyStep = workflow.indexOf('name: Verify macOS signing and notarization')
   const uploadStep = workflow.indexOf('name: Upload packaged artifacts')
@@ -14,8 +15,7 @@ test('macOS release notarizes and verifies apps and final DMGs before upload', a
   assert.ok(notarizeStep >= 0)
   assert.ok(verifyStep > notarizeStep)
   assert.ok(uploadStep > verifyStep)
-  assert.match(workflow, /security find-identity -v -p codesigning/)
-  assert.match(workflow, /codesign --force --timestamp --sign "\$identity" "\$dmg"/)
+  assert.equal(packageJson.build.dmg.sign, true)
   assert.match(workflow, /xcrun notarytool submit/)
   assert.match(workflow, /report\.status !== "Accepted"/)
   assert.match(workflow, /xcrun stapler staple "\$dmg"/)

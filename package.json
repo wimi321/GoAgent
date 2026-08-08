@@ -145,6 +145,9 @@
     ],
     "asarUnpack": [],
     "asar": true,
+    "dmg": {
+      "sign": true
+    },
     "mac": {
       "category": "public.app-category.education",
       "icon": "assets/icon.icns",
