@@ -14,6 +14,8 @@ test('macOS release notarizes and verifies apps and final DMGs before upload', a
   assert.ok(notarizeStep >= 0)
   assert.ok(verifyStep > notarizeStep)
   assert.ok(uploadStep > verifyStep)
+  assert.match(workflow, /security find-identity -v -p codesigning/)
+  assert.match(workflow, /codesign --force --timestamp --sign "\$identity" "\$dmg"/)
   assert.match(workflow, /xcrun notarytool submit/)
   assert.match(workflow, /report\.status !== "Accepted"/)
   assert.match(workflow, /xcrun stapler staple "\$dmg"/)
