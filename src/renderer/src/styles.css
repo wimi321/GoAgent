@@ -400,6 +400,7 @@
   border-radius: 9px;
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .desktop-preferences .ghost-button {
@@ -4060,6 +4061,22 @@ label,
 
 .settings-inline-toggle input {
   flex: 0 0 auto;
+  width: 16px;
+  min-width: 0;
+  min-height: 0;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  accent-color: var(--settings-teal, #007f86);
+}
+
+.settings-inline-toggle span {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .llm-model-picker {

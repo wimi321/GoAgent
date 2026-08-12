@@ -4,6 +4,22 @@ All notable changes to GoAgent will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.4.21 - Settings Page Alignment Fix
+
+### Fixed
+
+- Fixed the settings page style misalignment reported in issue #31: toggle and
+  checkbox labels (KataGo auto-optimize, Zhizi paid-confirm, and related action
+  buttons) could shrink to one-character columns and render their text vertically
+  on the right edge of the card. The global `input { width: 100% }` rule forced
+  full-width checkboxes inside flex rows; the checkbox is now auto-sized and the
+  label span fills the remaining width, and settings action buttons no longer
+  wrap vertically.
+
+### Verified
+
+- 244 contract and behavior tests, TypeScript, production build.
+
 ## 0.4.20 - KataGo 1.17.1 and Official Transformer
 
 ### Added

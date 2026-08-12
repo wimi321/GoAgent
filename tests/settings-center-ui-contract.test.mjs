@@ -42,6 +42,30 @@ test('settings center avoids developer-facing AI configuration labels in Chinese
   assert.doesNotMatch(i18n, /填好 Base URL 与 API Key|需要支持图片输入的模型 API key/)
 })
 
+test('settings toggles keep their label text on one line (issue #31 regression)', () => {
+  const css = read('src/renderer/src/styles.css')
+  const zhiziCss = read('src/renderer/src/features/settings/zhizi-cloud.css')
+
+  // The global input rule forces width:100% on every input. A flex-row toggle must
+  // restore an auto-sized checkbox and let the label span fill the remaining width,
+  // otherwise the text wraps one CJK character per column (vertical text on the
+  // right edge of the settings card, as reported in issue #31).
+  assert.match(css, /\.settings-inline-toggle input \{/)
+  assert.match(css, /width: 16px;/)
+  assert.match(css, /min-height: 0;/)
+  assert.match(css, /\.settings-inline-toggle span \{/)
+  assert.match(css, /flex: 1 1 auto;/)
+  assert.match(css, /min-width: 0;/)
+  assert.match(css, /\.desktop-preferences \.ghost-button,\r?\n\.desktop-preferences \.primary-button \{/)
+  assert.match(css, /white-space: nowrap;/)
+
+  // Zhizi paid-confirm checkbox uses the same flex-row pattern.
+  assert.match(zhiziCss, /\.zhizi-paid-confirm input \{/)
+  assert.match(zhiziCss, /width: 16px;/)
+  assert.match(zhiziCss, /\.zhizi-paid-confirm span \{/)
+  assert.match(zhiziCss, /flex: 1 1 auto;/)
+})
+
 test('settings center has design-system styles for the focused page shell', () => {
   const css = read('src/renderer/src/styles.css')
 
