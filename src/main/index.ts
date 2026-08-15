@@ -458,7 +458,14 @@ app.whenReady().then(() => {
       priority: group === 'live' || group === 'single' ? 'live' : group === 'quick' ? 'quick' : 'teacher',
       description: `Analyze position ${payload.gameId}#${payload.moveNumber}`,
       replaceGroup: group === 'live' || !payload.runId
-    }, () => analyzePositionRuntime({ gameId: payload.gameId, moveNumber: payload.moveNumber, maxVisits: payload.maxVisits, runId: payload.runId, group }))
+    }, () => analyzePositionRuntime({
+      gameId: payload.gameId,
+      moveNumber: payload.moveNumber,
+      maxVisits: payload.maxVisits,
+      runId: payload.runId,
+      group,
+      bypassCache: payload.bypassCache
+    }))
   })
   ipcMain.handle('katago:analyze-position-stream', async (event, payload: AnalyzePositionRequest) => {
     const group = payload.group ?? (payload.runId ? 'teacher' : 'live')
@@ -475,6 +482,7 @@ app.whenReady().then(() => {
         maxVisits: payload.maxVisits,
         runId: payload.runId,
         group,
+        bypassCache: payload.bypassCache,
         reportDuringSearchEvery: payload.reportDuringSearchEvery ?? 0.2,
         onProgress: (analysis, isFinal) => safeSendToRenderer(event, 'katago:analyze-position-progress', {
           runId: payload.runId,

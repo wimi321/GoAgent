@@ -30,7 +30,8 @@ import type {
   VisionEvidenceReport
 } from '@main/lib/types'
 import type { ChatContentPart, ChatMessage, ChatTool, ChatToolCall, ChatTurnResult, ProviderSettings } from './llm/provider'
-import { analyzeGameQuick, analyzePosition, cancelKataGoAnalysis } from './katago'
+import { analyzePosition, cancelKataGoAnalysis } from './katago'
+import { analyzeGameQuickRuntime } from './analysis/runtimeIntegration'
 import { MOVE_RANGE_KEY_MOVE_LIMIT, MOVE_RANGE_MAX_MOVES, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import { formatMoveRangeSummaryForPrompt, selectMoveNumbersForRangeRefine } from './teacher/moveRangeReview'
 import { searchKnowledge, searchKnowledgeMatches } from './knowledge'
@@ -67,7 +68,7 @@ import {
   validateVisionEvidenceForIntent
 } from './teacher/visionEvidence'
 import { buildVisionEvidenceRepairNote, verifyVisionEvidenceMarkdown } from './teacher/visionEvidenceVerifier'
-import { streamOpenAICompatibleToolTurn } from './llm/openaiCompatibleProvider'
+import { isLlmSetupConfigurationError, streamOpenAICompatibleToolTurn } from './llm/openaiCompatibleProvider'
 
 type TeacherProgressEmitter = (progress: TeacherRunProgress) => void
 type TeacherBoardImageCaptureHandler = (request: TeacherBoardImageRenderRequest) => Promise<TeacherBoardImageRenderImage[]>
@@ -91,6 +92,12 @@ interface BatchIssue {
   loss: number
   scoreLead: number
   pv: string[]
+}
+
+function markLlmSetupNeedsAttention(error: unknown): void {
+  if (isLlmSetupConfigurationError(error)) {
+    setSettings({ llmSetupStatus: 'needs-attention', llmLastVerifiedAt: '' })
+  }
 }
 
 function startTool(logs: TeacherToolLog[], name: string, label: string, detail: string): TeacherToolLog {
@@ -131,6 +138,21 @@ function emitToolState(context: TeacherRunContext | undefined, logs: TeacherTool
     message,
     toolLogs: cloneToolLogs(logs)
   })
+}
+
+function updateRunningToolProgress(
+  state: TeacherAgentSessionState,
+  name: string,
+  current: number,
+  total: number
+): void {
+  const log = [...state.logs].reverse().find((item) => item.name === name && item.status === 'running')
+  if (!log) return
+  log.progress = {
+    current: Math.max(0, Math.min(Math.round(current), Math.max(1, Math.round(total)))),
+    total: Math.max(1, Math.round(total))
+  }
+  emitToolState(state.context, state.logs, `${name} ${log.progress.current}/${log.progress.total}`)
 }
 
 function emitAssistantDelta(context: TeacherRunContext | undefined, delta: string): void {
@@ -1410,16 +1432,34 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
         const refineVisits = Math.max(120, Math.min(420, requestedVisits * 16))
         const refineTopN = count > 1 ? 2 : 4
         const minWinrateDrop = numberInput(input, 'minWinrateDrop', 6, 1, 40)
+        let reusedCompleteSweepCache = games.length > 0
         cancelKataGoAnalysis({ group: 'quick' })
         for (const game of games) {
           assertTeacherRunActive(state.context)
-          let analyses: Awaited<ReturnType<typeof analyzeGameQuick>>
+          let analyses: Awaited<ReturnType<typeof analyzeGameQuickRuntime>>
           try {
-            analyses = await analyzeGameQuick(game.id, sweepVisits, undefined, {
+            let lastProgressAt = 0
+            let lastProgressValue = -1
+            analyses = await analyzeGameQuickRuntime({
+              gameId: game.id,
+              totalMoves: state.record?.game.id === game.id ? state.record.moves.length : game.moveCount,
+              maxVisits: sweepVisits,
               refineVisits,
               refineTopN,
               runId: `${state.id}-batch-${game.id}`,
-              group: 'teacher'
+              group: 'teacher',
+              onProgress: (progress) => {
+                const current = Math.min(progress.analyzedPositions, progress.totalPositions)
+                const now = Date.now()
+                const shouldEmit =
+                  current >= progress.totalPositions ||
+                  current - lastProgressValue >= Math.max(1, Math.ceil(progress.totalPositions / 100)) ||
+                  now - lastProgressAt >= 300
+                if (!shouldEmit) return
+                lastProgressAt = now
+                lastProgressValue = current
+                updateRunningToolProgress(state, 'katago.analyzeGameBatch', current, progress.totalPositions)
+              }
             })
           } catch (error) {
             if (/KataGo 分析超时|timed out|timeout/i.test(String(error))) {
@@ -1433,12 +1473,18 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
             throw error
           }
           assertTeacherRunActive(state.context)
+          reusedCompleteSweepCache = reusedCompleteSweepCache && analyses.length > 0 && analyses.every((analysis) => analysis.runtimeEvidence?.cacheStatus === 'hit')
+          if (games.length === 1) {
+            state.rangeAnalyses = analyses
+          }
           issues.push(...extractIssuesFromAnalyses(analyses, game, minWinrateDrop))
         }
         state.batchIssues = issues
         return {
           studentName,
           analysisMode: 'fast-sweep-plus-key-move-refine',
+          executionMode: reusedCompleteSweepCache ? 'complete-sweep-cache' : 'fresh-analysis',
+          cacheStatus: reusedCompleteSweepCache ? 'hit' : 'fresh-analysis',
           visits: {
             sweep: sweepVisits,
             refine: refineVisits,
@@ -2066,7 +2112,7 @@ async function runTeacherAgentSession(
       }, context?.signal)
     } catch (error) {
       if (!isCancellationError(error)) {
-        setSettings({ llmSetupStatus: 'needs-attention', llmLastVerifiedAt: '' })
+        markLlmSetupNeedsAttention(error)
       }
       throw error
     }
@@ -2114,7 +2160,7 @@ async function runTeacherAgentSession(
       }, context?.signal)
     } catch (error) {
       if (!isCancellationError(error)) {
-        setSettings({ llmSetupStatus: 'needs-attention', llmLastVerifiedAt: '' })
+        markLlmSetupNeedsAttention(error)
       }
       throw error
     }

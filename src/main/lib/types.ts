@@ -725,6 +725,10 @@ export interface TeacherToolLog {
   label: string
   status: TeacherToolStatus
   detail: string
+  progress?: {
+    current: number
+    total: number
+  }
   startedAt: string
   endedAt?: string
 }
@@ -1354,6 +1358,7 @@ export interface AnalyzePositionRequest {
   runId?: string
   group?: KataGoAnalysisGroup
   reportDuringSearchEvery?: number
+  bypassCache?: boolean
 }
 
 export interface AnalyzeTrialPositionRequest {

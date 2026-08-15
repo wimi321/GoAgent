@@ -169,7 +169,15 @@ function toolDetail(log: AnyRecord, logs: AnyRecord[], index: number): string {
   if (name === 'knowledge.searchLocal') return '匹配棋形、定式、死活、手筋和常见错误类型。'
   if (name === 'board.captureTeachingImage') return '读取当前棋盘图，保证讲解对得上画面。'
   if (name === 'sgf.readGameRecord') return '读取棋谱手顺和当前手上下文。'
-  if (name === 'katago.analyzeGameBatch') return '扫描整盘胜率走势和问题手分布。'
+  if (name === 'katago.analyzeGameBatch') {
+    const progress = asRecord(log.progress)
+    const current = Number(progress.current)
+    const total = Number(progress.total)
+    if (status === 'running' && Number.isFinite(current) && Number.isFinite(total) && total > 0) {
+      return `正在分析 ${Math.max(0, Math.round(current))} / ${Math.round(total)} 个局面。`
+    }
+    return '扫描整盘胜率走势和问题手分布。'
+  }
   return status === 'running' ? '正在处理，完成后会继续组织老师回复。' : '已完成，结果会进入最终讲解。'
 }
 

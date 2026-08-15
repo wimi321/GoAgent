@@ -21,6 +21,7 @@ interface PendingBatch {
   runId?: string
   group?: KataGoAnalysisGroup
   ids: Set<string>
+  originalIds: Map<string, string>
   results: Map<string, PersistentKataGoResponse>
   resolve: (value: Map<string, PersistentKataGoResponse>) => void
   reject: (reason: Error) => void
@@ -88,34 +89,61 @@ export function cancelPersistentKataGoAnalysis(filter: { runId?: string; group?:
     })
     if (matches.length === 0) continue
     cancelled += matches.length
+    let terminateFailed = false
     for (const batch of matches) {
       clearTimeout(batch.timer)
       engine.pending.delete(batch.id)
       batch.reject(new Error('KataGo persistent analysis cancelled'))
+      terminateFailed = !terminateBatchQueries(engine, batch) || terminateFailed
     }
-    // KataGo analysis engine does not provide a universal per-query cancellation
-    // primitive. Restarting is safer than leaving old long searches running and
-    // mixing stale responses into later teacher tasks.
-    restartEngine(engine, new Error('Persistent KataGo engine restarted after cancellation'))
+    // KataGo's analysis protocol supports terminating requests by id. Keeping
+    // the process alive preserves the loaded neural net, so move-to-move review
+    // does not pay a cold-start penalty. If the command cannot be delivered,
+    // restart as the conservative stale-result fallback.
+    if (terminateFailed) {
+      restartEngine(engine, new Error('Persistent KataGo engine restarted after failed query termination'))
+    }
   }
   return { cancelled }
+}
+
+function terminateBatchQueries(engine: PersistentEngine, batch: PendingBatch): boolean {
+  const child = engine.child
+  if (!child || child.killed) return false
+  try {
+    for (const queryId of batch.ids) {
+      child.stdin.write(`${JSON.stringify({
+        id: `terminate-${batch.id}-${queryId}`,
+        action: 'terminate',
+        terminateId: queryId
+      })}\n`)
+    }
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function queryKataGoPersistentBatch(request: PersistentKataGoBatchRequest): Promise<Map<string, PersistentKataGoResponse>> {
   if (!request.command.length) throw new Error('Persistent KataGo command is empty')
   if (!request.queries.length) return new Map()
+  const batchId = `batch-${Date.now()}-${++batchCounter}`
   const ids = new Set<string>()
-  for (const [index, query] of request.queries.entries()) {
-    const id = typeof query.id === 'string' && query.id.trim() ? query.id.trim() : `persistent-query-${Date.now()}-${index}`
-    query.id = id
-    ids.add(id)
-  }
+  const originalIds = new Map<string, string>()
+  const wireQueries = request.queries.map((query, index) => {
+    const originalId = typeof query.id === 'string' && query.id.trim()
+      ? query.id.trim()
+      : `persistent-query-${Date.now()}-${index}`
+    const wireId = `${batchId}:${index}`
+    ids.add(wireId)
+    originalIds.set(wireId, originalId)
+    return { ...query, id: wireId }
+  })
   const engine = engineForCommand(request.command)
   await ensureEngineStarted(engine)
   engine.lastUsedAt = Date.now()
 
   return new Promise((resolve, reject) => {
-    const batchId = `batch-${Date.now()}-${++batchCounter}`
     const timer = setTimeout(() => {
       const batch = engine.pending.get(batchId)
       if (!batch) return
@@ -128,6 +156,7 @@ export async function queryKataGoPersistentBatch(request: PersistentKataGoBatchR
       runId: request.runId,
       group: request.group,
       ids,
+      originalIds,
       results: new Map(),
       resolve,
       reject,
@@ -136,7 +165,7 @@ export async function queryKataGoPersistentBatch(request: PersistentKataGoBatchR
     }
     engine.pending.set(batchId, batch)
     try {
-      for (const query of request.queries) {
+      for (const query of wireQueries) {
         engine.child?.stdin.write(`${JSON.stringify(query)}\n`)
       }
     } catch (error) {
@@ -228,9 +257,11 @@ function routeResponse(engine: PersistentEngine, response: PersistentKataGoRespo
   if (!id) return
   for (const batch of engine.pending.values()) {
     if (!batch.ids.has(id)) continue
-    batch.onResponse?.(response)
+    const originalId = batch.originalIds.get(id) ?? id
+    const normalizedResponse = { ...response, id: originalId }
+    batch.onResponse?.(normalizedResponse)
     if (!response.isDuringSearch) {
-      batch.results.set(id, response)
+      batch.results.set(originalId, normalizedResponse)
     }
     if (batch.results.size >= batch.ids.size) {
       clearTimeout(batch.timer)

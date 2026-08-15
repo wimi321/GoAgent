@@ -506,22 +506,22 @@ function ensureAnalysisConfig(settings?: AppSettings): string {
   const searchThreadsPerAnalysisThread = saneInteger(settings?.katagoSearchThreadsPerAnalysisThread, 1, 1, 16)
   const maxBatchSize = saneInteger(settings?.katagoMaxBatchSize, 32, 1, 256)
   const cacheSizePowerOfTwo = saneInteger(settings?.katagoCacheSizePowerOfTwo, 20, 16, 28)
-  writeFileSync(
-    configPath,
-    [
-      `logDir = ${logDir}`,
-      'logAllRequests = false',
-      'logSearchInfo = false',
-      'analysisPVLen = 12',
-      'reportAnalysisWinratesAs = SIDETOMOVE',
-      `numAnalysisThreads = ${analysisThreads}`,
-      `numSearchThreadsPerAnalysisThread = ${searchThreadsPerAnalysisThread}`,
-      `nnMaxBatchSize = ${maxBatchSize}`,
-      `nnCacheSizePowerOfTwo = ${cacheSizePowerOfTwo}`,
-      ''
-    ].join('\n'),
-    'utf8'
-  )
+  const configContent = [
+    `logDir = ${logDir}`,
+    'logAllRequests = false',
+    'logSearchInfo = false',
+    'analysisPVLen = 12',
+    'reportAnalysisWinratesAs = SIDETOMOVE',
+    `numAnalysisThreads = ${analysisThreads}`,
+    `numSearchThreadsPerAnalysisThread = ${searchThreadsPerAnalysisThread}`,
+    `nnMaxBatchSize = ${maxBatchSize}`,
+    `nnCacheSizePowerOfTwo = ${cacheSizePowerOfTwo}`,
+    ''
+  ].join('\n')
+  const existingContent = existsSync(configPath) ? readFileSync(configPath, 'utf8') : ''
+  if (existingContent !== configContent) {
+    writeFileSync(configPath, configContent, 'utf8')
+  }
   return configPath
 }
 

@@ -2052,6 +2052,33 @@ export function App(): ReactElement {
       round: 0
     }))
     await cancelKataGoWork({ group: 'trial' })
+    let trialSpeedSample = 0
+    const disposeSearchProgress = window.goagent.onAnalyzePositionSearchProgress((progress) => {
+      if (
+        trialAnalysisRunId.current !== runId ||
+        progress.runId !== runId ||
+        progress.gameId !== selectedGame.id ||
+        progress.moveNumber !== nextBranch.baseMoveNumber + nextBranch.moves.length
+      ) {
+        return
+      }
+      const rawSpeed = Number(progress.visitsPerSecond)
+      if (Number.isFinite(rawSpeed) && rawSpeed > 0) {
+        trialSpeedSample = trialSpeedSample > 0
+          ? (trialSpeedSample * 0.65) + (rawSpeed * 0.35)
+          : rawSpeed
+      }
+      setLiveAnalysis((current) => ({
+        ...current,
+        running: current.running || progress.isDuringSearch,
+        status: progress.isDuringSearch
+          ? `试下搜索 ${formatVisits(Math.max(current.visits, progress.visits))}`
+          : current.status,
+        visits: Math.max(current.visits, progress.visits),
+        visitsPerSecond: trialSpeedSample || current.visitsPerSecond,
+        targetMoveNumber: nextBranch.baseMoveNumber + nextBranch.moves.length
+      }))
+    })
     const disposeProgress = window.goagent.onAnalyzePositionProgress((progress) => {
       if (
         trialAnalysisRunId.current !== runId ||
@@ -2112,6 +2139,7 @@ export function App(): ReactElement {
       return null
     } finally {
       disposeProgress()
+      disposeSearchProgress()
     }
   }
 
@@ -2327,9 +2355,9 @@ export function App(): ReactElement {
       targetMoveNumber: targetMove,
       round: 0
     })
-    if (forceManualRefresh) {
-      await cancelKataGoWork({ group: 'quick' })
-    }
+    // The current board is the user's foreground task. Stop the background
+    // sweep first so clicking Start never sits invisibly behind a long graph job.
+    await cancelKataGoWork({ group: 'quick' })
     await cancelKataGoWork({ group: 'live' })
     if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
       return
@@ -2407,7 +2435,7 @@ export function App(): ReactElement {
             : `实时搜索 ${formatVisits(totalVisits)} · 一选 ${formatVisits(bestVisits)}`,
           visits: totalVisits,
           bestVisits,
-          visitsPerSecond,
+          visitsPerSecond: progress.isFinal ? 0 : visitsPerSecond,
           targetMoveNumber: targetMove,
           round: 1
         })
@@ -2419,12 +2447,19 @@ export function App(): ReactElement {
           maxVisits: LIVE_ANALYSIS_TOTAL_VISIT_LIMIT,
           runId,
           group: 'live',
-          reportDuringSearchEvery: LIVE_ANALYSIS_REPORT_INTERVAL_SECONDS
+          reportDuringSearchEvery: LIVE_ANALYSIS_REPORT_INTERVAL_SECONDS,
+          bypassCache: forceManualRefresh
         })
         if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
           return
         }
         if (!finalAnalysis) {
+          setLiveAnalysis((current) => ({
+            ...current,
+            running: false,
+            status: '分析已停止',
+            visitsPerSecond: 0
+          }))
           return
         }
         const displayedFinal = forceManualRefresh
@@ -2432,8 +2467,6 @@ export function App(): ReactElement {
           : (preferAnalysis(cachedAnalysisForGameMove(gameId, targetMove), finalAnalysis) ?? finalAnalysis)
         const totalVisits = candidateVisitsTotal(displayedFinal)
         const bestVisits = candidateBestVisits(displayedFinal)
-        const elapsedSeconds = Math.max(0.1, (Date.now() - startedAt) / 1000)
-        const finalSpeed = lastSpeedSample || (totalVisits / elapsedSeconds)
         rememberEvaluation(finalAnalysis, { force: forceManualRefresh })
         if (moveNumberRef.current === targetMove) {
           setAnalysis((current) => forceManualRefresh ? finalAnalysis : preferAnalysis(current, finalAnalysis))
@@ -2444,7 +2477,7 @@ export function App(): ReactElement {
           status: `已完成 ${formatVisits(totalVisits)}`,
           visits: totalVisits,
           bestVisits,
-          visitsPerSecond: finalSpeed,
+          visitsPerSecond: 0,
           targetMoveNumber: targetMove
         }))
         if (!hasCompleteEvaluationGraph(cachedEvaluationsForGame(gameId), targetRecord.moves.length)) {
@@ -2470,7 +2503,8 @@ export function App(): ReactElement {
                 moveNumber: targetMove,
                 maxVisits: 120,
                 runId,
-                group: 'live'
+                group: 'live',
+                bypassCache: forceManualRefresh
               })
               if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
                 return
@@ -2490,6 +2524,7 @@ export function App(): ReactElement {
                 status: `快速分析 ${formatVisits(totalVisits)}`,
                 visits: totalVisits,
                 bestVisits,
+                visitsPerSecond: 0,
                 targetMoveNumber: targetMove
               }))
             } catch (fallbackCause) {
@@ -2498,7 +2533,8 @@ export function App(): ReactElement {
               setLiveAnalysis((current) => ({
                 ...current,
                 running: false,
-                status: fallbackMessage
+                status: fallbackMessage,
+                visitsPerSecond: 0
               }))
             }
           } else {
@@ -2506,7 +2542,8 @@ export function App(): ReactElement {
             setLiveAnalysis((current) => ({
               ...current,
               running: false,
-              status: message
+              status: message,
+              visitsPerSecond: 0
             }))
           }
         }
@@ -2692,6 +2729,15 @@ export function App(): ReactElement {
         reportDuringSearchEvery: 0.25
       })
       if (territoryAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
+        return
+      }
+      if (!nextAnalysis) {
+        setLiveAnalysis((current) => ({
+          ...current,
+          running: false,
+          status: '形势判断已停止',
+          visitsPerSecond: 0
+        }))
         return
       }
       rememberEvaluation(nextAnalysis, { force: true })
@@ -3037,7 +3083,7 @@ export function App(): ReactElement {
       tone: llmReady ? 'good' : 'warn'
     }
   ]
-  const liveAnalysisDisabled = busy === 'katago-install'
+  const liveAnalysisDisabled = busy === 'katago-install' || busy === 'teacher'
   const timelineFinalRecordScore = record && moveNumber === record.moves.length ? gameResultLeadForUi(record.game, t) : null
   const onboarding = dashboardLoaded && dashboard.settings.onboardingVersion < FIRST_RUN_ONBOARDING_VERSION
     ? (
@@ -3911,7 +3957,15 @@ function teacherToolDetail(log: TeacherTraceLog, logs: TeacherTraceLog[], index:
   if (log.name === 'knowledge.searchLocal') return t('toolDetailKnowledge')
   if (log.name === 'board.captureTeachingImage') return t('toolDetailBoardImage')
   if (log.name === 'sgf.readGameRecord') return t('toolDetailReadSgf')
-  if (log.name === 'katago.analyzeGameBatch') return t('toolDetailAnalyzeGame')
+  if (log.name === 'katago.analyzeGameBatch') {
+    if (log.status === 'running' && log.progress && log.progress.total > 0) {
+      return t('toolDetailAnalyzeGameProgress', {
+        current: log.progress.current,
+        total: log.progress.total
+      })
+    }
+    return t('toolDetailAnalyzeGame')
+  }
   if (log.status === 'running') return t('toolDetailRunning')
   return log.detail && log.detail.length < 120 ? log.detail.replace(/\s+/g, ' ') : t('toolDetailDone')
 }
@@ -5310,7 +5364,7 @@ function BoardContextBar({
   const winrate = analysis?.after.winrate
   const isCurrentLiveTarget = liveAnalysis.targetMoveNumber === moveNumber
   const finalRecordScore = !trialBranch.active && moveNumber === record.moves.length ? gameResultLeadForUi(record.game, t) : null
-  const speedLabel = isCurrentLiveTarget && liveAnalysis.visitsPerSecond > 0
+  const speedLabel = isCurrentLiveTarget && liveAnalysis.running && liveAnalysis.visitsPerSecond > 0
     ? formatSearchSpeed(liveAnalysis.visitsPerSecond)
     : isCurrentLiveTarget && liveAnalysis.running
       ? t('speedMeasuring')
@@ -5337,6 +5391,9 @@ function BoardContextBar({
         <div className="board-contextbar__metric board-contextbar__metric--speed">
           <span>{t('searchSpeed')}</span>
           <strong>{speedLabel}</strong>
+          {isCurrentLiveTarget && liveAnalysis.running ? (
+            <small aria-live="polite">{liveAnalysis.status}</small>
+          ) : null}
         </div>
       </div>
       <div className="analysis-control-strip" aria-label="KataGo live analysis control">
@@ -5450,9 +5507,9 @@ function formatSearchSpeed(visitsPerSecond: number): string {
     return '0/s'
   }
   if (visitsPerSecond >= 1000) {
-    return `${(visitsPerSecond / 1000).toFixed(visitsPerSecond >= 10000 ? 0 : 1)}k/s`
+    return `${(visitsPerSecond / 1000).toFixed(visitsPerSecond >= 10000 ? 0 : 1)}k v/s`
   }
-  return `${Math.round(visitsPerSecond)}/s`
+  return `${Math.round(visitsPerSecond)} v/s`
 }
 
 function evaluationSeverity(item: KataGoMoveAnalysis): 'quiet' | 'inaccuracy' | 'mistake' | 'blunder' {
