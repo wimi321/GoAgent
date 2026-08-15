@@ -186,11 +186,38 @@
   line-height: 1.45;
 }
 
+.zhizi-paid-confirm input {
+  flex: 0 0 auto;
+  width: 16px;
+  min-width: 0;
+  min-height: 0;
+  height: 16px;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  accent-color: var(--accent-strong, #087f67);
+}
+
+.zhizi-paid-confirm span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .zhizi-actions,
 .zhizi-account-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.zhizi-actions button,
+.zhizi-account-actions button,
+.zhizi-connection-actions button {
+  white-space: nowrap;
 }
 
 .zhizi-login-card {
