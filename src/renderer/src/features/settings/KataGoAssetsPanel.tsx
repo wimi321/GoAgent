@@ -8,6 +8,10 @@ export interface KataGoAssetStatusView {
   binaryPath: string
   binaryFound: boolean
   binaryExecutable: boolean
+  engineVersion?: string
+  expectedEngineVersion?: string
+  engineBackend?: string
+  engineVersionCompatible?: boolean
   modelPath: string
   modelFound: boolean
   modelDisplayName: string
@@ -41,6 +45,13 @@ function speedTierLabel(tier: KataGoModelPreset['speedTier'] | undefined, t: UiT
     default:
       return t('officialWeights')
   }
+}
+
+function engineLabel(status: KataGoAssetStatusView): string {
+  const backend = status.engineBackend
+    ? status.engineBackend.charAt(0).toUpperCase() + status.engineBackend.slice(1)
+    : ''
+  return [status.engineVersion ? `KataGo ${status.engineVersion}` : '', backend].filter(Boolean).join(' · ')
 }
 
 export function KataGoAssetsPanel({
@@ -125,6 +136,7 @@ export function KataGoAssetsPanel({
           <p>
             {modelReady ? t('currentModel', { model: status.modelDisplayName }) : t('selectedWeightNotInstalled')}
             {!binaryReady ? t('engineNeedPrepare') : ''}
+            {binaryReady && status.engineVersion ? <small> · {engineLabel(status)}</small> : null}
           </p>
         </div>
       ) : <p>{t('assetStatusMissing')}</p>}

@@ -48,7 +48,7 @@ const defaults: AppSettings = {
   katagoBin: '',
   katagoConfig: '',
   katagoModel: '',
-  katagoModelPreset: 'official-b28-strong',
+  katagoModelPreset: 'official-transformer-balanced',
   katagoAnalysisThreads: 0,
   katagoSearchThreadsPerAnalysisThread: 1,
   katagoMaxBatchSize: 32,

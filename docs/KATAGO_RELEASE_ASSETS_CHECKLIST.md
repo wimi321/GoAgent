@@ -1,5 +1,7 @@
 # KataGo Release Assets Checklist
 
+版本矩阵和兼容规则见 [KATAGO_1_17_UPGRADE.md](KATAGO_1_17_UPGRADE.md)。
+
 ## P0 策略
 
 - 不把大 binary/model 普通 Git 提交。
@@ -22,11 +24,15 @@ data/katago/
   edition.json        # packaging-time metadata, not committed
 ```
 
-Windows NVIDIA 专版默认使用 zhizi b28，并允许保留来源模型文件名，例如：
+标准版与 NVIDIA 专版默认使用官方均衡 Transformer：
 
 ```text
-data/katago/models/kata1-zhizi-b28c512nbt-muonfd2.bin.gz
+data/katago/models/b10c512h8nbt3tflrs-fson-silu-rsnh.bin.gz
 ```
+
+- Metal/OpenCL/CUDA/CUDNN 运行库必须是 KataGo `1.17.1`。
+- `1.17.2` 只用于明确标注的 TensorRT 版本。
+- 默认模型 SHA-256 必须是 `c04db4a503721d948bb720324f3cbdac6088cc9eb243632f020e4b6846f58995`。
 
 ## 检查命令
 
@@ -65,4 +71,6 @@ Release 前应记录：
 - 生成或上传了 `win-arm64` beta 产物
 - macOS 打包没有可执行权限
 - 默认模型缺失
+- 实际 KataGo 版本与 manifest 不一致或低于最低版本
+- 默认模型 SHA-256 与官方值不一致
 - release mode 下检查仍只有 warning 而不是 ready

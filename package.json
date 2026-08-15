@@ -1,6 +1,6 @@
 {
   "name": "goagent",
-  "version": "0.4.19",
+  "version": "0.4.20",
   "description": "Agentic AI teacher for Go / Weiqi / Baduk, powered by KataGo and multimodal LLMs.",
   "main": "out/main/index.js",
   "type": "module",
@@ -58,12 +58,13 @@
     "dist:mac": "pnpm build && electron-builder --mac --publish never",
     "dist:win": "pnpm build && electron-builder --win --publish never",
     "dist:linux": "pnpm build && electron-builder --linux --publish never",
-    "dist:local:mac": "pnpm prepare:zhizi-b28 && pnpm dist:mac",
-    "dist:local:win": "pnpm prepare:zhizi-b28 && pnpm dist:win",
-    "dist:local:linux": "pnpm prepare:zhizi-b28 && pnpm dist:linux",
+    "dist:local:mac": "pnpm prepare:katago-transformer && pnpm dist:mac",
+    "dist:local:win": "pnpm prepare:katago-transformer && pnpm dist:win",
+    "dist:local:linux": "pnpm prepare:katago-transformer && pnpm dist:linux",
     "postinstall": "electron-builder install-app-deps",
     "prepare:python": "python3 -m pip install -r scripts/requirements.txt",
     "prepare:katago-assets": "node scripts/prepare_katago_assets.mjs",
+    "prepare:katago-transformer": "node scripts/download_katago_transformer.mjs",
     "prepare:zhizi-b28": "node scripts/download_zhizi_b28.mjs",
     "check:katago-assets": "node scripts/check_katago_assets.mjs --mode=dev",
     "check:katago-assets:release": "node scripts/check_katago_assets.mjs --mode=release",
@@ -115,6 +116,7 @@
       "output": "release/${version}"
     },
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "afterSign": "build/afterSign.cjs",
     "files": [
       "out/**/*",
       "scripts/**/*",
@@ -143,6 +145,9 @@
     ],
     "asarUnpack": [],
     "asar": true,
+    "dmg": {
+      "sign": true
+    },
     "mac": {
       "category": "public.app-category.education",
       "icon": "assets/icon.icns",

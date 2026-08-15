@@ -22,10 +22,12 @@ test('release workflow publishes standard Windows as a full OpenCL runtime bundl
 
 test('release workflow publishes a real Windows NVIDIA edition', () => {
   const workflow = readFileSync(join(root, '.github', 'workflows', 'release.yml'), 'utf8')
+  const transformerDownloader = readFileSync(join(root, 'scripts', 'download_katago_transformer.mjs'), 'utf8')
   const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
   assert.match(workflow, /package-nvidia-windows:/)
   assert.match(workflow, /wimi321\/lizzieyzy-next/)
+  assert.match(workflow, /next-2026-08-05\.1/)
   assert.match(workflow, /\*windows64\.nvidia\.portable\.zip/)
   assert.match(workflow, /--copy-runtime-dir/)
   assert.match(workflow, /--preserve-model-name/)
@@ -41,6 +43,10 @@ test('release workflow publishes a real Windows NVIDIA edition', () => {
   assert.doesNotMatch(workflow, /-ms=off/)
   assert.match(workflow, /\$nvidiaPortableMax = 2560MB/)
   assert.match(workflow, /NVIDIA portable 7z bytes exceed size budget/)
+  assert.match(workflow, /Bundle official KataGo Transformer model \(NVIDIA\)[\s\S]*pnpm prepare:katago-transformer/)
+  assert.match(transformerDownloader, /official-transformer-balanced/)
+  assert.match(transformerDownloader, /b10c512h8nbt3tflrs-fson-silu-rsnh\.bin\.gz/)
+  assert.doesNotMatch(workflow, /1\.0\.0-next-2026-05-02\.3/)
 
   for (const files of [packageJson.build.files, packageJson.build.win.files]) {
     assert.ok(files.includes('data/knowledge/**/*'))

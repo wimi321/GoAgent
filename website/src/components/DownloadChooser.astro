@@ -1,0 +1,582 @@
+---
+type SiteLang = 'zh-CN' | 'zh-Hant' | 'en' | 'ja' | 'ko' | 'th' | 'vi'
+
+interface Props {
+  lang?: SiteLang
+}
+
+const { lang = 'zh-CN' } = Astro.props
+const catalogUrl = 'https://download.goagent.top/channels/stable/catalog.json'
+const releaseHistory = 'https://github.com/wimi321/lizzieyzy-next/releases'
+
+const copyByLang = {
+  'zh-CN': {
+    title: '选择你的版本',
+    lead: '先选电脑，再下载与你硬件匹配的版本',
+    loading: '正在获取最新正式版…',
+    release: '当前正式版',
+    windowsLead: '根据显卡选择；不确定时优先使用 CPU 通用版',
+    macLead: '选择与你 Mac 芯片匹配的版本',
+    download: '下载',
+    recommended: '推荐',
+    unavailable: '暂不可用',
+    volume1: '分卷 1',
+    volume2: '分卷 2',
+    macTip: '下载后拖到“应用程序”即可安装',
+    updateTitle: '已经安装过免安装版？',
+    updateText: '只更新主程序',
+    updateAction: '下载小更新',
+    help: '安装帮助',
+    history: '历史版本',
+    error: '版本列表暂时没有加载出来，请重试。',
+    retry: '重新加载',
+    openDirect: '打开 GitHub 备用下载',
+    rows: {
+      nvidia: ['NVIDIA 显卡', 'RTX 20 / 30 / 40 系'],
+      rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'],
+      tensorrt: ['TensorRT 高性能版', 'RTX 20 至 50 · 两个分卷都要下载'],
+      opencl: ['OpenCL 兼容版', 'AMD / Intel 显卡'],
+      cpu: ['CPU 通用版', '没有独立显卡也能用'],
+      noEngine: ['无引擎版', '已有自己的 KataGo'],
+      apple: ['Apple 芯片', 'M1 / M2 / M3 / M4 / M5'],
+      intel: ['Intel 芯片', '旧款 Intel Mac']
+    }
+  },
+  'zh-Hant': {
+    title: '選擇你的版本', lead: '先選電腦，再下載與硬體相符的版本', loading: '正在取得最新正式版…', release: '目前正式版',
+    windowsLead: '依顯示卡選擇；不確定時優先使用 CPU 通用版', macLead: '選擇與 Mac 晶片相符的版本', download: '下載', recommended: '推薦',
+    unavailable: '暫不可用', volume1: '分卷 1', volume2: '分卷 2', macTip: '下載後拖到「應用程式」即可安裝', updateTitle: '已經使用免安裝版？',
+    updateText: '只更新主程式', updateAction: '下載小更新', help: '安裝說明', history: '歷史版本', error: '版本清單暫時無法載入，請重試。',
+    retry: '重新載入', openDirect: '開啟 GitHub 備用下載',
+    rows: { nvidia: ['NVIDIA 顯示卡', 'RTX 20 / 30 / 40 系'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT 高效能版', 'RTX 20 至 50 · 兩個分卷都要下載'], opencl: ['OpenCL 相容版', 'AMD / Intel 顯示卡'], cpu: ['CPU 通用版', '沒有獨立顯示卡也能用'], noEngine: ['無引擎版', '已有自己的 KataGo'], apple: ['Apple 晶片', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel 晶片', '舊款 Intel Mac'] }
+  },
+  en: {
+    title: 'Choose your version', lead: 'Pick your computer, then download the matching build', loading: 'Loading the latest stable release…', release: 'Stable release',
+    windowsLead: 'Choose by graphics card; use the CPU build if unsure', macLead: 'Choose the build for your Mac chip', download: 'Download', recommended: 'Recommended',
+    unavailable: 'Unavailable', volume1: 'Part 1', volume2: 'Part 2', macTip: 'Drag the app to Applications after downloading', updateTitle: 'Already use the portable edition?',
+    updateText: 'Update the app only', updateAction: 'Small update', help: 'Install help', history: 'Older releases', error: 'The version list could not be loaded. Please try again.',
+    retry: 'Reload', openDirect: 'Open GitHub backup',
+    rows: { nvidia: ['NVIDIA graphics', 'RTX 20 / 30 / 40 series'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT performance', 'RTX 20–50 · download both parts'], opencl: ['OpenCL compatible', 'AMD / Intel graphics'], cpu: ['CPU universal', 'Works without dedicated graphics'], noEngine: ['No-engine build', 'For your own KataGo'], apple: ['Apple silicon', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel chip', 'Older Intel Macs'] }
+  },
+  ja: {
+    title: 'バージョンを選択', lead: 'パソコンを選び、環境に合う版をダウンロード', loading: '最新の安定版を取得中…', release: '安定版',
+    windowsLead: 'GPU に合わせて選択。不明な場合は CPU 版', macLead: 'Mac のチップに合う版を選択', download: 'ダウンロード', recommended: 'おすすめ',
+    unavailable: '利用不可', volume1: '分割 1', volume2: '分割 2', macTip: 'ダウンロード後「アプリケーション」へドラッグ', updateTitle: 'ポータブル版を利用中ですか？',
+    updateText: '本体だけ更新', updateAction: '小型更新', help: 'インストール案内', history: '過去の版', error: 'バージョン一覧を読み込めませんでした。再試行してください。',
+    retry: '再読み込み', openDirect: 'GitHub の予備ダウンロードを開く',
+    rows: { nvidia: ['NVIDIA GPU', 'RTX 20 / 30 / 40 シリーズ'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT 高性能版', 'RTX 20〜50 · 両方の分割を取得'], opencl: ['OpenCL 互換版', 'AMD / Intel GPU'], cpu: ['CPU 汎用版', '専用 GPU なしでも利用可能'], noEngine: ['エンジンなし', '自分の KataGo を使用'], apple: ['Apple シリコン', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel チップ', '旧型 Intel Mac'] }
+  },
+  ko: {
+    title: '버전 선택', lead: '컴퓨터를 고른 뒤 하드웨어에 맞는 버전을 받으세요', loading: '최신 안정판을 불러오는 중…', release: '안정판',
+    windowsLead: '그래픽 카드에 맞게 선택하고, 잘 모르겠다면 CPU 버전을 사용하세요', macLead: 'Mac 칩에 맞는 버전을 선택하세요', download: '다운로드', recommended: '추천',
+    unavailable: '사용 불가', volume1: '분할 1', volume2: '분할 2', macTip: '다운로드 후 응용 프로그램으로 드래그하세요', updateTitle: '포터블 버전을 이미 사용 중인가요?',
+    updateText: '프로그램만 업데이트', updateAction: '작은 업데이트', help: '설치 도움말', history: '이전 버전', error: '버전 목록을 불러오지 못했습니다. 다시 시도해 주세요.',
+    retry: '다시 불러오기', openDirect: 'GitHub 예비 다운로드 열기',
+    rows: { nvidia: ['NVIDIA 그래픽', 'RTX 20 / 30 / 40 시리즈'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT 고성능', 'RTX 20~50 · 두 파일 모두 다운로드'], opencl: ['OpenCL 호환', 'AMD / Intel 그래픽'], cpu: ['CPU 범용', '외장 그래픽 없이 사용'], noEngine: ['엔진 없음', '자체 KataGo 사용'], apple: ['Apple 실리콘', 'M1 / M2 / M3 / M4 / M5'], intel: ['Intel 칩', '구형 Intel Mac'] }
+  },
+  th: {
+    title: 'เลือกเวอร์ชันของคุณ', lead: 'เลือกคอมพิวเตอร์ แล้วดาวน์โหลดรุ่นที่ตรงกับฮาร์ดแวร์', loading: 'กำลังโหลดรุ่นเสถียรล่าสุด…', release: 'รุ่นเสถียร',
+    windowsLead: 'เลือกตามการ์ดจอ หากไม่แน่ใจให้ใช้รุ่น CPU', macLead: 'เลือกรุ่นให้ตรงกับชิป Mac', download: 'ดาวน์โหลด', recommended: 'แนะนำ',
+    unavailable: 'ยังใช้ไม่ได้', volume1: 'ส่วน 1', volume2: 'ส่วน 2', macTip: 'ดาวน์โหลดแล้วลากไปยัง Applications', updateTitle: 'ใช้รุ่นพกพาอยู่แล้ว?',
+    updateText: 'อัปเดตเฉพาะโปรแกรม', updateAction: 'อัปเดตขนาดเล็ก', help: 'วิธีติดตั้ง', history: 'รุ่นก่อนหน้า', error: 'โหลดรายการเวอร์ชันไม่สำเร็จ โปรดลองอีกครั้ง',
+    retry: 'โหลดใหม่', openDirect: 'เปิดดาวน์โหลดสำรองบน GitHub',
+    rows: { nvidia: ['การ์ดจอ NVIDIA', 'RTX 20 / 30 / 40'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT ประสิทธิภาพสูง', 'RTX 20–50 · ต้องดาวน์โหลดทั้งสองส่วน'], opencl: ['รุ่น OpenCL', 'การ์ดจอ AMD / Intel'], cpu: ['รุ่น CPU', 'ใช้ได้โดยไม่มีการ์ดจอแยก'], noEngine: ['ไม่มีเอนจิน', 'สำหรับ KataGo ของคุณเอง'], apple: ['ชิป Apple', 'M1 / M2 / M3 / M4 / M5'], intel: ['ชิป Intel', 'Mac Intel รุ่นเก่า'] }
+  },
+  vi: {
+    title: 'Chọn phiên bản', lead: 'Chọn máy tính rồi tải bản phù hợp với phần cứng', loading: 'Đang tải bản ổn định mới nhất…', release: 'Bản ổn định',
+    windowsLead: 'Chọn theo GPU; nếu không chắc hãy dùng bản CPU', macLead: 'Chọn bản phù hợp với chip Mac', download: 'Tải xuống', recommended: 'Khuyên dùng',
+    unavailable: 'Chưa có', volume1: 'Phần 1', volume2: 'Phần 2', macTip: 'Sau khi tải, kéo ứng dụng vào Applications', updateTitle: 'Đã dùng bản portable?',
+    updateText: 'Chỉ cập nhật chương trình', updateAction: 'Bản cập nhật nhỏ', help: 'Hướng dẫn cài', history: 'Phiên bản cũ', error: 'Không tải được danh sách phiên bản. Hãy thử lại.',
+    retry: 'Tải lại', openDirect: 'Mở bản tải dự phòng trên GitHub',
+    rows: { nvidia: ['Đồ họa NVIDIA', 'Dòng RTX 20 / 30 / 40'], rtx50: ['RTX 50 CUDA', 'RTX 5070 / 5080 / 5090'], tensorrt: ['TensorRT hiệu năng cao', 'RTX 20–50 · cần tải cả hai phần'], opencl: ['Tương thích OpenCL', 'Đồ họa AMD / Intel'], cpu: ['CPU phổ thông', 'Dùng được không cần GPU rời'], noEngine: ['Không kèm engine', 'Dùng KataGo riêng'], apple: ['Chip Apple', 'M1 / M2 / M3 / M4 / M5'], intel: ['Chip Intel', 'Mac Intel đời cũ'] }
+  }
+} as const
+
+const copy = copyByLang[lang] ?? copyByLang.en
+const localeSlug = { 'zh-CN': '', 'zh-Hant': 'zh-hant', en: 'en', ja: 'ja', ko: 'ko', th: 'th', vi: 'vi' }[lang]
+const helpUrl = localeSlug ? `/${localeSlug}/docs` : '/docs'
+const rows = [
+  ['nvidia', 'windows-portable', 'nvidia', '', 'gpu-card', true],
+  ['rtx50', 'windows-portable', 'nvidia50.cuda', '', 'gpu-card', false],
+  ['tensorrt', 'tensorrt-advanced', 'nvidia-tensorrt', '', 'speedometer', false],
+  ['opencl', 'windows-portable', 'opencl', '', 'gpu-card', false],
+  ['cpu', 'windows-portable', 'with-katago', '', 'cpu', false],
+  ['noEngine', 'windows-portable', 'without.engine', '', 'gear', false]
+] as const
+const macRows = [
+  ['apple', 'macos-dmg', '', 'arm64', 'apple', true],
+  ['intel', 'macos-dmg', '', 'x64', 'cpu', false]
+] as const
+---
+
+<section
+  class="download-hub"
+  data-download-hub
+  data-catalog-url={catalogUrl}
+  data-download-label={copy.download}
+  data-unavailable-label={copy.unavailable}
+  data-volume-one-label={copy.volume1}
+  data-volume-two-label={copy.volume2}
+  data-release-label={copy.release}
+  data-error-label={copy.error}
+  aria-labelledby="download-hub-title"
+  aria-busy="true"
+>
+  <div class="download-hub-inner">
+    <header class="download-hub-hero">
+      <img src="/logo.svg" alt="" width="82" height="82" />
+      <div>
+        <p>LizzieYzy Next</p>
+        <h1 id="download-hub-title">{copy.title}</h1>
+        <span>{copy.lead}</span>
+      </div>
+      <div class="release-status" data-release-status role="status">{copy.loading}</div>
+    </header>
+
+    <div class="download-error" data-download-error hidden role="alert">
+      <strong>{copy.error}</strong>
+      <div>
+        <button type="button" data-download-retry>{copy.retry}</button>
+        <a href={releaseHistory}>{copy.openDirect}</a>
+      </div>
+    </div>
+
+    <div class="download-platform-grid">
+      <section class="download-platform-panel" aria-labelledby="windows-downloads">
+        <header class="platform-heading">
+          <img src="/images/download-icons/windows.svg" alt="" width="30" height="30" />
+          <div><h2 id="windows-downloads">Windows</h2><p>{copy.windowsLead}</p></div>
+        </header>
+        <ul class="download-option-list">
+          {rows.map(([key, category, flavor, arch, icon, recommended]) => (
+            <li class="download-option" data-entry data-category={category} data-flavor={flavor} data-arch={arch} data-multipart={key === 'tensorrt' ? 'true' : 'false'}>
+              <div class="option-main">
+                <img src={`/images/download-icons/${icon}.svg`} alt="" width="31" height="31" />
+                <div>
+                  <h3>{copy.rows[key][0]} {recommended && <span>{copy.recommended}</span>}</h3>
+                  <p>{copy.rows[key][1]}</p>
+                </div>
+              </div>
+              <span class="option-size" data-size>—</span>
+              <div class="option-actions">
+                <a data-action="0" hidden aria-disabled="true"></a>
+                <a data-action="1" hidden aria-disabled="true"></a>
+                <span data-unavailable hidden>{copy.unavailable}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="download-platform-panel mac-panel" aria-labelledby="mac-downloads">
+        <header class="platform-heading">
+          <img src="/images/download-icons/apple.svg" alt="" width="30" height="30" />
+          <div><h2 id="mac-downloads">macOS</h2><p>{copy.macLead}</p></div>
+        </header>
+        <ul class="download-option-list">
+          {macRows.map(([key, category, flavor, arch, icon, recommended]) => (
+            <li class="download-option" data-entry data-category={category} data-flavor={flavor} data-arch={arch}>
+              <div class="option-main">
+                <img src={`/images/download-icons/${icon}.svg`} alt="" width="31" height="31" />
+                <div>
+                  <h3>{copy.rows[key][0]} {recommended && <span>{copy.recommended}</span>}</h3>
+                  <p>{copy.rows[key][1]}</p>
+                </div>
+              </div>
+              <span class="option-size" data-size>—</span>
+              <div class="option-actions">
+                <a data-action="0" hidden aria-disabled="true"></a>
+                <a data-action="1" hidden aria-disabled="true"></a>
+                <span data-unavailable hidden>{copy.unavailable}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p class="mac-install-tip">{copy.macTip}</p>
+      </section>
+    </div>
+
+    <section class="core-update" data-entry data-category="windows-core-update" data-flavor="all" aria-label={copy.updateTitle}>
+      <img src="/images/download-icons/arrow-repeat.svg" alt="" width="31" height="31" />
+      <div><strong>{copy.updateTitle}</strong><span>{copy.updateText} · <span data-size>—</span></span></div>
+      <div class="option-actions">
+        <a data-action="0" hidden aria-disabled="true">{copy.updateAction}</a>
+        <a data-action="1" hidden aria-disabled="true"></a>
+        <span data-unavailable hidden>{copy.unavailable}</span>
+      </div>
+    </section>
+
+    <nav class="download-support" aria-label="Download support">
+      <a href={helpUrl}><img src="/images/download-icons/book.svg" alt="" width="18" height="18" />{copy.help}</a>
+      <a href={releaseHistory}><img src="/images/download-icons/clock-history.svg" alt="" width="18" height="18" />{copy.history}</a>
+    </nav>
+
+    <noscript><p class="noscript-note"><a href={releaseHistory}>{copy.openDirect}</a></p></noscript>
+  </div>
+</section>
+
+<script is:inline>
+  (() => {
+    const allowedHosts = new Set(['download.goagent.top', 'github.com'])
+    const catalogFetchAttempts = 3
+    const catalogRetryBaseDelayMs = 450
+
+    function wait(milliseconds) {
+      return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+    }
+
+    async function fetchCatalogWithRetry(url) {
+      let lastError
+      for (let attempt = 1; attempt <= catalogFetchAttempts; attempt += 1) {
+        try {
+          const response = await fetch(url, { cache: 'no-store', headers: { Accept: 'application/json' } })
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          const catalog = await response.json()
+          if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.assets) || !catalog.releaseTag) {
+            throw new Error('Invalid catalog')
+          }
+          return catalog
+        } catch (error) {
+          lastError = error
+          if (attempt < catalogFetchAttempts) {
+            await wait(catalogRetryBaseDelayMs * attempt)
+          }
+        }
+      }
+      throw lastError
+    }
+
+    function formatSize(bytes) {
+      if (!Number.isFinite(bytes) || bytes <= 0) return '—'
+      const units = ['B', 'KB', 'MB', 'GB']
+      let value = bytes
+      let unit = 0
+      while (value >= 1024 && unit < units.length - 1) {
+        value /= 1024
+        unit += 1
+      }
+      return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`
+    }
+
+    function safeDownloadUrl(value) {
+      try {
+        const url = new URL(value)
+        return url.protocol === 'https:' && allowedHosts.has(url.hostname) ? url.href : null
+      } catch {
+        return null
+      }
+    }
+
+    function findAssets(catalog, entry) {
+      const category = entry.dataset.category || ''
+      const flavor = entry.dataset.flavor || ''
+      const arch = entry.dataset.arch || ''
+      return catalog.assets.filter((asset) =>
+        asset.category === category &&
+        (!flavor || asset.flavor === flavor) &&
+        (!arch || asset.arch === arch)
+      )
+    }
+
+    function fillEntry(hub, entry, catalog) {
+      const actions = Array.from(entry.querySelectorAll('[data-action]'))
+      const unavailable = entry.querySelector('[data-unavailable]')
+      const size = entry.querySelector('[data-size]')
+      let assets = findAssets(catalog, entry)
+      if (entry.dataset.multipart === 'true') {
+        assets = assets.filter((asset) => /\.7z\.\d{3}$/.test(asset.name)).sort((a, b) => a.name.localeCompare(b.name))
+      } else {
+        assets = assets.slice(0, 1)
+      }
+
+      actions.forEach((action) => {
+        action.hidden = true
+        action.removeAttribute('href')
+        action.setAttribute('aria-disabled', 'true')
+      })
+
+      const usable = assets
+        .map((asset) => ({ asset, url: safeDownloadUrl(asset.downloadUrl) }))
+        .filter((item) => item.url)
+
+      if (!usable.length) {
+        if (unavailable) unavailable.hidden = false
+        if (size) size.textContent = '—'
+        return
+      }
+
+      if (unavailable) unavailable.hidden = true
+      if (size) size.textContent = formatSize(usable.reduce((total, item) => total + Number(item.asset.sizeBytes || 0), 0))
+      usable.slice(0, actions.length).forEach((item, index) => {
+        const action = actions[index]
+        action.href = item.url
+        action.hidden = false
+        action.removeAttribute('aria-disabled')
+        if (entry.dataset.multipart === 'true') {
+          action.textContent = index === 0 ? hub.dataset.volumeOneLabel : hub.dataset.volumeTwoLabel
+        } else if (!action.textContent.trim()) {
+          action.textContent = hub.dataset.downloadLabel
+        }
+        const title = entry.querySelector('h3')?.childNodes[0]?.textContent?.trim() || ''
+        action.setAttribute('aria-label', `${action.textContent} ${title}`.trim())
+      })
+    }
+
+    async function loadCatalog(hub) {
+      const error = hub.querySelector('[data-download-error]')
+      const status = hub.querySelector('[data-release-status]')
+      hub.setAttribute('aria-busy', 'true')
+      if (error) error.hidden = true
+      try {
+        const catalog = await fetchCatalogWithRetry(hub.dataset.catalogUrl)
+        hub.querySelectorAll('[data-entry]').forEach((entry) => fillEntry(hub, entry, catalog))
+        if (status) status.textContent = `${hub.dataset.releaseLabel} · ${catalog.releaseTag}`
+      } catch {
+        if (status) status.textContent = hub.dataset.errorLabel
+        if (error) error.hidden = false
+      } finally {
+        hub.setAttribute('aria-busy', 'false')
+      }
+    }
+
+    document.querySelectorAll('[data-download-hub]').forEach((hub) => {
+      hub.querySelector('[data-download-retry]')?.addEventListener('click', () => loadCatalog(hub))
+      loadCatalog(hub)
+    })
+  })()
+</script>
+
+<style>
+  .download-hub {
+    width: 100vw;
+    margin: 0 calc(50% - 50vw);
+    border-bottom: 1px solid rgba(81, 60, 31, 0.14);
+    background: #f8f5ed url('/images/download-page-bg.webp') top center / cover fixed no-repeat;
+  }
+
+  .download-hub-inner {
+    width: min(1280px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: 54px 0 44px;
+  }
+
+  .download-hub-hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 30px;
+  }
+
+  .download-hub-hero > img {
+    width: 82px;
+    height: 82px;
+    border-radius: 22px;
+    box-shadow: 0 12px 30px rgba(71, 52, 22, 0.16);
+  }
+
+  .download-hub-hero p,
+  .download-hub-hero h1,
+  .download-hub-hero span {
+    margin: 0;
+  }
+
+  .download-hub-hero p {
+    color: #204f43;
+    font-family: Georgia, 'Times New Roman', 'Songti SC', serif;
+    font-size: 1.75rem;
+    font-weight: 750;
+    letter-spacing: 0.02em;
+  }
+
+  .download-hub-hero h1 {
+    margin-top: 4px;
+    color: #153f37;
+    font-family: Georgia, 'Times New Roman', 'Songti SC', serif;
+    font-size: clamp(2.7rem, 4.5vw, 4.15rem);
+    line-height: 1.05;
+  }
+
+  .download-hub-hero span {
+    display: block;
+    margin-top: 8px;
+    color: #66736e;
+    font-size: 1.08rem;
+  }
+
+  .release-status {
+    align-self: end;
+    margin-bottom: 5px;
+    border: 1px solid rgba(22, 92, 76, 0.2);
+    border-radius: 999px;
+    padding: 8px 13px;
+    background: rgba(255, 253, 249, 0.8);
+    color: #315d52;
+    font-size: 0.85rem;
+    font-weight: 750;
+  }
+
+  .download-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+    border: 1px solid #dfb56d;
+    border-radius: 13px;
+    padding: 13px 16px;
+    background: rgba(255, 248, 232, 0.95);
+    color: #744e12;
+  }
+
+  .download-error[hidden] { display: none; }
+  .download-error div { display: flex; gap: 9px; }
+  .download-error button,
+  .download-error a {
+    border: 1px solid rgba(116, 78, 18, 0.28);
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #fffdf8;
+    color: inherit;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+
+  .download-platform-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: stretch;
+  }
+
+  .download-platform-panel {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(82, 75, 61, 0.2);
+    border-radius: 20px;
+    background: rgba(255, 253, 249, 0.9);
+    box-shadow: 0 16px 38px rgba(21, 63, 55, 0.07);
+  }
+
+  .platform-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 23px 24px 17px;
+  }
+
+  .platform-heading > img { width: 30px; height: 30px; margin-top: 2px; }
+  .platform-heading h2 { color: #214d42; font-size: 1.8rem; line-height: 1.1; }
+  .platform-heading p { margin: 6px 0 0; color: #6b756f; line-height: 1.5; }
+
+  .download-option-list {
+    margin: 0 18px 18px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(82, 75, 61, 0.16);
+    border-radius: 14px;
+    background: rgba(255, 254, 250, 0.94);
+    list-style: none;
+  }
+
+  .download-option {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 14px;
+    min-height: 70px;
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(82, 75, 61, 0.13);
+  }
+
+  .download-option:last-child { border-bottom: 0; }
+  .option-main { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 12px; min-width: 0; }
+  .option-main > img { width: 31px; height: 31px; }
+  .option-main h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #1d302b; font-size: 1.03rem; font-weight: 850; }
+  .option-main h3 span { border-radius: 7px; padding: 3px 7px; background: #fff0df; color: #a94f0d; font-size: 0.72rem; font-weight: 850; }
+  .option-main p { margin: 3px 0 0; color: #707a75; font-size: 0.82rem; line-height: 1.35; }
+  .option-size { color: #6d7772; font-size: 0.86rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .option-actions { display: flex; align-items: center; gap: 7px; }
+  .option-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 74px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 9px;
+    padding: 8px 13px;
+    background: #165c4c;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 850;
+    text-decoration: none;
+    transition: background 160ms ease, transform 160ms ease;
+  }
+  .option-actions a:hover { background: #10493d; transform: translateY(-1px); }
+  .option-actions a[hidden] { display: none; }
+  .option-actions > span { color: #8a8176; font-size: 0.85rem; font-weight: 700; }
+  .option-actions > span[hidden] { display: none; }
+
+  .mac-panel { display: flex; flex-direction: column; }
+  .mac-panel .download-option-list { width: calc(100% - 36px); }
+  .mac-install-tip { margin: auto 24px 26px; border-top: 1px solid rgba(82, 75, 61, 0.14); padding: 22px 0 2px; text-align: center; }
+
+  .core-update {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    margin-top: 18px;
+    border: 1px solid rgba(82, 75, 61, 0.2);
+    border-radius: 16px;
+    padding: 16px 22px;
+    background: rgba(255, 253, 249, 0.9);
+  }
+  .core-update > img { width: 31px; height: 31px; }
+  .core-update strong { color: #263a34; font-size: 1.02rem; }
+  .core-update div > span { margin-left: 14px; color: #6c7671; }
+  .core-update .option-actions a { border: 1px solid #c56b23; background: #fffaf2; color: #a34b0d; }
+  .core-update .option-actions a:hover { background: #b45c18; color: white; }
+
+  .download-support { display: flex; justify-content: center; gap: 0; margin-top: 23px; }
+  .download-support a { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; color: #23473e; font-weight: 750; }
+  .download-support a + a { border-left: 1px solid rgba(82, 75, 61, 0.3); }
+  .download-support img { width: 18px; height: 18px; }
+  .noscript-note { text-align: center; }
+  .noscript-note a { color: #165c4c; font-weight: 800; text-decoration: underline; }
+
+  @media (max-width: 980px) {
+    .download-platform-grid { grid-template-columns: 1fr; }
+    .mac-install-tip { margin-top: 20px; }
+  }
+
+  @media (max-width: 700px) {
+    .download-hub-inner { width: min(100% - 24px, 1280px); padding-top: 28px; }
+    .download-hub-hero { grid-template-columns: auto 1fr; align-items: start; gap: 14px; }
+    .download-hub-hero > img { width: 62px; height: 62px; border-radius: 17px; }
+    .download-hub-hero p { font-size: 1.3rem; }
+    .download-hub-hero h1 { font-size: 2.25rem; }
+    .download-hub-hero span { font-size: 0.96rem; }
+    .release-status { grid-column: 1 / -1; justify-self: start; margin: 0; }
+    .download-error { align-items: flex-start; flex-direction: column; }
+    .platform-heading { padding: 19px 16px 14px; }
+    .download-option-list { margin: 0 10px 12px; }
+    .download-option { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 11px; padding: 13px 12px; }
+    .option-main { grid-template-columns: 30px minmax(0, 1fr); gap: 10px; }
+    .option-main > img { width: 28px; height: 28px; }
+    .option-size { grid-column: 1; }
+    .option-actions { grid-column: 2; grid-row: 1 / span 2; flex-direction: column; }
+    .option-actions a { min-width: 72px; min-height: 36px; }
+    .mac-panel .download-option-list { width: calc(100% - 20px); }
+    .core-update { grid-template-columns: auto 1fr; padding: 15px; }
+    .core-update div > span { display: block; margin: 3px 0 0; }
+    .core-update .option-actions { grid-column: 1 / -1; grid-row: auto; }
+    .core-update .option-actions a { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .option-actions a { transition: none; }
+  }
+</style>

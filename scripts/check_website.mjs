@@ -43,6 +43,10 @@ requireFile('website/src/pages/ai-go-review.astro')
 requireFile('website/src/pages/compare.astro')
 requireFile('website/src/pages/[locale].astro')
 requireFile('website/src/pages/[locale]/[page].astro')
+requireFile('website/src/components/DownloadChooser.astro')
+requireFile('website/public/images/download-page-bg.webp')
+requireFile('website/public/images/download-icons/windows.svg')
+requireFile('website/public/images/download-icons/apple.svg')
 requireFile('website/DEPLOYMENT.md')
 requireFile('.github/workflows/deploy-website.yml')
 requireFile('website/public/sitemap.xml')
@@ -50,6 +54,7 @@ requireFile('website/public/site.webmanifest')
 requireFile('website/public/llms.txt')
 requireFile('website/public/llms-full.txt')
 requireFile('website/public/ai.txt')
+requireFile('website/public/_worker.js')
 
 const index = read('website/src/pages/index.astro')
 const downloadPage = read('website/src/pages/download.astro')
@@ -58,6 +63,7 @@ const faqPage = read('website/src/pages/faq.astro')
 const changelogPage = read('website/src/pages/changelog.astro')
 const localizedHome = read('website/src/pages/[locale].astro')
 const localizedPages = read('website/src/pages/[locale]/[page].astro')
+const downloadChooser = read('website/src/components/DownloadChooser.astro')
 const layout = read('website/src/layouts/BaseLayout.astro')
 const privacy = read('website/src/pages/privacy.astro')
 const deployment = read('website/DEPLOYMENT.md')
@@ -67,7 +73,7 @@ const manifest = read('website/public/site.webmanifest')
 const llms = read('website/public/llms.txt')
 const llmsFull = read('website/public/llms-full.txt')
 const ai = read('website/public/ai.txt')
-const baiduCodeLabel = ['提取', '码'].join('')
+const edgeWorker = read('website/public/_worker.js')
 const chooserCopy = ['不会选', '也没关系'].join('')
 
 if (!index.includes('LizzieYzy Next')) fail('homepage must contain LizzieYzy Next')
@@ -78,27 +84,42 @@ for (const keyword of ['KataGo 官方推荐', '免费开源', '解压即用', '�
   if (!index.includes(keyword)) fail(`homepage must focus LizzieYzy Next on the new core value prop: ${keyword}`)
 }
 if (index.includes('README')) fail('homepage should say official recommendation instead of README wording')
-if (!index.includes('https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w')) fail('homepage must link LizzieYzy Next Baidu Netdisk')
-if (!index.includes('国内下载（百度网盘）')) fail('homepage hero must expose the domestic Baidu download button')
-if (!index.includes('国内用户优先用百度网盘下载')) fail('homepage hero must explain Baidu Netdisk as the domestic priority')
-if (!index.includes('备用：从 GitHub 下载')) fail('homepage hero must explain GitHub as backup')
+if (!index.includes("const lizzieDownload = '/download'")) fail('homepage must route LizzieYzy Next downloads through the official download center')
 if (index.includes(chooserCopy)) fail('homepage hero must not use unnecessary chooser copy')
 if (index.includes('打不开再用')) fail('homepage should use priority/backup wording instead of troubleshooting-first wording')
-if (index.includes(baiduCodeLabel)) fail('homepage must not show a separate Baidu code label because it is already in the link')
-if (!index.includes('https://github.com/wimi321/lizzieyzy-next/releases')) fail('homepage must link LizzieYzy Next GitHub download')
 if (!index.includes('https://github.com/wimi321/GoAgent/releases')) fail('homepage must still link GoAgent GitHub download')
 if (!layout.includes('QQ 1030632742')) fail('site layout must expose QQ community')
 if (index.includes('Trust')) fail('homepage should not include Trust section')
 if (!index.includes('下载顺序很简单')) fail('homepage download section must use simple download sequence copy')
-if (!downloadPage.includes('不知道选哪个？国内用户优先用百度网盘下载')) fail('download page must explain the simplest download choice')
-for (const keyword of ['SHA256', '回滚', '归档']) {
-  if (downloadPage.includes(keyword)) fail(`download page should avoid technical wording: ${keyword}`)
+if (!downloadPage.includes('<DownloadChooser lang="zh-CN" />')) fail('download page must render the unified download chooser')
+if (!downloadPage.includes('canonical="https://goagent.top/download/"')) fail('download page must use the trailing-slash canonical URL')
+for (const keyword of [
+  'download.goagent.top/channels/stable/catalog.json',
+  "new Set(['download.goagent.top', 'github.com'])",
+  'https://github.com/wimi321/lizzieyzy-next/releases',
+  'catalogFetchAttempts = 3',
+  'fetchCatalogWithRetry',
+  'TensorRT 高性能版',
+  'CPU 通用版',
+  'Apple 芯片',
+  'Intel 芯片',
+  '下载小更新',
+]) {
+  if (!downloadChooser.includes(keyword)) fail(`download chooser must contain: ${keyword}`)
 }
-for (const keyword of ['不用研究术语', '第一步：先下载 LizzieYzy Next', '国内用户：优先用百度网盘下载']) {
+for (const keyword of ['www.goagent.top', 'goagent.top', 'Response.redirect', 'env.ASSETS.fetch']) {
+  if (!edgeWorker.includes(keyword)) fail(`edge worker must contain: ${keyword}`)
+}
+if (!edgeWorker.includes('301')) fail('edge worker must permanently redirect www to the apex domain')
+if (existsSync(join(root, 'website/public/_redirects'))) fail('legacy _redirects must not compete with the edge worker')
+for (const keyword of ['Cloudflare R2', 'mirrorUrls', 'SHA256', 'manifest']) {
+  if (downloadChooser.includes(keyword)) fail(`download chooser should avoid implementation wording: ${keyword}`)
+}
+for (const keyword of ['不用研究术语', '第一步：先下载 LizzieYzy Next', '官网下载中心']) {
   if (!docsPage.includes(keyword)) fail(`docs page must contain simple user guidance: ${keyword}`)
 }
 if (docsPage.includes('百度网盘打不开：')) fail('docs page should not lead with Baidu troubleshooting wording')
-for (const keyword of ['我应该先下载哪个？', 'GitHub 是备用下载入口', '不用先懂']) {
+for (const keyword of ['我应该先下载哪个？', '我该点哪个下载？', '不用先懂']) {
   if (!faqPage.includes(keyword)) fail(`FAQ page must answer normal-user questions: ${keyword}`)
 }
 for (const keyword of ['官网首页更简单', '多语言页面同步更新', '普通用户不用先理解项目区别']) {
@@ -107,13 +128,13 @@ for (const keyword of ['官网首页更简单', '多语言页面同步更新', '
 for (const keyword of [
   'homeCopy',
   'Review Go games?',
-  'GitHub download',
+  'officialDownloadCopy',
   'home-proof-strip',
   'hero-actions',
   'Officially recommended by KataGo',
   'Free, open source, unzip-and-run',
-  'Choose the package for Windows, macOS, or Linux on GitHub.',
-  'Tải từ GitHub'
+  'lizzieDownload',
+  'Tải LizzieYzy Next'
 ]) {
   if (!localizedHome.includes(keyword)) fail(`localized homepage must use the simplified homepage system: ${keyword}`)
 }
@@ -130,24 +151,20 @@ for (const forbidden of [
 }
 if (localizedHome.includes('<figure class="hero-art">')) fail('localized homepage must not render the old hero-art layout')
 if (localizedHome.includes('README')) fail('localized homepage should say official recommendation instead of README wording')
-for (const keyword of [
-  'simpleDownloads',
-  'Download LizzieYzy Next first',
-  'What should I download first?',
-  'Changelog - LizzieYzy Next and GoAgent Website',
-  'Tải LizzieYzy Next trước',
-  'ดาวน์โหลด LizzieYzy Next',
-  "page === 'download' ? simpleDownloads"
-]) {
-  if (!localizedPages.includes(keyword)) fail(`localized pages must use simple download/docs/FAQ/changelog copy: ${keyword}`)
+for (const keyword of ['DownloadChooser', 'downloadMeta', '<DownloadChooser lang={meta.lang} />']) {
+  if (!localizedPages.includes(keyword)) fail(`localized download pages must use the unified chooser: ${keyword}`)
 }
 for (const keyword of ['本地', 'LLM', 'TTS']) {
   if (!privacy.includes(keyword)) fail(`privacy page must contain ${keyword}`)
 }
-for (const keyword of ['Cloudflare Pages', 'Spaceship', 'goagent.top', '百度网盘']) {
+for (const keyword of ['Cloudflare Pages', 'Cloudflare R2', 'download.goagent.top', 'lizzieyzy-next-downloads']) {
   if (!deployment.includes(keyword)) fail(`DEPLOYMENT.md must contain ${keyword}`)
 }
-for (const keyword of ['cloudflare/wrangler-action@v3', 'CLOUDFLARE_API_TOKEN', 'pages deploy website/dist --project-name=goagent']) {
+for (const keyword of [
+  'pnpm dlx wrangler@4.118.0',
+  'CLOUDFLARE_API_TOKEN',
+  'pages deploy website/dist --project-name=goagent',
+]) {
   if (!workflow.includes(keyword)) fail(`deploy-website.yml must contain ${keyword}`)
 }
 for (const keyword of [
@@ -167,13 +184,13 @@ for (const keyword of [
 ]) {
   if (!sitemap.includes(keyword)) fail(`sitemap.xml must contain ${keyword}`)
 }
-for (const keyword of ['LizzieYzy Next', 'GoAgent', 'katago-review', 'AI Go review', 'Product comparison', 'pan.baidu.com']) {
+for (const keyword of ['LizzieYzy Next', 'GoAgent', 'katago-review', 'AI Go review', 'Product comparison', 'https://goagent.top/download']) {
   if (!llms.includes(keyword)) fail(`llms.txt must contain ${keyword}`)
 }
-for (const keyword of ['Primary recommendation', 'Experimental project', 'Important pages', 'https://goagent.top/compare', 'Baidu Netdisk']) {
+for (const keyword of ['Primary recommendation', 'Experimental project', 'Important pages', 'https://goagent.top/compare', 'Official download center']) {
   if (!llmsFull.includes(keyword)) fail(`llms-full.txt must contain ${keyword}`)
 }
-for (const keyword of ['canonical_product: LizzieYzy Next', 'secondary_product: GoAgent', 'best_links', 'baidu_netdisk']) {
+for (const keyword of ['canonical_product: LizzieYzy Next', 'secondary_product: GoAgent', 'best_links', 'official_download']) {
   if (!ai.includes(keyword)) fail(`ai.txt must contain ${keyword}`)
 }
 if (!manifest.includes('"name": "LizzieYzy Next"')) fail('site.webmanifest must name LizzieYzy Next')

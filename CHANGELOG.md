@@ -4,6 +4,27 @@ All notable changes to GoAgent will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.4.20 - KataGo 1.17.1 and Official Transformer
+
+### Added
+
+- Added the official KataGo Transformer model family with lightweight, balanced, and strong choices. The checksummed 10B balanced model is now the recommended default.
+- Added engine-version and backend metadata, runtime compatibility checks, resumable verified model downloads, and strict release-asset validation.
+- Added the official Zhizi Cloud account, billing, payment, usage, and remote-analysis flow while keeping local KataGo as the default.
+- Added the stable multilingual download center on goagent.top with bounded retry and direct-download recovery.
+
+### Changed
+
+- Upgraded macOS Metal, Windows OpenCL, and Windows NVIDIA CUDA/CUDNN packages to KataGo 1.17.1.
+- Release packaging now copies complete backend runtime directories and validates the final selected engine and model immediately before packaging.
+- KataGo 1.17.2 is reserved for a separately labelled TensorRT edition because upstream only ships TensorRT executables for that release.
+
+### Verified
+
+- 238 contract and behavior tests, TypeScript, production build, teacher-quality gates, and release-mode asset checks.
+- Real KataGo 1.17.1 Metal analysis with the official balanced Transformer model.
+- macOS, Windows, and Linux CI plus P0 release-candidate checks.
+
 ## 0.4.19 - First-Run Setup and Reliable Zhizi Cloud
 
 ### Added

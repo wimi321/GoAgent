@@ -1,100 +1,24 @@
 ---
+import DownloadChooser from '../components/DownloadChooser.astro'
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
-const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
-const lizzieBaidu = 'https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w'
-
-const tools = [
-  {
-    audience: '推荐先点这个',
-    title: 'LizzieYzy Next 百度网盘',
-    text: '国内用户优先用百度网盘下载，大多数棋友下载后就能开始复盘。',
-    platforms: ['Windows', 'macOS', 'Linux'],
-    href: lizzieBaidu,
-    cta: '百度网盘下载',
-    qq: '适合大多数人',
-    featured: true,
-    icon: 'cloud'
-  },
-  {
-    audience: '备用下载',
-    title: 'LizzieYzy Next GitHub 下载',
-    text: 'GitHub 是备用下载入口。页面是英文也没关系，找最新安装包下载。',
-    platforms: ['Windows', 'macOS', 'Linux'],
-    href: lizzieReleases,
-    cta: '从 GitHub 下载',
-    qq: '备用下载入口',
-    featured: false,
-    icon: 'github'
-  },
-  {
-    audience: '想尝鲜再下载',
-    title: 'GoAgent',
-    text: 'GoAgent 是实验围棋智能体，适合想试 AI 讲棋的用户。只想稳定复盘，先不用管它。',
-    platforms: ['Windows', 'macOS'],
-    href: goAgentReleases,
-    cta: '试用 GoAgent',
-    qq: 'GoAgent QQ 1030632742',
-    featured: false,
-    icon: 'agent'
-  }
-]
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'LizzieYzy Next',
+  applicationCategory: 'GameApplication',
+  operatingSystem: 'Windows, macOS',
+  downloadUrl: 'https://goagent.top/download/',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
+}
 ---
-<BaseLayout title="下载 LizzieYzy Next" description="首推下载 LizzieYzy Next 专业围棋复盘工作台；GoAgent 作为实验围棋智能体提供尝鲜版本。" pageKey="download">
-  <section class="page-hero">
-    <h1>下载 LizzieYzy Next</h1>
-    <p class="lead">不知道选哪个？国内用户优先用百度网盘下载。GitHub 是备用入口。GoAgent 是实验功能，想尝鲜再下载。</p>
-  </section>
-  <section class="content-stack">
-    <div class="download-list">
-      {tools.map((tool) => (
-        <article class={`download-row ${tool.featured ? 'featured' : ''}`}>
-          <span class={`download-icon ${tool.icon}`} aria-hidden="true">
-            {tool.icon === 'cloud' && (
-              <svg viewBox="0 0 48 48" role="img">
-                <path d="M17.4 35.4H14a9 9 0 0 1-1.1-18 12.8 12.8 0 0 1 24.5 4.3A7 7 0 0 1 36 35.4h-5.4" />
-                <path d="M24 19.8v18" />
-                <path d="m17.8 31.8 6.2 6.2 6.2-6.2" />
-              </svg>
-            )}
-            {tool.icon === 'github' && (
-              <svg viewBox="0 0 48 48" role="img">
-                <path d="M24 7.6a16.4 16.4 0 0 0-5.2 32c.8.1 1.1-.3 1.1-.8v-3c-4.5 1-5.5-1.9-5.5-1.9-.7-1.9-1.8-2.4-1.8-2.4-1.5-1 .1-1 .1-1 1.6.1 2.5 1.7 2.5 1.7 1.5 2.5 3.8 1.8 4.7 1.4.1-1.1.6-1.8 1-2.2-3.6-.4-7.4-1.8-7.4-8a6.2 6.2 0 0 1 1.7-4.4c-.2-.4-.7-2.1.2-4.3 0 0 1.3-.4 4.5 1.7a15.3 15.3 0 0 1 8.2 0c3.1-2.1 4.5-1.7 4.5-1.7.9 2.2.3 3.9.2 4.3a6.2 6.2 0 0 1 1.7 4.4c0 6.2-3.8 7.6-7.4 8 .6.5 1.1 1.5 1.1 3v4.4c0 .5.3.9 1.1.8A16.4 16.4 0 0 0 24 7.6Z" />
-              </svg>
-            )}
-            {tool.icon === 'agent' && (
-              <svg viewBox="0 0 48 48" role="img">
-                <path d="M17 20h14a7 7 0 0 1 7 7v3a7 7 0 0 1-7 7H17a7 7 0 0 1-7-7v-3a7 7 0 0 1 7-7Z" />
-                <path d="M24 20v-7" />
-                <path d="M20 13h8" />
-                <path d="M18.5 28.5h.1" />
-                <path d="M29.5 28.5h.1" />
-              </svg>
-            )}
-          </span>
-          <div>
-            <p class="product-label">{tool.audience}</p>
-            <h2>{tool.title}</h2>
-            <p>{tool.text}</p>
-            <div class="download-meta">
-              {tool.platforms.map((platform) => <span>{platform}</span>)}
-              {tool.featured ? <span>百度网盘</span> : <span>备用入口</span>}
-            </div>
-            <p>{tool.qq}</p>
-          </div>
-          <a class={`button ${tool.featured ? 'primary' : 'subtle'}`} href={tool.href}>{tool.cta}</a>
-        </article>
-      ))}
-    </div>
-    <article class="notice">
-      <h2>下载小提示</h2>
-      <p>普通用户不用研究太多。先装 LizzieYzy Next；国内用户优先用百度网盘下载；想试 AI 讲棋，再下载 GoAgent。</p>
-      <ul>
-        <li>国内用户优先用百度网盘下载。</li>
-        <li>GitHub 是备用下载入口。</li>
-        <li>GoAgent 是实验功能，只想稳定复盘可以先不用下载。</li>
-      </ul>
-    </article>
-  </section>
+
+<BaseLayout
+  title="下载 LizzieYzy Next - 选择 Windows 或 macOS 版本"
+  description="按显卡和 Mac 芯片选择 LizzieYzy Next。提供 NVIDIA、RTX 50、TensorRT、OpenCL、CPU、无引擎与 Apple Silicon、Intel 版本。"
+  canonical="https://goagent.top/download/"
+  pageKey="download"
+  jsonLd={jsonLd}
+>
+  <DownloadChooser lang="zh-CN" />
 </BaseLayout>

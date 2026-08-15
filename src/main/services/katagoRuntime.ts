@@ -4,17 +4,77 @@ import os from 'node:os'
 import { basename, join } from 'node:path'
 import { appHome } from '@main/lib/store'
 import type { AppSettings, KataGoModelPreset, KataGoModelPresetId } from '@main/lib/types'
+import {
+  KATAGO_NON_TENSORRT_RELEASE,
+  kataGoVersionSatisfies,
+  parseKataGoVersion
+} from '@main/services/katago/version'
 
-export const DEFAULT_KATAGO_MODEL_PRESET: KataGoModelPresetId = 'official-b28-strong'
+export const DEFAULT_KATAGO_MODEL_PRESET: KataGoModelPresetId = 'official-transformer-balanced'
 
 const OFFICIAL_NETWORKS_URL = 'https://katagotraining.org/networks/'
 const OFFICIAL_NETWORK_CDN = 'https://media.katagotraining.org/uploaded/networks/models/kata1/'
+const OFFICIAL_KATAGO_1171_RELEASE = `https://github.com/lightvector/KataGo/releases/download/v${KATAGO_NON_TENSORRT_RELEASE}/`
 
 function officialNetworkUrl(fileName: string): string {
   return `${OFFICIAL_NETWORK_CDN}${fileName}`
 }
 
 export const KATAGO_MODEL_PRESETS: KataGoModelPreset[] = [
+  {
+    id: 'official-transformer-light',
+    label: 'Transformer 10B 轻量版',
+    badge: '快速推荐',
+    group: '官方 Transformer 模型',
+    blockSize: '10B',
+    speedTier: 'fast',
+    sizeHint: '约 38 MB',
+    description: '官方轻量 Transformer。每次访问强于传统 b18，通常同样快或更快，适合快速胜率图和普通电脑。',
+    networkName: 'b10c384h6nbttflrs',
+    fileName: 'b10c384h6nbttflrs.bin.gz',
+    sourceUrl: `${OFFICIAL_KATAGO_1171_RELEASE}b10c384h6nbttflrs.bin.gz`,
+    downloadUrl: `${OFFICIAL_KATAGO_1171_RELEASE}b10c384h6nbttflrs.bin.gz`,
+    sha256: '0ba27eced5180b3e3d0b898b280c541112989765e789d1eb6cd0d31b2b2c1229',
+    sizeBytes: 38245488,
+    minimumEngineVersion: '1.17.0',
+    recommended: false
+  },
+  {
+    id: 'official-transformer-balanced',
+    label: 'Transformer 10B 均衡版',
+    badge: '首选',
+    group: '官方 Transformer 模型',
+    blockSize: '10B',
+    speedTier: 'balanced',
+    sizeHint: '约 94 MB',
+    description: 'GoAgent 默认推荐。官方中型 Transformer 每次访问强于传统 b28，通常同样快或更快，兼顾快速胜率图和精读。',
+    networkName: 'b10c512h8nbt3tflrs-fson-silu-rsnh',
+    fileName: 'b10c512h8nbt3tflrs-fson-silu-rsnh.bin.gz',
+    sourceUrl: `${OFFICIAL_KATAGO_1171_RELEASE}b10c512h8nbt3tflrs-fson-silu-rsnh.bin.gz`,
+    downloadUrl: `${OFFICIAL_KATAGO_1171_RELEASE}b10c512h8nbt3tflrs-fson-silu-rsnh.bin.gz`,
+    sha256: 'c04db4a503721d948bb720324f3cbdac6088cc9eb243632f020e4b6846f58995',
+    sizeBytes: 94281753,
+    minimumEngineVersion: '1.17.0',
+    recommended: true
+  },
+  {
+    id: 'official-transformer-strong',
+    label: 'Transformer 11B 旗舰版',
+    badge: '最强',
+    group: '官方 Transformer 模型',
+    blockSize: '11B',
+    speedTier: 'maximum',
+    sizeHint: '约 212 MB',
+    description: '官方最大 Transformer，每次访问强于传统 zhizi b40，适合高配机器进行关键局面深度精读。',
+    networkName: 'b11c768h12nbt3tflrs-fson-silu',
+    fileName: 'b11c768h12nbt3tflrs-fson-silu.bin.gz',
+    sourceUrl: `${OFFICIAL_KATAGO_1171_RELEASE}b11c768h12nbt3tflrs-fson-silu.bin.gz`,
+    downloadUrl: `${OFFICIAL_KATAGO_1171_RELEASE}b11c768h12nbt3tflrs-fson-silu.bin.gz`,
+    sha256: '1881600caab9e9d85a3dd6a019e9b8e7d2c237b5f984e13ed49a8645be3077c6',
+    sizeBytes: 211660960,
+    minimumEngineVersion: '1.17.0',
+    recommended: false
+  },
   {
     id: 'official-b18-recommended',
     label: 'b18 README 日常推荐',
@@ -77,18 +137,18 @@ export const KATAGO_MODEL_PRESETS: KataGoModelPreset[] = [
   },
   {
     id: 'official-b28-strong',
-    label: 'zhizi b28 官网最强',
-    badge: '官网最强',
-    group: '官网推荐 zhizi 模型',
+    label: 'zhizi b28 经典强力',
+    badge: '经典模型',
+    group: '经典卷积模型',
     blockSize: 'b28',
     speedTier: 'strong',
     sizeHint: '较慢',
-    description: 'katagotraining.org 当前 Strongest confidently-rated network：zhizi b28，更适合关键局面精读，速度会慢一些。',
+    description: '曾长期作为官方强力选择的经典 b28 模型。保留给希望复现旧分析结果的用户。',
     networkName: 'kata1-zhizi-b28c512nbt-muonfd2',
     fileName: 'kata1-zhizi-b28c512nbt-muonfd2.bin.gz',
     sourceUrl: OFFICIAL_NETWORKS_URL,
     downloadUrl: officialNetworkUrl('kata1-zhizi-b28c512nbt-muonfd2.bin.gz'),
-    recommended: true
+    recommended: false
   },
   {
     id: 'official-b28-latest',
@@ -107,13 +167,13 @@ export const KATAGO_MODEL_PRESETS: KataGoModelPreset[] = [
   },
   {
     id: 'official-b40-latest',
-    label: 'zhizi b40 官网最新',
-    badge: '官网最新',
-    group: '官网推荐 zhizi 模型',
+    label: 'zhizi b40 经典旗舰',
+    badge: '经典旗舰',
+    group: '经典卷积模型',
     blockSize: 'b40',
     speedTier: 'maximum',
     sizeHint: '很慢',
-    description: 'katagotraining.org 当前 Latest network：zhizi b40，更重、更强，适合高端 GPU 对关键局面做深度精读。',
+    description: '传统 zhizi b40 旗舰模型，保留用于旧分析复现和模型对照。新用户优先选择 Transformer。',
     networkName: 'kata1-zhizi-b40c768nbt-fdx6c',
     fileName: 'kata1-zhizi-b40c768nbt-fdx6c.bin.gz',
     sourceUrl: OFFICIAL_NETWORKS_URL,
@@ -169,8 +229,9 @@ function firstExisting(paths: string[]): string {
   return unique(paths).find((path) => existsSync(path)) ?? ''
 }
 
-const binaryProbeCache = new Map<string, { ok: boolean; note: string }>()
+const binaryProbeCache = new Map<string, { ok: boolean; note: string; version: string }>()
 let lastBinaryRejectionNotes: string[] = []
+let lastBinaryVersion = ''
 
 function platformCompatibleBinaryPath(path: string): boolean {
   if (!path) {
@@ -196,11 +257,15 @@ function platformCompatibleBinaryPath(path: string): boolean {
   return true
 }
 
-function firstExistingBinary(paths: string[]): string {
+function firstExistingBinary(paths: string[], minimumVersion = ''): string {
   lastBinaryRejectionNotes = []
+  lastBinaryVersion = ''
   for (const path of unique(paths)) {
-    const probe = probeKataGoBinary(path)
-    if (probe.ok) return path
+    const probe = probeKataGoBinary(path, minimumVersion)
+    if (probe.ok) {
+      lastBinaryVersion = probe.version
+      return path
+    }
     if (probe.note) lastBinaryRejectionNotes.push(probe.note)
   }
   return ''
@@ -227,10 +292,10 @@ function shortProbeError(error: unknown): string {
     .slice(0, 220)
 }
 
-function probeKataGoBinary(path: string): { ok: boolean; note: string } {
-  if (!path || !existsSync(path)) return { ok: false, note: '' }
-  if (isAsarPath(path)) return { ok: false, note: `跳过 app.asar 内的 KataGo: ${path}` }
-  if (!platformCompatibleBinaryPath(path)) return { ok: false, note: `跳过不匹配当前系统的 KataGo: ${path}` }
+function probeKataGoBinary(path: string, minimumVersion = ''): { ok: boolean; note: string; version: string } {
+  if (!path || !existsSync(path)) return { ok: false, note: '', version: '' }
+  if (isAsarPath(path)) return { ok: false, note: `跳过 app.asar 内的 KataGo: ${path}`, version: '' }
+  if (!platformCompatibleBinaryPath(path)) return { ok: false, note: `跳过不匹配当前系统的 KataGo: ${path}`, version: '' }
 
   try {
     chmodSync(path, 0o755)
@@ -241,21 +306,33 @@ function probeKataGoBinary(path: string): { ok: boolean; note: string } {
 
   const cacheKey = binaryProbeCacheKey(path)
   const cached = binaryProbeCache.get(cacheKey)
-  if (cached) return cached
+  if (cached) {
+    if (cached.ok && minimumVersion && !kataGoVersionSatisfies(cached.version, minimumVersion)) {
+      return { ok: false, note: `跳过版本过旧的 KataGo ${cached.version || '未知版本'}（需要 ${minimumVersion}+）: ${path}`, version: cached.version }
+    }
+    return cached
+  }
 
   try {
-    execFileSync(path, ['version'], {
+    const output = execFileSync(path, ['version'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 5000
     })
-    const result = { ok: true, note: '' }
+    const version = parseKataGoVersion(String(output))
+    const result = version
+      ? { ok: true, note: '', version }
+      : { ok: false, note: `跳过无法识别版本的 KataGo: ${path}`, version: '' }
     binaryProbeCache.set(cacheKey, result)
+    if (result.ok && minimumVersion && !kataGoVersionSatisfies(version, minimumVersion)) {
+      return { ok: false, note: `跳过版本过旧的 KataGo ${version}（需要 ${minimumVersion}+）: ${path}`, version }
+    }
     return result
   } catch (error) {
     const result = {
       ok: false,
-      note: `跳过无法启动的 KataGo: ${path}（${shortProbeError(error)}）`
+      note: `跳过无法启动的 KataGo: ${path}（${shortProbeError(error)}）`,
+      version: ''
     }
     binaryProbeCache.set(cacheKey, result)
     return result
@@ -319,8 +396,8 @@ export function getKataGoModelPreset(id?: string): KataGoModelPreset {
   )
 }
 
-function resourceRoots(): string[] {
-  const roots = [join(appHome, 'katago')]
+function packagedResourceRoots(): string[] {
+  const roots: string[] = []
   if (process.resourcesPath) {
     roots.push(
       join(process.resourcesPath, 'data', 'katago'),
@@ -333,6 +410,14 @@ function resourceRoots(): string[] {
     join(__dirname, '../../data/katago')
   )
   return unique(roots).filter((root) => !isAsarPath(root))
+}
+
+function resourceRoots(): string[] {
+  return unique([...packagedResourceRoots(), join(appHome, 'katago')])
+}
+
+function modelResourceRoots(): string[] {
+  return unique([join(appHome, 'katago'), ...packagedResourceRoots()])
 }
 
 function pathKatago(): string {
@@ -368,14 +453,14 @@ function binaryCandidates(): string[] {
 
 function modelDirectories(): string[] {
   return [
-    ...resourceRoots().map((root) => join(root, 'models')),
+    ...modelResourceRoots().map((root) => join(root, 'models')),
     join(os.homedir(), '.katago', 'models')
   ]
 }
 
 function modelCandidates(preset: KataGoModelPreset, settings?: AppSettings): string[] {
   const directories = modelDirectories()
-  const bundledModels = resourceRoots().map((root) => {
+  const bundledModels = modelResourceRoots().map((root) => {
     const metadata = bundledMetadata(root)
     return metadata.modelPath ? join(root, metadata.modelPath) : ''
   })
@@ -442,13 +527,13 @@ function ensureAnalysisConfig(settings?: AppSettings): string {
 
 export function resolveKataGoRuntime(settings?: AppSettings): KataGoRuntime {
   const modelPreset = getKataGoModelPreset(settings?.katagoModelPreset)
-  const katagoBin = firstExistingBinary([...binaryCandidates(), settings?.katagoBin ?? ''])
+  const katagoBin = firstExistingBinary([...binaryCandidates(), settings?.katagoBin ?? ''], modelPreset.minimumEngineVersion)
   const katagoConfig = ensureAnalysisConfig(settings)
   const katagoModel = firstExisting(modelCandidates(modelPreset, settings))
   const notes: string[] = []
 
   if (katagoBin) {
-    notes.push(`KataGo 引擎: ${basename(katagoBin)}`)
+    notes.push(`KataGo 引擎: ${basename(katagoBin)}${lastBinaryVersion ? ` v${lastBinaryVersion}` : ''}`)
   } else {
     notes.push('未找到内置 KataGo 引擎。')
   }

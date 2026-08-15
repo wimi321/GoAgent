@@ -36,23 +36,47 @@ pnpm dist:mac
 ## Verification
 
 ```bash
-codesign --verify --deep --strict --verbose=2 "release/0.2.0-beta.1/mac-arm64/GoAgent.app"
-codesign --verify --deep --strict --verbose=2 "release/0.2.0-beta.1/mac/GoAgent.app"
-spctl --assess --type execute --verbose "release/0.2.0-beta.1/mac-arm64/GoAgent.app"
-hdiutil verify "release/0.2.0-beta.1/GoAgent-0.2.0-beta.1-mac-arm64.dmg"
-hdiutil verify "release/0.2.0-beta.1/GoAgent-0.2.0-beta.1-mac-x64.dmg"
+version="$(node -p "require('./package.json').version")"
+
+codesign --verify --deep --strict --verbose=2 "release/$version/mac-arm64/GoAgent.app"
+codesign --verify --deep --strict --verbose=2 "release/$version/mac/GoAgent.app"
+spctl --assess --type execute --verbose=4 "release/$version/mac-arm64/GoAgent.app"
+spctl --assess --type execute --verbose=4 "release/$version/mac/GoAgent.app"
+xcrun stapler validate "release/$version/mac-arm64/GoAgent.app"
+xcrun stapler validate "release/$version/mac/GoAgent.app"
+xcrun stapler validate "release/$version/GoAgent-$version-mac-arm64.dmg"
+xcrun stapler validate "release/$version/GoAgent-$version-mac-x64.dmg"
+codesign --verify --verbose=2 "release/$version/GoAgent-$version-mac-arm64.dmg"
+codesign --verify --verbose=2 "release/$version/GoAgent-$version-mac-x64.dmg"
+spctl --assess --type open --context context:primary-signature --verbose=4 "release/$version/GoAgent-$version-mac-arm64.dmg"
+spctl --assess --type open --context context:primary-signature --verbose=4 "release/$version/GoAgent-$version-mac-x64.dmg"
+hdiutil verify "release/$version/GoAgent-$version-mac-arm64.dmg"
+hdiutil verify "release/$version/GoAgent-$version-mac-x64.dmg"
 ```
+
+electron-builder signs and notarizes each application bundle first, then signs
+each final DMG through `build.dmg.sign=true` while its temporary signing
+keychain is still active. The public release workflow submits each signed DMG
+to Apple's notary service, requires an `Accepted` result, staples the DMG
+ticket, and runs all checks above before upload. A missing Developer ID
+signature, a rejected Gatekeeper assessment, a missing application or DMG
+ticket, or a damaged DMG blocks publication.
 
 If notarization is not handled automatically by electron-builder, submit and staple manually:
 
 ```bash
-xcrun notarytool submit "release/0.2.0-beta.1/GoAgent-0.2.0-beta.1-mac-arm64.dmg" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait
-xcrun stapler staple "release/0.2.0-beta.1/GoAgent-0.2.0-beta.1-mac-arm64.dmg"
-xcrun stapler validate "release/0.2.0-beta.1/GoAgent-0.2.0-beta.1-mac-arm64.dmg"
+codesign --force --timestamp --sign "Developer ID Application: YOUR NAME (TEAMID)" "release/$version/GoAgent-$version-mac-arm64.dmg"
+xcrun notarytool submit "release/$version/GoAgent-$version-mac-arm64.dmg" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait
+xcrun stapler staple "release/$version/GoAgent-$version-mac-arm64.dmg"
+codesign --verify --verbose=2 "release/$version/GoAgent-$version-mac-arm64.dmg"
+xcrun stapler validate "release/$version/GoAgent-$version-mac-arm64.dmg"
+spctl --assess --type open --context context:primary-signature --verbose=4 "release/$version/GoAgent-$version-mac-arm64.dmg"
 ```
 
 Repeat for the x64 DMG.
 
-## Current Blocker
+## Release Policy
 
-If Developer ID credentials are not configured, macOS builds are internal unsigned/ad-hoc beta artifacts only. Do not tag `v0.2.0-beta.1` for public release until signing and notarization evidence is recorded.
+If Developer ID or Apple notarization credentials are unavailable, macOS
+artifacts are internal-only. The public workflow must fail rather than upload an
+unsigned or unnotarized application.

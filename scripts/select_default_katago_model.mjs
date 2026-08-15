@@ -59,17 +59,19 @@ async function main() {
   if (hasFlag('prune')) await pruneOtherModels(fileName)
 
   const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  const bundledModels = Array.isArray(manifest.bundledModels)
+    ? manifest.bundledModels.filter((item) => item?.fileName === fileName)
+    : []
   const next = {
     ...manifest,
     defaultModelId: arg('id', manifest.defaultModelId ?? 'bundled-default'),
     defaultModelFileName: fileName,
     defaultModelDisplayName: arg('display-name', manifest.defaultModelDisplayName ?? `KataGo bundled model (${fileName})`),
     modelPath: `models/${fileName}`,
-    modelSha256: await sha256(target),
-    bundledModels: Array.isArray(manifest.bundledModels)
-      ? manifest.bundledModels.filter((item) => item?.fileName === fileName)
-      : []
+    modelSha256: await sha256(target)
   }
+  if (bundledModels.length > 0) next.bundledModels = bundledModels
+  else delete next.bundledModels
   await writeFile(manifestPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
   console.log(`[select-default-katago-model] default model set to ${next.modelPath}`)
 }

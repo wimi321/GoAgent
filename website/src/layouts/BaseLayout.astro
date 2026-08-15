@@ -33,7 +33,6 @@ const goAgentUrl = 'https://github.com/wimi321/GoAgent'
 const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
 const goAgentIssues = `${goAgentUrl}/issues`
 const lizzieUrl = 'https://github.com/wimi321/lizzieyzy-next'
-const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
 
 const homeByLang = {
   'zh-CN': '/',
@@ -81,7 +80,7 @@ const copyByLang = {
     },
     privacy: '隐私',
     footerDownloads: {
-      lizzie: 'LizzieYzy Next 从 GitHub 下载',
+      lizzie: '下载 LizzieYzy Next',
       goAgent: 'GoAgent 从 GitHub 下载'
     },
     copyright: 'GoAgent and LizzieYzy Next contributors'
@@ -103,7 +102,7 @@ const copyByLang = {
     },
     privacy: '隱私',
     footerDownloads: {
-      lizzie: 'LizzieYzy Next 從 GitHub 下載',
+      lizzie: '下載 LizzieYzy Next',
       goAgent: 'GoAgent 從 GitHub 下載'
     },
     copyright: 'GoAgent and LizzieYzy Next contributors'
@@ -125,7 +124,7 @@ const copyByLang = {
     },
     privacy: 'Privacy',
     footerDownloads: {
-      lizzie: 'Download LizzieYzy Next from GitHub',
+      lizzie: 'Download LizzieYzy Next',
       goAgent: 'Download GoAgent from GitHub'
     },
     copyright: 'GoAgent and LizzieYzy Next contributors'
@@ -147,7 +146,7 @@ const copyByLang = {
     },
     privacy: 'プライバシー',
     footerDownloads: {
-      lizzie: 'LizzieYzy Next を GitHub から入手',
+      lizzie: 'LizzieYzy Next をダウンロード',
       goAgent: 'GoAgent を GitHub から入手'
     },
     copyright: 'GoAgent and LizzieYzy Next contributors'
@@ -169,7 +168,7 @@ const copyByLang = {
     },
     privacy: '개인정보',
     footerDownloads: {
-      lizzie: 'GitHub에서 LizzieYzy Next 다운로드',
+      lizzie: 'LizzieYzy Next 다운로드',
       goAgent: 'GitHub에서 GoAgent 다운로드'
     },
     copyright: 'GoAgent and LizzieYzy Next contributors'
@@ -191,7 +190,7 @@ const copyByLang = {
     },
     privacy: 'ความเป็นส่วนตัว',
     footerDownloads: {
-      lizzie: 'ดาวน์โหลด LizzieYzy Next จาก GitHub',
+      lizzie: 'ดาวน์โหลด LizzieYzy Next',
       goAgent: 'ดาวน์โหลด GoAgent จาก GitHub'
     },
     copyright: 'GoAgent and LizzieYzy Next contributors'
@@ -213,7 +212,7 @@ const copyByLang = {
     },
     privacy: 'Riêng tư',
     footerDownloads: {
-      lizzie: 'Tải LizzieYzy Next từ GitHub',
+      lizzie: 'Tải LizzieYzy Next',
       goAgent: 'Tải GoAgent từ GitHub'
     },
     copyright: 'GoAgent and LizzieYzy Next contributors'
@@ -260,7 +259,7 @@ const currentLanguageLabels = {
 
 const navItems = [
   { href: homeHref, label: homeLabels[siteLang] },
-  { href: sectionHref('download'), label: copy.nav.download },
+  { href: localizedPath(siteLang, 'download'), label: copy.nav.download },
   { href: sectionHref('products'), label: copy.nav.products },
   { href: localizedPath(siteLang, 'docs'), label: copy.nav.docs },
   { href: localizedPath(siteLang, 'changelog'), label: changelogLabels[siteLang] },
@@ -318,7 +317,7 @@ const alternateItems = localizedPageKeys.has(pageKey)
     {alternateItems.map((item) => <link rel="alternate" hreflang={item.lang} href={item.href} />)}
     <link rel="icon" href="/logo.svg" type="image/svg+xml" />
     <link rel="manifest" href="/site.webmanifest" />
-    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {jsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
   <body>
     <a class="skip-link" href="#content">{copy.skip}</a>
@@ -362,7 +361,7 @@ const alternateItems = localizedPageKeys.has(pageKey)
         </div>
         <div class="footer-links">
           <a href={lizzieUrl}>LizzieYzy Next GitHub</a>
-          <a href={lizzieReleases}>{copy.footerDownloads.lizzie}</a>
+          <a href={localizedPath(siteLang, 'download')}>{copy.footerDownloads.lizzie}</a>
           <a href={goAgentUrl}>GoAgent GitHub</a>
           <a href={goAgentReleases}>{copy.footerDownloads.goAgent}</a>
           <a href={goAgentIssues}>Issues</a>

@@ -39,16 +39,18 @@ GoAgent là ứng dụng desktop local-first cho người học và giáo viên 
 
 Bản phát hành công khai:
 
-[GoAgent v0.4.1](https://github.com/wimi321/GoAgent/releases/tag/v0.4.1)
+[GoAgent v0.4.20](https://github.com/wimi321/GoAgent/releases/tag/v0.4.20)
 
 | Nền tảng | Tải xuống |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-x64.dmg) |
-| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64-portable.zip) |
-| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-x64.dmg) |
+| Windows x64 Standard portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-portable.zip) |
+| Windows x64 Standard installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64.exe) |
+| Windows x64 NVIDIA portable 7z | [7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia.exe) |
 
-Lưu ý: bản phát hành hiện chưa được ký và notarize trên macOS, cũng chưa được code-sign trên Windows, vì vậy hệ điều hành có thể hiển thị cảnh báo bảo mật.
+Ứng dụng macOS đã được ký bằng Developer ID, Apple notarization và stapled ticket. CI xác minh chữ ký, Gatekeeper, ticket và tính toàn vẹn DMG trước khi tải lên. Gói Windows hiện chưa ký nên có thể hiển thị SmartScreen.
 
 ## Tính năng chính
 

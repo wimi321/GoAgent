@@ -387,6 +387,9 @@ export interface KataGoModelPreset {
   fileName: string
   sourceUrl: string
   downloadUrl?: string
+  sha256?: string
+  sizeBytes?: number
+  minimumEngineVersion?: string
   recommended: boolean
 }
 
@@ -532,6 +535,10 @@ export interface KataGoAssetStatus {
   binaryPath: string
   binaryFound: boolean
   binaryExecutable: boolean
+  engineVersion?: string
+  expectedEngineVersion?: string
+  engineBackend?: string
+  engineVersionCompatible?: boolean
   modelPath: string
   modelFound: boolean
   modelDisplayName: string

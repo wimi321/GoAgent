@@ -39,16 +39,18 @@ GoAgent는 KataGo, 바둑판 스크린샷, 로컬 지식 카드, 학생 프로�
 
 공개 릴리스:
 
-[GoAgent v0.4.1](https://github.com/wimi321/GoAgent/releases/tag/v0.4.1)
+[GoAgent v0.4.20](https://github.com/wimi321/GoAgent/releases/tag/v0.4.20)
 
 | 플랫폼 | 다운로드 |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-x64.dmg) |
-| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64-portable.zip) |
-| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-x64.dmg) |
+| Windows x64 Standard portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-portable.zip) |
+| Windows x64 Standard installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64.exe) |
+| Windows x64 NVIDIA portable 7z | [7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia.exe) |
 
-현재 릴리스 패키지는 서명되지 않았으므로 macOS Gatekeeper 또는 Windows SmartScreen 경고가 표시될 수 있습니다.
+macOS 앱은 Developer ID로 서명되고 Apple notarization 및 stapled ticket 검증을 완료했습니다. CI가 업로드 전에 서명, Gatekeeper, ticket, DMG 무결성을 확인합니다. Windows 패키지는 아직 서명되지 않아 SmartScreen이 표시될 수 있습니다.
 
 ## 주요 기능
 

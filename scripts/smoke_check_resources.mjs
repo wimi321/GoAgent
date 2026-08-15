@@ -16,7 +16,7 @@ const model = join(
   root,
   'data',
   'katago',
-  manifest?.modelPath ?? join('models', 'kata1-zhizi-b28c512nbt-muonfd2.bin.gz')
+  manifest?.modelPath ?? join('models', 'b10c512h8nbt3tflrs-fson-silu-rsnh.bin.gz')
 )
 
 console.log(`Knowledge cards: ${knowledge}`)

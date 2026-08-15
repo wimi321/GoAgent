@@ -39,16 +39,18 @@ GoAgent เป็นแอปเดสก์ท็อปแบบ local-first �
 
 รุ่นเผยแพร่สาธารณะ:
 
-[GoAgent v0.4.1](https://github.com/wimi321/GoAgent/releases/tag/v0.4.1)
+[GoAgent v0.4.20](https://github.com/wimi321/GoAgent/releases/tag/v0.4.20)
 
 | แพลตฟอร์ม | ดาวน์โหลด |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-mac-x64.dmg) |
-| Windows x64 portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64-portable.zip) |
-| Windows x64 installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.1/GoAgent-0.4.1-win-x64.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-mac-x64.dmg) |
+| Windows x64 Standard portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-portable.zip) |
+| Windows x64 Standard installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64.exe) |
+| Windows x64 NVIDIA portable 7z | [7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.20/GoAgent-0.4.20-win-x64-nvidia.exe) |
 
-หมายเหตุ: รุ่นนี้ยังไม่ได้ signed/notarized บน macOS และยังไม่ได้ code-signed บน Windows จึงอาจมีคำเตือนจากระบบปฏิบัติการ
+แอป macOS ลงนามด้วย Developer ID ผ่าน Apple notarization และมี stapled ticket แล้ว โดย CI ตรวจลายเซ็น Gatekeeper ticket และความสมบูรณ์ของ DMG ก่อนอัปโหลด ส่วนแพ็กเกจ Windows ยังไม่ได้ลงนามและอาจแสดง SmartScreen
 
 ## ความสามารถหลัก
 

@@ -8,9 +8,11 @@ The release workflow defaults to the OpenCL runtime bundle from:
 
 ```text
 wimi321/lizzieyzy-next
-1.0.0-next-2026-05-02.3
+next-2026-08-05.1
 *windows64.opencl.portable.zip
 ```
+
+This source contains KataGo `v1.17.1`, the current release for OpenCL.
 
 ## Packaging Rule
 

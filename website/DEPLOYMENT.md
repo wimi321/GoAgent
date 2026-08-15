@@ -32,34 +32,45 @@ goagent 官网使用 Cloudflare Pages 部署，部署目录为 `website/`。官�
 
 Cloudflare Pages 绑定成功后，不要保留指向 `198.18.*`、内网 IP、VPS 占位地址或其它临时 origin 的 A 记录。`198.18.0.0/15` 是基准测试专用地址段，公网用户访问会超时。Pages custom domain 应由 Cloudflare 自动创建并管理对应的 CNAME/路由记录。
 
-项目内已经提供 `_redirects`：
+项目内的 `website/public/_worker.js` 会在边缘层把所有 `www.goagent.top` 请求永久跳转到主域名，并保留原路径与查询参数：
 
 ```text
-https://www.goagent.top/* https://goagent.top/:splat 301
+https://www.goagent.top/download/ -> https://goagent.top/download/ (301)
 ```
 
-如果 Cloudflare Pages 控制台中另行配置了 www 跳转，也可以保留该文件作为静态部署兜底。
+不要再同时维护 `_redirects` 或第二套 www 规则，避免不同部署模式下行为不一致。
 
 ## 4. 下载文件策略
 
-不要把安装包放入 Cloudflare Pages：
+官网界面与安装包分开部署：
 
-- Pages 适合静态官网，不适合作为大型安装包仓库。
-- Pages 单文件大小有限，不适合托管 `.exe`、`.dmg`、`.zip`。
-- 官网首推下载按钮链接 LizzieYzy Next GitHub 下载页：
-  `https://github.com/wimi321/lizzieyzy-next/releases`
-- 官网也提供 LizzieYzy Next 百度网盘入口，方便国内用户下载：
-  `https://pan.baidu.com/s/1wthaL8YwGMxy_u0U7Mabpw?pwd=3i8w`，提取码 `3i8w`
-- GoAgent 作为实验围棋智能体，下载入口链接：
-  `https://github.com/wimi321/GoAgent/releases`
+- Cloudflare Pages 只部署 `goagent.top` 的静态页面，不存放大型安装包。
+- Cloudflare R2 桶 `lizzieyzy-next-downloads` 通过 `download.goagent.top` 提供当前稳定版文件。
+- 用户唯一公开下载入口是 `https://goagent.top/download/`。
+- 官网 `/download/` 从 `https://download.goagent.top/channels/stable/catalog.json` 读取公开目录，并按 Windows 显卡与 Mac 芯片展示下载按钮。
+- 发布维护期间目录中的下载地址可暂时指向 GitHub；官网允许 `download.goagent.top` 与 `github.com` 两种经过校验的 HTTPS 地址。目录加载失败时直接提供 GitHub Releases 备用入口，不跳回本页。
+- R2 只保留当前稳定版；历史版本、源码与未镜像资产继续由 GitHub 提供。
+- GoAgent 作为实验围棋智能体，仍从 `https://github.com/wimi321/GoAgent/releases` 下载。
 
-未来可以用 VPS 或对象存储做：
+R2 bucket CORS 只允许官网读取目录：
 
-- `api.goagent.top`
-- `download.goagent.top`
-- release mirror
+- Origins: `https://goagent.top`、`https://www.goagent.top`
+- Methods: `GET`、`HEAD`
+- 不需要凭据或用户身份信息。
 
-但 VPS 不参与官网主站。
+在 Cloudflare Rules / Redirect Rules 中建立一个 Single Redirect：
+
+```text
+Expression:
+(http.host eq "download.goagent.top" and
+ (http.request.uri.path eq "/" or http.request.uri.path eq "/index.html"))
+
+Target URL: https://goagent.top/download/
+Status code: 301
+Preserve query string: enabled
+```
+
+该规则只匹配下载子域的两个根入口，不能匹配 `/releases/*` 或 `/channels/*`，也不能应用到 `goagent.top`，否则会破坏安装包、目录和软件更新接口。R2 内的 `index.html` 只保留轻量跳转页，作为 Redirect Rule 暂时失效时的兜底，不再部署第二套下载界面。
 
 ## 5. 本地构建和检查
 
@@ -140,6 +151,9 @@ npx wrangler pages deploy website/dist --project-name=goagent --branch=main
 ```bash
 curl -I https://goagent.top/
 curl -I https://www.goagent.top/
+curl -I https://www.goagent.top/download/
+curl -I https://download.goagent.top/
+curl -I https://download.goagent.top/index.html
 curl https://goagent.top/ | grep -i goagent
 curl https://goagent.top/sitemap.xml | grep -i goagent.top
 ```
@@ -147,7 +161,11 @@ curl https://goagent.top/sitemap.xml | grep -i goagent.top
 期望：
 
 - `https://goagent.top/` 返回 200。
-- `https://www.goagent.top/` 跳转到 `https://goagent.top/` 或正常展示同一站点。
-- 页面中包含 `LizzieYzy Next`、`GoAgent`、百度网盘、GitHub 下载链接和隐私说明入口。
+- `https://www.goagent.top/` 与 `https://www.goagent.top/download/` 均以 301 跳转到主域名的同一路径。
+- `https://download.goagent.top/` 与 `/index.html` 均以 301 跳转到 `https://goagent.top/download/`。
+- 页面中包含 `LizzieYzy Next`、`GoAgent`、官网下载入口和隐私说明入口。
+- `https://goagent.top/download/` 能读取稳定版目录并显示 Windows、macOS、CPU 与 TensorRT 下载项。
+- `https://download.goagent.top/channels/stable/catalog.json`、`/releases/*` 和 Range 请求保持正常，不受根路径跳转规则影响。
+- `catalog.json` 对 `https://goagent.top` 返回正确的 `Access-Control-Allow-Origin`。
 
 如果 `dig goagent.top A` 返回 `198.18.*`，请先删除 Cloudflare DNS 中的占位 A 记录，再回到 Pages 项目的 Custom domains 重新激活 `goagent.top`。如果 `www.goagent.top` 返回 Cloudflare `530`，通常表示 DNS 到了 Cloudflare，但没有指向有效 Pages 部署或 custom domain 还未激活。
