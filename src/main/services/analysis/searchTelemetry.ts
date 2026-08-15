@@ -40,10 +40,16 @@ export function kataGoResponseVisits(response: SearchResponseLike): number {
  */
 export function createKataGoSearchProgressTracker(
   onProgress?: (progress: KataGoSearchProgress) => void,
-  now: () => number = Date.now
+  now: () => number = Date.now,
+  queryOrder: string[] = []
 ): { observe: (response: SearchResponseLike) => void } {
   const samples = new Map<string, SearchSample>()
   const startedAt = now()
+  const orderedIds = queryOrder.map((id) => String(id)).filter(Boolean)
+  const queryStartedAt = new Map<string, number>()
+  if (orderedIds[0]) {
+    queryStartedAt.set(orderedIds[0], startedAt)
+  }
 
   return {
     observe(response): void {
@@ -66,9 +72,9 @@ export function createKataGoSearchProgressTracker(
         visitsPerSecond = smoothedSpeed
       } else if (!previous) {
         // The first partial response is already useful. Deriving an average
-        // from the query start avoids leaving slower machines on "measuring"
-        // until KataGo happens to emit a second report.
-        const elapsedSeconds = Math.max(0.1, (sampledAt - startedAt) / 1000)
+        // from this query's start avoids including time spent waiting behind
+        // earlier queries in the same KataGo batch.
+        const elapsedSeconds = Math.max(0.1, (sampledAt - (queryStartedAt.get(id) ?? startedAt)) / 1000)
         smoothedSpeed = visits / elapsedSeconds
         visitsPerSecond = smoothedSpeed
       }
@@ -83,7 +89,23 @@ export function createKataGoSearchProgressTracker(
 
       if (response.isDuringSearch === false) {
         samples.delete(id)
+        const nextId = orderedIds[orderedIds.indexOf(id) + 1]
+        if (nextId && !queryStartedAt.has(nextId)) {
+          queryStartedAt.set(nextId, sampledAt)
+        }
       }
+    }
+  }
+}
+
+export function onlyKataGoSearchProgressFor(
+  queryId: string,
+  onProgress?: (progress: KataGoSearchProgress) => void
+): ((progress: KataGoSearchProgress) => void) | undefined {
+  if (!onProgress) return undefined
+  return (progress) => {
+    if (progress.id === queryId) {
+      onProgress(progress)
     }
   }
 }

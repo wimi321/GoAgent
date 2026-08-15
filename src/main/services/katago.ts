@@ -26,7 +26,7 @@ import { normalizeSgfKomiForAnalysis } from './sgfScoring'
 import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
 import { classifyMoveAnalysis } from './analysis/classifier'
 import { buildPvConfidenceReport } from './analysis/pvConfidence'
-import { createKataGoSearchProgressTracker } from './analysis/searchTelemetry'
+import { createKataGoSearchProgressTracker, onlyKataGoSearchProgressFor } from './analysis/searchTelemetry'
 
 interface KataGoResponse {
   id?: string
@@ -552,7 +552,11 @@ async function queryKataGoBatch(
   }
   const settings = getSettings()
   const runtime = resolveKataGoRuntime(settings)
-  const progressTracker = createKataGoSearchProgressTracker(options.onSearchProgress)
+  const progressTracker = createKataGoSearchProgressTracker(
+    options.onSearchProgress,
+    Date.now,
+    queries.map((query) => query.id)
+  )
   const emitResponse = (response: KataGoResponse): void => {
     onResponse?.(response)
     progressTracker.observe(response)
@@ -1132,7 +1136,7 @@ export async function analyzePositionWithProgress(
       runId: options.runId ?? `${gameId}-live-${moveNumber}`,
       group: options.group ?? 'live',
       replaceGroup: options.replaceGroup ?? true,
-      onSearchProgress
+      onSearchProgress: onlyKataGoSearchProgressFor(beforeId, onSearchProgress)
     })
   } catch (error) {
     if (String(error).includes('已取消')) {
@@ -1303,7 +1307,7 @@ export async function analyzeTrialPositionWithProgress(
       group: input.group ?? 'trial',
       replaceGroup: false,
       resolvePartialAfterMs: 1200,
-      onSearchProgress: input.onSearchProgress
+      onSearchProgress: onlyKataGoSearchProgressFor(beforeId, input.onSearchProgress)
     })
   } catch (error) {
     if ((String(error).includes('已取消') || String(error).includes('KataGo 分析超时')) && latestBefore?.rootInfo && latestAfter?.rootInfo) {
