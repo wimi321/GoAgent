@@ -17,7 +17,7 @@ import type {
   LibraryDeleteRequest,
   LlmModelsListRequest,
   LlmSettingsTestRequest,
-  ReviewRequest,
+  LlmConnectionActionResult,
   TeacherBoardImageRenderImage,
   TeacherBoardImageRenderRequest,
   TeacherBoardImageRenderResponse,
@@ -40,10 +40,10 @@ import type {
 } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
-import { runReview } from './services/review'
 import { applyDetectedDefaults, detectSystemProfile } from './services/systemProfile'
 import { cancelTeacherRun, runTeacherTask } from './services/teacherAgent'
 import { listLlmModels, testLlmSettings } from './services/llm'
+import { disposeLlmProviders, inspectLlmConnection, logoutChatGpt, startChatGptLogin } from './services/llm/providerRegistry'
 import { analyzeTrialPositionWithProgress, cancelKataGoAnalysis } from './services/katago'
 import { benchmarkKataGo, cancelKataGoBenchmark, startKataGoBenchmark } from './services/katagoBenchmark'
 import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
@@ -337,15 +337,21 @@ function buildApplicationMenu(): void {
 async function dashboard(): Promise<DashboardData> {
   const hydratedSettings = await applyDetectedDefaults(getSettings())
   replaceSettings(hydratedSettings)
-  const publicSettings = { ...hydratedSettings, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
   const detectedProfile = await detectSystemProfile(hydratedSettings)
+  const llmConnection = await inspectLlmConnection(hydratedSettings)
+  if (llmConnection.ready && hydratedSettings.llmSetupStatus !== 'verified') {
+    setSettings({ llmSetupStatus: 'verified', llmLastVerifiedAt: new Date().toISOString() })
+  }
+  const currentSettings = getSettings()
+  const publicSettings = { ...currentSettings, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
   return {
     settings: publicSettings,
     games: getGames(),
     systemProfile: {
       ...detectedProfile,
       proxyApiKey: '',
-      hasLlmApiKey: hasLlmApiKey()
+      hasLlmApiKey: hasLlmApiKey(),
+      llmConnection
     },
   }
 }
@@ -449,7 +455,6 @@ app.whenReady().then(() => {
   ipcMain.handle('teacher-sessions:update-messages', async (_event, payload: { sessionId: string; messages: TeacherChatMessage[] }) => updateTeacherSessionMessages(payload.sessionId, payload.messages))
   ipcMain.handle('teacher-sessions:archive', async (_event, sessionId: string) => archiveTeacherSession(sessionId))
   ipcMain.handle('teacher-sessions:delete', async (_event, sessionId: string) => deleteTeacherSession(sessionId))
-  ipcMain.handle('review:start', async (_event, payload: ReviewRequest) => runReview(payload))
   ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) => {
     const group = payload.group ?? (payload.runId ? 'teacher' : 'single')
     return runScheduledAnalysis({
@@ -588,6 +593,16 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('llm:test', async (_event, payload: LlmSettingsTestRequest) => testLlmSettings(payload))
   ipcMain.handle('llm:list-models', async (_event, payload: LlmModelsListRequest) => listLlmModels(payload))
+  ipcMain.handle('llm:chatgpt-login', async (_event, payload?: { useDeviceCode?: boolean }): Promise<LlmConnectionActionResult> => {
+    const login = await startChatGptLogin(Boolean(payload?.useDeviceCode))
+    const url = login?.authUrl || login?.verificationUrl
+    if (url) await shell.openExternal(url)
+    return { ...(login ? { login } : {}), dashboard: await dashboard() }
+  })
+  ipcMain.handle('llm:chatgpt-logout', async (): Promise<LlmConnectionActionResult> => {
+    await logoutChatGpt()
+    return { dashboard: await dashboard() }
+  })
   ipcMain.handle('llm:get-saved-api-key', async () => {
     const settings = getSettings()
     return {
@@ -790,5 +805,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  disposeLlmProviders()
   resetZhiziPersistentSession()
 })

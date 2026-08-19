@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@openai/codex':
+        specifier: 0.148.0-alpha.20
+        version: 0.148.0-alpha.20
       electron-store:
         specifier: ^10.0.1
         version: 10.1.0
@@ -1013,6 +1016,47 @@ packages:
   '@npmcli/fs@4.0.0':
     resolution: {integrity: sha512-/xGlezI6xfGO9NwuJlnwz/K14qD1kCSAGtacBHnGzeAIuJGazcp45KP5NuyARXoKb7cwulAGWVsbeSxdG/cb0Q==}
     engines: {node: ^18.17.0 || >=20.5.0}
+
+  '@openai/codex@0.148.0-alpha.20':
+    resolution: {integrity: sha512-HhCLadkgOHpZpF7Y/extF+bcYON6TWfW+K2WzoGRo4lDxFirDmBxP79f3RDeQteDPOaZrNhP78mB4wo48Jifrw==}
+    engines: {node: '>=16'}
+    hasBin: true
+
+  '@openai/codex@0.148.0-alpha.20-darwin-arm64':
+    resolution: {integrity: sha512-FKFUVFFXfbb6QZSG6YL/JLXw5pEdP5M5MZaENqxQNSuaRtqOSVMJaQaCztRsmIbp+rjuN0Ulvijy5rXqzGTdWg==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@openai/codex@0.148.0-alpha.20-darwin-x64':
+    resolution: {integrity: sha512-SLoWN5koL7UZy+kaNR643hfu7mnDBiYHVh8zemsG+YNcfNG9XbZxDRy+1HiVPC3P3MOu0fYcCtdntClUx+fOIg==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@openai/codex@0.148.0-alpha.20-linux-arm64':
+    resolution: {integrity: sha512-e+Hfp0oVnyKgAd1XJuCzmQz0yjxqPg0ZS2Rg1KEM/b61FrgFg5GuitbC2Mo8a55TSbnKIH6wXBrG+Ok2QveBTg==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@openai/codex@0.148.0-alpha.20-linux-x64':
+    resolution: {integrity: sha512-VvBQeaKlBwl8Jix1kecyTRTlzWC56oDH9n1VWZktBYAwH1p1kk5WAYW9cAwswss6s+bYpTUvgx/insJpPSmJ4Q==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [linux]
+
+  '@openai/codex@0.148.0-alpha.20-win32-arm64':
+    resolution: {integrity: sha512-kDcYq5Bu6gvGF+LsVyotrpOEQTh5Af1TZugyx6eBCn7yJj+TDvlD5V2zN3RJmFEp9AcOWA9WzuknjpFKJhNnqA==}
+    engines: {node: '>=16'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@openai/codex@0.148.0-alpha.20-win32-x64':
+    resolution: {integrity: sha512-xcvxQrSukCjXz1B8MUO3SUfiCplIrDHkdvCeOaJGVDLve5sAUwTQRx1SNIHACYccaLd+klI6EfD96xywTEqhcQ==}
+    engines: {node: '>=16'}
+    cpu: [x64]
+    os: [win32]
 
   '@oslojs/encoding@1.1.0':
     resolution: {integrity: sha512-70wQhgYmndg4GCPxPPxPGevRKqTIJ2Nh4OkiMWmDAVYsTQ+Ta7Sq+rPevXyXGdzr30/qZBnyOalCszoMxlyldQ==}
@@ -4768,6 +4812,33 @@ snapshots:
   '@npmcli/fs@4.0.0':
     dependencies:
       semver: 7.7.4
+
+  '@openai/codex@0.148.0-alpha.20':
+    optionalDependencies:
+      '@openai/codex-darwin-arm64': '@openai/codex@0.148.0-alpha.20-darwin-arm64'
+      '@openai/codex-darwin-x64': '@openai/codex@0.148.0-alpha.20-darwin-x64'
+      '@openai/codex-linux-arm64': '@openai/codex@0.148.0-alpha.20-linux-arm64'
+      '@openai/codex-linux-x64': '@openai/codex@0.148.0-alpha.20-linux-x64'
+      '@openai/codex-win32-arm64': '@openai/codex@0.148.0-alpha.20-win32-arm64'
+      '@openai/codex-win32-x64': '@openai/codex@0.148.0-alpha.20-win32-x64'
+
+  '@openai/codex@0.148.0-alpha.20-darwin-arm64':
+    optional: true
+
+  '@openai/codex@0.148.0-alpha.20-darwin-x64':
+    optional: true
+
+  '@openai/codex@0.148.0-alpha.20-linux-arm64':
+    optional: true
+
+  '@openai/codex@0.148.0-alpha.20-linux-x64':
+    optional: true
+
+  '@openai/codex@0.148.0-alpha.20-win32-arm64':
+    optional: true
+
+  '@openai/codex@0.148.0-alpha.20-win32-x64':
+    optional: true
 
   '@oslojs/encoding@1.1.0': {}
 

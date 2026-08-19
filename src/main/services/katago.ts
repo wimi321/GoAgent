@@ -736,14 +736,10 @@ async function queryKataGoBatch(
             schedulePartialResolve()
           }
         } catch (error) {
-          settled = true
-          clearTimeout(timer)
-          clearPartialTimer()
-          child.kill()
-          cleanup()
-          engineLease.finish('error')
-          reject(new Error(`无法解析 KataGo 输出: ${String(error)}\n${line.slice(0, 500)}`))
-          return
+          // KataGo emits fatal diagnostics as plain stdout lines. Preserve the
+          // whole diagnostic and let the close handler report it.
+          stderr = `${stderr}${stderr ? '\n' : ''}${line}`
+          continue
         }
         if (results.size >= queries.length) {
           settled = true
@@ -768,6 +764,16 @@ async function queryKataGoBatch(
       cleanup()
       engineLease.finish('error')
       reject(normalizeLocalKataGoProcessError(error, command[0]))
+    })
+
+    child.stdin.on('error', (error) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      clearPartialTimer()
+      cleanup()
+      engineLease.finish('error')
+      reject(new Error(`KataGo 输入通道写入失败: ${error.message}`))
     })
 
     child.once('close', (code) => {

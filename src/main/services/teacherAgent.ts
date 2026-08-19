@@ -29,7 +29,7 @@ import type {
   VisionEvidenceImageRole,
   VisionEvidenceReport
 } from '@main/lib/types'
-import type { ChatContentPart, ChatMessage, ChatTool, ChatToolCall, ChatTurnResult, ProviderSettings } from './llm/provider'
+import type { ChatContentPart, ChatMessage, ChatTool, ChatToolCall, ChatTurnResult } from './llm/provider'
 import { analyzeGameQuick, analyzePosition, cancelKataGoAnalysis } from './katago'
 import { MOVE_RANGE_KEY_MOVE_LIMIT, MOVE_RANGE_MAX_MOVES, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
 import { formatMoveRangeSummaryForPrompt, selectMoveNumbersForRangeRefine } from './teacher/moveRangeReview'
@@ -67,7 +67,7 @@ import {
   validateVisionEvidenceForIntent
 } from './teacher/visionEvidence'
 import { buildVisionEvidenceRepairNote, verifyVisionEvidenceMarkdown } from './teacher/visionEvidenceVerifier'
-import { streamOpenAICompatibleToolTurn } from './llm/openaiCompatibleProvider'
+import { activeProviderSupportsTools, runProviderTurn } from './llm/providerRegistry'
 
 type TeacherProgressEmitter = (progress: TeacherRunProgress) => void
 type TeacherBoardImageCaptureHandler = (request: TeacherBoardImageRenderRequest) => Promise<TeacherBoardImageRenderImage[]>
@@ -527,18 +527,6 @@ export function cancelTeacherRun(payload: { runId?: string } = {}): { cancelled:
 
 function agentSystemPrompt(level: CoachUserLevel): string {
   return systemPrompt(level)
-}
-
-function providerSettingsFromApp(): ProviderSettings {
-  const settings = getSettings()
-  if (!settings.llmBaseUrl.trim() || !settings.llmApiKey.trim() || !settings.llmModel.trim()) {
-    throw new Error('请先配置支持 tool calling 和图片输入的 OpenAI-compatible LLM 代理。')
-  }
-  return {
-    llmBaseUrl: settings.llmBaseUrl,
-    llmApiKey: settings.llmApiKey,
-    llmModel: settings.llmModel
-  }
 }
 
 function stringInput(input: JsonObject, key: string, fallback = ''): string {
@@ -2002,6 +1990,54 @@ async function executeAgentToolCall(
   }
 }
 
+async function prefetchEvidenceForManagedProvider(
+  state: TeacherAgentSessionState,
+  tools: Map<string, TeacherAgentToolDefinition>
+): Promise<ChatMessage[]> {
+  const calls: Array<{ name: string; arguments: JsonObject }> = []
+  const common = { gameId: state.request.gameId, moveNumber: state.request.moveNumber }
+  if (state.intent === 'current-move') {
+    calls.push(
+      { name: 'katago_analyzePosition', arguments: common },
+      { name: 'board_captureTeachingImage', arguments: { ...common, selection: 'current', maxImages: 1 } },
+      { name: 'knowledge_matchPosition', arguments: { text: state.request.prompt, moveNumber: state.request.moveNumber, maxResults: 6 } }
+    )
+  } else if (state.intent === 'move-range') {
+    calls.push(
+      { name: 'katago_analyzeMoveRangeKeyMoves', arguments: {} },
+      { name: 'board_captureTeachingImage', arguments: { gameId: state.request.gameId, selection: 'move-range-top-loss', maxImages: 6 } },
+      { name: 'knowledge_matchPosition', arguments: { text: state.request.prompt, maxResults: 6 } }
+    )
+  } else if (state.intent === 'game-review') {
+    calls.push(
+      { name: 'katago_analyzeGameBatch', arguments: { gameId: state.request.gameId, count: 1, maxVisits: 24, minWinrateDrop: 4 } },
+      { name: 'board_captureTeachingImage', arguments: { gameId: state.request.gameId, selection: 'top-loss', maxImages: 6 } },
+      { name: 'knowledge_searchLocal', arguments: { text: state.request.prompt, maxResults: 6 } }
+    )
+  } else if (state.intent === 'batch-review') {
+    calls.push(
+      { name: 'library_findGames', arguments: { studentName: state.studentName, count: inferCount(state.request.prompt) } },
+      { name: 'katago_analyzeGameBatch', arguments: { studentName: state.studentName, count: inferCount(state.request.prompt), maxVisits: 24, minWinrateDrop: 6 } },
+      { name: 'knowledge_searchLocal', arguments: { text: state.request.prompt, maxResults: 6 } }
+    )
+  } else {
+    calls.push({ name: 'knowledge_searchLocal', arguments: { text: state.request.prompt, maxResults: 6 } })
+  }
+
+  const messages: ChatMessage[] = []
+  for (let index = 0; index < calls.length; index += 1) {
+    const item = calls[index]
+    const result = await executeAgentToolCall({
+      id: `prefetch-${index + 1}`,
+      type: 'function',
+      function: { name: item.name, arguments: JSON.stringify(item.arguments) }
+    }, tools, state)
+    messages.push({ role: 'user', content: `GoAgent 本地证据（${item.name}）：\n${result.toolResult}` })
+    messages.push(...result.followupMessages)
+  }
+  return messages
+}
+
 async function runTeacherAgentSession(
   request: TeacherRunRequest,
   logs: TeacherToolLog[],
@@ -2042,13 +2078,16 @@ async function runTeacherAgentSession(
     state.teachingPacing = buildTeachingPacingAdvice(request.prefetchedAnalysis)
   }
 
-  const settings = providerSettingsFromApp()
+  const settings = getSettings()
   const toolDefinitions = createTeacherAgentTools(state)
   const toolMap = new Map(toolDefinitions.map((tool) => [tool.apiName, tool]))
   const tools = toolDefinitions.map(chatTool)
+  const providerSupportsTools = activeProviderSupportsTools(settings)
+  const prefetchedMessages = providerSupportsTools ? [] : await prefetchEvidenceForManagedProvider(state, toolMap)
   const messages: ChatMessage[] = [
     { role: 'system', content: agentSystemPrompt(profile.userLevel) },
-    initialAgentUserMessage(state)
+    initialAgentUserMessage(state),
+    ...prefetchedMessages
   ]
 
   emitProgress(context, { stage: 'assistant-start', message: 'GoAgent agent 开始推理。', toolLogs: cloneToolLogs(logs) })
@@ -2059,7 +2098,7 @@ async function runTeacherAgentSession(
     let streamedThisTurn = ''
     let result: ChatTurnResult
     try {
-      result = await streamOpenAICompatibleToolTurn(settings, messages, tools, 4096, (delta) => {
+      result = await runProviderTurn(settings, messages, providerSupportsTools ? tools : [], 4096, (delta) => {
         streamedThisTurn += delta
         emittedText += delta
         emitAssistantDelta(context, delta)
@@ -2109,7 +2148,7 @@ async function runTeacherAgentSession(
     messages.push({ role: 'user', content: `${buildVisionEvidenceRepairNote(visionIssues)}\n\n${formatVisionEvidenceForPrompt(finalVisionEvidence)}` })
     let repair: ChatTurnResult
     try {
-      repair = await streamOpenAICompatibleToolTurn(settings, messages, tools, 2048, (delta) => {
+      repair = await runProviderTurn(settings, messages, providerSupportsTools ? tools : [], 2048, (delta) => {
         emitAssistantDelta(context, delta)
       }, context?.signal)
     } catch (error) {

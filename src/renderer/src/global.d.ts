@@ -30,9 +30,8 @@ import type {
   LlmModelsListResult,
   LlmSettingsTestRequest,
   LlmSettingsTestResult,
+  LlmConnectionActionResult,
   KataGoMoveAnalysis,
-  ReviewRequest,
-  ReviewResult,
   StudentBindingSuggestion,
   StudentProfile,
   ReleaseReadinessResult,
@@ -87,7 +86,6 @@ declare global {
       updateSettings: (payload: Partial<AppSettings>) => Promise<DashboardData>
       autoDetectSettings: () => Promise<DashboardData>
       syncFox: (payload: FoxSyncRequest) => Promise<FoxSyncResponse>
-      startReview: (payload: ReviewRequest) => Promise<ReviewResult>
       analyzePosition: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis>
       analyzePositionStream: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis>
       analyzeTrialPositionStream: (payload: AnalyzeTrialPositionRequest) => Promise<KataGoMoveAnalysis | null>
@@ -128,6 +126,8 @@ declare global {
       onTeacherBoardImageRequest: (handler: (payload: TeacherBoardImageRenderRequest) => Promise<TeacherBoardImageRenderResponse> | TeacherBoardImageRenderResponse) => () => void
       testLlmSettings: (payload: LlmSettingsTestRequest) => Promise<LlmSettingsTestResult>
       listLlmModels: (payload: LlmModelsListRequest) => Promise<LlmModelsListResult>
+      startChatGptLogin: (payload?: { useDeviceCode?: boolean }) => Promise<LlmConnectionActionResult>
+      logoutChatGpt: () => Promise<LlmConnectionActionResult>
       getSavedLlmApiKey: () => Promise<{ hasKey: boolean; apiKey: string }>
       getSavedIkatagoPassword: () => Promise<{ hasPassword: boolean; password: string }>
       loginZhiziCloudPassword: (payload: ZhiziCloudLoginRequest) => Promise<ZhiziCloudLoginResult>

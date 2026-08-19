@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 
@@ -13,6 +13,14 @@ test('KataGo candidate ranking uses before-position choices and current-player l
   const katago = read('src/main/services/katago.ts')
   const runtime = read('src/main/services/katagoRuntime.ts')
   assert.match(runtime, /reportAnalysisWinratesAs = SIDETOMOVE/)
+  assert.match(runtime, /function modelRequiresHumanProfile/)
+  assert.match(runtime, /humanSLProfile = rank_9d/)
+  assert.match(runtime, /ensureAnalysisConfig\(settings, katagoModel\)/)
+  const persistent = read('src/main/services/katagoPersistentEngine.ts')
+  assert.match(persistent, /child\.stdin\.on\('error'/)
+  assert.match(persistent, /KataGo writes multi-line fatal diagnostics to stdout/)
+  assert.match(katago, /child\.stdin\.on\('error'/)
+  assert.match(katago, /KataGo emits fatal diagnostics as plain stdout lines/)
   assert.match(katago, /function playerWinrate/)
   assert.match(katago, /function playerScoreLead/)
   assert.match(katago, /FORCED_ACTUAL_EVIDENCE_MIN_VISITS = 1200/)
@@ -173,9 +181,8 @@ test('Quick winrate graph uses KaTrain-style fast visits and refines suspected m
   assert.match(app, /refineVisits/)
   assert.doesNotMatch(app, /maxVisits: 12,/)
 
-  const review = read('scripts/review_game.py')
-  assert.match(review, /allowMoves/)
-  assert.match(review, /best_wr_black if color == "B" else 100\.0 - best_wr_black/)
+  assert.equal(existsSync(join(root, 'scripts/review_game.py')), false)
+  assert.match(agent, /katago_analyzeGameBatch/)
 })
 
 test('Workbench reuses cache for automatic analysis but manual analysis refreshes the current move', () => {

@@ -24,6 +24,16 @@ release-evidence
 .env.*
 !.env.example
 
+# Local GitHub CLI configuration and portable tooling.
+.gh/
+.tools/
+.corepack/
+.goagent-dev-data/
+.electron-cache/
+.python-packages/
+.dev-tools/
+.pnpm-store/
+
 # Large local KataGo runtime files are not committed.
 # See data/katago/README.md for the expected packaging layout.
 data/katago/bin/**

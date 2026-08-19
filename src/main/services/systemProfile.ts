@@ -128,6 +128,14 @@ export async function detectSystemProfile(settings?: AppSettings): Promise<Syste
     proxyApiKey: proxy.proxyApiKey,
     proxyModels: proxy.proxyModels,
     hasLlmApiKey: false,
+    llmConnection: {
+      connectionId: settings?.activeLlmConnectionId ?? 'openai-compatible-default',
+      provider: settings?.llmConnections.find((item) => item.id === settings.activeLlmConnectionId)?.provider ?? 'openai-compatible',
+      authMode: settings?.llmConnections.find((item) => item.id === settings.activeLlmConnectionId)?.authMode ?? 'api-key',
+      ready: false,
+      status: 'signed-out',
+      message: '尚未检查 LLM 连接。'
+    },
     hasZhiziToken: Boolean(settings?.zhiziToken.trim()),
     notes: [...katago.notes, ...proxy.notes],
   }
@@ -136,7 +144,15 @@ export async function detectSystemProfile(settings?: AppSettings): Promise<Syste
 export async function applyDetectedDefaults(settings: AppSettings): Promise<AppSettings> {
   const hydratedKatago = hydrateKataGoSettings(settings)
   const detected = await detectSystemProfile(hydratedKatago)
+  const activeLlmConnection = settings.llmConnections.find((connection) => connection.id === settings.activeLlmConnectionId)
+  if (activeLlmConnection && activeLlmConnection.provider !== 'openai-compatible') {
+    return hydratedKatago
+  }
   const preferredModel =
+    detected.proxyModels.find((model) => model === 'gpt-5.6') ||
+    detected.proxyModels.find((model) => model === 'gpt-5.6-sol') ||
+    detected.proxyModels.find((model) => model === 'gpt-5.6-terra') ||
+    detected.proxyModels.find((model) => model === 'gpt-5.6-luna') ||
     detected.proxyModels.find((model) => model === 'gpt-5.5') ||
     detected.proxyModels.find((model) => model === 'gpt-5.4-mini') ||
     detected.proxyModels.find((model) => model === 'gpt-5-codex-mini') ||
@@ -148,7 +164,7 @@ export async function applyDetectedDefaults(settings: AppSettings): Promise<AppS
     llmBaseUrl: settings.llmBaseUrl === 'https://api.openai.com/v1' && detected.proxyBaseUrl ? detected.proxyBaseUrl : settings.llmBaseUrl,
     llmApiKey: settings.llmApiKey || detected.proxyApiKey,
     llmModel:
-      (settings.llmModel && settings.llmModel !== 'gpt-5-mini')
+      (settings.llmModel && settings.llmModel !== 'gpt-5-mini' && settings.llmModel !== 'gpt-5.6-sol')
         ? settings.llmModel
         : preferredModel,
   }

@@ -30,6 +30,13 @@ function hasVisibleTeacherMessages(session: TeacherSession): boolean {
   )
 }
 
+function hasObsoleteCodexReadAccessFailure(session: TeacherSession): boolean {
+  return session.messages.some((message) =>
+    message.status === 'error' &&
+    message.content.includes('readOnly.access is no longer supported; use permissionProfile for restricted reads')
+  )
+}
+
 function materializeSession(input: Partial<TeacherSession> = {}, timestamp = nowIso()): TeacherSession {
   return {
     id: input.id || randomUUID(),
@@ -68,7 +75,17 @@ export function listTeacherSessions(includeArchived = true): TeacherSession[] {
 export function getActiveTeacherSession(): TeacherSession {
   const activeId = teacherSessionStore.get('activeSessionId', '')
   const existing = readSessions().find((session) => session.id === activeId && !session.archivedAt)
-  if (existing) return existing
+  if (existing && !hasObsoleteCodexReadAccessFailure(existing)) return existing
+  if (existing) {
+    // Keep the failed attempt in history, but do not present a protocol error
+    // from an older GoAgent build as the current teacher state after upgrade.
+    return createTeacherSession({
+      gameId: existing.gameId,
+      moveNumber: existing.moveNumber,
+      moveRange: existing.moveRange,
+      studentId: existing.studentId
+    })
+  }
   return createTeacherSession()
 }
 

@@ -2,6 +2,7 @@ import { constants } from 'node:fs'
 import { access, mkdir, unlink, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { appHome, getSettings, hasLlmApiKey } from '@main/lib/store'
+import { inspectLlmConnection } from '@main/services/llm/providerRegistry'
 import { resolveKataGoRuntime } from '../katagoRuntime'
 import { ikatagoClientConfigured, shouldPreferIKataGoEngine } from '../ikatagoClientEngine'
 import { shouldPreferZhiziGtpEngine, zhiziGtpConfigured } from '../zhiziGtpEngine'
@@ -236,7 +237,10 @@ async function checkBundledKataGoAssets(): Promise<DiagnosticCheck> {
 
 async function checkLlmProxy(): Promise<DiagnosticCheck> {
   const settings = getSettings()
-  const configured = Boolean(settings.llmBaseUrl.trim() && (settings.llmApiKey.trim() || hasLlmApiKey()) && settings.llmModel.trim())
+  const connection = await inspectLlmConnection(settings)
+  const configured = connection.provider === 'codex-app-server'
+    ? connection.ready
+    : Boolean(settings.llmBaseUrl.trim() && (settings.llmApiKey.trim() || hasLlmApiKey()) && settings.llmModel.trim())
   if (!configured) {
     return {
       id: 'llm-proxy',
@@ -244,7 +248,9 @@ async function checkLlmProxy(): Promise<DiagnosticCheck> {
       status: 'warn',
       required: false,
       detail: '还没有连接 AI 模型。KataGo 分析仍然可以正常使用。',
-      action: '在“设置 > AI 模型”中填写服务地址、访问密钥和模型。'
+      action: connection.provider === 'codex-app-server'
+        ? '在“设置 > AI 模型”中完成 ChatGPT 登录。'
+        : '在“设置 > AI 模型”中填写服务地址、访问密钥和模型。'
     }
   }
   const verified = settings.llmSetupStatus === 'verified'

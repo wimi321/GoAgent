@@ -167,15 +167,13 @@ docs                架构、发布、签名、公证、QA 文档
 
 - Node.js 22+
 - pnpm 10+
-- Python 3.10+
 - KataGo 二进制和一个 KataGo 模型
-- 可选：OpenAI-compatible 多模态 LLM API
+- 可选：OpenAI-compatible 多模态 LLM API，或通过官方 Codex App Server 使用 ChatGPT 登录
 
 启动：
 
 ```bash
 pnpm install
-python3 -m pip install -r scripts/requirements.txt
 pnpm dev
 ```
 
@@ -196,6 +194,12 @@ pnpm dist:win
 pnpm dist:linux
 ```
 
+## AI 老师连接
+
+- **API Key**：可继续使用支持 OpenAI-compatible API 的多模态模型服务。
+- **ChatGPT 登录**：在“设置 → AI 老师”选择“使用 ChatGPT 登录”。GoAgent 通过官方 Codex App Server 完成登录、模型发现和请求；可使用当前 ChatGPT 套餐中支持棋盘图片输入的模型。
+- 登录型连接的令牌由官方 Codex 客户端管理；GoAgent 不读取、复制或保存 OAuth token。
+
 ## KataGo 资源
 
 GoAgent 优先寻找随安装包携带的 KataGo 运行时：
@@ -214,8 +218,8 @@ data/katago/
 ## 隐私与安全
 
 - 棋谱、学生画像、报告和设置默认保存在 `~/.goagent`。
-- LLM API Key 在支持的平台上使用 Electron `safeStorage` 加密保存。
-- 前端不会拿到已保存的完整 API Key。
+- LLM API Key 保存在 GoAgent 本地 secret store 中；前端不会拿到已保存的完整 Key。
+- ChatGPT 登录凭据和 OAuth token 由官方 Codex App Server 管理，GoAgent 不会读取或保存它们。
 - 当前手讲解会发送棋盘截图、KataGo JSON 和知识库摘录到用户配置的 LLM 服务。
 - Web 搜索只用于泛化围棋概念，不发送学生姓名、棋谱原文、截图、API Key 或本机路径。
 

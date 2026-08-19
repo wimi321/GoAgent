@@ -184,6 +184,11 @@ async function ensureEngineStarted(engine: PersistentEngine): Promise<void> {
     }, 250)
 
     child.stdout.on('data', (chunk) => readStdout(engine, String(chunk)))
+    child.stdin.on('error', (error) => {
+      if (engine.child === child) {
+        restartEngine(engine, new Error(`Persistent KataGo input channel failed: ${error.message}`))
+      }
+    })
     child.stderr.on('data', (chunk) => {
       engine.stderr = (engine.stderr + String(chunk)).slice(-20_000)
     })
@@ -216,8 +221,11 @@ function readStdout(engine: PersistentEngine, text: string): void {
     try {
       parsed = JSON.parse(line) as PersistentKataGoResponse
     } catch (error) {
-      restartEngine(engine, new Error(`Unable to parse persistent KataGo output: ${String(error)} ${line.slice(0, 240)}`))
-      return
+      // KataGo writes multi-line fatal diagnostics to stdout. Keep collecting
+      // them until the process closes so users see the actual engine error
+      // instead of a misleading JSON parse exception.
+      engine.stderr = `${engine.stderr}${engine.stderr ? '\n' : ''}${line}`.slice(-20_000)
+      continue
     }
     routeResponse(engine, parsed)
   }

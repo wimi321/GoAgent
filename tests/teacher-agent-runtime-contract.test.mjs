@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-test('Teacher agent runtime uses a Claude Code style tool loop', () => {
+test('Teacher agent runtime uses the active provider and preserves the tool loop for compatible APIs', () => {
   const agent = read('src/main/services/teacherAgent.ts')
   assert.match(agent, /runTeacherAgentSession/)
-  assert.match(agent, /streamOpenAICompatibleToolTurn/)
+  assert.match(agent, /runProviderTurn/)
+  assert.match(agent, /activeProviderSupportsTools/)
+  assert.match(agent, /prefetchEvidenceForManagedProvider/)
   assert.match(agent, /tool_calls/)
   assert.match(agent, /role:\s*'tool'/)
   assert.match(agent, /executeAgentToolCall/)
@@ -71,26 +73,16 @@ test('Provider supports OpenAI-compatible tool-call turns', () => {
   assert.doesNotMatch(provider, /当前接口需要最终自然语言文本/)
 })
 
-test('Python review runtime is Windows-safe and does not hard-code python3 venv paths', () => {
-  const runtime = read('src/main/services/pythonRuntime.ts')
-  const review = read('src/main/services/review.ts')
-  const store = read('src/main/lib/store.ts')
-  assert.match(runtime, /process\.platform === 'win32' \? 'Scripts' : 'bin'/)
-  assert.match(runtime, /process\.platform === 'win32' \? 'python\.exe' : 'python3'/)
-  assert.match(runtime, /resolvePythonLauncher/)
-  assert.match(runtime, /pythonLaunchers/)
-  assert.match(runtime, /command:\s*'python'/)
-  assert.match(runtime, /command:\s*'py',\s*args:\s*\['-3'\]/)
-  assert.match(runtime, /execFileAsync\(launcher\.command,\s*\[\.\.\.launcher\.args,\s*'-m',\s*'venv'/)
-  assert.match(runtime, /createdVenv \|\| installedDigest !== digest/)
-  assert.match(runtime, /PIP_CONFIG_FILE:\s*devNull/)
-  assert.match(runtime, /PIP_INDEX_URL:\s*'https:\/\/pypi\.org\/simple'/)
-  assert.match(runtime, /默认 pip 源也失败/)
-  assert.match(runtime, /\['-m',\s*'pip',\s*'install',\s*'-r',\s*requirementsPath\]/)
-  assert.doesNotMatch(runtime, /join\(venvRoot,\s*'bin',\s*'python3'\)/)
-  assert.doesNotMatch(runtime, /execFileAsync\('python3',\s*\['-m',\s*'venv'/)
-  assert.match(review, /ensurePythonRuntime\(process\.cwd\(\),\s*settings\.pythonBin\)/)
-  assert.match(store, /process\.platform === 'win32' \? 'python' : 'python3'/)
+test('Legacy Python review entrypoint is removed while teacher review remains provider-driven', () => {
+  const main = read('src/main/index.ts')
+  const preload = read('src/preload/index.ts')
+  const agent = read('src/main/services/teacherAgent.ts')
+  assert.equal(existsSync(join(root, 'src/main/services/review.ts')), false)
+  assert.equal(existsSync(join(root, 'src/main/services/pythonRuntime.ts')), false)
+  assert.equal(existsSync(join(root, 'scripts/review_game.py')), false)
+  assert.doesNotMatch(main, /review:start|runReview/)
+  assert.doesNotMatch(preload, /startReview|review:start/)
+  assert.match(agent, /runProviderTurn/)
 })
 
 test('Teacher prompt requires board, KataGo, and knowledge evidence without template language', () => {

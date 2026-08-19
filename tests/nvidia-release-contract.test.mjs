@@ -54,7 +54,7 @@ test('release workflow publishes a real Windows NVIDIA edition', () => {
     assert.ok(files.includes('!data/tts/**/*'))
     assert.equal(files.includes('data/**/*'), false)
   }
-  assert.deepEqual(packageJson.build.asarUnpack, [])
+  assert.deepEqual(packageJson.build.asarUnpack, ['node_modules/@openai/codex-*/vendor/**/*'])
 })
 
 test('release workflow restores macOS KataGo assets from macOS packages', () => {

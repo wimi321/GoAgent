@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto'
 import { BRAND_DATA_DIR } from '@shared/brand'
-import type { AppSettings, LibraryGame } from './types'
+import type { AppSettings, LibraryGame, LlmConnectionProfile } from './types'
 
 export const legacyElectronUserData = app.getPath('userData')
 export const appHome = process.env.GOAGENT_APP_HOME || join(app.getPath('home'), BRAND_DATA_DIR)
@@ -13,6 +13,32 @@ export const libraryDir = join(appHome, 'library')
 export const reviewsDir = join(appHome, 'reviews')
 export const cacheDir = join(appHome, 'cache')
 export const reportsDir = join(appHome, 'teacher-reports')
+
+export const LEGACY_LLM_CONNECTION_ID = 'openai-compatible-default'
+export const CHATGPT_LLM_CONNECTION_ID = 'chatgpt-codex'
+export const DEFAULT_OPENAI_MODEL = 'gpt-5.6-sol'
+
+function defaultLlmConnections(): LlmConnectionProfile[] {
+  return [
+    {
+      id: LEGACY_LLM_CONNECTION_ID,
+      name: 'OpenAI-compatible API',
+      provider: 'openai-compatible',
+      authMode: 'api-key',
+      endpoint: 'https://api.openai.com/v1',
+      model: DEFAULT_OPENAI_MODEL,
+      enabled: true
+    },
+    {
+      id: CHATGPT_LLM_CONNECTION_ID,
+      name: 'ChatGPT 登录',
+      provider: 'codex-app-server',
+      authMode: 'managed-login',
+      model: '',
+      enabled: true
+    }
+  ]
+}
 
 for (const dir of [appHome, electronUserData, libraryDir, reviewsDir, cacheDir, reportsDir]) {
   mkdirSync(dir, { recursive: true })
@@ -78,7 +104,10 @@ const defaults: AppSettings = {
   pythonBin: defaultPythonBin(),
   llmBaseUrl: 'https://api.openai.com/v1',
   llmApiKey: '',
-  llmModel: 'gpt-5-mini',
+  llmModel: DEFAULT_OPENAI_MODEL,
+  activeLlmConnectionId: LEGACY_LLM_CONNECTION_ID,
+  llmConnections: defaultLlmConnections(),
+  llmConnectionSchemaVersion: 0,
   onboardingVersion: 0,
   llmSetupStatus: 'unconfigured',
   llmLastVerifiedAt: '',
@@ -134,7 +163,7 @@ type SecretValue =
   | { mode: 'local-v1'; value: string; iv: string; tag: string }
   | { mode: 'plain'; value: string }
 
-export const secretStore = new Store<{ llmApiKey?: SecretValue; ttsCustomApiKey?: SecretValue; ttsVolcengineApiKey?: SecretValue; ttsVolcengineAccessToken?: SecretValue; ikatagoPassword?: SecretValue; zhiziToken?: SecretValue }>({
+export const secretStore = new Store<{ llmApiKey?: SecretValue; llmApiKeys?: Record<string, SecretValue>; ttsCustomApiKey?: SecretValue; ttsVolcengineApiKey?: SecretValue; ttsVolcengineAccessToken?: SecretValue; ikatagoPassword?: SecretValue; zhiziToken?: SecretValue }>({
   name: 'secrets',
   cwd: appHome,
   defaults: {}
@@ -200,7 +229,7 @@ function decryptSecret(secret?: SecretValue): string {
 }
 
 export function hasLlmApiKey(): boolean {
-  return decryptSecret(secretStore.get('llmApiKey')).trim().length > 0
+  return getLlmApiKey(LEGACY_LLM_CONNECTION_ID).trim().length > 0
 }
 
 export function hasTtsCustomApiKey(): boolean {
@@ -224,10 +253,23 @@ export function hasZhiziToken(): boolean {
 }
 
 function saveLlmApiKey(value: string): void {
+  saveLlmApiKeyForConnection(LEGACY_LLM_CONNECTION_ID, value)
+}
+
+export function saveLlmApiKeyForConnection(connectionId: string, value: string): void {
   const trimmed = value.trim()
   if (trimmed) {
-    secretStore.set('llmApiKey', encryptSecret(trimmed))
+    if (connectionId === LEGACY_LLM_CONNECTION_ID) {
+      secretStore.set('llmApiKey', encryptSecret(trimmed))
+    }
+    const byConnection = secretStore.get('llmApiKeys', {})
+    secretStore.set('llmApiKeys', { ...byConnection, [connectionId]: encryptSecret(trimmed) })
   }
+}
+
+export function getLlmApiKey(connectionId: string): string {
+  const scoped = secretStore.get('llmApiKeys', {})[connectionId]
+  return decryptSecret(scoped ?? (connectionId === LEGACY_LLM_CONNECTION_ID ? secretStore.get('llmApiKey') : undefined))
 }
 
 function saveTtsCustomApiKey(value: string): void {
@@ -368,15 +410,60 @@ function migrateZhiziOfficialSettings(settings: AppSettings): AppSettings {
   return migrated
 }
 
+function normalizeLlmConnections(settings: AppSettings): AppSettings {
+  const migratingLegacySettings = settings.llmConnectionSchemaVersion < 1
+  const migratingProviderDefaults = settings.llmConnectionSchemaVersion < 2
+  const configured = !migratingLegacySettings && Array.isArray(settings.llmConnections) ? settings.llmConnections : []
+  const byId = new Map(configured.filter((item) => item && typeof item.id === 'string').map((item) => [item.id, item]))
+  const legacy = byId.get(LEGACY_LLM_CONNECTION_ID)
+  const legacyModel = legacy?.model || settings.llmModel || defaults.llmModel
+  byId.set(LEGACY_LLM_CONNECTION_ID, {
+    id: LEGACY_LLM_CONNECTION_ID,
+    name: legacy?.name || 'OpenAI-compatible API',
+    provider: 'openai-compatible',
+    authMode: 'api-key',
+    endpoint: legacy?.endpoint || settings.llmBaseUrl || defaults.llmBaseUrl,
+    model: migratingProviderDefaults && legacyModel === 'gpt-5-mini' && settings.llmSetupStatus !== 'verified'
+      ? DEFAULT_OPENAI_MODEL
+      : legacyModel,
+    enabled: legacy?.enabled !== false
+  })
+  const chatgpt = byId.get(CHATGPT_LLM_CONNECTION_ID)
+  byId.set(CHATGPT_LLM_CONNECTION_ID, {
+    id: CHATGPT_LLM_CONNECTION_ID,
+    name: chatgpt?.name || 'ChatGPT 登录',
+    provider: 'codex-app-server',
+    authMode: 'managed-login',
+    model: migratingProviderDefaults && chatgpt?.model === 'gpt-5-mini' ? '' : chatgpt?.model || '',
+    executablePath: chatgpt?.executablePath,
+    enabled: chatgpt?.enabled !== false
+  })
+  const llmConnections = [...byId.values()]
+  const activeLlmConnectionId = byId.has(settings.activeLlmConnectionId)
+    ? settings.activeLlmConnectionId
+    : LEGACY_LLM_CONNECTION_ID
+  const migrated = { ...settings, activeLlmConnectionId, llmConnections, llmConnectionSchemaVersion: 2 }
+  if (migratingProviderDefaults || JSON.stringify(settings.llmConnections) !== JSON.stringify(llmConnections)) {
+    settingsStore.set({ activeLlmConnectionId, llmConnections, llmConnectionSchemaVersion: 2 })
+  }
+  return migrated
+}
+
 export function getSettings(): AppSettings {
-  const persisted = migrateZhiziOfficialSettings(
-    migrateZhiziLoginIdentifier(
-      migrateLocalAnalysisDefault(migratePlaintextSecrets({ ...defaults, ...settingsStore.store }))
+  const persisted = normalizeLlmConnections(
+    migrateZhiziOfficialSettings(
+      migrateZhiziLoginIdentifier(
+        migrateLocalAnalysisDefault(migratePlaintextSecrets({ ...defaults, ...settingsStore.store }))
+      )
     )
   )
+  const active = persisted.llmConnections.find((item) => item.id === persisted.activeLlmConnectionId)
+  const activeApiKey = active?.provider === 'openai-compatible' ? getLlmApiKey(active.id) : ''
   return {
     ...persisted,
-    llmApiKey: decryptSecret(secretStore.get('llmApiKey')),
+    llmBaseUrl: active?.provider === 'openai-compatible' ? active.endpoint || persisted.llmBaseUrl : persisted.llmBaseUrl,
+    llmModel: active?.model ?? persisted.llmModel,
+    llmApiKey: activeApiKey,
     ttsCustomApiKey: decryptSecret(secretStore.get('ttsCustomApiKey')),
     ttsVolcengineApiKey: decryptSecret(secretStore.get('ttsVolcengineApiKey')),
     ttsVolcengineAccessToken: decryptSecret(secretStore.get('ttsVolcengineAccessToken')),
@@ -387,7 +474,9 @@ export function getSettings(): AppSettings {
 
 export function setSettings(next: Partial<AppSettings>): AppSettings {
   if (typeof next.llmApiKey === 'string') {
-    saveLlmApiKey(next.llmApiKey)
+    const current = getSettings()
+    const targetId = next.activeLlmConnectionId || current.activeLlmConnectionId
+    saveLlmApiKeyForConnection(targetId, next.llmApiKey)
   }
   if (typeof next.ttsCustomApiKey === 'string') {
     saveTtsCustomApiKey(next.ttsCustomApiKey)
@@ -413,6 +502,28 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
     zhiziToken: _zhiziToken,
     ...safeNext
   } = next
+  const currentBeforeWrite = getSettings()
+  const legacyFieldsChanged =
+    Object.prototype.hasOwnProperty.call(next, 'llmBaseUrl') ||
+    Object.prototype.hasOwnProperty.call(next, 'llmModel')
+  if (!safeNext.llmConnections && legacyFieldsChanged) {
+    safeNext.llmConnections = currentBeforeWrite.llmConnections.map((connection) =>
+      connection.id === LEGACY_LLM_CONNECTION_ID
+        ? {
+            ...connection,
+            endpoint: typeof next.llmBaseUrl === 'string' ? next.llmBaseUrl : connection.endpoint,
+            model: typeof next.llmModel === 'string' ? next.llmModel : connection.model
+          }
+        : connection
+    )
+  }
+  if (safeNext.llmConnections) {
+    const legacy = safeNext.llmConnections.find((connection) => connection.id === LEGACY_LLM_CONNECTION_ID)
+    if (legacy) {
+      safeNext.llmBaseUrl = legacy.endpoint || currentBeforeWrite.llmBaseUrl
+      safeNext.llmModel = legacy.model || currentBeforeWrite.llmModel
+    }
+  }
   delete safeNext.zhiziClientBin
   delete safeNext.zhiziExtraArgs
   delete safeNext.zhiziUseWhenLocalSlow
@@ -423,10 +534,15 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
   const llmConfigChanged =
     Object.prototype.hasOwnProperty.call(next, 'llmBaseUrl') ||
     Object.prototype.hasOwnProperty.call(next, 'llmApiKey') ||
-    Object.prototype.hasOwnProperty.call(next, 'llmModel')
+    Object.prototype.hasOwnProperty.call(next, 'llmModel') ||
+    Object.prototype.hasOwnProperty.call(next, 'activeLlmConnectionId') ||
+    Object.prototype.hasOwnProperty.call(next, 'llmConnections')
   if (llmConfigChanged && !Object.prototype.hasOwnProperty.call(next, 'llmSetupStatus')) {
     const current = getSettings()
-    const configured = Boolean(current.llmBaseUrl.trim() && current.llmApiKey.trim() && current.llmModel.trim())
+    const active = current.llmConnections.find((connection) => connection.id === current.activeLlmConnectionId)
+    const configured = active?.provider === 'codex-app-server'
+      ? false
+      : Boolean(current.llmBaseUrl.trim() && current.llmApiKey.trim() && current.llmModel.trim())
     settingsStore.set({
       llmSetupStatus: configured ? 'needs-attention' : 'unconfigured',
       llmLastVerifiedAt: ''
@@ -437,7 +553,7 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
 
 export function replaceSettings(next: AppSettings): AppSettings {
   if (next.llmApiKey.trim()) {
-    saveLlmApiKey(next.llmApiKey)
+    saveLlmApiKeyForConnection(next.activeLlmConnectionId || LEGACY_LLM_CONNECTION_ID, next.llmApiKey)
   }
   if (next.ttsCustomApiKey.trim()) {
     saveTtsCustomApiKey(next.ttsCustomApiKey)
@@ -482,6 +598,12 @@ export function getIkatagoPassword(): string {
 
 export function getZhiziToken(): string {
   return decryptSecret(secretStore.get('zhiziToken'))
+}
+
+export function getActiveLlmConnection(settings: AppSettings = getSettings()): LlmConnectionProfile {
+  return settings.llmConnections.find((connection) => connection.id === settings.activeLlmConnectionId)
+    ?? settings.llmConnections.find((connection) => connection.id === LEGACY_LLM_CONNECTION_ID)
+    ?? defaultLlmConnections()[0]
 }
 
 export function getGames(): LibraryGame[] {

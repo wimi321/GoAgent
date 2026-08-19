@@ -118,7 +118,13 @@ const emptyDashboard: DashboardData = {
     pythonBin: 'python',
     llmBaseUrl: 'https://api.openai.com/v1',
     llmApiKey: '',
-    llmModel: 'gpt-5-mini',
+    llmModel: 'gpt-5.6-sol',
+    activeLlmConnectionId: 'openai-compatible-default',
+    llmConnections: [
+      { id: 'openai-compatible-default', name: 'OpenAI-compatible API', provider: 'openai-compatible', authMode: 'api-key', endpoint: 'https://api.openai.com/v1', model: 'gpt-5.6-sol', enabled: true },
+      { id: 'chatgpt-codex', name: 'ChatGPT 登录', provider: 'codex-app-server', authMode: 'managed-login', model: '', enabled: true }
+    ],
+    llmConnectionSchemaVersion: 2,
     onboardingVersion: 0,
     llmSetupStatus: 'unconfigured',
     llmLastVerifiedAt: '',
@@ -175,6 +181,14 @@ const emptyDashboard: DashboardData = {
     proxyApiKey: '',
     proxyModels: [],
     hasLlmApiKey: false,
+    llmConnection: {
+      connectionId: 'openai-compatible-default',
+      provider: 'openai-compatible',
+      authMode: 'api-key',
+      ready: false,
+      status: 'signed-out',
+      message: '尚未配置 LLM。'
+    },
     hasZhiziToken: false,
     notes: []
   }
@@ -1640,7 +1654,8 @@ export function App(): ReactElement {
       const result = await window.goagent.testLlmSettings({
         llmBaseUrl: String(formData.get('llmBaseUrl') ?? ''),
         llmApiKey: String(formData.get('llmApiKey') ?? ''),
-        llmModel: String(formData.get('llmModel') ?? '')
+        llmModel: String(formData.get('llmModel') ?? ''),
+        connectionId: dashboard.settings.activeLlmConnectionId
       })
       setLlmTestMessage(result.ok ? `${t('settingsAiTitle')} · ${t('ready')}` : t('llmSetupRequired'))
       setDashboard(await window.goagent.getDashboard())
@@ -2737,7 +2752,7 @@ export function App(): ReactElement {
   }
 
   function ensureAiTeacherReady(): boolean {
-    const ready = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
+    const ready = dashboard.systemProfile.llmConnection.ready
     if (ready) return true
     setLlmTestMessage(t('llmSetupRequired'))
     setSettingsOpen(true)
@@ -3021,7 +3036,7 @@ export function App(): ReactElement {
     await submitTeacherPromptText(prompt)
   }
 
-  const llmReady = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
+  const llmReady = dashboard.systemProfile.llmConnection.ready
   const statusItems: StatusPill[] = [
     {
       label: localizeKataGoStatus(
@@ -3615,7 +3630,7 @@ function DesktopPreferencesModal({
     return null
   }
   const katagoReady = katagoAssets?.ready || dashboard.systemProfile.katagoReady
-  const llmReady = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
+  const llmReady = dashboard.systemProfile.llmConnection.ready
   return (
     <div className="desktop-preferences" role="dialog" aria-modal="true" aria-label={t('settingsTitle')} onMouseDown={onClose}>
       <section className="desktop-preferences__window" onMouseDown={(event) => event.stopPropagation()}>
@@ -4594,6 +4609,7 @@ function TeacherPanel({
         onChange={onPrompt}
         onSubmit={onSubmit}
         onStop={onStop}
+        onExplainCurrentMove={onAnalyze}
         t={t}
       />
     </div>
@@ -4675,6 +4691,9 @@ function SettingsDrawer({
   const [selectedPresetId, setSelectedPresetId] = useState<KataGoModelPresetId>(dashboard.settings.katagoModelPreset)
   const selectedPreset = modelPresets.find((preset) => preset.id === selectedPresetId) ?? modelPresets[0]
   const localeOptions = SUPPORTED_UI_LOCALES
+  const activeLlmConnection = dashboard.settings.llmConnections.find((connection) => connection.id === dashboard.settings.activeLlmConnectionId)
+    ?? dashboard.settings.llmConnections[0]
+  const managedLlmLogin = activeLlmConnection?.provider === 'codex-app-server'
   const llmModelOptions = useMemo(() => {
     if (llmModelsFetched) {
       return refreshedLlmModels
@@ -4741,7 +4760,8 @@ function SettingsDrawer({
     try {
       const result = await window.goagent.listLlmModels({
         llmBaseUrl: dashboard.settings.llmBaseUrl,
-        llmApiKey: ''
+        llmApiKey: '',
+        connectionId: dashboard.settings.activeLlmConnectionId
       })
       if (result.ok) {
         const models = uniqueModelOptions(result.models)
@@ -4749,10 +4769,10 @@ function SettingsDrawer({
         setLlmModelsFetched(true)
         if (!models.length) {
           setLlmModelRefreshMessage(`${t('noModelReturned')}。${t('modelPickerEmpty')}`)
-        } else if (!models.includes(selectedLlmModel)) {
-          const fallback = models.includes(dashboard.settings.llmModel) ? dashboard.settings.llmModel : models[0]
+        } else if (!models.includes(selectedLlmModel) || selectedLlmModel === 'gpt-5-mini') {
+          const fallback = result.recommendedModel || (models.includes(dashboard.settings.llmModel) ? dashboard.settings.llmModel : models[0])
           setSelectedLlmModel(fallback)
-          autoSave({ llmModel: fallback }, 0)
+          saveLlmModel(fallback)
         }
       }
       if (result.models.length) {
@@ -4763,7 +4783,7 @@ function SettingsDrawer({
     } finally {
       setLlmModelsRefreshing(false)
     }
-  }, [dashboard.settings.llmBaseUrl, dashboard.settings.llmModel, selectedLlmModel, autoSave, t])
+  }, [dashboard.settings.activeLlmConnectionId, dashboard.settings.llmBaseUrl, dashboard.settings.llmModel, selectedLlmModel, autoSave, t])
 
   useEffect(() => {
     setSelectedPresetId(dashboard.settings.katagoModelPreset)
@@ -4775,8 +4795,8 @@ function SettingsDrawer({
 
   const llmAutoFetchKeyRef = useRef('')
   useEffect(() => {
-    const fetchKey = `${dashboard.settings.llmBaseUrl}|${dashboard.systemProfile.hasLlmApiKey ? '1' : '0'}`
-    if (!dashboard.settings.llmBaseUrl.trim() || !dashboard.systemProfile.hasLlmApiKey) {
+    const fetchKey = `${dashboard.settings.activeLlmConnectionId}|${dashboard.settings.llmBaseUrl}|${dashboard.systemProfile.llmConnection.ready ? '1' : '0'}`
+    if (!dashboard.systemProfile.llmConnection.ready) {
       return
     }
     if (llmAutoFetchKeyRef.current === fetchKey) {
@@ -4787,7 +4807,56 @@ function SettingsDrawer({
       void refreshLlmModels()
     }, 600)
     return () => clearTimeout(timer)
-  }, [dashboard.settings.llmBaseUrl, dashboard.systemProfile.hasLlmApiKey, refreshLlmModels])
+  }, [dashboard.settings.activeLlmConnectionId, dashboard.settings.llmBaseUrl, dashboard.systemProfile.llmConnection.ready, refreshLlmModels])
+
+  useEffect(() => {
+    if (!managedLlmLogin || dashboard.systemProfile.llmConnection.ready) return
+    const timer = setInterval(() => {
+      void window.goagent.getDashboard().then((updated) => {
+        onDashboardUpdated(updated)
+        if (updated.systemProfile.llmConnection.ready) void refreshLlmModels()
+      }).catch(() => undefined)
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [managedLlmLogin, dashboard.systemProfile.llmConnection.ready, onDashboardUpdated, refreshLlmModels])
+
+  function saveLlmModel(model: string): void {
+    if (!managedLlmLogin) {
+      autoSave({ llmModel: model }, 0)
+      return
+    }
+    autoSave({
+      llmConnections: dashboard.settings.llmConnections.map((connection) =>
+        connection.id === dashboard.settings.activeLlmConnectionId ? { ...connection, model } : connection
+      )
+    }, 0)
+  }
+
+  async function selectLlmProvider(connectionId: string): Promise<void> {
+    const updated = await window.goagent.updateSettings({ activeLlmConnectionId: connectionId })
+    setLlmModelsFetched(false)
+    setRefreshedLlmModels([])
+    setSelectedLlmModel(updated.settings.llmModel)
+    onDashboardUpdated(updated)
+  }
+
+  async function loginWithChatGpt(): Promise<void> {
+    setLlmModelRefreshMessage('正在检查本机 Codex 登录…')
+    try {
+      const result = await window.goagent.startChatGptLogin()
+      onDashboardUpdated(result.dashboard)
+      setLlmModelRefreshMessage(result.login ? '请在浏览器完成登录；完成后这里会自动更新。' : '已复用 Codex 的 ChatGPT 登录。')
+    } catch (cause) {
+      setLlmModelRefreshMessage(String(cause))
+    }
+  }
+
+  async function logoutFromChatGpt(): Promise<void> {
+    const result = await window.goagent.logoutChatGpt()
+    onDashboardUpdated(result.dashboard)
+    setLlmModelsFetched(false)
+    setRefreshedLlmModels([])
+  }
 
   async function revealSavedLlmApiKey(): Promise<void> {
     setLlmKeyMessage('')
@@ -4814,7 +4883,7 @@ function SettingsDrawer({
   const zhiziEnabled = dashboard.settings.katagoEngineMode === 'zhizi'
   const zhiziLoggedIn = dashboard.systemProfile.hasZhiziToken
   const zhiziNav = zhiziSettingsNavCopy(dashboard.settings.reviewLanguage)
-  const llmReady = dashboard.systemProfile.hasLlmApiKey && dashboard.settings.llmSetupStatus === 'verified'
+  const llmReady = dashboard.systemProfile.llmConnection.ready
   const katagoReady = Boolean(katagoAssets?.ready || dashboard.systemProfile.katagoReady)
   const voiceReady = dashboard.settings.ttsEnabled
   const settingsPages: Array<{
@@ -4924,6 +4993,23 @@ function SettingsDrawer({
           </div>
           <span className={llmReady ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{llmReady ? t('ready') : t('pendingConfig')}</span>
         </header>
+        <div className="settings-actions" aria-label="AI provider">
+          <button
+            className={managedLlmLogin ? 'ghost-button' : 'primary-button'}
+            type="button"
+            onClick={() => void selectLlmProvider('openai-compatible-default')}
+          >
+            API Key
+          </button>
+          <button
+            className={managedLlmLogin ? 'primary-button' : 'ghost-button'}
+            type="button"
+            onClick={() => void selectLlmProvider('chatgpt-codex')}
+          >
+            ChatGPT 登录
+          </button>
+        </div>
+        {!managedLlmLogin ? <>
         <label>
           {t('llmBaseUrl')}
           <input
@@ -4973,6 +5059,39 @@ function SettingsDrawer({
           <small>{showLlmApiKey ? t('apiKeyShownHelp') : dashboard.systemProfile.hasLlmApiKey ? t('apiKeySavedHelp') : t('apiKeyMissingHelp')}</small>
           {llmKeyMessage ? <small>{llmKeyMessage}</small> : null}
         </div>
+        </> : (
+          <div className="llm-api-key-field">
+            <strong>{dashboard.systemProfile.llmConnection.ready ? 'ChatGPT 已登录' : '使用 ChatGPT 套餐登录'}</strong>
+            <small>
+              {dashboard.systemProfile.llmConnection.accountLabel || dashboard.systemProfile.llmConnection.message}
+              {dashboard.systemProfile.llmConnection.planLabel ? ` · ${dashboard.systemProfile.llmConnection.planLabel}` : ''}
+            </small>
+            <div className="settings-actions">
+              {dashboard.systemProfile.llmConnection.ready ? (
+                <button className="ghost-button" type="button" onClick={() => void logoutFromChatGpt()}>退出登录</button>
+              ) : (
+                <button className="primary-button" type="button" onClick={() => void loginWithChatGpt()}>使用 ChatGPT 登录</button>
+              )}
+            </div>
+            <label>
+              Codex CLI 路径（可选）
+              <input
+                className="llm-config-input"
+                value={activeLlmConnection?.executablePath || ''}
+                placeholder="codex"
+                spellCheck={false}
+                onChange={(event) => autoSave({
+                  llmConnections: dashboard.settings.llmConnections.map((connection) =>
+                    connection.id === dashboard.settings.activeLlmConnectionId
+                      ? { ...connection, executablePath: event.target.value }
+                      : connection
+                  )
+                })}
+              />
+              <small>默认从 PATH 查找 codex；找不到时可填写 Codex CLI 可执行文件的完整路径。</small>
+            </label>
+          </div>
+        )}
         <label>
           {t('multimodalModel')}
           <div className="llm-model-picker">
@@ -4988,7 +5107,7 @@ function SettingsDrawer({
               onChange={(event) => {
                 const next = event.target.value
                 setSelectedLlmModel(next)
-                autoSave({ llmModel: next }, 0)
+                saveLlmModel(next)
               }}
               aria-label={t('selectMultimodalModel')}
             />

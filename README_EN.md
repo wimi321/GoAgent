@@ -122,15 +122,13 @@ Requirements:
 
 - Node.js 22+
 - pnpm 10+
-- Python 3.10+
 - KataGo binary and model
-- Optional OpenAI-compatible multimodal LLM API
+- Optional OpenAI-compatible multimodal LLM API, or ChatGPT sign-in through the official Codex App Server
 
 For remote compute, see [iKataGo Remote Engine](./docs/IKATAGO_REMOTE_ENGINE.md). GoAgent uses a local `ikatago-client -- analysis` process and does not send positions remotely unless the user explicitly enables that engine path.
 
 ```bash
 pnpm install
-python3 -m pip install -r scripts/requirements.txt
 pnpm dev
 ```
 
@@ -151,10 +149,17 @@ pnpm dist:win
 pnpm dist:linux
 ```
 
+## AI Teacher Connections
+
+- **API key**: Continue using any OpenAI-compatible multimodal model service.
+- **ChatGPT sign-in**: Choose “Sign in with ChatGPT” under **Settings → AI Teacher**. GoAgent uses the official Codex App Server for sign-in, model discovery, and requests, and can use models in the active ChatGPT plan that accept board images.
+- The official Codex client manages sign-in credentials and OAuth tokens. GoAgent never reads, copies, or stores those tokens.
+
 ## Privacy
 
 - Games, reports, settings, and student profiles stay under `~/.goagent` by default.
-- Saved LLM API keys are encrypted with Electron `safeStorage` when available.
+- Saved LLM API keys use GoAgent's local secret store; the renderer never receives the complete saved key.
+- The official Codex App Server manages ChatGPT sign-in credentials and OAuth tokens; GoAgent never reads or stores them.
 - Current-move teaching may send a board screenshot, KataGo JSON, and selected knowledge cards to the configured LLM endpoint.
 - Web search is optional and should only use generic Go concepts.
 

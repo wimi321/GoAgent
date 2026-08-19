@@ -6,7 +6,6 @@ Thanks for helping build GoAgent. This project sits at the intersection of Go ed
 
 ```bash
 pnpm install
-python3 -m pip install -r scripts/requirements.txt
 pnpm dev
 ```
 
