@@ -35,6 +35,7 @@ export interface RuntimeAnalyzePositionRequest {
   maxVisits?: number
   runId?: string
   group?: KataGoAnalysisGroup
+  bypassCache?: boolean
 }
 
 export interface RuntimeAnalyzePositionStreamRequest extends RuntimeAnalyzePositionRequest {
@@ -53,8 +54,18 @@ export interface RuntimeAnalyzeGameQuickRequest {
   maxVisits?: number
   refineVisits?: number
   refineTopN?: number
+  totalMoves?: number
   runId?: string
+  group?: KataGoAnalysisGroup
   onProgress?: (progress: AnalyzeGameQuickProgress) => void
+}
+
+export interface RuntimeGameAnalysisCacheLookup {
+  complete: boolean
+  analyses: KataGoMoveAnalysis[]
+  hitCount: number
+  totalMoves: number
+  reason: string
 }
 
 export interface RuntimeAnalysisEnvelope {
@@ -203,6 +214,74 @@ function buildProfile(input: {
   })
 }
 
+function gameMoveCount(gameId: string, explicitTotalMoves?: number): number {
+  if (Number.isFinite(explicitTotalMoves) && Number(explicitTotalMoves) > 0) {
+    return Math.max(1, Math.round(Number(explicitTotalMoves)))
+  }
+  const indexed = findGame(gameId)
+  return Math.max(0, Math.round(Number(indexed?.moveCount ?? 0)))
+}
+
+/**
+ * Reads a complete sweep produced by the same game, model, engine settings,
+ * and visit profile. Partial sweeps are intentionally not returned: a teacher
+ * review must not silently omit an unanalysed section of the game.
+ */
+export function readGameAnalysisCacheRuntime(input: {
+  gameId: string
+  totalMoves?: number
+  maxVisits?: number
+}): RuntimeGameAnalysisCacheLookup {
+  const totalMoves = gameMoveCount(input.gameId, input.totalMoves)
+  if (totalMoves <= 0) {
+    return {
+      complete: false,
+      analyses: [],
+      hitCount: 0,
+      totalMoves: 0,
+      reason: 'game move count is unavailable'
+    }
+  }
+
+  const profile = buildProfile({
+    gameId: input.gameId,
+    requestedMaxVisits: input.maxVisits,
+    group: 'quick',
+    intent: 'quick-sweep'
+  })
+  const analyses: KataGoMoveAnalysis[] = []
+  for (let moveNumber = 1; moveNumber <= totalMoves; moveNumber += 1) {
+    const keyInput = runtimeCacheKey({
+      gameId: input.gameId,
+      moveNumber,
+      maxVisits: profile.maxVisits,
+      tier: profile.cacheTier
+    })
+    const cacheKey = analysisCacheKey(keyInput)
+    const lookup = readAnalysisCache(keyInput, {
+      minTier: 'sweep',
+      minBestVisits: 1,
+      allowStaleMs: 1000 * 60 * 60 * 24 * 30
+    })
+    const analysis = lookup.status === 'hit' ? lookup.entry?.analysis : undefined
+    if (!analysis || analysis.gameId !== input.gameId || analysis.moveNumber !== moveNumber || analysis.before.topMoves.length === 0) {
+      continue
+    }
+    analyses.push(attachRuntimeAnalysisEvidence({ analysis, profile, cache: lookup, cacheKey }))
+  }
+
+  const complete = analyses.length === totalMoves
+  return {
+    complete,
+    analyses: complete ? analyses : [],
+    hitCount: analyses.length,
+    totalMoves,
+    reason: complete
+      ? `complete sweep cache hit (${analyses.length}/${totalMoves})`
+      : `incomplete sweep cache (${analyses.length}/${totalMoves})`
+  }
+}
+
 export function attachRuntimeAnalysisEvidence(input: {
   analysis: KataGoMoveAnalysis
   profile: AdaptiveAnalysisProfile
@@ -251,7 +330,9 @@ export async function analyzePositionRuntimeEnvelope(input: RuntimeAnalyzePositi
     tier: profile.cacheTier
   })
   const cacheKey = analysisCacheKey(keyInput)
-  const lookup = readAnalysisCache(keyInput, cacheRequirementForProfile(profile))
+  const lookup: AnalysisCacheLookupResult = input.bypassCache
+    ? { status: 'miss', reason: 'fresh analysis requested; cache lookup bypassed' }
+    : readAnalysisCache(keyInput, cacheRequirementForProfile(profile))
   if (lookup.status === 'hit' && lookup.entry?.analysis) {
     const analysis = attachRuntimeAnalysisEvidence({ analysis: lookup.entry.analysis, profile, cache: lookup, cacheKey })
     return { analysis, cache: lookup, profile, evidence: analysis.runtimeEvidence! }
@@ -286,7 +367,9 @@ export async function analyzePositionWithProgressRuntime(input: RuntimeAnalyzePo
   })
   const keyInput = runtimeCacheKey({ gameId: input.gameId, moveNumber: input.moveNumber, maxVisits: profile.maxVisits, tier: profile.cacheTier })
   const cacheKey = analysisCacheKey(keyInput)
-  const lookup = readAnalysisCache(keyInput, cacheRequirementForProfile(profile))
+  const lookup: AnalysisCacheLookupResult = input.bypassCache
+    ? { status: 'miss', reason: 'fresh streaming analysis requested; cache lookup bypassed' }
+    : readAnalysisCache(keyInput, cacheRequirementForProfile(profile))
   if (lookup.status === 'hit' && lookup.entry?.analysis) {
     const cached = attachRuntimeAnalysisEvidence({ analysis: lookup.entry.analysis, profile, cache: lookup, cacheKey })
     input.onProgress?.(cached, true)
@@ -317,6 +400,24 @@ export async function analyzePositionWithProgressRuntime(input: RuntimeAnalyzePo
 
 export async function analyzeGameQuickRuntime(input: RuntimeAnalyzeGameQuickRequest): Promise<KataGoMoveAnalysis[]> {
   const profile = buildProfile({ gameId: input.gameId, requestedMaxVisits: input.maxVisits, group: 'quick', intent: 'quick-sweep' })
+  const cached = readGameAnalysisCacheRuntime({
+    gameId: input.gameId,
+    totalMoves: input.totalMoves,
+    maxVisits: input.maxVisits
+  })
+  if (cached.complete) {
+    const totalPositions = cached.totalMoves + 1
+    cached.analyses.forEach((evaluation, index) => {
+      input.onProgress?.({
+        evaluation,
+        gameId: input.gameId,
+        analyzedPositions: Math.min(totalPositions, index + 2),
+        totalPositions
+      })
+    })
+    return cached.analyses
+  }
+
   const analyses = await analyzeGameQuick(
     input.gameId,
     profile.maxVisits,
@@ -326,7 +427,8 @@ export async function analyzeGameQuickRuntime(input: RuntimeAnalyzeGameQuickRequ
     {
       refineVisits: input.refineVisits ?? profile.refineVisits,
       refineTopN: input.refineTopN ?? profile.refineTopN,
-      runId: input.runId
+      runId: input.runId,
+      group: input.group ?? 'quick'
     }
   )
   return analyses.map((analysis) => {

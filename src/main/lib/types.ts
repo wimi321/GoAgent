@@ -1,3 +1,5 @@
+export type ReviewStatus = 'idle' | 'running' | 'done' | 'error'
+
 export type TtsProviderId = 'kokoro-bundled' | 'volcengine-doubao' | 'custom-openai-compatible' | 'custom-http-json' | 'external-local-service'
 export type TtsReadMode = 'summary' | 'full' | 'selection'
 export type TtsAudioFormat = 'wav' | 'mp3' | 'pcm' | 'opus' | 'aac' | 'flac'
@@ -519,6 +521,20 @@ export interface GameRecord {
   initialStones?: BoardSetupStone[]
 }
 
+export interface ReviewArtifact {
+  markdown: string
+  summary: Record<string, unknown>
+  jsonPath: string
+  markdownPath: string
+}
+
+export interface ReviewResult {
+  game: LibraryGame
+  status: ReviewStatus
+  error?: string
+  artifact?: ReviewArtifact
+}
+
 export interface FoxSyncRequest {
   keyword: string
   maxGames?: number
@@ -667,6 +683,14 @@ export interface ReleaseReadinessResult {
   flags: ReleaseReadinessFlags
 }
 
+export interface ReviewRequest {
+  gameId: string
+  playerName: string
+  maxVisits: number
+  minWinrateDrop: number
+  useLlm?: boolean
+}
+
 export type CoachUserLevel = 'beginner' | 'intermediate' | 'advanced' | 'dan'
 export type StudentRank = 'sub1d' | '1d' | '2d' | '3d' | '4d' | '5d' | '6d' | '7d' | '8d' | '9d'
 export type StudentAgeRange = 'unknown' | 'child' | 'teen' | 'adult' | 'senior'
@@ -729,6 +753,10 @@ export interface TeacherToolLog {
   label: string
   status: TeacherToolStatus
   detail: string
+  progress?: {
+    current: number
+    total: number
+  }
   startedAt: string
   endedAt?: string
 }
@@ -1358,6 +1386,7 @@ export interface AnalyzePositionRequest {
   runId?: string
   group?: KataGoAnalysisGroup
   reportDuringSearchEvery?: number
+  bypassCache?: boolean
 }
 
 export interface AnalyzeTrialPositionRequest {

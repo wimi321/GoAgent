@@ -26,6 +26,7 @@ import { normalizeSgfKomiForAnalysis } from './sgfScoring'
 import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
 import { classifyMoveAnalysis } from './analysis/classifier'
 import { buildPvConfidenceReport } from './analysis/pvConfidence'
+import { createKataGoSearchProgressTracker, onlyKataGoSearchProgressFor } from './analysis/searchTelemetry'
 
 interface KataGoResponse {
   id?: string
@@ -33,6 +34,7 @@ interface KataGoResponse {
   isDuringSearch?: boolean
   rootInfo?: {
     currentPlayer?: GameMove['color']
+    visits?: number
     winrate?: number
     scoreLead?: number
     scoreStdev?: number
@@ -550,6 +552,15 @@ async function queryKataGoBatch(
   }
   const settings = getSettings()
   const runtime = resolveKataGoRuntime(settings)
+  const progressTracker = createKataGoSearchProgressTracker(
+    options.onSearchProgress,
+    Date.now,
+    queries.map((query) => query.id)
+  )
+  const emitResponse = (response: KataGoResponse): void => {
+    onResponse?.(response)
+    progressTracker.observe(response)
+  }
   if (options.replaceGroup && options.group) {
     cancelKataGoAnalysis({ group: options.group })
   }
@@ -566,8 +577,7 @@ async function queryKataGoBatch(
       group: options.group,
       timeoutMs: Math.max(240_000, queries.length * 9000),
       resolvePartialAfterMs: options.resolvePartialAfterMs,
-      onResponse: onResponse as ((response: Record<string, unknown>) => void) | undefined,
-      onSearchProgress: options.onSearchProgress
+      onResponse: emitResponse as (response: Record<string, unknown>) => void
     })
     return results as Map<string, KataGoResponse>
   }
@@ -595,7 +605,7 @@ async function queryKataGoBatch(
         group: options.group,
         timeoutMs: Math.max(180_000, queries.length * 5000),
         resolvePartialAfterMs: options.resolvePartialAfterMs,
-        onResponse: onResponse as ((response: Record<string, unknown>) => void) | undefined
+        onResponse: emitResponse as (response: Record<string, unknown>) => void
       })
       engineLease.finish('done')
       return results as Map<string, KataGoResponse>
@@ -628,7 +638,7 @@ async function queryKataGoBatch(
         runId: options.runId,
         group: options.group,
         timeoutMs: Math.max(180_000, queries.length * 5000),
-        onResponse: onResponse as ((response: Record<string, unknown>) => void) | undefined
+        onResponse: emitResponse as (response: Record<string, unknown>) => void
       })
       engineLease.finish('done')
       return results as Map<string, KataGoResponse>
@@ -729,7 +739,7 @@ async function queryKataGoBatch(
           const parsed = JSON.parse(line) as KataGoResponse
           const id = parsed.id ?? ''
           if (id) {
-            onResponse?.(parsed)
+            emitResponse(parsed)
           }
           if (id && !parsed.isDuringSearch) {
             results.set(id, parsed)
@@ -1046,7 +1056,15 @@ export async function analyzePositionWithProgress(
   const rootInitialStones = initialStonesFromRecord(record)
   const rootInitialPlayer = initialPlayerFromRecord(record)
   const deepEvidence = maxVisits >= 500
-  const afterVisits = Math.max(24, Math.floor(maxVisits * 0.55))
+  const foregroundLiveSearch = (options.group ?? 'live') === 'live'
+  // KataGo's analysis engine processes a batch in submission order. For the
+  // foreground board, establish a compact post-move baseline first, then let
+  // the pre-move candidate search keep deepening. This makes candidates and
+  // v/s visible within seconds instead of waiting behind a multi-thousand
+  // visit query. Teacher searches retain the deeper post-move evidence.
+  const afterVisits = foregroundLiveSearch
+    ? Math.max(24, Math.min(64, Math.round(maxVisits * 0.01)))
+    : Math.max(24, Math.floor(maxVisits * 0.55))
   const beforeId = `${gameId}-before-${moveNumber}-stream`
   const afterId = `${gameId}-after-${moveNumber}-stream`
   const actualId = `${gameId}-actual-${moveNumber}-stream`
@@ -1058,35 +1076,36 @@ export async function analyzePositionWithProgress(
 
   let responses: Map<string, KataGoResponse>
   try {
-    const queries: AnalysisQuery[] = [
-      {
-        id: beforeId,
-        moves: moveHistory(beforeMoves),
-        boardSize: record.boardSize,
-        initialStones: rootInitialStones,
-        initialPlayer: rootInitialPlayer,
-        includeOwnership: deepEvidence,
-        includeMovesOwnership: deepEvidence,
-        includePolicy: true,
-        includePVVisits: true,
-        komi,
-        maxVisits,
-        reportDuringSearchEvery
-      },
-      {
-        id: afterId,
-        moves: moveHistory(afterMoves),
-        boardSize: record.boardSize,
-        initialStones: rootInitialStones,
-        initialPlayer: rootInitialPlayer,
-        includeOwnership: deepEvidence,
-        includePolicy: true,
-        includePVVisits: true,
-        komi,
-        maxVisits: afterVisits,
-        reportDuringSearchEvery
-      }
-    ]
+    const beforeQuery: AnalysisQuery = {
+      id: beforeId,
+      moves: moveHistory(beforeMoves),
+      boardSize: record.boardSize,
+      initialStones: rootInitialStones,
+      initialPlayer: rootInitialPlayer,
+      includeOwnership: deepEvidence,
+      includeMovesOwnership: deepEvidence,
+      includePolicy: true,
+      includePVVisits: true,
+      komi,
+      maxVisits,
+      reportDuringSearchEvery
+    }
+    const afterQuery: AnalysisQuery = {
+      id: afterId,
+      moves: moveHistory(afterMoves),
+      boardSize: record.boardSize,
+      initialStones: rootInitialStones,
+      initialPlayer: rootInitialPlayer,
+      includeOwnership: deepEvidence,
+      includePolicy: true,
+      includePVVisits: true,
+      komi,
+      maxVisits: afterVisits,
+      reportDuringSearchEvery
+    }
+    const queries: AnalysisQuery[] = foregroundLiveSearch
+      ? [afterQuery, beforeQuery]
+      : [beforeQuery, afterQuery]
     const actualQuery = forcePlayedMoveQuery(
       actualId,
       beforeMoves,
@@ -1114,15 +1133,16 @@ export async function analyzePositionWithProgress(
       if (response.id === actualId) {
         latestActual = response
       }
-      if (latestBefore?.rootInfo && latestAfter?.rootInfo && (!actualQuery || latestActual?.rootInfo)) {
+      if (latestBefore?.rootInfo && latestAfter?.rootInfo) {
         const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, latestBefore, latestAfter, latestActual)
-        onProgress?.(partial, !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && !latestActual?.isDuringSearch)
+        const actualComplete = !actualQuery || Boolean(latestActual?.rootInfo && !latestActual.isDuringSearch)
+        onProgress?.(partial, !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && actualComplete)
       }
     }, {
       runId: options.runId ?? `${gameId}-live-${moveNumber}`,
       group: options.group ?? 'live',
       replaceGroup: options.replaceGroup ?? true,
-      onSearchProgress
+      onSearchProgress: onlyKataGoSearchProgressFor(beforeId, onSearchProgress)
     })
   } catch (error) {
     if (String(error).includes('已取消')) {
@@ -1293,7 +1313,7 @@ export async function analyzeTrialPositionWithProgress(
       group: input.group ?? 'trial',
       replaceGroup: false,
       resolvePartialAfterMs: 1200,
-      onSearchProgress: input.onSearchProgress
+      onSearchProgress: onlyKataGoSearchProgressFor(beforeId, input.onSearchProgress)
     })
   } catch (error) {
     if ((String(error).includes('已取消') || String(error).includes('KataGo 分析超时')) && latestBefore?.rootInfo && latestAfter?.rootInfo) {

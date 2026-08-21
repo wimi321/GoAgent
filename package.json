@@ -62,6 +62,7 @@
     "dist:local:win": "pnpm prepare:katago-transformer && pnpm dist:win",
     "dist:local:linux": "pnpm prepare:katago-transformer && pnpm dist:linux",
     "postinstall": "electron-builder install-app-deps",
+    "prepare:python": "python3 -m pip install -r scripts/requirements.txt",
     "prepare:katago-assets": "node scripts/prepare_katago_assets.mjs",
     "prepare:katago-transformer": "node scripts/download_katago_transformer.mjs",
     "prepare:zhizi-b28": "node scripts/download_zhizi_b28.mjs",

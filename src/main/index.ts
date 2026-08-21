@@ -18,6 +18,7 @@ import type {
   LlmModelsListRequest,
   LlmSettingsTestRequest,
   LlmConnectionActionResult,
+  ReviewRequest,
   TeacherBoardImageRenderImage,
   TeacherBoardImageRenderRequest,
   TeacherBoardImageRenderResponse,
@@ -40,6 +41,7 @@ import type {
 } from './lib/types'
 import { importSgfFile, readGameRecord } from './services/sgf'
 import { ensureFoxGameDownloaded, syncFoxGames } from './services/fox'
+import { runReview } from './services/review'
 import { applyDetectedDefaults, detectSystemProfile } from './services/systemProfile'
 import { cancelTeacherRun, runTeacherTask } from './services/teacherAgent'
 import { listLlmModels, testLlmSettings } from './services/llm'
@@ -455,6 +457,7 @@ app.whenReady().then(() => {
   ipcMain.handle('teacher-sessions:update-messages', async (_event, payload: { sessionId: string; messages: TeacherChatMessage[] }) => updateTeacherSessionMessages(payload.sessionId, payload.messages))
   ipcMain.handle('teacher-sessions:archive', async (_event, sessionId: string) => archiveTeacherSession(sessionId))
   ipcMain.handle('teacher-sessions:delete', async (_event, sessionId: string) => deleteTeacherSession(sessionId))
+  ipcMain.handle('review:start', async (_event, payload: ReviewRequest) => runReview(payload))
   ipcMain.handle('katago:analyze-position', async (_event, payload: AnalyzePositionRequest) => {
     const group = payload.group ?? (payload.runId ? 'teacher' : 'single')
     return runScheduledAnalysis({
@@ -463,7 +466,14 @@ app.whenReady().then(() => {
       priority: group === 'live' || group === 'single' ? 'live' : group === 'quick' ? 'quick' : 'teacher',
       description: `Analyze position ${payload.gameId}#${payload.moveNumber}`,
       replaceGroup: group === 'live' || !payload.runId
-    }, () => analyzePositionRuntime({ gameId: payload.gameId, moveNumber: payload.moveNumber, maxVisits: payload.maxVisits, runId: payload.runId, group }))
+    }, () => analyzePositionRuntime({
+      gameId: payload.gameId,
+      moveNumber: payload.moveNumber,
+      maxVisits: payload.maxVisits,
+      runId: payload.runId,
+      group,
+      bypassCache: payload.bypassCache
+    }))
   })
   ipcMain.handle('katago:analyze-position-stream', async (event, payload: AnalyzePositionRequest) => {
     const group = payload.group ?? (payload.runId ? 'teacher' : 'live')
@@ -480,6 +490,7 @@ app.whenReady().then(() => {
         maxVisits: payload.maxVisits,
         runId: payload.runId,
         group,
+        bypassCache: payload.bypassCache,
         reportDuringSearchEvery: payload.reportDuringSearchEvery ?? 0.2,
         onProgress: (analysis, isFinal) => safeSendToRenderer(event, 'katago:analyze-position-progress', {
           runId: payload.runId,

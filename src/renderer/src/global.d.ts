@@ -32,6 +32,8 @@ import type {
   LlmSettingsTestResult,
   LlmConnectionActionResult,
   KataGoMoveAnalysis,
+  ReviewRequest,
+  ReviewResult,
   StudentBindingSuggestion,
   StudentProfile,
   ReleaseReadinessResult,
@@ -86,8 +88,9 @@ declare global {
       updateSettings: (payload: Partial<AppSettings>) => Promise<DashboardData>
       autoDetectSettings: () => Promise<DashboardData>
       syncFox: (payload: FoxSyncRequest) => Promise<FoxSyncResponse>
+      startReview: (payload: ReviewRequest) => Promise<ReviewResult>
       analyzePosition: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis>
-      analyzePositionStream: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis>
+      analyzePositionStream: (payload: AnalyzePositionRequest) => Promise<KataGoMoveAnalysis | null>
       analyzeTrialPositionStream: (payload: AnalyzeTrialPositionRequest) => Promise<KataGoMoveAnalysis | null>
       analyzeGameQuick: (payload: AnalyzeGameQuickRequest) => Promise<KataGoMoveAnalysis[]>
       cancelKataGoAnalysis: (payload: KataGoCancelAnalysisRequest) => Promise<KataGoCancelAnalysisResult>

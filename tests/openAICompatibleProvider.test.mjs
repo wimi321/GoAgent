@@ -40,6 +40,7 @@ async function importProviderForTest() {
     streamOpenAICompatibleChat: provider.streamOpenAICompatibleChat,
     postOpenAICompatibleToolTurn: provider.postOpenAICompatibleToolTurn,
     streamOpenAICompatibleToolTurn: provider.streamOpenAICompatibleToolTurn,
+    isLlmSetupConfigurationError: provider.isLlmSetupConfigurationError,
     probeOpenAICompatibleProvider: provider.probeOpenAICompatibleProvider,
     cleanup: () => rm(root, { recursive: true, force: true })
   }
@@ -111,6 +112,34 @@ test('retries OpenAI-compatible parameter variants until the proxy accepts one',
     })
 
     assert.ok(requests.some((body) => 'max_tokens' in body))
+  } finally {
+    await cleanup()
+  }
+})
+
+test('non-stream requests retry a transient compatible-proxy failure', async () => {
+  const { postOpenAICompatibleChat, cleanup } = await importProviderForTest()
+  let calls = 0
+  try {
+    await withMockChatServer(() => {
+      calls += 1
+      if (calls === 1) {
+        return {
+          status: 503,
+          payload: { error: { message: 'temporary upstream unavailable' } }
+        }
+      }
+      return {
+        payload: {
+          choices: [{ finish_reason: 'stop', message: { content: 'OK' } }],
+          usage: { prompt_tokens: 4, completion_tokens: 1, total_tokens: 5 }
+        }
+      }
+    }, async (baseUrl) => {
+      const text = await postOpenAICompatibleChat(settings(baseUrl), [{ role: 'user', content: 'hello' }], 128)
+      assert.equal(text, 'OK')
+    })
+    assert.equal(calls, 2)
   } finally {
     await cleanup()
   }
@@ -391,6 +420,64 @@ test('stream tool turns accumulate streamed tool-call arguments', async () => {
       assert.equal(turn.toolCalls[0].function.name, 'knowledge_searchLocal')
       assert.equal(turn.toolCalls[0].function.arguments, '{"text":"定式"}')
     })
+  } finally {
+    await cleanup()
+  }
+})
+
+test('stream tool turns retry a transient proxy EOF before any visible output', async () => {
+  const { streamOpenAICompatibleToolTurn, cleanup } = await importProviderForTest()
+  let calls = 0
+  try {
+    await withMockChatServer(() => {
+      calls += 1
+      if (calls === 1) {
+        return {
+          status: 500,
+          payload: { error: { message: 'upstream responses request ended with EOF' } }
+        }
+      }
+      return {
+        payload: [
+          'data: {"choices":[{"delta":{"content":"复盘完成"},"finish_reason":"stop"}]}',
+          'data: [DONE]',
+          ''
+        ].join('\n\n')
+      }
+    }, async (baseUrl) => {
+      const turn = await streamOpenAICompatibleToolTurn(
+        settings(baseUrl),
+        [{ role: 'user', content: '分析整盘围棋' }],
+        [],
+        512
+      )
+      assert.equal(turn.text, '复盘完成')
+    })
+    assert.equal(calls, 2)
+  } finally {
+    await cleanup()
+  }
+})
+
+test('stream tool turns do not retry authentication failures', async () => {
+  const { streamOpenAICompatibleToolTurn, isLlmSetupConfigurationError, cleanup } = await importProviderForTest()
+  let calls = 0
+  try {
+    await withMockChatServer(() => {
+      calls += 1
+      return {
+        status: 401,
+        payload: { error: { message: 'invalid API key' } }
+      }
+    }, async (baseUrl) => {
+      await assert.rejects(
+        streamOpenAICompatibleToolTurn(settings(baseUrl), [{ role: 'user', content: 'hello' }], [], 128),
+        /401/
+      )
+    })
+    assert.equal(calls, 1)
+    assert.equal(isLlmSetupConfigurationError(new Error('LLM request failed: 401 invalid API key')), true)
+    assert.equal(isLlmSetupConfigurationError(new Error('LLM request failed: 500 upstream EOF')), false)
   } finally {
     await cleanup()
   }
