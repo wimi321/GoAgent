@@ -31,6 +31,9 @@ data/katago/models/**
 data/katago/edition.json
 !data/katago/README.md
 
+# Platform Codex App Server binaries are verified release inputs, not source files.
+data/codex/bin/**
+
 # Large local Kokoro TTS model files are prepared by scripts for release packaging.
 # Voices and metadata are small enough to version; the ONNX model is not.
 data/tts/kokoro/**/onnx/*.onnx

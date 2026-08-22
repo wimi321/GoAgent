@@ -82,6 +82,32 @@ export interface VisionEvidenceReport {
 }
 
 export type LlmSetupStatus = 'unconfigured' | 'verified' | 'skipped' | 'needs-attention'
+export type LlmProviderId = 'openai-compatible' | 'codex-app-server'
+export type LlmAuthMode = 'api-key' | 'managed-login'
+
+export interface LlmConnectionProfile {
+  id: string
+  name: string
+  provider: LlmProviderId
+  authMode: LlmAuthMode
+  model: string
+  endpoint?: string
+  executablePath?: string
+  enabled: boolean
+  setupStatus?: LlmSetupStatus
+  lastVerifiedAt?: string
+}
+
+export interface LlmConnectionState {
+  connectionId: string
+  provider: LlmProviderId
+  authMode: LlmAuthMode
+  ready: boolean
+  status: 'ready' | 'signed-out' | 'unavailable' | 'error'
+  accountLabel?: string
+  planLabel?: string
+  message: string
+}
 
 export interface AppSettings {
   katagoBin: string
@@ -124,6 +150,9 @@ export interface AppSettings {
   llmBaseUrl: string
   llmApiKey: string
   llmModel: string
+  activeLlmConnectionId: string
+  llmConnections: LlmConnectionProfile[]
+  llmConnectionSchemaVersion: number
   onboardingVersion: number
   llmSetupStatus: LlmSetupStatus
   llmLastVerifiedAt: string
@@ -405,6 +434,7 @@ export interface SystemProfile {
   proxyApiKey: string
   proxyModels: string[]
   hasLlmApiKey: boolean
+  llmConnection: LlmConnectionState
   hasZhiziToken: boolean
   notes: string[]
 }
@@ -1443,6 +1473,7 @@ export interface LlmSettingsTestRequest {
   llmBaseUrl: string
   llmApiKey: string
   llmModel: string
+  connectionId?: string
 }
 
 export interface LlmSettingsTestResult {
@@ -1464,17 +1495,33 @@ export interface LlmCapabilityCheck {
 export interface LlmModelsListRequest {
   llmBaseUrl: string
   llmApiKey: string
+  connectionId?: string
 }
 
 export interface LlmModelsListResult {
   ok: boolean
   models: string[]
+  recommendedModel?: string
   message: string
 }
 
 export interface LlmSavedApiKeyResult {
   hasKey: boolean
   apiKey: string
+}
+
+export interface LlmLoginStartResult {
+  connectionId: string
+  type: 'chatgpt' | 'chatgptDeviceCode'
+  loginId: string
+  authUrl?: string
+  verificationUrl?: string
+  userCode?: string
+}
+
+export interface LlmConnectionActionResult {
+  dashboard: DashboardData
+  login?: LlmLoginStartResult
 }
 
 export interface TtsSavedApiKeyResult {

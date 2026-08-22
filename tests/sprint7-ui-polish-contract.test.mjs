@@ -339,7 +339,7 @@ test('TeacherRunCardPro behaves like an AI editor response instead of a fixed re
   assert.match(main, /teacher:cancel-run/)
   const agent = read('src/main/services/teacherAgent.ts')
   assert.match(agent, /runTeacherAgentSession/)
-  assert.match(agent, /streamOpenAICompatibleToolTurn/)
+  assert.match(agent, /runProviderTurn/)
   assert.match(agent, /cancelTeacherRun/)
   assert.match(agent, /AbortController/)
   assert.match(agent, /老师任务已停止/)

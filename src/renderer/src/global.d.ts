@@ -30,6 +30,7 @@ import type {
   LlmModelsListResult,
   LlmSettingsTestRequest,
   LlmSettingsTestResult,
+  LlmConnectionActionResult,
   KataGoMoveAnalysis,
   ReviewRequest,
   ReviewResult,
@@ -128,6 +129,8 @@ declare global {
       onTeacherBoardImageRequest: (handler: (payload: TeacherBoardImageRenderRequest) => Promise<TeacherBoardImageRenderResponse> | TeacherBoardImageRenderResponse) => () => void
       testLlmSettings: (payload: LlmSettingsTestRequest) => Promise<LlmSettingsTestResult>
       listLlmModels: (payload: LlmModelsListRequest) => Promise<LlmModelsListResult>
+      startChatGptLogin: (payload?: { useDeviceCode?: boolean }) => Promise<LlmConnectionActionResult>
+      logoutChatGpt: () => Promise<LlmConnectionActionResult>
       getSavedLlmApiKey: () => Promise<{ hasKey: boolean; apiKey: string }>
       getSavedIkatagoPassword: () => Promise<{ hasPassword: boolean; password: string }>
       loginZhiziCloudPassword: (payload: ZhiziCloudLoginRequest) => Promise<ZhiziCloudLoginResult>

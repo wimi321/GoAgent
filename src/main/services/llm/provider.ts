@@ -50,6 +50,8 @@ export interface ChatResult {
 export interface ChatTurnResult {
   text: string
   toolCalls: ChatToolCall[]
+  executedToolCalls?: string[]
+  toolFollowupMessages?: ChatMessage[]
   raw?: unknown
   finishReason?: string
 }

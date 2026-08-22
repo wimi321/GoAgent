@@ -1,21 +1,30 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
 const root = process.cwd()
 const read = (path) => readFileSync(join(root, path), 'utf8')
 
-test('Teacher agent runtime uses a Claude Code style tool loop', () => {
+test('Teacher agent runtime uses adapters while preserving one domain tool contract', () => {
   const agent = read('src/main/services/teacherAgent.ts')
+  const registry = read('src/main/services/llm/providerRegistry.ts')
+  const codex = read('src/main/services/llm/codexAppServerClient.ts')
   assert.match(agent, /runTeacherAgentSession/)
-  assert.match(agent, /streamOpenAICompatibleToolTurn/)
+  assert.match(agent, /runProviderTurn/)
+  assert.doesNotMatch(agent, /prefetchEvidenceForManagedProvider/)
   assert.match(agent, /tool_calls/)
   assert.match(agent, /role:\s*'tool'/)
   assert.match(agent, /executeAgentToolCall/)
-  assert.match(agent, /for\s*\(\s*;;\s*\)/)
-  assert.doesNotMatch(agent, /maxTurns\s*=/)
-  assert.doesNotMatch(agent, /最大工具轮数/)
+  assert.match(agent, /MAX_AGENT_TURNS = 12/)
+  assert.match(agent, /successfulAgentTools/)
+  assert.match(agent, /if \(result\.ok\) successfulAgentTools\.add/)
+  assert.match(agent, /老师没有完成必要的证据工具调用/)
+  assert.match(agent, /validateVisionEvidenceForIntent\(finalVisionEvidence, intent\)/)
+  assert.match(registry, /runtimeFor\(profile\)\.runTurn/)
+  assert.match(registry, /toolsForLlmConnection/)
+  assert.match(codex, /dynamicTools: dynamicTools\(tools\)/)
+  assert.match(codex, /item\/tool\/call/)
   assert.doesNotMatch(agent, /finalAnswerRequest/)
   assert.doesNotMatch(agent, /AGENT_TOOL_SOFT_FINALIZE_TURNS/)
   assert.match(agent, /runTeacherAgentSession\([^)]+,\s*logs,\s*id,\s*intent,\s*context\)/)
@@ -71,7 +80,7 @@ test('Provider supports OpenAI-compatible tool-call turns', () => {
   assert.doesNotMatch(provider, /当前接口需要最终自然语言文本/)
 })
 
-test('Python review runtime is Windows-safe and does not hard-code python3 venv paths', () => {
+test('Python review runtime remains Windows-safe and independent from the provider change', () => {
   const runtime = read('src/main/services/pythonRuntime.ts')
   const review = read('src/main/services/review.ts')
   const store = read('src/main/lib/store.ts')

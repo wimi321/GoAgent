@@ -17,6 +17,8 @@ import type {
   LibraryDeleteRequest,
   LlmModelsListRequest,
   LlmSettingsTestRequest,
+  LlmConnectionActionResult,
+  LlmConnectionState,
   ReviewRequest,
   TeacherBoardImageRenderImage,
   TeacherBoardImageRenderRequest,
@@ -44,6 +46,7 @@ import { runReview } from './services/review'
 import { applyDetectedDefaults, detectSystemProfile } from './services/systemProfile'
 import { cancelTeacherRun, runTeacherTask } from './services/teacherAgent'
 import { listLlmModels, testLlmSettings } from './services/llm'
+import { disposeLlmProviders, inspectLlmConnection, logoutChatGpt, startChatGptLogin } from './services/llm/providerRegistry'
 import { analyzeTrialPositionWithProgress, cancelKataGoAnalysis } from './services/katago'
 import { benchmarkKataGo, cancelKataGoBenchmark, startKataGoBenchmark } from './services/katagoBenchmark'
 import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
@@ -334,18 +337,21 @@ function buildApplicationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
-async function dashboard(): Promise<DashboardData> {
+async function dashboard(llmConnectionOverride?: LlmConnectionState): Promise<DashboardData> {
   const hydratedSettings = await applyDetectedDefaults(getSettings())
   replaceSettings(hydratedSettings)
-  const publicSettings = { ...hydratedSettings, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
   const detectedProfile = await detectSystemProfile(hydratedSettings)
+  const llmConnection = llmConnectionOverride ?? await inspectLlmConnection(hydratedSettings)
+  const currentSettings = getSettings()
+  const publicSettings = { ...currentSettings, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
   return {
     settings: publicSettings,
     games: getGames(),
     systemProfile: {
       ...detectedProfile,
       proxyApiKey: '',
-      hasLlmApiKey: hasLlmApiKey()
+      hasLlmApiKey: hasLlmApiKey(),
+      llmConnection
     },
   }
 }
@@ -596,6 +602,43 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('llm:test', async (_event, payload: LlmSettingsTestRequest) => testLlmSettings(payload))
   ipcMain.handle('llm:list-models', async (_event, payload: LlmModelsListRequest) => listLlmModels(payload))
+  ipcMain.handle('llm:chatgpt-login', async (_event, payload?: { useDeviceCode?: boolean }): Promise<LlmConnectionActionResult> => {
+    const login = await startChatGptLogin(Boolean(payload?.useDeviceCode))
+    const url = login?.authUrl || login?.verificationUrl
+    if (url) void shell.openExternal(url).catch((error) => {
+      console.error('[llm] unable to open ChatGPT login URL', error)
+    })
+    const settings = getSettings()
+    const profile = settings.llmConnections.find((connection) => connection.id === settings.activeLlmConnectionId)
+    const llmConnection: LlmConnectionState = login
+      ? {
+          connectionId: login.connectionId,
+          provider: 'codex-app-server',
+          authMode: 'managed-login',
+          ready: false,
+          status: 'signed-out',
+          message: '请在浏览器完成 ChatGPT 登录。'
+        }
+      : await inspectLlmConnection(settings)
+    if (!profile || profile.provider !== 'codex-app-server') {
+      throw new Error('ChatGPT 登录配置没有正确启用。')
+    }
+    return { ...(login ? { login } : {}), dashboard: await dashboard(llmConnection) }
+  })
+  ipcMain.handle('llm:chatgpt-logout', async (): Promise<LlmConnectionActionResult> => {
+    await logoutChatGpt()
+    const settings = getSettings()
+    const profile = settings.llmConnections.find((connection) => connection.id === settings.activeLlmConnectionId)
+    const llmConnection: LlmConnectionState = {
+      connectionId: profile?.id ?? 'chatgpt-codex',
+      provider: 'codex-app-server',
+      authMode: 'managed-login',
+      ready: false,
+      status: 'signed-out',
+      message: '已退出 ChatGPT。'
+    }
+    return { dashboard: await dashboard(llmConnection) }
+  })
   ipcMain.handle('llm:get-saved-api-key', async () => {
     const settings = getSettings()
     return {
@@ -798,5 +841,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  disposeLlmProviders()
   resetZhiziPersistentSession()
 })

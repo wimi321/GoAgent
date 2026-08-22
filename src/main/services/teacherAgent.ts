@@ -29,7 +29,7 @@ import type {
   VisionEvidenceImageRole,
   VisionEvidenceReport
 } from '@main/lib/types'
-import type { ChatContentPart, ChatMessage, ChatTool, ChatToolCall, ChatTurnResult, ProviderSettings } from './llm/provider'
+import type { ChatContentPart, ChatMessage, ChatTool, ChatToolCall, ChatTurnResult } from './llm/provider'
 import { analyzePosition, cancelKataGoAnalysis } from './katago'
 import { analyzeGameQuickRuntime } from './analysis/runtimeIntegration'
 import { MOVE_RANGE_KEY_MOVE_LIMIT, MOVE_RANGE_MAX_MOVES, parseMoveRangeFromPrompt, validateMoveRange } from '@shared/moveRange'
@@ -68,7 +68,8 @@ import {
   validateVisionEvidenceForIntent
 } from './teacher/visionEvidence'
 import { buildVisionEvidenceRepairNote, verifyVisionEvidenceMarkdown } from './teacher/visionEvidenceVerifier'
-import { isLlmSetupConfigurationError, streamOpenAICompatibleToolTurn } from './llm/openaiCompatibleProvider'
+import { runProviderTurn } from './llm/providerRegistry'
+import { isLlmSetupConfigurationError } from './llm/openaiCompatibleProvider'
 
 type TeacherProgressEmitter = (progress: TeacherRunProgress) => void
 type TeacherBoardImageCaptureHandler = (request: TeacherBoardImageRenderRequest) => Promise<TeacherBoardImageRenderImage[]>
@@ -496,6 +497,7 @@ const SHELL_TASKS = new Map<string, ShellTask>()
 const ACTIVE_TEACHER_RUNS = new Map<string, { abortController: AbortController; cancelled: boolean }>()
 const MAX_TOOL_RESULT_CHARS = 18_000
 const MAX_SHELL_OUTPUT_CHARS = 24_000
+const MAX_AGENT_TURNS = 12
 
 class TeacherRunCancelledError extends Error {
   constructor() {
@@ -549,18 +551,6 @@ export function cancelTeacherRun(payload: { runId?: string } = {}): { cancelled:
 
 function agentSystemPrompt(level: CoachUserLevel): string {
   return systemPrompt(level)
-}
-
-function providerSettingsFromApp(): ProviderSettings {
-  const settings = getSettings()
-  if (!settings.llmBaseUrl.trim() || !settings.llmApiKey.trim() || !settings.llmModel.trim()) {
-    throw new Error('请先配置支持 tool calling 和图片输入的 OpenAI-compatible LLM 代理。')
-  }
-  return {
-    llmBaseUrl: settings.llmBaseUrl,
-    llmApiKey: settings.llmApiKey,
-    llmModel: settings.llmModel
-  }
 }
 
 function stringInput(input: JsonObject, key: string, fallback = ''): string {
@@ -2010,11 +2000,12 @@ async function executeAgentToolCall(
   call: ChatToolCall,
   tools: Map<string, TeacherAgentToolDefinition>,
   state: TeacherAgentSessionState
-): Promise<{ toolResult: string; followupMessages: ChatMessage[] }> {
+): Promise<{ ok: boolean; toolResult: string; followupMessages: ChatMessage[] }> {
   assertTeacherRunActive(state.context)
   const tool = tools.get(call.function.name)
   if (!tool) {
     return {
+      ok: false,
       toolResult: compactToolResult({ ok: false, error: `Unknown tool: ${call.function.name}` }),
       followupMessages: []
     }
@@ -2028,6 +2019,7 @@ async function executeAgentToolCall(
     emitToolState(state.context, state.logs, `${tool.canonicalName} 已完成`)
     const followupMessages = state.pendingToolMessages.splice(0)
     return {
+      ok: true,
       toolResult: compactToolResult({ ok: true, tool: tool.canonicalName, result }),
       followupMessages
     }
@@ -2042,6 +2034,7 @@ async function executeAgentToolCall(
     emitToolState(state.context, state.logs, detail)
     state.pendingToolMessages.splice(0)
     return {
+      ok: false,
       toolResult: compactToolResult({ ok: false, tool: tool.canonicalName, error: String(error) }),
       followupMessages: []
     }
@@ -2088,7 +2081,7 @@ async function runTeacherAgentSession(
     state.teachingPacing = buildTeachingPacingAdvice(request.prefetchedAnalysis)
   }
 
-  const settings = providerSettingsFromApp()
+  const settings = getSettings()
   const toolDefinitions = createTeacherAgentTools(state)
   const toolMap = new Map(toolDefinitions.map((tool) => [tool.apiName, tool]))
   const tools = toolDefinitions.map(chatTool)
@@ -2096,20 +2089,26 @@ async function runTeacherAgentSession(
     { role: 'system', content: agentSystemPrompt(profile.userLevel) },
     initialAgentUserMessage(state)
   ]
+  const successfulAgentTools = new Set<string>()
+  const executeTool = async (call: ChatToolCall) => {
+    const result = await executeAgentToolCall(call, toolMap, state)
+    if (result.ok) successfulAgentTools.add(call.function.name)
+    return result
+  }
 
   emitProgress(context, { stage: 'assistant-start', message: 'GoAgent agent 开始推理。', toolLogs: cloneToolLogs(logs) })
   let finalText = ''
   let emittedText = ''
-  for (;;) {
+  for (let turn = 1; turn <= MAX_AGENT_TURNS; turn += 1) {
     assertTeacherRunActive(context)
     let streamedThisTurn = ''
     let result: ChatTurnResult
     try {
-      result = await streamOpenAICompatibleToolTurn(settings, messages, tools, 4096, (delta) => {
+      result = await runProviderTurn(settings, messages, tools, 4096, (delta) => {
         streamedThisTurn += delta
         emittedText += delta
         emitAssistantDelta(context, delta)
-      }, context?.signal)
+      }, context?.signal, executeTool)
     } catch (error) {
       if (!isCancellationError(error)) {
         markLlmSetupNeedsAttention(error)
@@ -2117,6 +2116,8 @@ async function runTeacherAgentSession(
       throw error
     }
     assertTeacherRunActive(context)
+    for (const toolName of result.executedToolCalls ?? []) successfulAgentTools.add(toolName)
+    if (result.toolFollowupMessages?.length) messages.push(...result.toolFollowupMessages)
     if (result.toolCalls.length > 0) {
       messages.push({
         role: 'assistant',
@@ -2124,7 +2125,7 @@ async function runTeacherAgentSession(
         tool_calls: result.toolCalls
       })
       for (const call of result.toolCalls) {
-        const { toolResult, followupMessages } = await executeAgentToolCall(call, toolMap, state)
+        const { toolResult, followupMessages } = await executeTool(call)
         messages.push({
           role: 'tool',
           name: call.function.name,
@@ -2146,16 +2147,44 @@ async function runTeacherAgentSession(
   }
 
   if (!finalText) {
-    throw new Error('LLM 未生成最终回答。')
+    throw new Error(`老师在 ${MAX_AGENT_TURNS} 轮内未完成分析，请缩小任务范围后重试。`)
   }
   const finalVisionEvidence = state.request.visionEvidence ?? visionEvidence
+  const finalVisionValidation = validateVisionEvidenceForIntent(finalVisionEvidence, intent)
+  if (!finalVisionValidation.ok) {
+    throw new Error(`棋盘图证据不完整：${finalVisionValidation.blockingIssues.join('；')}`)
+  }
+  const requiredToolGroups: Partial<Record<TeacherIntent, string[][]>> = {
+    'current-move': [
+      ['board_captureTeachingImage'],
+      ['katago_analyzePosition'],
+      ['knowledge_matchPosition', 'knowledge_searchLocal']
+    ],
+    'game-review': [
+      ['sgf_readGameRecord'],
+      ['katago_analyzeGameBatch'],
+      ['board_captureTeachingImage'],
+      ['knowledge_matchPosition', 'knowledge_searchLocal', 'knowledge_searchJoseki', 'knowledge_searchLifeDeath', 'knowledge_searchTesuji']
+    ],
+    'move-range': [
+      ['katago_analyzeMoveRangeKeyMoves'],
+      ['board_captureTeachingImage'],
+      ['knowledge_matchPosition', 'knowledge_searchLocal', 'knowledge_searchJoseki', 'knowledge_searchLifeDeath', 'knowledge_searchTesuji']
+    ]
+  }
+  const missingEvidence = (requiredToolGroups[intent] ?? [])
+    .filter((group) => !group.some((toolName) => successfulAgentTools.has(toolName)))
+    .map((group) => group.join(' / '))
+  if (missingEvidence.length) {
+    throw new Error(`老师没有完成必要的证据工具调用：${missingEvidence.join('；')}`)
+  }
   const visionIssues = verifyVisionEvidenceMarkdown(finalText, finalVisionEvidence)
   if (visionIssues.some((issue) => issue.severity === 'error')) {
     messages.push({ role: 'assistant', content: finalText })
     messages.push({ role: 'user', content: `${buildVisionEvidenceRepairNote(visionIssues)}\n\n${formatVisionEvidenceForPrompt(finalVisionEvidence)}` })
     let repair: ChatTurnResult
     try {
-      repair = await streamOpenAICompatibleToolTurn(settings, messages, tools, 2048, (delta) => {
+      repair = await runProviderTurn(settings, messages, [], 2048, (delta) => {
         emitAssistantDelta(context, delta)
       }, context?.signal)
     } catch (error) {
