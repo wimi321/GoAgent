@@ -47,6 +47,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate Codex App Server manifest
+        run: pnpm check:codex-runtime
+
       - name: Typecheck
         run: pnpm typecheck
 

@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto'
 import { BRAND_DATA_DIR } from '@shared/brand'
-import type { AppSettings, LibraryGame, LlmConnectionProfile } from './types'
+import type { AppSettings, LibraryGame, LlmConnectionProfile, LlmSetupStatus } from './types'
 
 export const legacyElectronUserData = app.getPath('userData')
 export const appHome = process.env.GOAGENT_APP_HOME || join(app.getPath('home'), BRAND_DATA_DIR)
@@ -16,7 +16,7 @@ export const reportsDir = join(appHome, 'teacher-reports')
 
 export const LEGACY_LLM_CONNECTION_ID = 'openai-compatible-default'
 export const CHATGPT_LLM_CONNECTION_ID = 'chatgpt-codex'
-export const DEFAULT_OPENAI_MODEL = 'gpt-5.6-sol'
+export const DEFAULT_OPENAI_MODEL = 'gpt-5-mini'
 
 function defaultLlmConnections(): LlmConnectionProfile[] {
   return [
@@ -27,7 +27,9 @@ function defaultLlmConnections(): LlmConnectionProfile[] {
       authMode: 'api-key',
       endpoint: 'https://api.openai.com/v1',
       model: DEFAULT_OPENAI_MODEL,
-      enabled: true
+      enabled: true,
+      setupStatus: 'unconfigured',
+      lastVerifiedAt: ''
     },
     {
       id: CHATGPT_LLM_CONNECTION_ID,
@@ -35,7 +37,9 @@ function defaultLlmConnections(): LlmConnectionProfile[] {
       provider: 'codex-app-server',
       authMode: 'managed-login',
       model: '',
-      enabled: true
+      enabled: true,
+      setupStatus: 'unconfigured',
+      lastVerifiedAt: ''
     }
   ]
 }
@@ -412,39 +416,51 @@ function migrateZhiziOfficialSettings(settings: AppSettings): AppSettings {
 
 function normalizeLlmConnections(settings: AppSettings): AppSettings {
   const migratingLegacySettings = settings.llmConnectionSchemaVersion < 1
-  const migratingProviderDefaults = settings.llmConnectionSchemaVersion < 2
   const configured = !migratingLegacySettings && Array.isArray(settings.llmConnections) ? settings.llmConnections : []
   const byId = new Map(configured.filter((item) => item && typeof item.id === 'string').map((item) => [item.id, item]))
   const legacy = byId.get(LEGACY_LLM_CONNECTION_ID)
   const legacyModel = legacy?.model || settings.llmModel || defaults.llmModel
+  const legacyWasActive = migratingLegacySettings || settings.activeLlmConnectionId === LEGACY_LLM_CONNECTION_ID
   byId.set(LEGACY_LLM_CONNECTION_ID, {
     id: LEGACY_LLM_CONNECTION_ID,
     name: legacy?.name || 'OpenAI-compatible API',
     provider: 'openai-compatible',
     authMode: 'api-key',
     endpoint: legacy?.endpoint || settings.llmBaseUrl || defaults.llmBaseUrl,
-    model: migratingProviderDefaults && legacyModel === 'gpt-5-mini' && settings.llmSetupStatus !== 'verified'
-      ? DEFAULT_OPENAI_MODEL
-      : legacyModel,
-    enabled: legacy?.enabled !== false
+    model: legacyModel,
+    enabled: legacy?.enabled !== false,
+    setupStatus: legacy?.setupStatus ?? (legacyWasActive ? settings.llmSetupStatus : 'unconfigured'),
+    lastVerifiedAt: legacy?.lastVerifiedAt ?? (legacyWasActive ? settings.llmLastVerifiedAt : '')
   })
   const chatgpt = byId.get(CHATGPT_LLM_CONNECTION_ID)
+  const chatGptWasActive = !migratingLegacySettings && settings.activeLlmConnectionId === CHATGPT_LLM_CONNECTION_ID
   byId.set(CHATGPT_LLM_CONNECTION_ID, {
     id: CHATGPT_LLM_CONNECTION_ID,
     name: chatgpt?.name || 'ChatGPT 登录',
     provider: 'codex-app-server',
     authMode: 'managed-login',
-    model: migratingProviderDefaults && chatgpt?.model === 'gpt-5-mini' ? '' : chatgpt?.model || '',
+    model: chatgpt?.model || '',
     executablePath: chatgpt?.executablePath,
-    enabled: chatgpt?.enabled !== false
+    enabled: chatgpt?.enabled !== false,
+    setupStatus: chatgpt?.setupStatus ?? (chatGptWasActive ? settings.llmSetupStatus : 'unconfigured'),
+    lastVerifiedAt: chatgpt?.lastVerifiedAt ?? (chatGptWasActive ? settings.llmLastVerifiedAt : '')
   })
   const llmConnections = [...byId.values()]
   const activeLlmConnectionId = byId.has(settings.activeLlmConnectionId)
     ? settings.activeLlmConnectionId
     : LEGACY_LLM_CONNECTION_ID
-  const migrated = { ...settings, activeLlmConnectionId, llmConnections, llmConnectionSchemaVersion: 2 }
-  if (migratingProviderDefaults || JSON.stringify(settings.llmConnections) !== JSON.stringify(llmConnections)) {
-    settingsStore.set({ activeLlmConnectionId, llmConnections, llmConnectionSchemaVersion: 2 })
+  const active = byId.get(activeLlmConnectionId)
+  const llmSetupStatus = active?.setupStatus ?? 'unconfigured'
+  const llmLastVerifiedAt = active?.lastVerifiedAt ?? ''
+  const migrated = { ...settings, activeLlmConnectionId, llmConnections, llmConnectionSchemaVersion: 3, llmSetupStatus, llmLastVerifiedAt }
+  if (
+    settings.llmConnectionSchemaVersion !== 3 ||
+    settings.activeLlmConnectionId !== activeLlmConnectionId ||
+    settings.llmSetupStatus !== llmSetupStatus ||
+    settings.llmLastVerifiedAt !== llmLastVerifiedAt ||
+    JSON.stringify(settings.llmConnections) !== JSON.stringify(llmConnections)
+  ) {
+    settingsStore.set({ activeLlmConnectionId, llmConnections, llmConnectionSchemaVersion: 3, llmSetupStatus, llmLastVerifiedAt })
   }
   return migrated
 }
@@ -524,6 +540,50 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
       safeNext.llmModel = legacy.model || currentBeforeWrite.llmModel
     }
   }
+  const targetConnectionId = safeNext.activeLlmConnectionId || currentBeforeWrite.activeLlmConnectionId
+  const candidateConnections = safeNext.llmConnections ?? currentBeforeWrite.llmConnections
+  const previousById = new Map(currentBeforeWrite.llmConnections.map((connection) => [connection.id, connection]))
+  const apiKeyChanged = typeof next.llmApiKey === 'string' && next.llmApiKey.trim().length > 0
+  const connectionsWithVerification: LlmConnectionProfile[] = candidateConnections.map((connection): LlmConnectionProfile => {
+    const previous = previousById.get(connection.id)
+    const configurationChanged =
+      previous?.provider !== connection.provider ||
+      previous?.endpoint !== connection.endpoint ||
+      previous?.model !== connection.model ||
+      previous?.executablePath !== connection.executablePath ||
+      (connection.id === targetConnectionId && apiKeyChanged)
+    if (connection.id !== targetConnectionId) return connection
+    if (Object.prototype.hasOwnProperty.call(next, 'llmSetupStatus')) {
+      return {
+        ...connection,
+        setupStatus: next.llmSetupStatus,
+        lastVerifiedAt: next.llmLastVerifiedAt ?? (next.llmSetupStatus === 'verified' ? connection.lastVerifiedAt ?? '' : '')
+      }
+    }
+    if (!configurationChanged) return connection
+    const configured = connection.provider === 'codex-app-server'
+      ? false
+      : Boolean(connection.endpoint?.trim() && getLlmApiKey(connection.id).trim() && connection.model.trim())
+    const setupStatus: LlmSetupStatus = configured ? 'needs-attention' : 'unconfigured'
+    return {
+      ...connection,
+      setupStatus,
+      lastVerifiedAt: ''
+    }
+  })
+  if (
+    safeNext.llmConnections ||
+    safeNext.activeLlmConnectionId ||
+    legacyFieldsChanged ||
+    apiKeyChanged ||
+    Object.prototype.hasOwnProperty.call(next, 'llmSetupStatus')
+  ) {
+    safeNext.llmConnections = connectionsWithVerification
+    safeNext.llmConnectionSchemaVersion = 3
+    const target = connectionsWithVerification.find((connection) => connection.id === targetConnectionId)
+    safeNext.llmSetupStatus = target?.setupStatus ?? 'unconfigured'
+    safeNext.llmLastVerifiedAt = target?.lastVerifiedAt ?? ''
+  }
   delete safeNext.zhiziClientBin
   delete safeNext.zhiziExtraArgs
   delete safeNext.zhiziUseWhenLocalSlow
@@ -531,23 +591,6 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
     Object.prototype.hasOwnProperty.call(safeNext, 'katagoEngineMode') ||
     Object.prototype.hasOwnProperty.call(safeNext, 'ikatagoUseWhenLocalSlow')
   settingsStore.set(shouldMarkLocalDefaultApplied ? { ...safeNext, localAnalysisDefaultApplied: true } : safeNext)
-  const llmConfigChanged =
-    Object.prototype.hasOwnProperty.call(next, 'llmBaseUrl') ||
-    Object.prototype.hasOwnProperty.call(next, 'llmApiKey') ||
-    Object.prototype.hasOwnProperty.call(next, 'llmModel') ||
-    Object.prototype.hasOwnProperty.call(next, 'activeLlmConnectionId') ||
-    Object.prototype.hasOwnProperty.call(next, 'llmConnections')
-  if (llmConfigChanged && !Object.prototype.hasOwnProperty.call(next, 'llmSetupStatus')) {
-    const current = getSettings()
-    const active = current.llmConnections.find((connection) => connection.id === current.activeLlmConnectionId)
-    const configured = active?.provider === 'codex-app-server'
-      ? false
-      : Boolean(current.llmBaseUrl.trim() && current.llmApiKey.trim() && current.llmModel.trim())
-    settingsStore.set({
-      llmSetupStatus: configured ? 'needs-attention' : 'unconfigured',
-      llmLastVerifiedAt: ''
-    })
-  }
   return getSettings()
 }
 

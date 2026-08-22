@@ -149,10 +149,6 @@ export async function applyDetectedDefaults(settings: AppSettings): Promise<AppS
     return hydratedKatago
   }
   const preferredModel =
-    detected.proxyModels.find((model) => model === 'gpt-5.6') ||
-    detected.proxyModels.find((model) => model === 'gpt-5.6-sol') ||
-    detected.proxyModels.find((model) => model === 'gpt-5.6-terra') ||
-    detected.proxyModels.find((model) => model === 'gpt-5.6-luna') ||
     detected.proxyModels.find((model) => model === 'gpt-5.5') ||
     detected.proxyModels.find((model) => model === 'gpt-5.4-mini') ||
     detected.proxyModels.find((model) => model === 'gpt-5-codex-mini') ||
@@ -164,7 +160,7 @@ export async function applyDetectedDefaults(settings: AppSettings): Promise<AppS
     llmBaseUrl: settings.llmBaseUrl === 'https://api.openai.com/v1' && detected.proxyBaseUrl ? detected.proxyBaseUrl : settings.llmBaseUrl,
     llmApiKey: settings.llmApiKey || detected.proxyApiKey,
     llmModel:
-      (settings.llmModel && settings.llmModel !== 'gpt-5-mini' && settings.llmModel !== 'gpt-5.6-sol')
+      (settings.llmModel && settings.llmModel !== 'gpt-5-mini')
         ? settings.llmModel
         : preferredModel,
   }

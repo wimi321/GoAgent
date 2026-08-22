@@ -7,23 +7,56 @@ import type {
   LlmSettingsTestResult
 } from '@main/lib/types'
 import { getActiveLlmConnection, getLlmApiKey, getSettings, setSettings } from '@main/lib/store'
-import type { ChatMessage, ChatTool, ChatTurnResult, ProviderSettings } from './provider'
-import { listOpenAICompatibleModels, probeOpenAICompatibleProvider, streamOpenAICompatibleToolTurn } from './openaiCompatibleProvider'
-import { CodexAppServerClient } from './codexAppServerClient'
+import type { ChatMessage, ChatTool, ChatTurnResult } from './provider'
+import type { AgentRuntimeAdapter, AgentToolExecutor } from './agentRuntime'
+import { CodexAppServerAgentRuntime } from './codexAppServerAgentRuntime'
+import type { CodexAvailableModel } from './codexAppServerClient'
+import { OpenAICompatibleAgentRuntime } from './openAICompatibleAgentRuntime'
 
-let codexClient: CodexAppServerClient | null = null
+const openAICompatibleRuntime = new OpenAICompatibleAgentRuntime()
+let codexRuntime: CodexAppServerAgentRuntime | null = null
 let codexExecutablePath = ''
 
-type CodexModel = { id: string; supportsImage: boolean; isDefault: boolean }
+const CODEX_DOMAIN_TOOL_NAMES = new Set([
+  'library_findGames',
+  'sgf_readGameRecord',
+  'katago_analyzePosition',
+  'katago_analyzeGameBatch',
+  'katago_analyzeMoveRangeKeyMoves',
+  'katago_getAnalysisCache',
+  'katago_getTracePacket',
+  'katago_compareMoves',
+  'katago_verifyAnalysis',
+  'board_captureTeachingImage',
+  'knowledge_searchLocal',
+  'knowledge_matchPosition',
+  'knowledge_searchJoseki',
+  'knowledge_searchLifeDeath',
+  'knowledge_searchTesuji',
+  'knowledge_recommendProblems',
+  'studentProfile_read',
+  'studentProfile_write',
+  'artifact_createTeachingArtifact',
+  'report_saveAnalysis'
+])
 
-function clientFor(profile: LlmConnectionProfile): CodexAppServerClient {
+export function toolsForLlmConnection(profile: LlmConnectionProfile, tools: ChatTool[]): ChatTool[] {
+  if (profile.provider !== 'codex-app-server') return tools
+  return tools.filter((tool) => CODEX_DOMAIN_TOOL_NAMES.has(tool.function.name))
+}
+
+function codexRuntimeFor(profile: LlmConnectionProfile): CodexAppServerAgentRuntime {
   const executablePath = profile.executablePath?.trim() || ''
-  if (!codexClient || executablePath !== codexExecutablePath) {
-    codexClient?.dispose()
+  if (!codexRuntime || executablePath !== codexExecutablePath) {
+    codexRuntime?.dispose()
     codexExecutablePath = executablePath
-    codexClient = new CodexAppServerClient(executablePath)
+    codexRuntime = new CodexAppServerAgentRuntime(executablePath)
   }
-  return codexClient
+  return codexRuntime
+}
+
+function runtimeFor(profile: LlmConnectionProfile): AgentRuntimeAdapter {
+  return profile.provider === 'codex-app-server' ? codexRuntimeFor(profile) : openAICompatibleRuntime
 }
 
 export function resolveLlmConnection(settings: AppSettings = getSettings(), connectionId?: string): LlmConnectionProfile {
@@ -31,19 +64,12 @@ export function resolveLlmConnection(settings: AppSettings = getSettings(), conn
     ?? getActiveLlmConnection(settings)
 }
 
-function apiSettings(profile: LlmConnectionProfile): ProviderSettings {
-  const llmApiKey = getLlmApiKey(profile.id)
-  if (!profile.endpoint?.trim() || !llmApiKey || !profile.model.trim()) {
-    throw new Error('请先完成 OpenAI-compatible API 地址、API Key 和模型配置。')
-  }
-  return { llmBaseUrl: profile.endpoint, llmApiKey, llmModel: profile.model }
-}
-
-function selectCodexVisionModel(profile: LlmConnectionProfile, models: CodexModel[]): CodexModel | undefined {
-  const visionModels = models.filter((model) => model.supportsImage)
-  return visionModels.find((model) => model.id === profile.model)
-    ?? visionModels.find((model) => model.isDefault)
-    ?? visionModels[0]
+function selectCodexModel(profile: LlmConnectionProfile, models: CodexAvailableModel[]): CodexAvailableModel | undefined {
+  return models.find((model) => model.id === profile.model)
+    ?? models.find((model) => model.supportsImage === true && model.isDefault)
+    ?? models.find((model) => model.isDefault)
+    ?? models.find((model) => model.supportsImage === true)
+    ?? models[0]
 }
 
 function persistConnectionModel(connectionId: string, model: string): void {
@@ -55,35 +81,24 @@ function persistConnectionModel(connectionId: string, model: string): void {
   })
 }
 
-function recommendedOpenAIModel(models: string[]): string | undefined {
-  const candidates = models.flatMap((id) => {
-    const match = /^gpt-(\d+)(?:\.(\d+))?(?:-(sol|terra|luna))?$/i.exec(id)
-    if (!match) return []
-    const tier = match[3]?.toLowerCase()
-    return [{ id, major: Number(match[1]), minor: Number(match[2] || 0), tier: tier === 'sol' ? 3 : tier === 'terra' ? 2 : tier === 'luna' ? 1 : 4 }]
-  })
-  candidates.sort((left, right) => right.major - left.major || right.minor - left.minor || right.tier - left.tier)
-  return candidates[0]?.id ?? models.find((id) => /^gpt-/i.test(id)) ?? models[0]
-}
-
 export function activeProviderSupportsTools(settings: AppSettings = getSettings()): boolean {
-  return getActiveLlmConnection(settings).provider === 'openai-compatible'
+  return runtimeFor(getActiveLlmConnection(settings)).capabilities.tools
 }
 
 export async function inspectLlmConnection(settings: AppSettings = getSettings()): Promise<LlmConnectionState> {
   const profile = getActiveLlmConnection(settings)
   if (profile.provider === 'codex-app-server') {
-    const state = await clientFor(profile).connectionState(profile.id)
+    const state = await codexRuntimeFor(profile).connectionState(profile.id)
     if (!state.ready) return state
     try {
-      const models = await clientFor(profile).listModels()
-      const selected = selectCodexVisionModel(profile, models)
+      const models = await codexRuntimeFor(profile).availableModels()
+      const selected = selectCodexModel(profile, models)
       if (!selected) {
         return {
           ...state,
           ready: false,
           status: 'error',
-          message: '当前 ChatGPT 账号没有可用的多模态模型。'
+          message: '当前 ChatGPT 账号没有返回可用模型。'
         }
       }
       persistConnectionModel(profile.id, selected.id)
@@ -106,33 +121,9 @@ export async function inspectLlmConnection(settings: AppSettings = getSettings()
 export async function testConnection(connectionId?: string): Promise<LlmSettingsTestResult> {
   const settings = getSettings()
   const profile = resolveLlmConnection(settings, connectionId)
-  if (profile.provider === 'codex-app-server') {
-    const state = await clientFor(profile).connectionState(profile.id)
-    let models: CodexModel[] = []
-    if (state.ready) models = await clientFor(profile).listModels()
-    const selected = selectCodexVisionModel(profile, models)
-    const hasVision = Boolean(selected?.supportsImage)
-    const ok = state.ready && hasVision
-    if (ok && selected) persistConnectionModel(profile.id, selected.id)
-    setSettings({ llmSetupStatus: ok ? 'verified' : 'needs-attention', llmLastVerifiedAt: ok ? new Date().toISOString() : '' })
-    return {
-      ok,
-      message: ok ? 'ChatGPT 登录有效，且当前模型支持图片输入。' : state.ready ? 'ChatGPT 已登录，但所选模型不可用或不支持图片输入。' : state.message,
-      capabilities: {
-        text: { ok: state.ready, message: state.ready ? 'ChatGPT 文本访问可用。' : state.message },
-        vision: { ok: hasVision, message: hasVision ? '发现支持图片输入的模型。' : '未发现图片输入能力。' },
-        tools: { ok: true, message: 'GoAgent 将先运行本地 KataGo 工具，再由 ChatGPT 统一讲解。' }
-      }
-    }
-  }
-  const result = await probeOpenAICompatibleProvider(apiSettings(profile))
-  const capabilities = result.capabilities ?? {
-    text: { ok: result.ok, message: result.message, technicalDetail: result.technicalDetail },
-    vision: { ok: Boolean(result.supportsImage), message: result.message, technicalDetail: result.technicalDetail },
-    tools: { ok: false, message: '尚未验证工具调用。' }
-  }
+  const result = await runtimeFor(profile).probe(profile)
   setSettings({ llmSetupStatus: result.ok ? 'verified' : 'needs-attention', llmLastVerifiedAt: result.ok ? new Date().toISOString() : '' })
-  return { ok: result.ok, message: result.message, capabilities }
+  return result
 }
 
 export async function listConnectionModels(connectionId?: string): Promise<LlmModelsListResult> {
@@ -140,8 +131,8 @@ export async function listConnectionModels(connectionId?: string): Promise<LlmMo
   const profile = resolveLlmConnection(settings, connectionId)
   try {
     if (profile.provider === 'codex-app-server') {
-      const available = (await clientFor(profile).listModels()).filter((model) => model.supportsImage)
-      const selected = selectCodexVisionModel(profile, available)
+      const available = await codexRuntimeFor(profile).availableModels()
+      const selected = selectCodexModel(profile, available)
       if (selected) persistConnectionModel(profile.id, selected.id)
       const models = selected
         ? [selected.id, ...available.filter((model) => model.id !== selected.id).map((model) => model.id)]
@@ -150,16 +141,10 @@ export async function listConnectionModels(connectionId?: string): Promise<LlmMo
         ok: true,
         models,
         recommendedModel: selected?.id,
-        message: models.length ? `已从当前 ChatGPT 账号刷新 ${models.length} 个多模态模型。` : '当前账号没有返回多模态模型。'
+        message: models.length ? `已从当前 ChatGPT 账号刷新 ${models.length} 个模型。` : '当前账号没有返回可用模型。'
       }
     }
-    const models = await listOpenAICompatibleModels(apiSettings(profile))
-    return {
-      ok: true,
-      models,
-      recommendedModel: recommendedOpenAIModel(models),
-      message: models.length ? `已从模型接口刷新 ${models.length} 个模型。` : '连接可用，但没有返回模型列表。'
-    }
+    return await openAICompatibleRuntime.listModels(profile)
   } catch (error) {
     return { ok: false, models: [], message: String(error) }
   }
@@ -170,23 +155,23 @@ export async function startChatGptLogin(useDeviceCode = false): Promise<LlmLogin
   const profile = settings.llmConnections.find((item) => item.provider === 'codex-app-server')
   if (!profile) throw new Error('ChatGPT provider 配置不存在。')
   setSettings({ activeLlmConnectionId: profile.id, llmSetupStatus: 'needs-attention', llmLastVerifiedAt: '' })
-  const state = await clientFor(profile).connectionState(profile.id)
+  const state = await codexRuntimeFor(profile).connectionState(profile.id)
   if (state.ready) {
-    const models = await clientFor(profile).listModels()
-    const selected = selectCodexVisionModel(profile, models)
-    if (!selected) throw new Error('当前 ChatGPT 账号没有可用的多模态模型。')
+    const models = await codexRuntimeFor(profile).availableModels()
+    const selected = selectCodexModel(profile, models)
+    if (!selected) throw new Error('当前 ChatGPT 账号没有返回可用模型。')
     persistConnectionModel(profile.id, selected.id)
-    setSettings({ llmSetupStatus: 'verified', llmLastVerifiedAt: new Date().toISOString() })
+    setSettings({ llmSetupStatus: 'needs-attention', llmLastVerifiedAt: '' })
     return undefined
   }
   if (state.status === 'unavailable') throw new Error(state.message)
-  return clientFor(profile).startLogin(profile.id, useDeviceCode)
+  return codexRuntimeFor(profile).startLogin(profile.id, useDeviceCode)
 }
 
 export async function logoutChatGpt(): Promise<void> {
   const profile = getSettings().llmConnections.find((item) => item.provider === 'codex-app-server')
   if (!profile) return
-  await clientFor(profile).logout()
+  await codexRuntimeFor(profile).logout()
   setSettings({ llmSetupStatus: 'unconfigured', llmLastVerifiedAt: '' })
 }
 
@@ -196,17 +181,24 @@ export async function runProviderTurn(
   tools: ChatTool[],
   maxTokens: number,
   onDelta?: (delta: string) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  executeTool?: AgentToolExecutor
 ): Promise<ChatTurnResult> {
   const profile = getActiveLlmConnection(settings)
-  if (profile.provider === 'codex-app-server') {
-    return clientFor(profile).runTurn(profile, messages, onDelta, signal)
-  }
-  return streamOpenAICompatibleToolTurn(apiSettings(profile), messages, tools, maxTokens, onDelta, signal)
+  return runtimeFor(profile).runTurn({
+    profile,
+    messages,
+    tools: toolsForLlmConnection(profile, tools),
+    maxTokens,
+    onDelta,
+    signal,
+    executeTool
+  })
 }
 
 export function disposeLlmProviders(): void {
-  codexClient?.dispose()
-  codexClient = null
+  openAICompatibleRuntime.dispose()
+  codexRuntime?.dispose()
+  codexRuntime = null
   codexExecutablePath = ''
 }

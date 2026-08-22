@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "runtime": "codex-app-server",
+  "version": "0.149.0",
+  "source": "https://www.npmjs.com/package/@openai/codex",
+  "license": "Apache-2.0",
+  "targets": {
+    "darwin-arm64": {
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.149.0-darwin-arm64.tgz",
+      "archivePath": "package/vendor/aarch64-apple-darwin/bin/codex",
+      "executable": "codex",
+      "bytes": 220538240,
+      "sha256": "f4a74117b8142cda581c95ff753abf4508b5636d89682c1ed77e4a9249af8963"
+    },
+    "darwin-x64": {
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.149.0-darwin-x64.tgz",
+      "archivePath": "package/vendor/x86_64-apple-darwin/bin/codex",
+      "executable": "codex",
+      "bytes": 237836624,
+      "sha256": "c646bd178240bb50efd81c2f9919dd9124b126c815911f6c1b6db400786c5ccd"
+    },
+    "win32-x64": {
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.149.0-win32-x64.tgz",
+      "archivePath": "package/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+      "executable": "codex.exe",
+      "bytes": 297362224,
+      "sha256": "14b7e6b2356e82d1d9275579eaa588757b4e0a501b65dcc19fccdf77bd83dc00"
+    },
+    "linux-x64": {
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.149.0-linux-x64.tgz",
+      "archivePath": "package/vendor/x86_64-unknown-linux-musl/bin/codex",
+      "executable": "codex",
+      "bytes": 258322048,
+      "sha256": "bbc3341e44c9ead340ed9570c17be936e37870f570751a941699ffd04d672827"
+    },
+    "linux-arm64": {
+      "url": "https://registry.npmjs.org/@openai/codex/-/codex-0.149.0-linux-arm64.tgz",
+      "archivePath": "package/vendor/aarch64-unknown-linux-musl/bin/codex",
+      "executable": "codex",
+      "bytes": 222824000,
+      "sha256": "1ee36d2ccaf0c4f3f1d3ce8db894739a07928cfd75ded684e84e9a19b9c436c7"
+    }
+  }
+}

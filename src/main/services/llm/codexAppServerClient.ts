@@ -1,13 +1,19 @@
 import { app } from 'electron'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { EventEmitter } from 'node:events'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, sep } from 'node:path'
 import { createInterface } from 'node:readline'
-import type { LlmConnectionProfile, LlmConnectionState, LlmLoginStartResult } from '@main/lib/types'
-import type { ChatMessage, ChatTurnResult } from './provider'
+import { appHome } from '@main/lib/store'
+import type {
+  LlmConnectionState,
+  LlmLoginStartResult,
+  LlmModelsListResult
+} from '@main/lib/types'
+import type { ChatMessage, ChatTool, ChatToolCall, ChatTurnResult } from './provider'
+import type { AgentRuntimeTurnInput, AgentToolExecutor } from './agentRuntime'
 
 interface RpcResponse {
   id?: number | string
@@ -20,11 +26,26 @@ interface RpcResponse {
 interface PendingRequest {
   resolve: (value: unknown) => void
   reject: (error: Error) => void
+  timer: NodeJS.Timeout
 }
 
 interface TurnCompletion {
   status: string
   error?: string
+}
+
+export interface CodexAvailableModel {
+  id: string
+  supportsImage?: boolean
+  isDefault: boolean
+}
+
+interface ActiveToolContext {
+  execute: AgentToolExecutor
+  allowedTools: Set<string>
+  executedTools: string[]
+  followupMessages: ChatMessage[]
+  policyViolations: string[]
 }
 
 class CodexTransportError extends Error {
@@ -48,6 +69,20 @@ const PLATFORM_TARGETS: Partial<Record<NodeJS.Platform, Partial<Record<string, {
     arm64: { packageName: '@openai/codex-linux-arm64', triple: 'aarch64-unknown-linux-musl' }
   }
 }
+
+export const CODEX_RUNTIME_VERSION = '0.149.0'
+const CODEX_HOME = join(appHome, 'codex')
+const FORBIDDEN_ITEM_TYPES = new Set([
+  'commandExecution',
+  'fileChange',
+  'mcpToolCall',
+  'webSearch',
+  'imageGeneration',
+  'computerToolCall',
+  'collabToolCall'
+])
+const MAX_DYNAMIC_TOOL_CALLS = 18
+const RPC_TIMEOUT_MS = 20_000
 
 function unpackedExecutablePath(path: string): string {
   if (!app.isPackaged) return path
@@ -75,10 +110,31 @@ function bundledCodexExecutable(): string | null {
   }
 }
 
+function packagedCodexExecutable(): string | null {
+  const target = PLATFORM_TARGETS[process.platform]?.[process.arch]
+  if (!target || !app.isPackaged) return null
+  const executable = join(
+    process.resourcesPath,
+    'data',
+    'codex',
+    'bin',
+    `${process.platform}-${process.arch}`,
+    process.platform === 'win32' ? 'codex.exe' : 'codex'
+  )
+  return existsSync(executable) ? executable : null
+}
+
 export function resolveCodexExecutable(configuredPath = ''): string {
   const explicit = configuredPath.trim() || process.env.GOAGENT_CODEX_BIN?.trim()
-  if (explicit) return explicit
-  return bundledCodexExecutable() || 'codex'
+  if (explicit) {
+    if (!existsSync(explicit)) throw new Error(`找不到指定的 ChatGPT 运行组件：${explicit}`)
+    return explicit
+  }
+  const packaged = packagedCodexExecutable()
+  if (packaged) return packaged
+  const bundled = bundledCodexExecutable()
+  if (bundled) return bundled
+  throw new Error('GoAgent 的 ChatGPT 运行组件缺失，请重新安装完整版本。')
 }
 
 function startupError(command: string, error: NodeJS.ErrnoException): Error {
@@ -103,11 +159,19 @@ function stringValue(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
-function flattenMessages(messages: ChatMessage[]): { text: string; imageUrls: string[] } {
+function flattenMessages(messages: ChatMessage[]): { instructions: string; text: string; imageUrls: string[] } {
   const sections: string[] = []
+  const instructions: string[] = []
   const imageUrls: string[] = []
   for (const message of messages) {
-    const role = message.role === 'system' ? '最高优先级讲解规则' : message.role === 'user' ? '用户与证据' : message.role
+    if (message.role === 'system') {
+      const text = typeof message.content === 'string'
+        ? message.content
+        : message.content.filter((part) => part.type === 'text').map((part) => part.type === 'text' ? part.text : '').join('\n')
+      if (text.trim()) instructions.push(text.trim())
+      continue
+    }
+    const role = message.role === 'user' ? '用户与证据' : message.role
     if (typeof message.content === 'string') {
       if (message.content.trim()) sections.push(`[${role}]\n${message.content}`)
       continue
@@ -119,12 +183,37 @@ function flattenMessages(messages: ChatMessage[]): { text: string; imageUrls: st
     }
   }
   return {
-    text: [
-      '你是 GoAgent 的围棋讲解 provider。只根据下面给出的 KataGo/棋谱事实和棋盘图片生成最终讲解；不要调用工具、不要修改文件、不要声称重新分析。直接输出可展示的 Markdown。',
-      ...sections
-    ].join('\n\n'),
+    instructions: instructions.join('\n\n'),
+    text: sections.join('\n\n'),
     imageUrls
   }
+}
+
+function dynamicTools(tools: ChatTool[]): Array<Record<string, unknown>> {
+  return tools.map((tool) => ({
+    type: 'function',
+    name: tool.function.name,
+    description: tool.function.description,
+    inputSchema: tool.function.parameters,
+    deferLoading: false
+  }))
+}
+
+function contentItemsFromToolResult(result: Awaited<ReturnType<AgentToolExecutor>>): Array<Record<string, unknown>> {
+  const contentItems: Array<Record<string, unknown>> = [{ type: 'inputText', text: result.toolResult }]
+  for (const message of result.followupMessages) {
+    if (typeof message.content === 'string') {
+      if (message.content.trim()) contentItems.push({ type: 'inputText', text: message.content })
+      continue
+    }
+    for (const part of message.content) {
+      if (part.type === 'text' && part.text.trim()) contentItems.push({ type: 'inputText', text: part.text })
+      if (part.type === 'image_url' && part.image_url.url.startsWith('data:image/')) {
+        contentItems.push({ type: 'inputImage', imageUrl: part.image_url.url })
+      }
+    }
+  }
+  return contentItems
 }
 
 function writeDataUrlImage(url: string, directory: string, index: number): string | null {
@@ -144,6 +233,8 @@ export class CodexAppServerClient {
   private events = new EventEmitter()
   private outputByTurn = new Map<string, string>()
   private completionByTurn = new Map<string, TurnCompletion>()
+  private toolContexts = new Map<string, ActiveToolContext>()
+  private activeTurns = new Map<string, string>()
   private stderrTail = ''
 
   constructor(private executablePath = '') {}
@@ -160,9 +251,39 @@ export class CodexAppServerClient {
   private async startProcess(): Promise<void> {
     const command = resolveCodexExecutable(this.executablePath)
     this.stderrTail = ''
-    const child = spawn(command, ['app-server', '--listen', 'stdio://'], {
+    mkdirSync(CODEX_HOME, { recursive: true })
+    const configOverrides = [
+      'cli_auth_credentials_store="file"',
+      'features.shell_tool=false',
+      'features.unified_exec=false',
+      'features.apply_patch_freeform=false',
+      'web_search="disabled"',
+      'features.web_search_request=false',
+      'features.image_generation=false',
+      'features.apps=false',
+      'features.plugins=false',
+      'features.enable_mcp_apps=false',
+      'features.browser_use=false',
+      'features.computer_use=false',
+      'features.multi_agent=false',
+      'features.collab=false',
+      'features.code_mode=false',
+      'features.js_repl=false',
+      'features.memory_tool=false',
+      'features.tool_search=false',
+      'features.connectors=false',
+      'features.workspace_dependencies=false'
+    ].flatMap((value) => ['-c', value])
+    const environmentKeys = [
+      'PATH', 'HOME', 'USER', 'LOGNAME', 'TMPDIR', 'TMP', 'TEMP', 'LANG', 'LC_ALL',
+      'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+      'SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'APPDATA', 'LOCALAPPDATA'
+    ]
+    const env = Object.fromEntries(environmentKeys.flatMap((key) => process.env[key] ? [[key, process.env[key] as string]] : []))
+    const child = spawn(command, [...configOverrides, 'app-server', '--listen', 'stdio://'], {
       windowsHide: true,
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...env, CODEX_HOME }
     })
     this.child = child
     child.stderr.setEncoding('utf8')
@@ -188,7 +309,7 @@ export class CodexAppServerClient {
         title: 'GoAgent',
         version: app.getVersion()
       },
-      capabilities: { experimentalApi: false }
+      capabilities: { experimentalApi: true }
     }, false)
     await this.notify('initialized', {})
   }
@@ -204,6 +325,7 @@ export class CodexAppServerClient {
       const pending = this.pending.get(message.id)
       if (!pending) return
       this.pending.delete(message.id)
+      clearTimeout(pending.timer)
       if (message.error) {
         pending.reject(new Error(message.error.message || `Codex RPC error ${message.error.code ?? ''}`))
       } else {
@@ -212,13 +334,25 @@ export class CodexAppServerClient {
       return
     }
     if (message.method && message.id !== undefined) {
-      void this.write({ id: message.id, error: { code: -32601, message: `Unsupported server request: ${message.method}` } })
-        .catch(() => undefined)
+      void this.handleServerRequest(message)
       return
     }
     if (!message.method) return
     const params = record(message.params)
-    if (message.method === 'item/agentMessage/delta') {
+    if (message.method === 'item/started') {
+      const item = record(params.item)
+      const threadId = stringValue(params.threadId)
+      const turnId = stringValue(params.turnId)
+      const itemType = stringValue(item.type)
+      const context = this.toolContexts.get(threadId)
+      if (context && FORBIDDEN_ITEM_TYPES.has(itemType)) {
+        const violation = `Codex 尝试使用未授权能力：${itemType}`
+        context.policyViolations.push(violation)
+        if (threadId && turnId) {
+          void this.request('turn/interrupt', { threadId, turnId }).catch(() => undefined)
+        }
+      }
+    } else if (message.method === 'item/agentMessage/delta') {
       const turnId = stringValue(params.turnId)
       const delta = stringValue(params.delta)
       if (turnId && delta) {
@@ -243,6 +377,68 @@ export class CodexAppServerClient {
       }
     }
     this.events.emit(message.method, params)
+  }
+
+  private async handleServerRequest(message: RpcResponse): Promise<void> {
+    if (message.method !== 'item/tool/call') {
+      await this.write({
+        id: message.id,
+        error: { code: -32601, message: `Unsupported server request: ${message.method}` }
+      }).catch(() => undefined)
+      return
+    }
+
+    const params = record(message.params)
+    const threadId = stringValue(params.threadId)
+    const callId = stringValue(params.callId)
+    const toolName = stringValue(params.tool)
+    const context = this.toolContexts.get(threadId)
+    if (!context || !context.allowedTools.has(toolName)) {
+      await this.write({
+        id: message.id,
+        result: {
+          contentItems: [{ type: 'inputText', text: `工具不可用或未授权：${toolName || 'unknown'}` }],
+          success: false
+        }
+      }).catch(() => undefined)
+      return
+    }
+    if (context.executedTools.length >= MAX_DYNAMIC_TOOL_CALLS) {
+      await this.write({
+        id: message.id,
+        result: {
+          contentItems: [{ type: 'inputText', text: '本轮工具调用次数已达到上限，请根据已有证据给出最终回答。' }],
+          success: false
+        }
+      }).catch(() => undefined)
+      return
+    }
+
+    const toolCall: ChatToolCall = {
+      id: callId || `codex-tool-${Date.now()}`,
+      type: 'function',
+      function: {
+        name: toolName,
+        arguments: JSON.stringify(params.arguments ?? {})
+      }
+    }
+    try {
+      const result = await context.execute(toolCall)
+      if (result.ok) context.executedTools.push(toolName)
+      context.followupMessages.push(...result.followupMessages)
+      await this.write({
+        id: message.id,
+        result: { contentItems: contentItemsFromToolResult(result), success: result.ok }
+      })
+    } catch (error) {
+      await this.write({
+        id: message.id,
+        result: {
+          contentItems: [{ type: 'inputText', text: `工具执行失败：${String(error)}` }],
+          success: false
+        }
+      }).catch(() => undefined)
+    }
   }
 
   private write(message: unknown): Promise<void> {
@@ -278,7 +474,20 @@ export class CodexAppServerClient {
   private async request(method: string, params: Record<string, unknown> = {}, ensureStarted = true): Promise<unknown> {
     if (ensureStarted) await this.ensureStarted()
     const id = this.nextId++
-    const response = new Promise<unknown>((resolve, reject) => this.pending.set(id, { resolve, reject }))
+    const response = new Promise<unknown>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        if (!this.pending.has(id)) return
+        const failure = new CodexTransportError(`Codex App Server 请求超时：${method}`)
+        const child = this.child
+        if (child) {
+          this.handleProcessFailure(child, failure)
+        } else {
+          this.pending.delete(id)
+          reject(failure)
+        }
+      }, RPC_TIMEOUT_MS)
+      this.pending.set(id, { resolve, reject, timer })
+    })
     // The transport can fail while the write callback is still pending. Attach a
     // rejection observer immediately so Node never reports that pending RPC as
     // an unhandled rejection before the write promise settles.
@@ -287,6 +496,8 @@ export class CodexAppServerClient {
       await this.write({ method, id, params })
       return await response
     } catch (error) {
+      const pending = this.pending.get(id)
+      if (pending) clearTimeout(pending.timer)
       this.pending.delete(id)
       throw error
     }
@@ -306,7 +517,10 @@ export class CodexAppServerClient {
   }
 
   private failAll(error: Error): void {
-    for (const pending of this.pending.values()) pending.reject(error)
+    for (const pending of this.pending.values()) {
+      clearTimeout(pending.timer)
+      pending.reject(error)
+    }
     this.pending.clear()
   }
 
@@ -386,23 +600,27 @@ export class CodexAppServerClient {
     await this.request('account/logout')
   }
 
-  async listModels(): Promise<Array<{ id: string; supportsImage: boolean; isDefault: boolean }>> {
+  async listModels(): Promise<CodexAvailableModel[]> {
     const result = record(await this.requestWithRestart('model/list', { limit: 100, includeHidden: true }))
     const data = Array.isArray(result.data) ? result.data : []
     return data.map((entry) => {
       const model = record(entry)
-      const modalities = Array.isArray(model.inputModalities) ? model.inputModalities : ['text', 'image']
+      const modalities = Array.isArray(model.inputModalities) ? model.inputModalities : null
       return {
         id: stringValue(model.model) || stringValue(model.id),
-        supportsImage: modalities.includes('image'),
+        supportsImage: modalities ? modalities.includes('image') : undefined,
         isDefault: model.isDefault === true
       }
     }).filter((model) => model.id)
   }
 
-  async runTurn(profile: LlmConnectionProfile, messages: ChatMessage[], onDelta?: (delta: string) => void, signal?: AbortSignal): Promise<ChatTurnResult> {
+  async runTurn(inputOptions: AgentRuntimeTurnInput): Promise<ChatTurnResult> {
     await this.ensureStarted()
-    const { text, imageUrls } = flattenMessages(messages)
+    const { profile, messages, tools, onDelta, signal, executeTool } = inputOptions
+    if (tools.length > 0 && !executeTool) {
+      throw new Error('ChatGPT 工具执行器未连接，无法开始围棋分析。')
+    }
+    const { instructions, text, imageUrls } = flattenMessages(messages)
     const tempRoot = mkdtempSync(join(tmpdir(), 'goagent-codex-'))
     const input: Array<Record<string, unknown>> = [{ type: 'text', text }]
     imageUrls.forEach((url, index) => {
@@ -420,32 +638,63 @@ export class CodexAppServerClient {
       const model = profile.model || models.find((item) => item.isDefault)?.id || models[0]?.id
       const selectedModel = models.find((item) => item.id === model)
       if (profile.model && !selectedModel) throw new Error(`当前 ChatGPT 账号没有可用模型：${profile.model}`)
-      if (imageUrls.length && selectedModel && !selectedModel.supportsImage) {
+      if (imageUrls.length && selectedModel?.supportsImage === false) {
         throw new Error(`模型 ${model} 不支持棋盘图片输入，请选择多模态模型。`)
       }
       const threadResult = record(await this.request('thread/start', {
         ...(model ? { model } : {}),
         cwd: tempRoot,
         approvalPolicy: 'never',
-        serviceName: 'goagent'
+        sandbox: 'read-only',
+        ephemeral: true,
+        serviceName: 'goagent',
+        baseInstructions: instructions || '你是 GoAgent 的围棋老师。',
+        developerInstructions: '你运行在 GoAgent 内。只能使用本轮提供的动态工具；不得执行命令、修改文件、调用外部工具或访问未提供的数据。',
+        dynamicTools: dynamicTools(tools),
+        config: {
+          web_search: 'disabled',
+          features: {
+            shell_tool: false,
+            unified_exec: false,
+            apply_patch_freeform: false,
+            image_generation: false,
+            apps: false,
+            plugins: false,
+            browser_use: false,
+            computer_use: false,
+            multi_agent: false,
+            collab: false,
+            code_mode: false,
+            js_repl: false,
+            memory_tool: false,
+            tool_search: false,
+            connectors: false,
+            workspace_dependencies: false
+          }
+        }
       }))
       threadId = stringValue(record(threadResult.thread).id)
       if (!threadId) throw new Error('Codex 未返回 thread id。')
+      const toolContext: ActiveToolContext = {
+        execute: executeTool ?? (async () => ({ ok: false, toolResult: '工具执行器不可用。', followupMessages: [] })),
+        allowedTools: new Set(tools.map((tool) => tool.function.name)),
+        executedTools: [],
+        followupMessages: [],
+        policyViolations: []
+      }
+      this.toolContexts.set(threadId, toolContext)
       const turnResult = record(await this.request('turn/start', {
         threadId,
         input,
         ...(model ? { model } : {}),
         cwd: tempRoot,
         approvalPolicy: 'never',
-        // Current App Server versions reject the former readOnly.access shape
-        // and route restricted reads through permission profiles. GoAgent does
-        // not expose Codex tools here, so the stable read-only sandbox is enough
-        // while still allowing the model to consume the localImage input.
-        sandboxPolicy: { type: 'readOnly' }
+        sandboxPolicy: { type: 'readOnly', networkAccess: false }
       }))
       const turn = record(turnResult.turn)
       turnId = stringValue(turn.id)
       if (!turnId) throw new Error('Codex 未返回 turn id。')
+      this.activeTurns.set(threadId, turnId)
       if (onDelta) {
         const existing = this.outputByTurn.get(turnId)
         if (existing) onDelta(existing)
@@ -453,24 +702,44 @@ export class CodexAppServerClient {
       }
       if (signal?.aborted) abort()
       const completion = this.completionByTurn.get(turnId) ?? await this.waitForTurnCompletion(turnId)
+      const completedContext = this.toolContexts.get(threadId)
+      if (completedContext?.policyViolations.length) {
+        throw new Error(completedContext.policyViolations.join('；'))
+      }
       if (completion.status !== 'completed') throw new Error(completion.error || `Codex turn ${completion.status}`)
       const output = (this.outputByTurn.get(turnId) || '').trim()
       if (!output) throw new Error('ChatGPT 没有返回讲解文本。')
-      return { text: output, toolCalls: [], finishReason: completion.status }
+      return {
+        text: output,
+        toolCalls: [],
+        executedToolCalls: completedContext?.executedTools ?? [],
+        toolFollowupMessages: completedContext?.followupMessages ?? [],
+        finishReason: completion.status
+      }
     } finally {
       if (onDelta && turnId) this.events.off(`delta:${turnId}`, onDelta)
       signal?.removeEventListener('abort', abort)
       this.outputByTurn.delete(turnId)
       this.completionByTurn.delete(turnId)
+      this.activeTurns.delete(threadId)
+      this.toolContexts.delete(threadId)
       if (threadId) await this.request('thread/delete', { threadId }).catch(() => undefined)
       rmSync(tempRoot, { recursive: true, force: true })
     }
+  }
+
+  async cancel(): Promise<void> {
+    await Promise.all([...this.activeTurns].map(([threadId, turnId]) =>
+      this.request('turn/interrupt', { threadId, turnId }).catch(() => undefined)
+    ))
   }
 
   dispose(): void {
     const child = this.child
     this.child = null
     this.started = null
+    this.activeTurns.clear()
+    this.toolContexts.clear()
     const failure = new CodexTransportError('Codex App Server 客户端已关闭。')
     this.failAll(failure)
     this.events.emit('transport-failure', failure)

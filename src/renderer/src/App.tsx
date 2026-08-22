@@ -118,13 +118,13 @@ const emptyDashboard: DashboardData = {
     pythonBin: 'python',
     llmBaseUrl: 'https://api.openai.com/v1',
     llmApiKey: '',
-    llmModel: 'gpt-5.6-sol',
+    llmModel: 'gpt-5-mini',
     activeLlmConnectionId: 'openai-compatible-default',
     llmConnections: [
-      { id: 'openai-compatible-default', name: 'OpenAI-compatible API', provider: 'openai-compatible', authMode: 'api-key', endpoint: 'https://api.openai.com/v1', model: 'gpt-5.6-sol', enabled: true },
+      { id: 'openai-compatible-default', name: 'OpenAI-compatible API', provider: 'openai-compatible', authMode: 'api-key', endpoint: 'https://api.openai.com/v1', model: 'gpt-5-mini', enabled: true },
       { id: 'chatgpt-codex', name: 'ChatGPT 登录', provider: 'codex-app-server', authMode: 'managed-login', model: '', enabled: true }
     ],
-    llmConnectionSchemaVersion: 2,
+    llmConnectionSchemaVersion: 3,
     onboardingVersion: 0,
     llmSetupStatus: 'unconfigured',
     llmLastVerifiedAt: '',
@@ -2798,7 +2798,7 @@ export function App(): ReactElement {
   }
 
   function ensureAiTeacherReady(): boolean {
-    const ready = dashboard.systemProfile.llmConnection.ready
+    const ready = dashboard.systemProfile.llmConnection.ready && dashboard.settings.llmSetupStatus === 'verified'
     if (ready) return true
     setLlmTestMessage(t('llmSetupRequired'))
     setSettingsOpen(true)
@@ -3082,7 +3082,7 @@ export function App(): ReactElement {
     await submitTeacherPromptText(prompt)
   }
 
-  const llmReady = dashboard.systemProfile.llmConnection.ready
+  const llmReady = dashboard.systemProfile.llmConnection.ready && dashboard.settings.llmSetupStatus === 'verified'
   const statusItems: StatusPill[] = [
     {
       label: localizeKataGoStatus(
@@ -3676,7 +3676,7 @@ function DesktopPreferencesModal({
     return null
   }
   const katagoReady = katagoAssets?.ready || dashboard.systemProfile.katagoReady
-  const llmReady = dashboard.systemProfile.llmConnection.ready
+  const llmReady = dashboard.systemProfile.llmConnection.ready && dashboard.settings.llmSetupStatus === 'verified'
   return (
     <div className="desktop-preferences" role="dialog" aria-modal="true" aria-label={t('settingsTitle')} onMouseDown={onClose}>
       <section className="desktop-preferences__window" onMouseDown={(event) => event.stopPropagation()}>
@@ -4663,7 +4663,6 @@ function TeacherPanel({
         onChange={onPrompt}
         onSubmit={onSubmit}
         onStop={onStop}
-        onExplainCurrentMove={onAnalyze}
         t={t}
       />
     </div>
@@ -4733,6 +4732,7 @@ function SettingsDrawer({
   const [llmModelsFetched, setLlmModelsFetched] = useState(false)
   const [llmModelsRefreshing, setLlmModelsRefreshing] = useState(false)
   const [llmModelRefreshMessage, setLlmModelRefreshMessage] = useState('')
+  const [chatGptLoginPending, setChatGptLoginPending] = useState(false)
   const [selectedLlmModel, setSelectedLlmModel] = useState(dashboard.settings.llmModel)
   const [savedLlmApiKey, setSavedLlmApiKey] = useState('')
   const [showLlmApiKey, setShowLlmApiKey] = useState(false)
@@ -4823,7 +4823,7 @@ function SettingsDrawer({
         setLlmModelsFetched(true)
         if (!models.length) {
           setLlmModelRefreshMessage(`${t('noModelReturned')}。${t('modelPickerEmpty')}`)
-        } else if (!models.includes(selectedLlmModel) || selectedLlmModel === 'gpt-5-mini') {
+        } else if (!models.includes(selectedLlmModel)) {
           const fallback = result.recommendedModel || (models.includes(dashboard.settings.llmModel) ? dashboard.settings.llmModel : models[0])
           setSelectedLlmModel(fallback)
           saveLlmModel(fallback)
@@ -4864,15 +4864,30 @@ function SettingsDrawer({
   }, [dashboard.settings.activeLlmConnectionId, dashboard.settings.llmBaseUrl, dashboard.systemProfile.llmConnection.ready, refreshLlmModels])
 
   useEffect(() => {
-    if (!managedLlmLogin || dashboard.systemProfile.llmConnection.ready) return
-    const timer = setInterval(() => {
-      void window.goagent.getDashboard().then((updated) => {
+    if (!chatGptLoginPending || !managedLlmLogin || dashboard.systemProfile.llmConnection.ready) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const poll = async (): Promise<void> => {
+      try {
+        const updated = await window.goagent.getDashboard()
+        if (cancelled) return
         onDashboardUpdated(updated)
-        if (updated.systemProfile.llmConnection.ready) void refreshLlmModels()
-      }).catch(() => undefined)
-    }, 2000)
-    return () => clearInterval(timer)
-  }, [managedLlmLogin, dashboard.systemProfile.llmConnection.ready, onDashboardUpdated, refreshLlmModels])
+        if (updated.systemProfile.llmConnection.ready) {
+          setChatGptLoginPending(false)
+          await refreshLlmModels()
+          return
+        }
+      } catch {
+        // Keep the browser login flow usable across transient status failures.
+      }
+      if (!cancelled) timer = setTimeout(() => void poll(), 2000)
+    }
+    timer = setTimeout(() => void poll(), 2000)
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [chatGptLoginPending, managedLlmLogin, dashboard.systemProfile.llmConnection.ready, onDashboardUpdated, refreshLlmModels])
 
   function saveLlmModel(model: string): void {
     if (!managedLlmLogin) {
@@ -4895,17 +4910,21 @@ function SettingsDrawer({
   }
 
   async function loginWithChatGpt(): Promise<void> {
-    setLlmModelRefreshMessage('正在检查本机 Codex 登录…')
+    setChatGptLoginPending(false)
+    setLlmModelRefreshMessage(t('chatGptChecking'))
     try {
       const result = await window.goagent.startChatGptLogin()
       onDashboardUpdated(result.dashboard)
-      setLlmModelRefreshMessage(result.login ? '请在浏览器完成登录；完成后这里会自动更新。' : '已复用 Codex 的 ChatGPT 登录。')
+      setChatGptLoginPending(Boolean(result.login))
+      setLlmModelRefreshMessage(result.login ? t('chatGptFinishInBrowser') : t('chatGptLoggedIn'))
     } catch (cause) {
+      setChatGptLoginPending(false)
       setLlmModelRefreshMessage(String(cause))
     }
   }
 
   async function logoutFromChatGpt(): Promise<void> {
+    setChatGptLoginPending(false)
     const result = await window.goagent.logoutChatGpt()
     onDashboardUpdated(result.dashboard)
     setLlmModelsFetched(false)
@@ -4937,7 +4956,7 @@ function SettingsDrawer({
   const zhiziEnabled = dashboard.settings.katagoEngineMode === 'zhizi'
   const zhiziLoggedIn = dashboard.systemProfile.hasZhiziToken
   const zhiziNav = zhiziSettingsNavCopy(dashboard.settings.reviewLanguage)
-  const llmReady = dashboard.systemProfile.llmConnection.ready
+  const llmReady = dashboard.systemProfile.llmConnection.ready && dashboard.settings.llmSetupStatus === 'verified'
   const katagoReady = Boolean(katagoAssets?.ready || dashboard.systemProfile.katagoReady)
   const voiceReady = dashboard.settings.ttsEnabled
   const settingsPages: Array<{
@@ -5047,20 +5066,20 @@ function SettingsDrawer({
           </div>
           <span className={llmReady ? 'settings-status-chip is-ready' : 'settings-status-chip'}>{llmReady ? t('ready') : t('pendingConfig')}</span>
         </header>
-        <div className="settings-actions" aria-label="AI provider">
+        <div className="settings-actions" aria-label={t('llmProviderLabel')}>
           <button
             className={managedLlmLogin ? 'ghost-button' : 'primary-button'}
             type="button"
             onClick={() => void selectLlmProvider('openai-compatible-default')}
           >
-            API Key
+            {t('apiKeyConnection')}
           </button>
           <button
             className={managedLlmLogin ? 'primary-button' : 'ghost-button'}
             type="button"
             onClick={() => void selectLlmProvider('chatgpt-codex')}
           >
-            ChatGPT 登录
+            {t('chatGptConnection')}
           </button>
         </div>
         {!managedLlmLogin ? <>
@@ -5115,24 +5134,24 @@ function SettingsDrawer({
         </div>
         </> : (
           <div className="llm-api-key-field">
-            <strong>{dashboard.systemProfile.llmConnection.ready ? 'ChatGPT 已登录' : '使用 ChatGPT 套餐登录'}</strong>
+            <strong>{dashboard.systemProfile.llmConnection.ready ? t('chatGptLoggedIn') : t('chatGptUsePlan')}</strong>
             <small>
-              {dashboard.systemProfile.llmConnection.accountLabel || dashboard.systemProfile.llmConnection.message}
+              {dashboard.systemProfile.llmConnection.accountLabel || t('chatGptConnectionHelp')}
               {dashboard.systemProfile.llmConnection.planLabel ? ` · ${dashboard.systemProfile.llmConnection.planLabel}` : ''}
             </small>
             <div className="settings-actions">
               {dashboard.systemProfile.llmConnection.ready ? (
-                <button className="ghost-button" type="button" onClick={() => void logoutFromChatGpt()}>退出登录</button>
+                <button className="ghost-button" type="button" onClick={() => void logoutFromChatGpt()}>{t('chatGptSignOut')}</button>
               ) : (
-                <button className="primary-button" type="button" onClick={() => void loginWithChatGpt()}>使用 ChatGPT 登录</button>
+                <button className="primary-button" type="button" onClick={() => void loginWithChatGpt()}>{t('chatGptSignIn')}</button>
               )}
             </div>
             <label>
-              Codex CLI 路径（可选）
+              {t('chatGptRuntimePath')}
               <input
                 className="llm-config-input"
                 value={activeLlmConnection?.executablePath || ''}
-                placeholder="codex"
+                placeholder={t('chatGptRuntimePlaceholder')}
                 spellCheck={false}
                 onChange={(event) => autoSave({
                   llmConnections: dashboard.settings.llmConnections.map((connection) =>
@@ -5142,7 +5161,7 @@ function SettingsDrawer({
                   )
                 })}
               />
-              <small>默认从 PATH 查找 codex；找不到时可填写 Codex CLI 可执行文件的完整路径。</small>
+              <small>{t('chatGptRuntimeHelp')}</small>
             </label>
           </div>
         )}

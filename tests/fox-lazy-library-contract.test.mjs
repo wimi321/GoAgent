@@ -37,12 +37,15 @@ test('all SGF consumers hydrate remote Fox games before reading filePath', () =>
   assert.match(katago, /const game = await ensureFoxGameDownloaded\(indexedGame\)/)
   assert.match(katago, /readGameRecord\(game\)/)
 
+  const review = read('src/main/services/review.ts')
+  assert.match(review, /const game = await ensureFoxGameDownloaded\(indexedGame\)/)
+  assert.match(review, /game\.filePath/)
+
   const teacher = read('src/main/services/teacherAgent.ts')
   assert.match(teacher, /ensureFoxGameDownloaded/)
   assert.match(teacher, /ensureSessionGame/)
   assert.match(teacher, /const game = await ensureFoxGameDownloaded\(indexed\)/)
   assert.match(teacher, /ensureSessionRecord/)
-  assert.doesNotMatch(main, /review:start|runReview/)
 })
 
 test('library panel communicates remote list state and keeps pagination compact', () => {

@@ -58,11 +58,18 @@
     "dist:mac": "pnpm build && electron-builder --mac --publish never",
     "dist:win": "pnpm build && electron-builder --win --publish never",
     "dist:linux": "pnpm build && electron-builder --linux --publish never",
-    "dist:local:mac": "pnpm prepare:katago-transformer && pnpm dist:mac",
-    "dist:local:win": "pnpm prepare:katago-transformer && pnpm dist:win",
-    "dist:local:linux": "pnpm prepare:katago-transformer && pnpm dist:linux",
+    "dist:local:mac": "pnpm prepare:katago-transformer && pnpm prepare:codex-runtime:mac && pnpm dist:mac",
+    "dist:local:win": "pnpm prepare:katago-transformer && pnpm prepare:codex-runtime:win && pnpm dist:win",
+    "dist:local:linux": "pnpm prepare:katago-transformer && pnpm prepare:codex-runtime:linux && pnpm dist:linux",
     "postinstall": "electron-builder install-app-deps",
     "prepare:python": "python3 -m pip install -r scripts/requirements.txt",
+    "prepare:codex-runtime": "node scripts/prepare_codex_runtime.mjs",
+    "prepare:codex-runtime:mac": "node scripts/prepare_codex_runtime.mjs --platform=darwin-arm64 --platform=darwin-x64",
+    "prepare:codex-runtime:win": "node scripts/prepare_codex_runtime.mjs --platform=win32-x64",
+    "prepare:codex-runtime:linux": "node scripts/prepare_codex_runtime.mjs",
+    "check:codex-runtime": "node scripts/check_codex_runtime.mjs --mode=dev",
+    "check:codex-runtime:release": "node scripts/check_codex_runtime.mjs --mode=release",
+    "smoke:codex-runtime": "node scripts/smoke_codex_packaged_runtime.mjs",
     "prepare:katago-assets": "node scripts/prepare_katago_assets.mjs",
     "prepare:katago-transformer": "node scripts/download_katago_transformer.mjs",
     "prepare:zhizi-b28": "node scripts/download_zhizi_b28.mjs",
@@ -83,7 +90,6 @@
     "rc:evidence": "node scripts/collect_release_evidence.mjs --mode=dev"
   },
   "dependencies": {
-    "@openai/codex": "0.148.0-alpha.20",
     "electron-store": "^10.0.1",
     "kokoro-js": "^1.2.1",
     "openai": "^6.3.0",
@@ -94,6 +100,7 @@
     "zod": "^4.1.5"
   },
   "devDependencies": {
+    "@openai/codex": "0.149.0",
     "@types/node": "^24.5.2",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.1.13",
@@ -118,6 +125,7 @@
     },
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "afterSign": "build/afterSign.cjs",
+    "afterPack": "build/afterPack.cjs",
     "files": [
       "out/**/*",
       "scripts/**/*",
@@ -144,9 +152,7 @@
         ]
       }
     ],
-    "asarUnpack": [
-      "node_modules/@openai/codex-*/vendor/**/*"
-    ],
+    "asarUnpack": [],
     "asar": true,
     "dmg": {
       "sign": true

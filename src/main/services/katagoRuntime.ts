@@ -496,11 +496,7 @@ function defaultAnalysisThreads(): number {
   return Math.max(1, Math.min(4, os.cpus().length - 2))
 }
 
-function modelRequiresHumanProfile(modelPath: string): boolean {
-  return /human/i.test(basename(modelPath))
-}
-
-function ensureAnalysisConfig(settings?: AppSettings, modelPath = ''): string {
+function ensureAnalysisConfig(settings?: AppSettings): string {
   const configDir = join(appHome, 'katago', 'configs')
   mkdirSync(configDir, { recursive: true })
   const logDir = join(appHome, 'katago', 'logs')
@@ -516,7 +512,6 @@ function ensureAnalysisConfig(settings?: AppSettings, modelPath = ''): string {
     'logSearchInfo = false',
     'analysisPVLen = 12',
     'reportAnalysisWinratesAs = SIDETOMOVE',
-    ...(modelRequiresHumanProfile(modelPath) ? ['humanSLProfile = rank_9d'] : []),
     `numAnalysisThreads = ${analysisThreads}`,
     `numSearchThreadsPerAnalysisThread = ${searchThreadsPerAnalysisThread}`,
     `nnMaxBatchSize = ${maxBatchSize}`,
@@ -533,8 +528,8 @@ function ensureAnalysisConfig(settings?: AppSettings, modelPath = ''): string {
 export function resolveKataGoRuntime(settings?: AppSettings): KataGoRuntime {
   const modelPreset = getKataGoModelPreset(settings?.katagoModelPreset)
   const katagoBin = firstExistingBinary([...binaryCandidates(), settings?.katagoBin ?? ''], modelPreset.minimumEngineVersion)
+  const katagoConfig = ensureAnalysisConfig(settings)
   const katagoModel = firstExisting(modelCandidates(modelPreset, settings))
-  const katagoConfig = ensureAnalysisConfig(settings, katagoModel)
   const notes: string[] = []
 
   if (katagoBin) {

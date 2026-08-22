@@ -53,7 +53,7 @@ test('unconfigured AI actions open settings instead of invoking the teacher runt
   const app = read('src/renderer/src/App.tsx')
   const i18n = read('src/renderer/src/i18n.ts')
   assert.match(app, /function ensureAiTeacherReady\(\): boolean/)
-  assert.match(app, /dashboard\.systemProfile\.llmConnection\.ready/)
+  assert.match(app, /llmSetupStatus === 'verified'/)
   assert.match(app, /setLlmTestMessage\(t\('llmSetupRequired'\)\)/)
   assert.match(app, /setSettingsOpen\(true\)/)
   assert.match(app, /if \(!ensureAiTeacherReady\(\)\) return/)

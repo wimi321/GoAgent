@@ -18,6 +18,7 @@ import type {
   LlmModelsListRequest,
   LlmSettingsTestRequest,
   LlmConnectionActionResult,
+  LlmConnectionState,
   ReviewRequest,
   TeacherBoardImageRenderImage,
   TeacherBoardImageRenderRequest,
@@ -336,14 +337,11 @@ function buildApplicationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
-async function dashboard(): Promise<DashboardData> {
+async function dashboard(llmConnectionOverride?: LlmConnectionState): Promise<DashboardData> {
   const hydratedSettings = await applyDetectedDefaults(getSettings())
   replaceSettings(hydratedSettings)
   const detectedProfile = await detectSystemProfile(hydratedSettings)
-  const llmConnection = await inspectLlmConnection(hydratedSettings)
-  if (llmConnection.ready && hydratedSettings.llmSetupStatus !== 'verified') {
-    setSettings({ llmSetupStatus: 'verified', llmLastVerifiedAt: new Date().toISOString() })
-  }
+  const llmConnection = llmConnectionOverride ?? await inspectLlmConnection(hydratedSettings)
   const currentSettings = getSettings()
   const publicSettings = { ...currentSettings, llmApiKey: '', ttsCustomApiKey: '', ttsVolcengineApiKey: '', ttsVolcengineAccessToken: '', ikatagoPassword: '', zhiziToken: '' }
   return {
@@ -607,12 +605,39 @@ app.whenReady().then(() => {
   ipcMain.handle('llm:chatgpt-login', async (_event, payload?: { useDeviceCode?: boolean }): Promise<LlmConnectionActionResult> => {
     const login = await startChatGptLogin(Boolean(payload?.useDeviceCode))
     const url = login?.authUrl || login?.verificationUrl
-    if (url) await shell.openExternal(url)
-    return { ...(login ? { login } : {}), dashboard: await dashboard() }
+    if (url) void shell.openExternal(url).catch((error) => {
+      console.error('[llm] unable to open ChatGPT login URL', error)
+    })
+    const settings = getSettings()
+    const profile = settings.llmConnections.find((connection) => connection.id === settings.activeLlmConnectionId)
+    const llmConnection: LlmConnectionState = login
+      ? {
+          connectionId: login.connectionId,
+          provider: 'codex-app-server',
+          authMode: 'managed-login',
+          ready: false,
+          status: 'signed-out',
+          message: '请在浏览器完成 ChatGPT 登录。'
+        }
+      : await inspectLlmConnection(settings)
+    if (!profile || profile.provider !== 'codex-app-server') {
+      throw new Error('ChatGPT 登录配置没有正确启用。')
+    }
+    return { ...(login ? { login } : {}), dashboard: await dashboard(llmConnection) }
   })
   ipcMain.handle('llm:chatgpt-logout', async (): Promise<LlmConnectionActionResult> => {
     await logoutChatGpt()
-    return { dashboard: await dashboard() }
+    const settings = getSettings()
+    const profile = settings.llmConnections.find((connection) => connection.id === settings.activeLlmConnectionId)
+    const llmConnection: LlmConnectionState = {
+      connectionId: profile?.id ?? 'chatgpt-codex',
+      provider: 'codex-app-server',
+      authMode: 'managed-login',
+      ready: false,
+      status: 'signed-out',
+      message: '已退出 ChatGPT。'
+    }
+    return { dashboard: await dashboard(llmConnection) }
   })
   ipcMain.handle('llm:get-saved-api-key', async () => {
     const settings = getSettings()

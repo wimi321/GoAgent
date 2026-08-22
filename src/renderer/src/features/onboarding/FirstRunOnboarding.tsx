@@ -7,7 +7,7 @@ import type {
   LlmSettingsTestResult
 } from '@main/lib/types'
 import logoUrl from '../../../../../assets/logo.png'
-import { detectSystemUiLocale, normalizeUiLocale, SUPPORTED_UI_LOCALES, type UiLocale } from '../../i18n'
+import { createUiTranslator, detectSystemUiLocale, normalizeUiLocale, SUPPORTED_UI_LOCALES, type UiLocale } from '../../i18n'
 
 export const FIRST_RUN_ONBOARDING_VERSION = 1
 
@@ -153,7 +153,9 @@ export function FirstRunOnboarding({
   const [technicalError, setTechnicalError] = useState('')
   const [autoBenchmark, setAutoBenchmark] = useState(dashboard.settings.katagoAutoBenchmarkEnabled)
   const [providerMode, setProviderMode] = useState<'api-key' | 'chatgpt'>(dashboard.systemProfile.llmConnection.provider === 'codex-app-server' ? 'chatgpt' : 'api-key')
+  const [chatGptLoginPending, setChatGptLoginPending] = useState(false)
   const copy = COPY[locale]
+  const t = useMemo(() => createUiTranslator(locale), [locale])
 
   useEffect(() => {
     document.documentElement.lang = locale
@@ -164,18 +166,31 @@ export function FirstRunOnboarding({
   }, [dashboard.settings.katagoAutoBenchmarkEnabled])
 
   useEffect(() => {
-    if (providerMode !== 'chatgpt' || dashboard.systemProfile.llmConnection.ready) return
-    const timer = setInterval(() => {
-      void window.goagent.getDashboard().then((next) => {
+    if (!chatGptLoginPending || providerMode !== 'chatgpt' || dashboard.systemProfile.llmConnection.ready) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const poll = async (): Promise<void> => {
+      try {
+        const next = await window.goagent.getDashboard()
+        if (cancelled) return
         onDashboardUpdated(next)
         if (next.systemProfile.llmConnection.ready) {
-          setMessage('ChatGPT 已登录，可以继续。')
-          void refreshModels(next.settings.activeLlmConnectionId)
+          setChatGptLoginPending(false)
+          setMessage('')
+          await refreshModels(next.settings.activeLlmConnectionId)
+          return
         }
-      }).catch(() => undefined)
-    }, 2000)
-    return () => clearInterval(timer)
-  }, [providerMode, dashboard.systemProfile.llmConnection.ready, onDashboardUpdated])
+      } catch {
+        // A transient status check must not interrupt the browser login flow.
+      }
+      if (!cancelled) timer = setTimeout(() => void poll(), 2000)
+    }
+    timer = setTimeout(() => void poll(), 2000)
+    return () => {
+      cancelled = true
+      if (timer) clearTimeout(timer)
+    }
+  }, [chatGptLoginPending, providerMode, dashboard.systemProfile.llmConnection.ready, onDashboardUpdated])
 
   const modelOptions = useMemo(() => Array.from(new Set([model, ...models].map((value) => value.trim()).filter(Boolean))), [model, models])
   const technicalDetails = useMemo(() => {
@@ -214,7 +229,7 @@ export function FirstRunOnboarding({
     try {
       const result = await window.goagent.listLlmModels({ llmBaseUrl: baseUrl.trim(), llmApiKey: apiKey.trim(), connectionId })
       setModels(result.models)
-      if (result.models.length && (!result.models.includes(model.trim()) || model.trim() === 'gpt-5-mini')) {
+      if (result.models.length && !result.models.includes(model.trim())) {
         setModel(result.recommendedModel || result.models[0])
       }
       setMessage(result.models.length ? copy.modelsLoaded : copy.modelListEmpty)
@@ -227,7 +242,8 @@ export function FirstRunOnboarding({
 
   async function beginChatGptLogin(): Promise<void> {
     setTesting(true)
-    setMessage('正在检查本机 Codex 登录…')
+    setChatGptLoginPending(false)
+    setMessage(t('chatGptChecking'))
     setTechnicalError('')
     try {
       setProviderMode('chatgpt')
@@ -238,12 +254,14 @@ export function FirstRunOnboarding({
       const profile = result.dashboard.settings.llmConnections.find((connection) => connection.id === result.dashboard.settings.activeLlmConnectionId)
       setModel(profile?.model || '')
       if (result.login) {
-        setMessage('请在浏览器完成登录，完成后本页会自动更新。')
+        setChatGptLoginPending(true)
+        setMessage('')
       } else {
-        setMessage('已复用 Codex 的 ChatGPT 登录，可以继续。')
+        setMessage('')
         await refreshModels(result.dashboard.settings.activeLlmConnectionId)
       }
     } catch (error) {
+      setChatGptLoginPending(false)
       setTechnicalError(String(error))
       setMessage(copy.verificationNeedsAttention)
     } finally {
@@ -298,6 +316,7 @@ export function FirstRunOnboarding({
   }
 
   async function continueLater(): Promise<void> {
+    setChatGptLoginPending(false)
     const unchangedVerifiedConfiguration =
       dashboard.settings.llmSetupStatus === 'verified' &&
       !apiKey.trim() &&
@@ -340,8 +359,8 @@ export function FirstRunOnboarding({
             <h1>{copy.title}</h1>
             <p className="first-run__lead">{copy.subtitle}</p>
             <div className="first-run__actions">
-              <button className={providerMode === 'api-key' ? 'primary-button' : 'ghost-button'} type="button" onClick={() => void selectApiKeyProvider()}>API Key</button>
-              <button className={providerMode === 'chatgpt' ? 'primary-button' : 'ghost-button'} type="button" onClick={() => void beginChatGptLogin()}>ChatGPT 登录</button>
+              <button className={providerMode === 'api-key' ? 'primary-button' : 'ghost-button'} type="button" onClick={() => void selectApiKeyProvider()}>{t('apiKeyConnection')}</button>
+              <button className={providerMode === 'chatgpt' ? 'primary-button' : 'ghost-button'} type="button" onClick={() => void beginChatGptLogin()}>{t('chatGptConnection')}</button>
             </div>
             {providerMode === 'api-key' ? (
             <div className="first-run__form">
@@ -351,8 +370,8 @@ export function FirstRunOnboarding({
             </div>
             ) : (
               <div className="first-run__form">
-                <p>{dashboard.systemProfile.llmConnection.ready ? `ChatGPT 已登录${dashboard.systemProfile.llmConnection.accountLabel ? ` · ${dashboard.systemProfile.llmConnection.accountLabel}` : ''}` : dashboard.systemProfile.llmConnection.message}</p>
-                <label><span>{copy.model}</span><div className="first-run__model"><input value={model} list="first-run-models" placeholder="自动选择当前账号推荐模型" onChange={(event) => setModel(event.target.value)} /><datalist id="first-run-models">{modelOptions.map((item) => <option key={item} value={item} />)}</datalist><button type="button" disabled={refreshing || !dashboard.systemProfile.llmConnection.ready} onClick={() => void refreshModels()}>{refreshing ? copy.refreshing : copy.refresh}</button></div></label>
+                <p>{dashboard.systemProfile.llmConnection.ready ? `${t('chatGptLoggedIn')}${dashboard.systemProfile.llmConnection.accountLabel ? ` · ${dashboard.systemProfile.llmConnection.accountLabel}` : ''}` : chatGptLoginPending ? t('chatGptFinishInBrowser') : t('chatGptUsePlan')}</p>
+                <label><span>{copy.model}</span><div className="first-run__model"><input value={model} list="first-run-models" placeholder={t('chatGptModelPlaceholder')} onChange={(event) => setModel(event.target.value)} /><datalist id="first-run-models">{modelOptions.map((item) => <option key={item} value={item} />)}</datalist><button type="button" disabled={refreshing || !dashboard.systemProfile.llmConnection.ready} onClick={() => void refreshModels()}>{refreshing ? copy.refreshing : copy.refresh}</button></div></label>
               </div>
             )}
             {testResult ? <div className="onboarding-capabilities"><CapabilityRow label={copy.text} check={testResult.capabilities.text} passedLabel={copy.checkPassed} failedLabel={copy.checkFailed} /><CapabilityRow label={copy.vision} check={testResult.capabilities.vision} passedLabel={copy.checkPassed} failedLabel={copy.checkFailed} /><CapabilityRow label={copy.tools} check={testResult.capabilities.tools} passedLabel={copy.checkPassed} failedLabel={copy.checkFailed} /></div> : null}

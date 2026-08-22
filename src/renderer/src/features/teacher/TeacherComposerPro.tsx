@@ -16,11 +16,10 @@ interface TeacherComposerProProps {
   onChange: (value: string) => void
   onSubmit: (event: FormEvent) => void
   onStop?: () => void
-  onExplainCurrentMove?: () => void
   t?: UiTranslator
 }
 
-export function TeacherComposerPro({ value, busy = false, placeholder, actions = [], onChange, onSubmit, onStop, onExplainCurrentMove, t }: TeacherComposerProProps): ReactElement {
+export function TeacherComposerPro({ value, busy = false, placeholder, actions = [], onChange, onSubmit, onStop, t }: TeacherComposerProProps): ReactElement {
   const formRef = useRef<HTMLFormElement | null>(null)
   const translate = t ?? ((key: string) => {
     const fallback: Record<string, string> = {
@@ -75,16 +74,6 @@ export function TeacherComposerPro({ value, busy = false, placeholder, actions =
           onKeyDown={handleTextareaKeyDown}
           placeholder={placeholder ?? translate('composerPlaceholder')}
         />
-        {onExplainCurrentMove ? (
-          <button
-            type="button"
-            className="ks-composer-pro__explain-current"
-            onClick={onExplainCurrentMove}
-            disabled={busy}
-          >
-            {translate('explainCurrentMove')}
-          </button>
-        ) : null}
         <button
           type={busy ? 'button' : 'submit'}
           className={`ks-composer-pro__send${busy ? ' is-stopping' : ''}`}

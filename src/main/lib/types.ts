@@ -94,6 +94,8 @@ export interface LlmConnectionProfile {
   endpoint?: string
   executablePath?: string
   enabled: boolean
+  setupStatus?: LlmSetupStatus
+  lastVerifiedAt?: string
 }
 
 export interface LlmConnectionState {

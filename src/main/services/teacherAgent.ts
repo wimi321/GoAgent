@@ -68,7 +68,7 @@ import {
   validateVisionEvidenceForIntent
 } from './teacher/visionEvidence'
 import { buildVisionEvidenceRepairNote, verifyVisionEvidenceMarkdown } from './teacher/visionEvidenceVerifier'
-import { activeProviderSupportsTools, runProviderTurn } from './llm/providerRegistry'
+import { runProviderTurn } from './llm/providerRegistry'
 import { isLlmSetupConfigurationError } from './llm/openaiCompatibleProvider'
 
 type TeacherProgressEmitter = (progress: TeacherRunProgress) => void
@@ -497,6 +497,7 @@ const SHELL_TASKS = new Map<string, ShellTask>()
 const ACTIVE_TEACHER_RUNS = new Map<string, { abortController: AbortController; cancelled: boolean }>()
 const MAX_TOOL_RESULT_CHARS = 18_000
 const MAX_SHELL_OUTPUT_CHARS = 24_000
+const MAX_AGENT_TURNS = 12
 
 class TeacherRunCancelledError extends Error {
   constructor() {
@@ -1999,11 +2000,12 @@ async function executeAgentToolCall(
   call: ChatToolCall,
   tools: Map<string, TeacherAgentToolDefinition>,
   state: TeacherAgentSessionState
-): Promise<{ toolResult: string; followupMessages: ChatMessage[] }> {
+): Promise<{ ok: boolean; toolResult: string; followupMessages: ChatMessage[] }> {
   assertTeacherRunActive(state.context)
   const tool = tools.get(call.function.name)
   if (!tool) {
     return {
+      ok: false,
       toolResult: compactToolResult({ ok: false, error: `Unknown tool: ${call.function.name}` }),
       followupMessages: []
     }
@@ -2017,6 +2019,7 @@ async function executeAgentToolCall(
     emitToolState(state.context, state.logs, `${tool.canonicalName} 已完成`)
     const followupMessages = state.pendingToolMessages.splice(0)
     return {
+      ok: true,
       toolResult: compactToolResult({ ok: true, tool: tool.canonicalName, result }),
       followupMessages
     }
@@ -2031,58 +2034,11 @@ async function executeAgentToolCall(
     emitToolState(state.context, state.logs, detail)
     state.pendingToolMessages.splice(0)
     return {
+      ok: false,
       toolResult: compactToolResult({ ok: false, tool: tool.canonicalName, error: String(error) }),
       followupMessages: []
     }
   }
-}
-
-async function prefetchEvidenceForManagedProvider(
-  state: TeacherAgentSessionState,
-  tools: Map<string, TeacherAgentToolDefinition>
-): Promise<ChatMessage[]> {
-  const calls: Array<{ name: string; arguments: JsonObject }> = []
-  const common = { gameId: state.request.gameId, moveNumber: state.request.moveNumber }
-  if (state.intent === 'current-move') {
-    calls.push(
-      { name: 'katago_analyzePosition', arguments: common },
-      { name: 'board_captureTeachingImage', arguments: { ...common, selection: 'current', maxImages: 1 } },
-      { name: 'knowledge_matchPosition', arguments: { text: state.request.prompt, moveNumber: state.request.moveNumber, maxResults: 6 } }
-    )
-  } else if (state.intent === 'move-range') {
-    calls.push(
-      { name: 'katago_analyzeMoveRangeKeyMoves', arguments: {} },
-      { name: 'board_captureTeachingImage', arguments: { gameId: state.request.gameId, selection: 'move-range-top-loss', maxImages: 6 } },
-      { name: 'knowledge_matchPosition', arguments: { text: state.request.prompt, maxResults: 6 } }
-    )
-  } else if (state.intent === 'game-review') {
-    calls.push(
-      { name: 'katago_analyzeGameBatch', arguments: { gameId: state.request.gameId, count: 1, maxVisits: 24, minWinrateDrop: 4 } },
-      { name: 'board_captureTeachingImage', arguments: { gameId: state.request.gameId, selection: 'top-loss', maxImages: 6 } },
-      { name: 'knowledge_searchLocal', arguments: { text: state.request.prompt, maxResults: 6 } }
-    )
-  } else if (state.intent === 'batch-review') {
-    calls.push(
-      { name: 'library_findGames', arguments: { studentName: state.studentName, count: inferCount(state.request.prompt) } },
-      { name: 'katago_analyzeGameBatch', arguments: { studentName: state.studentName, count: inferCount(state.request.prompt), maxVisits: 24, minWinrateDrop: 6 } },
-      { name: 'knowledge_searchLocal', arguments: { text: state.request.prompt, maxResults: 6 } }
-    )
-  } else {
-    calls.push({ name: 'knowledge_searchLocal', arguments: { text: state.request.prompt, maxResults: 6 } })
-  }
-
-  const messages: ChatMessage[] = []
-  for (let index = 0; index < calls.length; index += 1) {
-    const item = calls[index]
-    const result = await executeAgentToolCall({
-      id: `prefetch-${index + 1}`,
-      type: 'function',
-      function: { name: item.name, arguments: JSON.stringify(item.arguments) }
-    }, tools, state)
-    messages.push({ role: 'user', content: `GoAgent 本地证据（${item.name}）：\n${result.toolResult}` })
-    messages.push(...result.followupMessages)
-  }
-  return messages
 }
 
 async function runTeacherAgentSession(
@@ -2129,27 +2085,30 @@ async function runTeacherAgentSession(
   const toolDefinitions = createTeacherAgentTools(state)
   const toolMap = new Map(toolDefinitions.map((tool) => [tool.apiName, tool]))
   const tools = toolDefinitions.map(chatTool)
-  const providerSupportsTools = activeProviderSupportsTools(settings)
-  const prefetchedMessages = providerSupportsTools ? [] : await prefetchEvidenceForManagedProvider(state, toolMap)
   const messages: ChatMessage[] = [
     { role: 'system', content: agentSystemPrompt(profile.userLevel) },
-    initialAgentUserMessage(state),
-    ...prefetchedMessages
+    initialAgentUserMessage(state)
   ]
+  const successfulAgentTools = new Set<string>()
+  const executeTool = async (call: ChatToolCall) => {
+    const result = await executeAgentToolCall(call, toolMap, state)
+    if (result.ok) successfulAgentTools.add(call.function.name)
+    return result
+  }
 
   emitProgress(context, { stage: 'assistant-start', message: 'GoAgent agent 开始推理。', toolLogs: cloneToolLogs(logs) })
   let finalText = ''
   let emittedText = ''
-  for (;;) {
+  for (let turn = 1; turn <= MAX_AGENT_TURNS; turn += 1) {
     assertTeacherRunActive(context)
     let streamedThisTurn = ''
     let result: ChatTurnResult
     try {
-      result = await runProviderTurn(settings, messages, providerSupportsTools ? tools : [], 4096, (delta) => {
+      result = await runProviderTurn(settings, messages, tools, 4096, (delta) => {
         streamedThisTurn += delta
         emittedText += delta
         emitAssistantDelta(context, delta)
-      }, context?.signal)
+      }, context?.signal, executeTool)
     } catch (error) {
       if (!isCancellationError(error)) {
         markLlmSetupNeedsAttention(error)
@@ -2157,6 +2116,8 @@ async function runTeacherAgentSession(
       throw error
     }
     assertTeacherRunActive(context)
+    for (const toolName of result.executedToolCalls ?? []) successfulAgentTools.add(toolName)
+    if (result.toolFollowupMessages?.length) messages.push(...result.toolFollowupMessages)
     if (result.toolCalls.length > 0) {
       messages.push({
         role: 'assistant',
@@ -2164,7 +2125,7 @@ async function runTeacherAgentSession(
         tool_calls: result.toolCalls
       })
       for (const call of result.toolCalls) {
-        const { toolResult, followupMessages } = await executeAgentToolCall(call, toolMap, state)
+        const { toolResult, followupMessages } = await executeTool(call)
         messages.push({
           role: 'tool',
           name: call.function.name,
@@ -2186,16 +2147,44 @@ async function runTeacherAgentSession(
   }
 
   if (!finalText) {
-    throw new Error('LLM 未生成最终回答。')
+    throw new Error(`老师在 ${MAX_AGENT_TURNS} 轮内未完成分析，请缩小任务范围后重试。`)
   }
   const finalVisionEvidence = state.request.visionEvidence ?? visionEvidence
+  const finalVisionValidation = validateVisionEvidenceForIntent(finalVisionEvidence, intent)
+  if (!finalVisionValidation.ok) {
+    throw new Error(`棋盘图证据不完整：${finalVisionValidation.blockingIssues.join('；')}`)
+  }
+  const requiredToolGroups: Partial<Record<TeacherIntent, string[][]>> = {
+    'current-move': [
+      ['board_captureTeachingImage'],
+      ['katago_analyzePosition'],
+      ['knowledge_matchPosition', 'knowledge_searchLocal']
+    ],
+    'game-review': [
+      ['sgf_readGameRecord'],
+      ['katago_analyzeGameBatch'],
+      ['board_captureTeachingImage'],
+      ['knowledge_matchPosition', 'knowledge_searchLocal', 'knowledge_searchJoseki', 'knowledge_searchLifeDeath', 'knowledge_searchTesuji']
+    ],
+    'move-range': [
+      ['katago_analyzeMoveRangeKeyMoves'],
+      ['board_captureTeachingImage'],
+      ['knowledge_matchPosition', 'knowledge_searchLocal', 'knowledge_searchJoseki', 'knowledge_searchLifeDeath', 'knowledge_searchTesuji']
+    ]
+  }
+  const missingEvidence = (requiredToolGroups[intent] ?? [])
+    .filter((group) => !group.some((toolName) => successfulAgentTools.has(toolName)))
+    .map((group) => group.join(' / '))
+  if (missingEvidence.length) {
+    throw new Error(`老师没有完成必要的证据工具调用：${missingEvidence.join('；')}`)
+  }
   const visionIssues = verifyVisionEvidenceMarkdown(finalText, finalVisionEvidence)
   if (visionIssues.some((issue) => issue.severity === 'error')) {
     messages.push({ role: 'assistant', content: finalText })
     messages.push({ role: 'user', content: `${buildVisionEvidenceRepairNote(visionIssues)}\n\n${formatVisionEvidenceForPrompt(finalVisionEvidence)}` })
     let repair: ChatTurnResult
     try {
-      repair = await runProviderTurn(settings, messages, providerSupportsTools ? tools : [], 2048, (delta) => {
+      repair = await runProviderTurn(settings, messages, [], 2048, (delta) => {
         emitAssistantDelta(context, delta)
       }, context?.signal)
     } catch (error) {
