@@ -63,7 +63,7 @@ jobs:
 
       - name: Verify Cloudflare authentication
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
-        run: pnpm dlx wrangler@4.118.0 whoami
+        run: node website/scripts/check-pages-auth.mjs
 
       - name: Deploy to Cloudflare Pages
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
