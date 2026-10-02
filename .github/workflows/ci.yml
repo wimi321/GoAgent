@@ -12,6 +12,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  website:
+    name: Website build and download checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --filter @goagent/website... --frozen-lockfile --ignore-scripts
+      - run: pnpm website:build
+      - run: pnpm check:website
+      - run: pnpm --dir website exec astro check
+      - run: node --test website/tests/*.test.mjs
+
   build:
     name: Typecheck and build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

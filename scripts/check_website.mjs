@@ -25,6 +25,7 @@ function walk(dir) {
   if (!existsSync(dir)) return []
   const entries = []
   for (const name of readdirSync(dir)) {
+    if (['node_modules', '.astro', 'dist', '.git'].includes(name)) continue
     const path = join(dir, name)
     const stat = statSync(path)
     if (stat.isDirectory()) entries.push(...walk(path))
@@ -57,6 +58,8 @@ requireFile('website/public/ai.txt')
 requireFile('website/public/_worker.js')
 
 const index = read('website/src/pages/index.astro')
+const home = read('website/src/components/HomePage.astro')
+const homeCopy = read('website/src/data/home-copy.mjs')
 const downloadPage = read('website/src/pages/download.astro')
 const docsPage = read('website/src/pages/docs.astro')
 const faqPage = read('website/src/pages/faq.astro')
@@ -64,6 +67,7 @@ const changelogPage = read('website/src/pages/changelog.astro')
 const localizedHome = read('website/src/pages/[locale].astro')
 const localizedPages = read('website/src/pages/[locale]/[page].astro')
 const downloadChooser = read('website/src/components/DownloadChooser.astro')
+const downloadImplementation = downloadChooser + read('website/src/lib/download-catalog.mjs') + read('website/src/lib/download-ui.mjs')
 const layout = read('website/src/layouts/BaseLayout.astro')
 const privacy = read('website/src/pages/privacy.astro')
 const deployment = read('website/DEPLOYMENT.md')
@@ -76,21 +80,19 @@ const ai = read('website/public/ai.txt')
 const edgeWorker = read('website/public/_worker.js')
 const chooserCopy = ['不会选', '也没关系'].join('')
 
-if (!index.includes('LizzieYzy Next')) fail('homepage must contain LizzieYzy Next')
-if (!index.includes('想复盘围棋')) fail('homepage must use the simple Go review hero headline')
-if (!index.includes('首推')) fail('homepage must present LizzieYzy Next as the recommended product')
-if (!index.includes('实验围棋智能体')) fail('homepage must position GoAgent as an experimental Go agent')
-for (const keyword of ['KataGo 官方推荐', '免费开源', '解压即用', '快速复盘']) {
-  if (!index.includes(keyword)) fail(`homepage must focus LizzieYzy Next on the new core value prop: ${keyword}`)
+if (!index.includes('<HomePage lang="zh-CN"')) fail('homepage must use the shared localized design')
+for (const keyword of ['LizzieYzy Next', '下过的每一盘', '免费开源', 'AI 解说需自行连接服务']) {
+  if (!homeCopy.includes(keyword)) fail(`homepage must include user-facing guidance: ${keyword}`)
 }
-if (index.includes('README')) fail('homepage should say official recommendation instead of README wording')
-if (!index.includes("const lizzieDownload = '/download'")) fail('homepage must route LizzieYzy Next downloads through the official download center')
+for (const keyword of ['review-hero', 'review-steps', 'DownloadChooser', 'compact', 'lizzie-review.webp']) {
+  if (!home.includes(keyword)) fail(`homepage must retain the selected design and real product image: ${keyword}`)
+}
+for (const asset of ['lizzie-review.webp', 'review-room.webp', 'review-download.webp']) requireFile(`website/public/images/${asset}`)
 if (index.includes(chooserCopy)) fail('homepage hero must not use unnecessary chooser copy')
 if (index.includes('打不开再用')) fail('homepage should use priority/backup wording instead of troubleshooting-first wording')
-if (!index.includes('https://github.com/wimi321/GoAgent/releases')) fail('homepage must still link GoAgent GitHub download')
+if (!layout.includes('https://github.com/wimi321/GoAgent/releases')) fail('footer must retain the experimental project link')
 if (!layout.includes('QQ 1030632742')) fail('site layout must expose QQ community')
 if (index.includes('Trust')) fail('homepage should not include Trust section')
-if (!index.includes('下载顺序很简单')) fail('homepage download section must use simple download sequence copy')
 if (!downloadPage.includes('<DownloadChooser lang="zh-CN" />')) fail('download page must render the unified download chooser')
 if (!downloadPage.includes('canonical="https://goagent.top/download/"')) fail('download page must use the trailing-slash canonical URL')
 for (const keyword of [
@@ -118,7 +120,7 @@ for (const keyword of [
   'Intel 芯片',
   '下载小更新',
 ]) {
-  if (!downloadChooser.includes(keyword)) fail(`download chooser must contain: ${keyword}`)
+  if (!downloadImplementation.includes(keyword)) fail(`download chooser must contain: ${keyword}`)
 }
 const nvidiaRow = downloadChooser.indexOf("['nvidia', 'windows-portable', 'nvidia'")
 const amdRow = downloadChooser.indexOf("['amd', 'amd-rocm-experimental', 'rocm-gfx120x', 'x64'")
@@ -172,18 +174,8 @@ for (const keyword of ['我应该先下载哪个？', '我该点哪个下载？'
 for (const keyword of ['官网首页更简单', '多语言页面同步更新', '普通用户不用先理解项目区别']) {
   if (!changelogPage.includes(keyword)) fail(`changelog page must use user-facing copy: ${keyword}`)
 }
-for (const keyword of [
-  'homeCopy',
-  'Review Go games?',
-  'officialDownloadCopy',
-  'home-proof-strip',
-  'hero-actions',
-  'Officially recommended by KataGo',
-  'Free, open source, unzip-and-run',
-  'lizzieDownload',
-  'Tải LizzieYzy Next'
-]) {
-  if (!localizedHome.includes(keyword)) fail(`localized homepage must use the simplified homepage system: ${keyword}`)
+for (const keyword of ['HomePage', 'localeSlugs', 'getStaticPaths']) {
+  if (!localizedHome.includes(keyword)) fail(`localized homepage must share the same components: ${keyword}`)
 }
 for (const forbidden of [
   'lizzieBaidu',

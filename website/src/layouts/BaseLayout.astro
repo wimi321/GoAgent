@@ -1,5 +1,8 @@
 ---
 import '../styles/global.css'
+import '../styles/review-site.css'
+import SiteIcon from '../components/SiteIcon.astro'
+import { homeCopy } from '../data/home-copy.mjs'
 
 interface Props {
   title?: string
@@ -29,9 +32,7 @@ const {
   jsonLd
 } = Astro.props
 
-const goAgentUrl = 'https://github.com/wimi321/GoAgent'
 const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
-const goAgentIssues = `${goAgentUrl}/issues`
 const lizzieUrl = 'https://github.com/wimi321/lizzieyzy-next'
 
 const homeByLang = {
@@ -265,23 +266,7 @@ const navItems = [
   { href: localizedPath(siteLang, 'changelog'), label: changelogLabels[siteLang] },
   { href: localizedPath(siteLang, 'faq'), label: copy.nav.faq }
 ]
-
-const languageItems = [
-  { href: localizedPath('zh-CN', languagePageKey), label: '简' },
-  { href: localizedPath('zh-Hant', languagePageKey), label: '繁' },
-  { href: localizedPath('en', languagePageKey), label: 'EN' },
-  { href: localizedPath('ja', languagePageKey), label: '日' },
-  { href: localizedPath('ko', languagePageKey), label: '한' },
-  { href: localizedPath('th', languagePageKey), label: 'TH' },
-  { href: localizedPath('vi', languagePageKey), label: 'VI' }
-]
-
-const resourceItems = [
-  { href: '/katago-review', label: copy.resources.katago },
-  { href: '/fox-go-review', label: copy.resources.fox },
-  { href: '/ai-go-review', label: copy.resources.ai },
-  { href: '/compare', label: copy.resources.compare }
-]
+const siteText = homeCopy[siteLang]
 
 const alternateItems = localizedPageKeys.has(pageKey)
   ? [
@@ -323,30 +308,27 @@ const alternateItems = localizedPageKeys.has(pageKey)
     <a class="skip-link" href="#content">{copy.skip}</a>
     <div class="site-shell">
       <header class="site-header">
-        <a class="site-logo" href={homeHref} aria-label="GoAgent home">
+        <a class="site-logo" href={homeHref} aria-label={`GoAgent · ${homeLabels[siteLang]}`}>
           <img src="/logo.svg" alt="" width="46" height="46" />
           <span>GoAgent</span>
         </a>
-        <nav aria-label="Primary">
+        <nav class="desktop-nav" aria-label={siteText.nav}>
           {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
         </nav>
         <div class="header-actions">
           <details class="language-menu">
-            <summary aria-label="Language selector">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M3 12h18" />
-                <path d="M12 3a14 14 0 0 1 0 18" />
-                <path d="M12 3a14 14 0 0 0 0 18" />
-              </svg>
+            <summary aria-label={siteText.language}>
+              <SiteIcon name="globe" size={20} />
               <span>{currentLanguageLabels[siteLang]}</span>
-              <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m7 10 5 5 5-5" />
-              </svg>
+              <SiteIcon name="chevron" size={13} class="chevron" />
             </summary>
             <div class="language-menu-list">
-              {languageItems.map((item) => <a href={item.href}>{item.label}</a>)}
+              {Object.entries(currentLanguageLabels).map(([locale, label]) => <a href={localizedPath(locale as keyof typeof localeSlugs, languagePageKey)} lang={locale}>{label}</a>)}
             </div>
+          </details>
+          <details class="mobile-nav">
+            <summary aria-label={siteText.menu}><SiteIcon name="menu" size={27} /></summary>
+            <nav aria-label={siteText.nav}>{navItems.map((item) => <a href={item.href}>{item.label}</a>)}</nav>
           </details>
         </div>
       </header>
@@ -354,24 +336,33 @@ const alternateItems = localizedPageKeys.has(pageKey)
         <slot />
       </main>
       <footer class="site-footer">
-        <div>
-          <strong>{copy.brand}</strong>
-          <p>{copy.footer}</p>
-          <p class="community-line">{copy.community}</p>
+        <div class="footer-main">
+          <div class="footer-brand"><img src="/logo.svg" alt="" width="43" height="43" /><div><strong>GoAgent</strong><p>{siteText.tagline}</p></div></div>
+          <div class="footer-links">
+            <a href={lizzieUrl}>GitHub</a>
+            <a href={localizedPath(siteLang, 'docs')}>{copy.nav.docs}</a>
+            <a href={localizedPath(siteLang, 'changelog')}>{changelogLabels[siteLang]}</a>
+            <a href={goAgentReleases}>{siteText.experimental}</a>
+            <a href={localizedPath(siteLang, 'privacy')}>{copy.privacy}</a>
+          </div>
         </div>
-        <div class="footer-links">
-          <a href={lizzieUrl}>LizzieYzy Next GitHub</a>
-          <a href={localizedPath(siteLang, 'download')}>{copy.footerDownloads.lizzie}</a>
-          <a href={goAgentUrl}>GoAgent GitHub</a>
-          <a href={goAgentReleases}>{copy.footerDownloads.goAgent}</a>
-          <a href={goAgentIssues}>Issues</a>
-          <a href={localizedPath(siteLang, 'privacy')}>{copy.privacy}</a>
+        <div class="footer-meta">
+          <p class="copyright">Copyright © {new Date().getFullYear()} {copy.copyright}.</p>
+          <details><summary>{siteText.community}</summary><p>{copy.community}</p><a href={`${lizzieUrl}/issues`}>GitHub Issues</a></details>
+          <p>{siteText.footerNote}</p>
         </div>
-        <nav class="footer-resources" aria-label="Resources">
-          {resourceItems.map((item) => <a href={item.href}>{item.label}</a>)}
-        </nav>
-        <p class="copyright">Copyright © {new Date().getFullYear()} {copy.copyright}.</p>
+        <p class="footer-ai-note">{siteText.aiNote}</p>
       </footer>
     </div>
   </body>
 </html>
+
+<script>
+  const menus = [...document.querySelectorAll<HTMLDetailsElement>('.site-header details')]
+  menus.forEach(menu => {
+    menu.addEventListener('toggle', () => { if (menu.open) menus.filter(other => other !== menu).forEach(other => { other.open = false }) })
+    menu.addEventListener('keydown', event => { if (event.key === 'Escape') { menu.open = false; menu.querySelector('summary')?.focus() } })
+    menu.querySelectorAll('a').forEach(link => link.addEventListener('click', () => { menu.open = false }))
+  })
+  document.addEventListener('click', event => menus.forEach(menu => { if (!menu.contains(event.target as Node)) menu.open = false }))
+</script>

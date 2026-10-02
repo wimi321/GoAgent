@@ -98,12 +98,13 @@ website/dist
 
 ## 6. GitHub Actions 自动部署
 
-仓库提供 `.github/workflows/deploy-website.yml`。当 `main` 分支里的 `website/**`、`scripts/check_website.mjs` 或部署 workflow 变化时，GitHub Actions 会：
+仓库提供 `.github/workflows/deploy-website.yml`。当 `main` 分支里的 `website/**`、`scripts/check_website.mjs`、`pnpm-lock.yaml` 或部署 workflow 变化时，GitHub Actions 会：
 
 1. 安装网站依赖。
 2. 构建 Astro 静态站。
 3. 执行 `pnpm check:website`。
-4. 使用 Cloudflare Wrangler Direct Upload 部署到 Pages 项目 `goagent`。
+4. 执行 Astro 类型检查、七语构建页面检查和下载逻辑测试；PR 阶段也执行相同门禁。
+5. 使用 `wrangler whoami` 验证部署授权，再通过 Direct Upload 部署到 Pages 项目 `goagent`。
 
 Cloudflare Pages 项目当前是 Direct Upload 项目，不依赖 Pages 控制台的 Git 绑定。自动部署需要 GitHub 仓库 secrets：
 
