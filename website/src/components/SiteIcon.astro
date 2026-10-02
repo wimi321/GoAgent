@@ -1,0 +1,17 @@
+---
+import download from 'bootstrap-icons/icons/download.svg?url'
+import folder from 'bootstrap-icons/icons/folder2-open.svg?url'
+import search from 'bootstrap-icons/icons/search.svg?url'
+import chart from 'bootstrap-icons/icons/bar-chart-line-fill.svg?url'
+import windows from 'bootstrap-icons/icons/windows.svg?url'
+import apple from 'bootstrap-icons/icons/apple.svg?url'
+import linux from 'bootstrap-icons/icons/ubuntu.svg?url'
+import globe from 'bootstrap-icons/icons/globe2.svg?url'
+import menu from 'bootstrap-icons/icons/list.svg?url'
+import chevron from 'bootstrap-icons/icons/chevron-down.svg?url'
+import arrow from 'bootstrap-icons/icons/arrow-right.svg?url'
+const icons = { download, folder, search, chart, windows, apple, linux, globe, menu, chevron, arrow }
+interface Props { name: keyof typeof icons; size?: number; class?: string }
+const { name, size = 22, class: className = '' } = Astro.props
+---
+<img class:list={['site-icon', className]} src={icons[name]} alt="" width={size} height={size} aria-hidden="true" />

@@ -1,21 +1,22 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { guideCopy } from '../data/guide-copy.mjs'
 
 const docs = [
   ['第一步：先下载 LizzieYzy Next', '大多数棋友先装这个就够了。进入官网下载中心，先选 Windows 或 macOS，再按显卡或芯片选择版本。'],
   ['第二步：选对你的电脑系统', 'Windows 用户中，NVIDIA RTX 20 / 30 / 40 / 50 选统一 CUDA 版，AMD、Intel 或旧 NVIDIA 显卡选 OpenCL 版，没有合适独立显卡选 CPU 版；Mac 用户按芯片选择 Apple Silicon 或 Intel 版。'],
   ['第三步：打开棋谱开始复盘', '安装后导入 SGF 棋谱，先看胜率、目差和关键失误。不要一开始研究太多设置，先把一盘棋看明白。'],
   ['第四步：先看三个重点', '先看哪几手胜率掉得多，再看目差变化，最后看 KataGo 推荐的候选点。普通复盘先抓这三件事就够用。'],
-  ['第五步：想听 AI 讲棋，再试 GoAgent', 'GoAgent 是实验功能，适合想尝试 AI 自然语言讲解的人。只想稳定复盘，不用一开始就安装 GoAgent。'],
+  guideCopy['zh-CN'].ai,
   ['第六步：下载或安装遇到问题', '下载不顺时可以换另一个入口或网络。Windows 提示安全拦截时，请确认文件来自官网链接后再继续。'],
-  ['第七步：隐私怎么理解', 'LizzieYzy Next 和 GoAgent 都是桌面工具，棋谱复盘优先在你的电脑上完成。GoAgent 只有在你自己配置 AI 服务并发起讲解时，才会把必要内容发给你配置的服务。'],
+  ['第七步：隐私怎么理解', guideCopy['zh-CN'].privacy],
   ['第八步：需要帮助时', '先看常见问题；还解决不了，可以去 GitHub Issues，或加入 QQ 群 1030632742 / 299419120 交流。']
 ]
 ---
-<BaseLayout title="使用指南 - LizzieYzy Next 和 GoAgent" description="面向普通棋友的使用指南：先下载 LizzieYzy Next，打开棋谱复盘；想尝试 AI 讲棋时再试 GoAgent。" pageKey="docs">
+<BaseLayout title="使用指南 - LizzieYzy Next" description="下载、打开棋谱、自动分析与 AI 解说，面向普通棋友的快速开始指南。" pageKey="docs">
   <section class="page-hero">
     <h1>使用指南</h1>
-    <p class="lead">不用研究术语。先下载 LizzieYzy Next，打开棋谱，看胜率、目差和关键失误；想尝试 AI 讲棋时，再下载 GoAgent。</p>
+    <p class="lead">不用研究术语。打开棋谱，分析一盘棋，再逐手看懂关键失误。AI 解说和陪练都在同一个软件里。</p>
   </section>
   <section class="content-stack">
     {docs.map(([title, text], index) => (
@@ -32,7 +33,7 @@ const docs = [
       <ul>
         <li>只想复盘：先用 LizzieYzy Next。</li>
         <li>下载软件：从官网下载中心选择适合电脑的版本。</li>
-        <li>想尝试 AI 讲棋：再试 GoAgent。</li>
+        <li>{guideCopy['zh-CN'].ai[1]}</li>
       </ul>
     </article>
   </section>

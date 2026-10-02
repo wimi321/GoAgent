@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import { guideCopy } from '../data/guide-copy.mjs'
 
-const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
+const lizzieReleases = '/download/'
 const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
 
 const principles = [
@@ -11,8 +12,8 @@ const principles = [
 ]
 
 const faq = [
-  ['围棋 AI 复盘是不是直接问聊天机器人？', '不建议。聊天机器人没有棋盘和 KataGo 证据时容易编造。更好的顺序是先用 LizzieYzy Next 分析，再用 GoAgent 尝试讲解。'],
-  ['LizzieYzy Next 和 GoAgent 怎么搭配？', 'LizzieYzy Next 负责成熟稳定的全盘复盘；GoAgent 负责实验性的自然语言讲棋。'],
+  ['围棋 AI 复盘是不是直接问聊天机器人？', '不建议。先用 KataGo 分析，再使用 LizzieYzy Next 内的 AI 解说，让解释有棋盘和分析结果作为依据。'],
+  ['还需要另外安装 GoAgent 吗？', guideCopy['zh-CN'].separate],
   ['AI 讲棋应该相信什么？', '优先相信可验证的 KataGo 候选点、胜率、目差和变化图。自然语言解释应该服务这些证据。']
 ]
 
@@ -39,7 +40,7 @@ const jsonLd = {
 ---
 <BaseLayout
   title="围棋 AI 复盘怎么看 - LizzieYzy Next 与 GoAgent"
-  description="围棋 AI 复盘建议先用 LizzieYzy Next 做 KataGo 全盘分析，再用 GoAgent 尝试自然语言讲棋，避免没有证据的空泛解释。"
+  description="在 LizzieYzy Next 中先分析棋谱，再使用 AI 解说理解关键手。让解释有 KataGo 结果作为依据。"
   pageKey="ai-go-review"
   jsonLd={jsonLd}
 >
@@ -57,9 +58,9 @@ const jsonLd = {
     <article class="premium-panel doc-card">
       <div>
         <h2>推荐顺序</h2>
-        <p>先用 LizzieYzy Next 做成熟稳定的 KataGo 全盘复盘；当你已经定位关键手，再用 GoAgent 尝试 AI 讲棋。这个顺序能减少空泛解释，也更适合日常进步。</p>
+        <p>先用 KataGo 分析整盘棋，找到胜率或目差明显变化的局面，再点击软件顶部的 AI 解说。{guideCopy['zh-CN'].ai[1]}</p>
       </div>
-      <img src="/images/goagent-workbench.jpg" alt="GoAgent 围棋 AI 讲解工作台" width="1536" height="1152" loading="lazy" decoding="async" />
+      <img src="/images/lizzie-review.webp" alt="LizzieYzy Next 实际分析界面" width="1065" height="700" loading="lazy" decoding="async" />
     </article>
 
     <div class="grid three">

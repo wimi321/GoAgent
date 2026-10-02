@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import DownloadChooser from './DownloadChooser.astro'
+import SiteIcon from './SiteIcon.astro'
+import { homeCopy, localeSlugs } from '../data/home-copy.mjs'
+interface Props { lang?: keyof typeof homeCopy }
+const { lang = 'zh-CN' } = Astro.props
+const copy = homeCopy[lang]
+const prefix = localeSlugs[lang] ? `/${localeSlugs[lang]}` : ''
+const download = `${prefix}/download/`
+const icons = ['folder', 'search', 'chart'] as const
+---
+<BaseLayout title={copy.title} description={copy.description} lang={lang} pageKey="home"
+  jsonLd={{ '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'LizzieYzy Next', applicationCategory: 'GameApplication', operatingSystem: 'Windows, macOS, Linux', url: 'https://goagent.top/', downloadUrl: 'https://goagent.top/download/', isAccessibleForFree: true }}>
+  <section class="review-hero full-bleed" aria-labelledby="review-title">
+    <div class="review-hero-inner">
+      <div class="review-intro">
+        <p class="review-eyebrow">LizzieYzy Next</p>
+        <h1 id="review-title">{copy.headline.map(line => <span>{line}</span>)}</h1>
+        <p class="review-lead">{copy.lead}</p>
+        <div class="review-actions">
+          <a class="review-download" href={download}><SiteIcon name="download" />{copy.download}</a>
+          <a class="review-tour" href="#workflow">{copy.tour}<SiteIcon name="arrow" size={18} /></a>
+        </div>
+        <p class="review-platforms"><span aria-hidden="true"><SiteIcon name="windows" /><SiteIcon name="apple" /><SiteIcon name="linux" /></span>{copy.free} · Windows / macOS / Linux</p>
+      </div>
+      <figure class="review-preview">
+        <a href={`${prefix}/docs`} aria-label={copy.tour}>
+          <img src="/images/lizzie-review.webp" alt={copy.screenshot} width="1065" height="700" fetchpriority="high" />
+        </a>
+        <figcaption>{copy.caption}</figcaption>
+      </figure>
+      <p class="review-quote">{copy.quote.map(line => <span>{line}</span>)}</p>
+    </div>
+  </section>
+  <section class="review-workflow" id="workflow" aria-labelledby="workflow-title">
+    <header id="products"><h2 id="workflow-title">{copy.stepsTitle}</h2><p>{copy.stepsLead}</p></header>
+    <ol class="review-steps">
+      {copy.steps.map(([title, description], index) => <li>
+        <span class="step-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+        <div><SiteIcon name={icons[index]} size={36} /><h3>{title}</h3><p>{description}</p></div>
+      </li>)}
+    </ol>
+  </section>
+  <DownloadChooser lang={lang} compact title={copy.downloadTitle} lead={copy.downloadLead} />
+</BaseLayout>

@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import DownloadChooser from '../../components/DownloadChooser.astro'
+import { homeCopy } from '../../data/home-copy.mjs'
+import { guideCopy } from '../../data/guide-copy.mjs'
 
 const localeKeys = ['zh-hant', 'en', 'ja', 'ko', 'th', 'vi'] as const
 const pageKeys = ['download', 'docs', 'privacy', 'faq', 'changelog'] as const
@@ -393,8 +395,19 @@ export function getStaticPaths() {
 const locale = Astro.params.locale as LocaleKey
 const page = Astro.params.page as PageKey
 const sourceData = localized[locale][page]
-const data = (page === 'download' ? downloadMeta[locale] : ((friendlyPages as any)[locale]?.[page] ?? sourceData)) as any
 const meta = localeMeta[locale]
+const baseData = (page === 'download' ? downloadMeta[locale] : ((friendlyPages as any)[locale]?.[page] ?? sourceData)) as any
+const guide = guideCopy[meta.lang]
+const data = page === 'docs' ? {
+  ...baseData,
+  description: homeCopy[meta.lang].description,
+  lead: homeCopy[meta.lang].lead,
+  steps: baseData.steps.map((step: string[], index: number) => index === 4 ? guide.ai : step),
+  qualityItems: [homeCopy[meta.lang].free, guide.privacy, homeCopy[meta.lang].aiNote]
+} : page === 'faq' ? {
+  ...baseData,
+  items: baseData.items.map((item: string[], index: number) => index === 2 ? [item[0], guide.separate] : index === 4 ? [item[0], guide.privacy] : item)
+} : baseData
 const canonical = `https://goagent.top/${locale}/${page}`
 const jsonLd = page === 'faq'
   ? {

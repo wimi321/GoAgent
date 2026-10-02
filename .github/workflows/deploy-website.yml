@@ -7,6 +7,7 @@ on:
     paths:
       - "website/**"
       - "scripts/check_website.mjs"
+      - "pnpm-lock.yaml"
       - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
 
@@ -50,10 +51,19 @@ jobs:
       - name: Check website contract
         run: pnpm check:website
 
+      - name: Check website types and download behavior
+        run: |
+          pnpm --dir website exec astro check
+          node --test website/tests/*.test.mjs
+
       - name: Report missing Cloudflare secrets
         if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
         run: |
           echo "::warning title=Cloudflare deploy skipped::Set repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to enable automatic Pages deploys."
+
+      - name: Verify Cloudflare authentication
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: pnpm dlx wrangler@4.118.0 whoami
 
       - name: Deploy to Cloudflare Pages
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}

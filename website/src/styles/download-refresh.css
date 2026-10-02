@@ -1,0 +1,110 @@
+.download-hub [hidden] { display: none !important; }
+.download-hub { width: 100vw; margin-inline: calc(50% - 50vw); background: #faf8f3 url('/images/review-download.webp') center top / 100% auto no-repeat; border-block: 1px solid #dfdfd4; }
+.download-hub-inner { width: min(1296px, calc(100% - 96px)); margin: auto; padding: 54px 0 38px; }
+.download-hub-hero { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 32px; }
+.download-hub-hero > img { width: 68px; height: 68px; }
+.download-hub-hero > div:nth-child(2) { flex: 1; min-width: 220px; }
+.download-hub-hero p { margin: 0 0 8px; font: 700 23px/1.3 Georgia, serif; color: #225a47; }
+.download-hub-hero h1, .download-hub-hero h2 { margin: 0; color: #102d25; font: 700 42px/1.25 var(--review-serif); }
+.download-hub-hero span { display: block; margin-top: 12px; font-size: 16px; color: #56665b; line-height: 1.6; }
+.release-status { color: #405d50; font-size: 13px; line-height: 1.6; }
+.download-tabs { display: flex; gap: 5px; border-bottom: 1px solid #becabf; }
+.download-tabs button { border: 1px solid #d5d9ce; border-bottom: 0; border-radius: 12px 12px 0 0; min-width: 160px; padding: 14px 24px; min-height: 50px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; font-family: inherit; font-size: 17px; font-weight: 600; line-height: 1.3; color: #354c41; background: #faf8f3; cursor: pointer; }
+.download-tabs button[aria-selected='true'] { color: white; background: #0b513f; border-color: #0b513f; }
+.download-tabs button[aria-selected='true'] .site-icon { filter: invert(1); }
+.download-tabs button:hover:not([aria-selected='true']) { background: #eaf0e8; }
+.download-platform-panel { padding: 26px 0 0; }
+.platform-heading { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 22px; }
+.platform-heading h2 { margin: 0; color: #174734; font: 700 25px/1.3 Georgia, serif; }
+.platform-heading p { margin: 5px 0 0; color: #536257; font-size: 15px; }
+.download-option-list { list-style: none; padding: 0; margin: 0; }
+.download-option { display: grid; grid-template-columns: minmax(0, 1fr) 85px 190px; align-items: center; gap: 22px; border-bottom: 1px solid #dedfd5; padding: 18px 14px; min-height: 90px; }
+.option-main { display: grid; grid-template-columns: 37px minmax(0, 1fr); align-items: center; gap: 16px; }
+.option-main > img { width: 34px; height: 34px; }
+.option-main h3 { margin: 0; color: #172e24; font-size: 18px; font-weight: 650; line-height: 1.5; }
+.option-main h3 span { display: inline-block; padding: 2px 7px; margin-left: 6px; border-radius: 4px; color: #83521c; background: #f3e9d7; font-size: 12px; vertical-align: middle; }
+.option-main p { margin: 4px 0 0; color: #56665b; font-size: 14px; line-height: 1.65; max-width: 56em; }
+.option-size { color: #506356; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.option-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.option-actions a, .linux-download { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 12px 22px; border-radius: 6px; color: white; background: #0b513f; font-size: 15px; font-weight: 600; line-height: 1.4; text-align: center; transition: background 160ms ease; }
+.option-actions a:hover, .linux-download:hover { background: #063b2e; }
+.option-actions > span { font-size: 14px; color: #726044; }
+.amd-more { margin: 20px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: 14px; color: #56665b; }
+.amd-more a { color: #0b513f; text-decoration: underline; text-underline-offset: 4px; }
+.mac-install-tip { margin: 20px 0 0; color: #536356; font-size: 15px; }
+.linux-panel { padding: 34px 0; }
+.linux-panel h2 { display: inline-block; margin: 0 0 0 14px; color: #174734; }
+.linux-panel p { font-size: 16px; }
+.linux-download { gap: 12px; }
+.linux-download .site-icon { filter: invert(1); }
+.core-update { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 20px; margin-top: 30px; padding: 22px 0; border-block: 1px solid #d6dccc; }
+.core-update strong { font-size: 16px; color: #294c3c; }
+.core-update div > span { margin-left: 12px; color: #57665b; font-size: 14px; }
+.core-update .option-actions a { color: #755127; background: transparent; border: 1px solid #a18153; }
+.core-update .option-actions a:hover { background: #f1e9da; }
+.download-support { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 28px; margin-top: 22px; }
+.download-support a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #315940; font-size: 14px; }
+.download-error { background: #f7eddc; border-left: 3px solid #9a702e; padding: 18px 22px; margin: 0 0 24px; color: #65461f; }
+.download-error strong { color: inherit; line-height: 1.6; }
+.download-error > div { display: flex; flex-wrap: wrap; gap: 12px 20px; margin-top: 12px; }
+.download-error button, .download-error a { padding: 10px 16px; min-height: 44px; font: inherit; color: #64471e; background: #fffdf5; border: 1px solid #b69868; border-radius: 5px; cursor: pointer; }
+.download-error button:disabled { opacity: .6; cursor: wait; }
+.noscript-note { text-align: center; }
+.noscript-note a { text-decoration: underline; }
+.download-hub.compact .download-hub-hero > img, .download-hub.compact .download-hub-hero p, .download-hub.compact .platform-heading { display: none; }
+.download-hub.compact .download-hub-hero h2 { font-size: 37px; }
+.download-hub.compact .download-hub-inner { padding-block: 38px 24px; }
+.download-hub.compact .release-status { flex-basis: 100%; margin-top: -10px; font-size: 12px; }
+.download-hub.compact .download-hub-hero { margin-bottom: 18px; gap: 18px; }
+.download-hub.compact .download-option-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.download-hub.compact .mac-panel .download-option-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.download-hub.compact .download-option { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 2px 24px; border-bottom: 0; border-left: 1px solid #dadcd1; }
+.download-hub.compact .download-option:first-child { border-left: 0; padding-left: 12px; }
+.download-hub.compact .option-main { align-items: start; }
+.download-hub.compact .option-size { padding-left: 53px; }
+.download-hub.compact .option-actions { justify-content: flex-start; margin: auto 0 0 53px; }
+.download-hub.compact .option-actions a { min-width: 0; width: 100%; }
+.download-hub.compact .option-main h3 span { display: none; }
+.all-downloads { text-align: center; margin: 22px 0 0; }
+.all-downloads a { display: inline-flex; gap: 12px; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 8px; color: #0b513f; font-size: 16px; font-weight: 600; }
+@media (max-width: 900px) {
+  .download-hub-inner { width: calc(100% - 48px); padding: 38px 0 30px; }
+  .download-tabs button { min-width: 140px; padding: 16px 22px; }
+  .download-hub.compact .download-option { padding: 8px 18px; }
+  .download-hub.compact .option-main { display: flex; flex-direction: column; gap: 12px; }
+  .download-hub.compact .option-size { padding: 0; }
+  .download-hub.compact .option-actions { margin-left: 0; }
+  .download-hub.compact .option-actions a { min-width: 0; width: 100%; }
+  .download-option { grid-template-columns: minmax(0, 1fr) 70px 150px; gap: 16px; }
+}
+@media (max-width: 600px) {
+  .download-hub { background-image: linear-gradient(#faf8f330, #faf8f3aa), url('/images/review-download.webp'); }
+  .download-hub-inner { width: calc(100% - 40px); }
+  .download-hub-hero { gap: 14px; margin-bottom: 24px; }
+  .download-hub-hero > img { display: none; }
+  .download-hub-hero h1, .download-hub-hero h2, .download-hub.compact .download-hub-hero h2 { font-size: 30px; }
+  .download-hub-hero span { font-size: 15px; }
+  .download-hub-hero p { font-size: 22px; }
+  .release-status { flex-basis: 100%; font-size: 12px; }
+  .download-tabs { gap: 4px; }
+  .download-tabs button { min-width: 0; flex: 1; gap: 8px; padding: 14px 8px; font-size: 15px; min-height: 54px; }
+  .download-tabs .site-icon { width: 19px; height: 19px; }
+  .download-option { grid-template-columns: minmax(0, 1fr) auto; padding: 18px 0; gap: 10px 14px; }
+  .option-main { grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
+  .option-main h3 { font-size: 16px; }
+  .option-main > img { width: 28px; height: 28px; }
+  .option-size { grid-column: 1; padding-left: 42px; font-size: 13px; }
+  .option-actions { grid-column: 2; grid-row: 1 / 3; flex-direction: column; align-items: stretch; }
+  .option-actions a { padding: 11px 14px; font-size: 14px; }
+  .download-hub.compact .download-option-list, .download-hub.compact .mac-panel .download-option-list { grid-template-columns: 1fr; }
+  .download-hub.compact .download-option, .download-hub.compact .download-option:first-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; border-left: 0; border-bottom: 1px solid #dedfd5; padding: 20px 0; }
+  .download-hub.compact .option-main { display: grid; }
+  .download-hub.compact .option-size { padding-left: 42px; }
+  .download-hub.compact .option-actions { margin: 0; }
+  .all-downloads { margin-top: 22px; }
+  .all-downloads a { font-size: 15px; }
+  .core-update { grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
+  .core-update div > span { display: block; margin: 6px 0 0; }
+  .core-update .option-actions { grid-row: auto; grid-column: 1 / -1; }
+  .core-update .option-actions a { width: 100%; }
+}
