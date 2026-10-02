@@ -104,7 +104,7 @@ website/dist
 2. 构建 Astro 静态站。
 3. 执行 `pnpm check:website`。
 4. 执行 Astro 类型检查、七语构建页面检查和下载逻辑测试；PR 阶段也执行相同门禁。
-5. 使用 `wrangler whoami` 验证部署授权，再通过 Direct Upload 部署到 Pages 项目 `goagent`。
+5. 通过 Cloudflare API 读取当前账号下的 `goagent` Pages 项目以验证授权，再通过 Direct Upload 部署。此检查不依赖 `wrangler whoami` 的账号列表权限，不为部署扩大 Token 权限；授权失败仍会阻止上传。
 
 Cloudflare Pages 项目当前是 Direct Upload 项目，不依赖 Pages 控制台的 Git 绑定。自动部署需要 GitHub 仓库 secrets：
 
