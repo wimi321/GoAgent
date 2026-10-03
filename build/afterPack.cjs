@@ -1,7 +1,8 @@
 const { createHash } = require('node:crypto')
 const { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, statSync } = require('node:fs')
 const { join } = require('node:path')
-const { Arch } = require('builder-util')
+const { pathToFileURL } = require('node:url')
+const { Arch } = require('electron-builder')
 
 module.exports = async function afterPack(context) {
   const projectDir = context.packager.projectDir
@@ -29,4 +30,10 @@ module.exports = async function afterPack(context) {
   copyFileSync(manifestPath, join(destinationDir, 'manifest.json'))
   copyFileSync(join(projectDir, 'data', 'codex', 'LICENSE'), join(destinationDir, 'LICENSE'))
   if (context.electronPlatformName !== 'win32') chmodSync(destination, 0o755)
+
+  const editionPath = join(resources, 'data', 'katago', 'edition.json')
+  if (context.electronPlatformName === 'win32' && existsSync(editionPath) && JSON.parse(readFileSync(editionPath, 'utf8')).flavor === 'nvidia') {
+    const { checkRuntime } = await import(pathToFileURL(join(projectDir, 'scripts', 'check_windows_katago_runtime.mjs')).href)
+    await checkRuntime(join(resources, 'data', 'katago', 'bin', 'win32-x64'), true)
+  }
 }
