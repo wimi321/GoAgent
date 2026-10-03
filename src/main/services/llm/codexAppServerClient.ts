@@ -14,6 +14,7 @@ import type {
 } from '@main/lib/types'
 import type { ChatMessage, ChatTool, ChatToolCall, ChatTurnResult } from './provider'
 import type { AgentRuntimeTurnInput, AgentToolExecutor } from './agentRuntime'
+import { toolExecutionHistory } from './toolExecutionHistory'
 
 interface RpcResponse {
   id?: number | string
@@ -428,23 +429,22 @@ export class CodexAppServerClient {
         arguments: JSON.stringify(params.arguments ?? {})
       }
     }
+    let result: Awaited<ReturnType<AgentToolExecutor>>
     try {
-      const result = await context.execute(toolCall)
-      if (result.ok) context.executedTools.push(toolName)
-      context.followupMessages.push(...result.followupMessages)
-      await this.write({
-        id: message.id,
-        result: { contentItems: contentItemsFromToolResult(result), success: result.ok }
-      })
+      result = await context.execute(toolCall)
     } catch (error) {
-      await this.write({
-        id: message.id,
-        result: {
-          contentItems: [{ type: 'inputText', text: `工具执行失败：${String(error)}` }],
-          success: false
-        }
-      }).catch(() => undefined)
+      result = {
+        ok: false,
+        toolResult: `工具执行失败：${String(error)}`,
+        followupMessages: []
+      }
     }
+    if (result.ok) context.executedTools.push(toolName)
+    context.followupMessages.push(...toolExecutionHistory(toolCall, result))
+    await this.write({
+      id: message.id,
+      result: { contentItems: contentItemsFromToolResult(result), success: result.ok }
+    }).catch(() => undefined)
   }
 
   private write(message: unknown): Promise<void> {

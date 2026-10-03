@@ -319,10 +319,10 @@ export function buildTeachingPacingAdvice(
     whyThisMuchExplanation = 'KataGo 搜索或实战手证据还不够强，只能讲判断倾向，不能下绝对结论。'
   } else if (tactical || phase === 'middle' || severity === 'mistake' || severity === 'blunder' || winrateLoss >= 7 || scoreLoss >= 4) {
     teachingDensity = 'detailed'
-    whyThisMuchExplanation = '这是中盘战、急所计算或明显损失局面，需要讲清这手目的、对方应手、PV 后续和实战代价。'
+    whyThisMuchExplanation = '这是中盘战、急所计算或明显损失局面，内部应核验目的、对方应手、PV 后续和实战代价；最终篇幅遵守用户的输出策略，默认当前手只讲主要目的。'
   } else if (hasJosekiBranch || focus === 'joseki-branch' || (phase === 'opening' && winrateLoss >= 2)) {
     teachingDensity = 'branch'
-    whyThisMuchExplanation = '这是定式分支、布局选择或相似型局面，适合列 1-2 个关键变化和选择条件。'
+    whyThisMuchExplanation = '这是定式分支、布局选择或相似型局面，内部应比较关键变化和选择条件；用户要求展开时再列变化。'
   } else if ((focus === 'joseki-normal' && winrateLoss < 2) || (severity === 'good' && winrateLoss < 2)) {
     teachingDensity = 'minimal'
     whyThisMuchExplanation = '这是常规定式或损失很小的正常选择，只点明棋形方向即可，不需要长篇讲解。'

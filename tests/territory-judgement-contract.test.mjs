@@ -13,9 +13,10 @@ test('KataGo root ownership is preserved for positional judgement', () => {
   assert.match(types, /ownership\?: number\[\]/)
   assert.match(types, /ownershipStdev\?: number\[\]/)
   assert.match(katago, /rootInfo\?: \{/)
-  assert.match(katago, /rootInfo\.ownership/)
-  assert.match(katago, /rootInfo\.ownershipStdev/)
-  assert.match(katago, /ownership: Array\.isArray\(response\.rootInfo\.ownership\)/)
+  assert.match(katago, /readRootOwnership\(response, boardSize\)/)
+  const ownership = read('src/main/services/analysis/ownership.ts')
+  assert.match(ownership, /response\.ownership/)
+  assert.match(ownership, /response\.ownershipStdev/)
 })
 
 test('renderer has a reusable territory judgement model and premium board overlay', () => {
