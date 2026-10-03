@@ -61,8 +61,6 @@ interface QueryFeatures {
   explicitIntentTypes: Set<KnowledgeMatchType>
   moveFeatures: Set<string>
   candidateFeatures: Set<string>
-  pvFeatures: Set<string>
-  allPoints: Set<string>
 }
 
 type ProblemEntry = LifeDeathProblem | TesujiProblem
@@ -293,7 +291,6 @@ function detectRegion(query: KnowledgeMatchQuery): TrainingRegion {
   const points = [
     query.playedMove,
     ...(query.candidateMoves ?? []).slice(0, 3),
-    ...(query.principalVariation ?? []).slice(0, 5),
     ...query.recentMoves.map((move) => move.gtp)
   ].filter(Boolean) as string[]
   let corner = 0
@@ -325,15 +322,6 @@ function buildFeatures(query: KnowledgeMatchQuery): QueryFeatures {
     ...addFeaturesFromGtp(query.playedMove ? [query.playedMove] : [], query.boardSize)
   ])
   const candidateFeatures = addFeaturesFromGtp(query.candidateMoves, query.boardSize)
-  const pvFeatures = addFeaturesFromGtp(query.principalVariation, query.boardSize)
-  const allPoints = new Set([
-    query.playedMove,
-    ...(query.candidateMoves ?? []),
-    ...(query.principalVariation ?? []),
-    ...query.recentMoves.map((move) => move.gtp),
-    ...(query.boardSnapshot ?? []).map((stone) => stone.point),
-    ...(query.localWindows ?? []).flatMap((window) => [window.anchor, ...window.stones.map((stone) => stone.point)])
-  ].filter(Boolean) as string[])
 
   return {
     phase: phaseFromMove(query.moveNumber, query.totalMoves),
@@ -343,9 +331,7 @@ function buildFeatures(query: KnowledgeMatchQuery): QueryFeatures {
     intentTypes: detectIntentTypes(tokens),
     explicitIntentTypes: detectIntentTypes(explicitTokens),
     moveFeatures,
-    candidateFeatures,
-    pvFeatures,
-    allPoints
+    candidateFeatures
   }
 }
 
@@ -394,19 +380,6 @@ function featureOverlap(values: string[], features: Set<string>, weight: number,
   return score
 }
 
-function sequenceOverlap(sequence: string[], points: Set<string>, reasons: string[]): number {
-  let overlap = 0
-  for (const point of sequence) {
-    if (points.has(point)) {
-      overlap += 1
-    }
-  }
-  if (overlap > 0) {
-    reasons.push(`sequence-overlap:${overlap}`)
-  }
-  return overlap
-}
-
 function uniqueValidPoints(points: Array<string | undefined>, boardSize: number): string[] {
   const seen = new Set<string>()
   const values: string[] = []
@@ -446,6 +419,7 @@ function stoneKey(stone: RelativeStone, transform: RelativeTransform, swapColors
 }
 
 function queryStonesForAnchor(query: KnowledgeMatchQuery, anchor: string): BoardSnapshotStone[] {
+  if (query.boardSnapshot) return query.boardSnapshot
   const localWindow = (query.localWindows ?? []).find((window) => window.anchor === anchor)
   if (localWindow && localWindow.stones.length > 0) {
     return localWindow.stones
@@ -586,8 +560,6 @@ function localShapeGeometryMatch(problem: ProblemEntry, query: KnowledgeMatchQue
   const queryAnchors = uniqueValidPoints([
     query.playedMove,
     ...(query.candidateMoves ?? []).slice(0, 6),
-    ...(query.principalVariation ?? []).slice(0, 4),
-    ...(query.localWindows ?? []).map((window) => window.anchor)
   ], query.boardSize)
   const problemAnchors = uniqueValidPoints(problem.correctMoves.slice(0, 2).map((move) => move.move), query.boardSize)
   if (queryAnchors.length === 0 || problemAnchors.length === 0) return null
@@ -609,6 +581,10 @@ function localShapeGeometryMatch(problem: ProblemEntry, query: KnowledgeMatchQue
 
       for (const transform of LOCAL_SHAPE_TRANSFORMS) {
         for (const swapColors of [false, true]) {
+          // A color-swapped shape is relevant only when the problem's player
+          // maps to the real current player. Unknown roles remain analogies.
+          const mappedPlayer = swapColors ? (problem.toPlay === 'B' ? 'W' : 'B') : problem.toPlay
+          if (query.playerColor && mappedPlayer !== query.playerColor) continue
           let matched = 0
           const transformedKeys = new Set(problemRelatives.map((stone) => stoneKey(stone, transform.apply, swapColors)))
           for (const key of transformedKeys) {
@@ -659,15 +635,14 @@ function capConfidence(value: KnowledgeMatchConfidence, max: KnowledgeMatchConfi
 
 function sortMatchScore(match: KnowledgeMatch): number {
   const intentBonus = match.reason.some((reason) => reason.startsWith('explicit-intent:')) ? 8 : 0
-  const exactEvidenceBonus = match.reason.some((reason) => reason.startsWith('answer-overlap') || reason.startsWith('sequence-overlap')) ? 4 : 0
+  const topicBonus = match.reason.some((reason) => reason.startsWith('explicit-title-topic:')) ? 30 : 0
   const geometryBonus = match.reason.some((reason) => reason.startsWith('geometry:')) ? 6 : 0
-  return CONFIDENCE_RANK[match.confidence] * 1000 + match.score + intentBonus + exactEvidenceBonus + geometryBonus
+  return CONFIDENCE_RANK[match.confidence] * 1000 + match.score + intentBonus + topicBonus + geometryBonus
 }
 
 function applicabilityFor(confidenceValue: KnowledgeMatchConfidence, type: KnowledgeMatchType): string {
-  if (confidenceValue === 'exact') return '本局局部手顺、候选点和区域都高度一致，可以作为同型讲解。'
-  if (confidenceValue === 'strong') return '本局棋形和 KataGo 候选点相近，可以作为强相关型讲解，但仍要看全局厚薄。'
-  if (confidenceValue === 'partial') return `本局只是像这个${type === 'joseki' ? '定式' : '棋形'}，老师应说“像这个型”，不能硬套结论。`
+  if (confidenceValue === 'exact' || confidenceValue === 'strong') return '当前局部与训练题几何相似，仅表示检索相关；未验证题库答案在本局是否合法，不能据此确认死活、手筋或定式结论。'
+  if (confidenceValue === 'partial') return `仅供${type === 'joseki' ? '定式' : '棋形'}训练类比，尚未确认本局同型；题库答案坐标不对应本局，不能硬套结论。`
   return '弱相关，只适合作为备用训练建议，不应进入主讲。'
 }
 
@@ -733,13 +708,7 @@ function josekiMatch(line: JosekiLine, query: KnowledgeMatchQuery, features: Que
     reasons.push('context-intent:joseki')
   }
   score += addOverlapScore([...line.tags, line.title, line.family], features.tokens, 4, reasons, 'text')
-  score += featureOverlap(line.normalizedFeatures, new Set([...features.moveFeatures, ...features.candidateFeatures, ...features.pvFeatures]), 4, reasons, 'shape')
-  const overlap = sequenceOverlap(line.relativeSequence, features.allPoints, reasons)
-  score += overlap * (features.phase === 'opening' || explicitJosekiIntent ? 5 : 2)
-  if ((query.candidateMoves ?? []).includes(line.relativeSequence[1])) {
-    score += 5
-    reasons.push('katago-candidate-prefix')
-  }
+  score += featureOverlap(line.normalizedFeatures, new Set([...features.moveFeatures, ...features.candidateFeatures]), 4, reasons, 'shape')
   if (query.moveNumber <= 70) {
     score += 2
     reasons.push('opening-timing')
@@ -749,11 +718,10 @@ function josekiMatch(line: JosekiLine, query: KnowledgeMatchQuery, features: Que
     reasons.push(explicitTacticalIntent ? 'penalty:tactical-query' : 'penalty:non-opening-joseki-context')
   }
   if (score < 8) return null
-  const exactish = overlap >= 3 && (features.phase === 'opening' || explicitJosekiIntent) && !explicitTacticalIntent
-  const rawConfidence = confidence(score, exactish)
-  const confidenceValue = features.phase !== 'opening' && !explicitJosekiIntent
-    ? capConfidence(rawConfidence, 'partial')
-    : rawConfidence
+  // Text, region and move-coordinate features rank training analogies; they
+  // do not establish an ordered, color-aware joseki in the current position.
+  const confidenceValue = capConfidence(confidence(score), 'partial')
+  reasons.unshift('training-analogy:no-verified-joseki-geometry')
   return {
     id: line.id,
     matchType: 'joseki',
@@ -764,7 +732,7 @@ function josekiMatch(line: JosekiLine, query: KnowledgeMatchQuery, features: Que
     applicability: applicabilityFor(confidenceValue, 'joseki'),
     teachingPayload: {
       summary: line.katagoEraJudgement,
-      recognition: `识别为${line.title}相关局部：看角部手顺、挂角/点三三位置和外势方向。`,
+      recognition: `${line.title}训练参考：看角部手顺、挂角/点三三位置和外势方向，尚未确认本局符合该型。`,
       correctIdea: line.decisionRules.join(' '),
       keyVariations: line.branches.slice(0, 3).map((branch) => `${branch.name}: ${branch.whenToChoose}`),
       memoryCue: '定式先问方向，再问先手，最后才背手顺。',
@@ -814,31 +782,15 @@ function problemMatch(
     reasons.push(`specific-text:${type}`)
   }
   score += addOverlapScore(textValues, features.tokens, 4, reasons, 'text')
-  score += featureOverlap(problem.tags, new Set([...features.moveFeatures, ...features.candidateFeatures, ...features.pvFeatures]), 3, reasons, 'shape')
-  const answerOverlap = sequenceOverlap(problem.correctMoves.map((move) => move.move), features.allPoints, reasons)
-  score += answerOverlap * 12
+  score += featureOverlap(problem.tags, new Set([...features.moveFeatures, ...features.candidateFeatures]), 3, reasons, 'shape')
   const geometry = localShapeGeometryMatch(problem, query)
   if (geometry) {
     score += geometry.score
-    reasons.push(`geometry:${geometry.transform}:${geometry.colorMode}:${geometry.matched}/${geometry.expected}`)
-    reasons.push(`liberties:${geometry.libertyScore}`)
+    reasons.unshift(`geometry:${geometry.transform}:${geometry.colorMode}:${geometry.matched}/${geometry.expected}`, `liberties:${geometry.libertyScore}`)
     if (geometry.ratio >= 0.72) {
       score += 6
       reasons.push('geometry-strong-local-shape')
     }
-  }
-  const answerPoints = new Set(problem.correctMoves.map((move) => move.move))
-  if (query.playedMove && answerPoints.has(query.playedMove)) {
-    score += 5
-    reasons.push('answer-played')
-  }
-  if ((query.candidateMoves ?? []).some((move) => answerPoints.has(move))) {
-    score += 7
-    reasons.push('answer-candidate')
-  }
-  if ((query.principalVariation ?? []).some((move) => answerPoints.has(move))) {
-    score += 5
-    reasons.push('answer-pv')
   }
   if (type === 'life_death' && features.moveFeatures.has('eye-shape')) {
     score += 5
@@ -849,8 +801,14 @@ function problemMatch(
     reasons.push('local-tesuji-relation')
   }
   if (score < 8) return null
-  const exactish = (answerOverlap >= 1 && specificTextHit && (explicitTypeIntent || score >= 24)) || Boolean(geometry && geometry.ratio >= 0.72 && geometry.matched >= 3)
-  const confidenceValue = confidence(score, exactish)
+  const grounded = Boolean(geometry && geometry.ratio >= 0.72 && query.playerColor && query.boardSnapshot)
+  // Even matching local stones and liberties is a shape analogy, not proof
+  // that the training answer is legal or solves the live position.
+  const confidenceValue = capConfidence(confidence(score), grounded ? 'strong' : 'partial')
+  reasons.unshift(grounded ? 'grounding:relative-geometry-and-player-role' : 'training-analogy:no-verified-geometry-and-role')
+  const titleTopic = problem.title.split(/[：:]/)[0].trim().toLowerCase()
+  if (titleTopic.length >= 2 && query.text?.toLowerCase().includes(titleTopic)) reasons.unshift(`explicit-title-topic:${titleTopic}`)
+  if (!query.boardSnapshot && geometry) reasons.unshift('incomplete-local-window:empty-points-and-liberties-unverified')
   const lifeTeaching = type === 'life_death' ? (problem as LifeDeathProblem).teaching : undefined
   const tesujiTeaching = type === 'tesuji' ? (problem as TesujiProblem).teaching : undefined
   return {
@@ -863,7 +821,7 @@ function problemMatch(
     applicability: applicabilityFor(confidenceValue, type),
     teachingPayload: {
       summary: problem.objective,
-      recognition: lifeTeaching?.recognition ?? tesujiTeaching?.recognition ?? '先识别局部形状和双方气数。',
+      recognition: `训练类比，尚未确认本局同型或战术成立：${lifeTeaching?.recognition ?? tesujiTeaching?.recognition ?? '先识别局部形状和双方气数。'}`,
       correctIdea: lifeTeaching?.explanation ?? tesujiTeaching?.tesujiIdea ?? '先找急所，再读失败手。',
       keyVariations: problem.correctMoves.slice(0, 2).map((move) => `${move.move}: ${move.explanation ?? '正确第一手'}`),
       memoryCue: lifeTeaching?.memoryCue ?? tesujiTeaching?.memoryCue ?? '记住急所和次序。',
@@ -905,14 +863,13 @@ export function searchKnowledgeMatchEngine(dataRoot: string, query: KnowledgeMat
     text: query.text,
     playedMove: query.playedMove,
     candidateMoves: query.candidateMoves,
-    principalVariation: query.principalVariation,
     lossScore: query.lossScore,
     judgement: query.judgement
   }).slice(0, 4)
 
   for (const pattern of patternMatches) {
     const matchType: KnowledgeMatchType = pattern.card.category === 'shape' ? 'shape' : pattern.card.category
-    const confidenceValue: KnowledgeMatchConfidence = pattern.confidence === 'high' ? 'strong' : pattern.confidence === 'medium' ? 'partial' : 'weak'
+    const confidenceValue: KnowledgeMatchConfidence = pattern.confidence === 'low' ? 'weak' : 'partial'
     matches.push({
       id: pattern.card.id,
       matchType,
@@ -923,7 +880,7 @@ export function searchKnowledgeMatchEngine(dataRoot: string, query: KnowledgeMat
       applicability: applicabilityFor(confidenceValue, matchType),
       teachingPayload: {
         summary: pattern.card.teaching.correctIdea,
-        recognition: pattern.card.teaching.recognition,
+        recognition: `训练类比，尚未确认本局同型或战术成立：${pattern.card.teaching.recognition}`,
         correctIdea: pattern.card.teaching.correctIdea,
         keyVariations: pattern.card.variations.slice(0, 3).map((variation) => `${variation.name}: ${variation.whenToChoose}`),
         memoryCue: pattern.card.teaching.memoryCue,
@@ -1004,15 +961,15 @@ export function formatKnowledgeMatchForPrompt(match: KnowledgeMatch): string {
   return [
     `匹配类型: ${match.matchType}`,
     `名称: ${match.title}`,
-    `置信度: ${match.confidence}`,
+    `检索相关置信度: ${match.confidence}（不代表本局概念或战术成立）`,
     `匹配依据: ${match.reason.join(', ')}`,
     `适用边界: ${match.applicability}`,
     `识别特征: ${match.teachingPayload.recognition}`,
-    `正确思路: ${match.teachingPayload.correctIdea}`,
-    `常见变化: ${match.teachingPayload.keyVariations.join('；')}`,
+    `训练题思路: ${match.teachingPayload.correctIdea}`,
+    `训练题变化（坐标不对应本局）: ${match.teachingPayload.keyVariations.join('；')}`,
     `记忆法: ${match.teachingPayload.memoryCue}`,
     `常见误区: ${match.teachingPayload.commonMistakes.join('；')}`,
     `训练建议: ${match.relatedProblems.map((problem) => `${problem.title}(${problem.difficulty})`).join('、') || match.teachingPayload.drills.join('；')}`,
-    '老师使用边界: exact/strong 可以说“这是某某型”；partial 只能说“像某某型”；weak 不进入主讲。'
+    '老师使用边界: 所有置信度仅表示检索相关；本局概念命名必须有真实棋子关系证据，死活、手筋或定式判断必须另有合法手顺和读棋证据，不能由题库命中确认。weak 不进入主讲。'
   ].join('\n')
 }

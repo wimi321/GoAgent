@@ -153,6 +153,8 @@ pnpm dist:linux
 
 ## AI Teacher Connections
 
+**For the best teaching results, we recommend a multimodal model that accepts images.** The current teaching workflow validates board images alongside exact SGF coordinates and KataGo evidence; visual observations must not override the game record.
+
 - **API key**: Continue using any OpenAI-compatible multimodal model service.
 - **ChatGPT sign-in**: Choose “Sign in with ChatGPT” under **Settings → AI Teacher**. GoAgent uses the official Codex App Server for sign-in, model discovery, and requests, and can use models in the active ChatGPT plan that accept board images.
 - ChatGPT sign-in uses a GoAgent-specific Codex App Server data directory. It does not read or modify Codex CLI or Codex Desktop sign-in. GoAgent application code does not read, copy, or print OAuth tokens.

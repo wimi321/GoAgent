@@ -20,7 +20,7 @@ export interface ShapePatternCard {
   title: string
   shapeType: string
   category: string
-  anchorRole: 'actual' | 'candidate' | 'either'
+  anchorRole: 'actual' | 'candidate' | 'either' | 'friendly-stone' | 'enemy-stone' | 'empty'
   phase: Array<'opening' | 'middlegame' | 'endgame' | 'any'>
   regions: Array<'corner' | 'side' | 'center' | 'any'>
   tags: string[]
@@ -43,6 +43,8 @@ export interface LocalPatternMatcherInput {
   boardSnapshot?: BoardSnapshotStone[]
   localWindows?: LocalWindow[]
   anchors: Array<string | undefined>
+  playedMove?: string
+  candidateMoves?: string[]
   playerColor?: 'B' | 'W'
   phase?: 'opening' | 'middlegame' | 'endgame'
 }
@@ -232,7 +234,7 @@ function matchPatternAt(
     const ratio = required > 0 ? matched / required : 0
     const rawScore = Math.round(ratio * 20 + Math.min(8, matched) + (constraintsOk ? 4 : 0) - (antiHit ? 8 : 0))
     const minScore = card.minScore ?? 16
-    if (rawScore < minScore || counterEvidence.length > Math.max(1, required - matched + 1)) continue
+    if (rawScore < minScore || counterEvidence.length > 0) continue
     const confidence: LocalPatternConfidence = rawScore >= 26 ? 'strong' : rawScore >= 20 ? 'medium' : 'weak'
     const candidate: LocalPatternMatch = {
       card,
@@ -252,18 +254,35 @@ function matchPatternAt(
 }
 
 export function findLocalPatternMatches(cards: ShapePatternCard[], input: LocalPatternMatcherInput): LocalPatternMatch[] {
+  if (!input.boardSnapshot) return []
   const board = buildBoard(input.boardSnapshot, input.boardSize)
-  const windowAnchors = (input.localWindows ?? []).map((window) => window.anchor)
-  const anchors = Array.from(new Set([...input.anchors, ...windowAnchors].filter(Boolean) as string[]))
-  const perspectives = Array.from(new Set([input.playerColor, 'B', 'W'].filter(Boolean) as Array<'B' | 'W'>))
+  // A window can be centered on a future PV point; its center alone is not
+  // evidence of an actual move or a current candidate.
+  const anchors = Array.from(new Set([...input.anchors, input.playedMove, ...(input.candidateMoves ?? [])].filter(Boolean) as string[]))
+  const perspectives: Array<'B' | 'W'> = input.playerColor ? [input.playerColor] : ['B', 'W']
   const matches: LocalPatternMatch[] = []
 
   for (const card of cards) {
     if (!phaseMatches(card, input.phase)) continue
     for (const anchor of anchors) {
       for (const perspective of perspectives) {
+        const coord = gtpToCoord(anchor, input.boardSize)
+        if (!coord) continue
+        const stone = board.get(key(coord.row, coord.col))
+        if (card.anchorRole === 'actual' && anchor !== input.playedMove) continue
+        if (card.anchorRole === 'candidate' && !(input.candidateMoves ?? []).includes(anchor)) continue
+        if (card.anchorRole === 'friendly-stone' && stone !== perspective) continue
+        if (card.anchorRole === 'enemy-stone' && stone !== opposite(perspective)) continue
+        if (card.anchorRole === 'empty' && stone !== undefined) continue
         const match = matchPatternAt(card, board, anchor, input.boardSize, perspective)
-        if (match) matches.push(match)
+        if (match) {
+          match.evidence.unshift(`anchor-role=${card.anchorRole}`)
+          if (!input.playerColor) {
+            match.confidence = 'weak'
+            match.evidence.unshift(`perspective-unverified=${perspective}; current-player unknown`)
+          }
+          matches.push(match)
+        }
       }
     }
   }
