@@ -6,6 +6,7 @@ import { createServer } from 'node:http'
 import { setTimeout as delay } from 'node:timers/promises'
 import process from 'node:process'
 import { isExpectedNvidiaRunnerLimitation } from './lib/windows_packaged_smoke_policy.mjs'
+import { checkRuntime } from './check_windows_katago_runtime.mjs'
 
 const root = resolve(process.cwd())
 const packageJson = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
@@ -136,6 +137,9 @@ async function main() {
   const exe = resolve(arg('exe', defaultExePath()))
   const requireKatago = hasFlag('require-katago') || (mode !== 'lite' && !hasFlag('allow-missing-katago'))
   if (!existsSync(exe)) fail(`Missing packaged executable: ${exe}`)
+  // An embedded version string / GPU-less runner exemption must never hide a
+  // loader failure such as missing NVRTC. This gate executes the actual binary.
+  if (mode === 'nvidia') await checkRuntime(join(dirname(exe), 'resources/data/katago/bin/win32-x64'), true)
 
   const port = Number(arg('port', '')) || await freePort()
   const smokeHome = resolve(arg('home', join(root, '.tmp', 'windows-packaged-smoke', `${Date.now()}-${mode}`)))

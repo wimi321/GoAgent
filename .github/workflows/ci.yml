@@ -12,6 +12,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  nvidia-runtime:
+    name: NVIDIA runtime clean startup regression
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Restore the known incomplete official release runtime
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'GoAgent-0.4.21-win-x64-nvidia-portable.7z'
+          Invoke-WebRequest 'https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia-portable.7z' -OutFile $archive
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ne '7b52ab7e87e3356c22f28ec028bb7c91f2e825f9e78ddcb894f0d313ab2ac8a8') { throw 'Regression archive SHA-256 mismatch' }
+          & 7z x $archive '-o.nvidia-regression' 'resources/data/katago/bin/win32-x64/*' -y
+          if ($LASTEXITCODE -ne 0) { throw 'Regression runtime extraction failed' }
+      - name: Reject original missing NVRTC even if runner has CUDA installed
+        shell: pwsh
+        run: |
+          node --input-type=module -e "import assert from 'node:assert/strict'; import {checkWindowsRuntimeDependencies} from './scripts/lib/windows_pe_dependencies.mjs'; await assert.rejects(checkWindowsRuntimeDependencies('.nvidia-regression/resources/data/katago/bin/win32-x64', {nvidia:true}), {message:'Missing bundled dependency: katago.exe -> nvrtc64_120_0.dll'}); console.log('Original package rejected: missing bundled nvrtc64_120_0.dll');" | Tee-Object -FilePath .nvidia-regression/before.log
+          if ($LASTEXITCODE -ne 0) { throw 'Missing NVRTC regression assertion failed' }
+      - name: Prepare and execute corrected runtime with clean environment
+        shell: pwsh
+        run: |
+          node scripts/prepare_nvidia_nvrtc.mjs --runtime-dir=.nvidia-regression/resources/data/katago/bin/win32-x64
+          if ($LASTEXITCODE -ne 0) { throw 'NVRTC preparation failed' }
+          node scripts/check_windows_katago_runtime.mjs --runtime-dir=.nvidia-regression/resources/data/katago/bin/win32-x64 --nvidia --evidence=.nvidia-regression/after.json
+          if ($LASTEXITCODE -ne 0) { throw 'Clean executable version probe failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nvidia-clean-startup-evidence
+          path: |
+            .nvidia-regression/before.log
+            .nvidia-regression/after.json
+
   website:
     name: Website build and download checks
     runs-on: ubuntu-latest

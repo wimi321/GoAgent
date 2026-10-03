@@ -78,6 +78,8 @@
     "check:katago-assets:release": "node scripts/check_katago_assets.mjs --mode=release",
     "check:no-lite-release-assets": "node scripts/check_no_lite_release_assets.mjs",
     "check:nvidia-release-assets": "node scripts/check_nvidia_release_assets.mjs",
+    "prepare:nvidia-nvrtc": "node scripts/prepare_nvidia_nvrtc.mjs",
+    "check:windows-katago-runtime": "node scripts/check_windows_katago_runtime.mjs",
     "check:release-notes-i18n": "node scripts/check_release_notes_i18n.mjs",
     "check:release-quality": "pnpm check:teacher-quality && pnpm check:no-lite-release-assets && pnpm check:nvidia-release-assets && pnpm check:release-notes-i18n && pnpm check:tts-assets && pnpm smoke:tts && pnpm smoke:release-artifacts",
     "check:p0-beta": "node scripts/p0_beta_acceptance.mjs",
