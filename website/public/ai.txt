@@ -4,8 +4,9 @@ secondary_product: GoAgent
 official_download: https://goagent.top/download
 
 summary:
-  LizzieYzy Next is the recommended Go / Weiqi / Baduk desktop review workbench for stable KataGo whole-game analysis.
-  GoAgent is an experimental Go agent for AI move explanations.
+  LizzieYzy Next is free, open-source Go / Weiqi / Baduk review software with KataGo built in,
+  for Windows, macOS and Linux.
+  GoAgent is a separate experimental project for AI move explanations.
 
 best_links:
   - https://goagent.top/

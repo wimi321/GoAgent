@@ -1,0 +1,94 @@
+---
+// The guide, FAQ, privacy and changelog pages, shared by all seven languages.
+import BaseLayout from '../layouts/BaseLayout.astro'
+import SiteIcon from './SiteIcon.astro'
+import { pagesCopy } from '../data/pages-copy.mjs'
+
+interface Props {
+  lang: keyof typeof pagesCopy
+  page: 'docs' | 'faq' | 'privacy' | 'changelog'
+  canonical?: string
+}
+
+const { lang, page, canonical } = Astro.props
+const copy = pagesCopy[lang]
+const { docs, faq, privacy, changelog } = copy
+const head = copy[page]
+// Each privacy section is [heading, statements]; the JS data module cannot declare that tuple type.
+const privacySections = privacy.sections as unknown as [string, string[]][]
+const releasesUrl = 'https://github.com/wimi321/lizzieyzy-next/releases'
+const jsonLd = page === 'faq'
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faq.items.map(([question, answer]) => ({
+        '@type': 'Question',
+        name: question,
+        acceptedAnswer: { '@type': 'Answer', text: answer }
+      }))
+    }
+  : undefined
+---
+<BaseLayout title={head.title} description={head.description} lang={lang} canonical={canonical} pageKey={page} jsonLd={jsonLd}>
+  <section class="page-hero">
+    <p class="eyebrow">{head.eyebrow}</p>
+    <h1>{head.h1}</h1>
+    <p class="lead">{head.lead}</p>
+  </section>
+  <section class="content-stack">
+    {page === 'docs' && (
+      <>
+        <h2 class="group-title">{docs.start.title}</h2>
+        <ol class="step-cards">
+          {docs.start.items.map(([title, text], index) => (
+            <li class="doc-card step-card">
+              <span class="step-index" aria-hidden="true">{index + 1}</span>
+              <div><h3>{title}</h3><p>{text}</p></div>
+            </li>
+          ))}
+        </ol>
+        <h2 class="group-title">{docs.read.title}</h2>
+        <div class="grid three">
+          {docs.read.items.map(([title, text]) => <article class="doc-card"><h3>{title}</h3><p>{text}</p></article>)}
+        </div>
+        <h2 class="group-title">{docs.ai.title}</h2>
+        <div class="grid two">
+          {docs.ai.items.map(([title, text]) => <article class="doc-card"><h3>{title}</h3><p>{text}</p></article>)}
+        </div>
+        <h2 class="group-title">{docs.help.title}</h2>
+        <div class="grid two">
+          {docs.help.items.map(([title, text]) => <article class="doc-card"><h3>{title}</h3><p>{text}</p></article>)}
+        </div>
+      </>
+    )}
+
+    {page === 'faq' && (
+      <div class="faq-list">
+        {faq.items.map(([question, answer]) => <details><summary>{question}</summary><p>{answer}</p></details>)}
+      </div>
+    )}
+
+    {page === 'privacy' && privacySections.map(([title, items]) => (
+      <article class="privacy-panel">
+        <h2>{title}</h2>
+        <ul>{items.map((item) => <li>{item}</li>)}</ul>
+      </article>
+    ))}
+
+    {page === 'changelog' && (
+      <>
+        {changelog.releases.map((release) => (
+          <article class="doc-card release-card">
+            <header>
+              <h2>{release.version}</h2>
+              <span class="release-tag">{release.label}</span>
+              <time datetime={release.date}>{release.date}</time>
+            </header>
+            <ul>{release.items.map((item) => <li>{item}</li>)}</ul>
+          </article>
+        ))}
+        <p class="more-link"><a class="button subtle" href={releasesUrl}>{changelog.more}<SiteIcon name="arrow" size={16} /></a></p>
+      </>
+    )}
+  </section>
+</BaseLayout>

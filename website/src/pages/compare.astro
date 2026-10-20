@@ -1,20 +1,19 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
 const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
 
 const rows = [
-  ['推荐给谁', '绝大多数想稳定复盘的棋友', '想尝试 AI 自然语言讲棋的用户'],
-  ['核心价值', 'KataGo 全盘分析、胜率、目差、候选点、关键手定位', '把棋盘、KataGo 证据和 AI 问答组织成讲解工作流'],
-  ['成熟度', '首推，适合日常使用', '实验项目，适合尝鲜和反馈'],
+  ['适合谁', '想稳定复盘的绝大多数棋友', '想尝试 AI 自然语言讲棋的用户'],
+  ['主要功能', 'KataGo 整盘分析、胜率曲线、推荐点、问题手、AI 解说与 AI 陪练', '把棋盘、KataGo 分析和 AI 问答组织成讲解流程'],
+  ['状态', '正式版，适合日常使用', '实验项目，适合尝鲜和反馈'],
   ['平台', 'Windows / macOS / Linux', 'Windows / macOS']
 ]
 
 const faq = [
-  ['我第一次来应该下载哪个？', '下载 LizzieYzy Next。它是首推的专业围棋复盘工作台。'],
-  ['GoAgent 还值得试吗？', '值得，但它定位是实验围棋智能体。你想体验 AI 讲棋、愿意尝鲜和反馈时再试。'],
-  ['两个项目会混在一起吗？', '不会。页面顶部会显示两个产品，但下载建议很明确：首推 LizzieYzy Next，GoAgent 是实验智能体。']
+  ['第一次来应该下载哪个？', '下载 LizzieYzy Next。复盘需要的功能它都有，包括 AI 解说和 AI 陪练。'],
+  ['GoAgent 还值得试吗？', '值得。如果你对 AI 讲棋感兴趣，愿意尝鲜并反馈问题，可以试试 GoAgent。'],
+  ['两个软件能一起装吗？', '可以，它们是两个独立的软件。']
 ]
 
 const jsonLd = {
@@ -22,9 +21,9 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'WebPage',
-      name: 'LizzieYzy Next 与 GoAgent 怎么选',
+      name: 'LizzieYzy Next 和 GoAgent 有什么区别',
       inLanguage: 'zh-CN',
-      description: 'LizzieYzy Next 是首推的专业围棋复盘工作台；GoAgent 是实验围棋智能体。',
+      description: 'LizzieYzy Next 是免费开源的围棋复盘软件；GoAgent 是探索 AI 讲棋的实验项目。',
       url: 'https://goagent.top/compare'
     },
     {
@@ -39,37 +38,37 @@ const jsonLd = {
 }
 ---
 <BaseLayout
-  title="LizzieYzy Next 与 GoAgent 怎么选"
-  description="第一次下载围棋 AI 复盘工具，首推 LizzieYzy Next；GoAgent 是实验围棋智能体，适合尝试 AI 讲棋。"
+  title="LizzieYzy Next 和 GoAgent 有什么区别"
+  description="想复盘围棋，下载 LizzieYzy Next 就够了：免费开源，自带 KataGo、AI 解说和 AI 陪练。GoAgent 是探索 AI 讲棋的实验项目。"
   pageKey="compare"
   jsonLd={jsonLd}
 >
   <section class="page-hero">
-    <p class="eyebrow">Compare</p>
-    <h1>先用 LizzieYzy Next，想尝鲜再试 GoAgent</h1>
-    <p class="lead">两个项目都面向围棋复盘，但用户目标不同：一个负责成熟稳定地看清整盘，一个负责探索 AI 讲棋的新工作流。</p>
+    <p class="eyebrow">产品对比</p>
+    <h1>复盘用 LizzieYzy Next，想尝鲜再试 GoAgent</h1>
+    <p class="lead">两个项目都和围棋 AI 有关，但目标不同：LizzieYzy Next 是成熟的复盘软件，GoAgent 是探索 AI 讲棋的实验项目。</p>
     <div class="button-row">
-      <a class="button primary" href={lizzieReleases}>下载 LizzieYzy Next</a>
-      <a class="button subtle" href={goAgentReleases}>试用 GoAgent</a>
+      <a class="button primary" href="/download/">下载 LizzieYzy Next</a>
+      <a class="button subtle" href={goAgentReleases}>了解 GoAgent</a>
     </div>
   </section>
 
   <section class="content-stack">
     <div class="grid two">
       <article class="product-panel featured">
-        <img src="/images/lizzieyzy-next-workbench.jpg" alt="LizzieYzy Next 围棋复盘工作台" width="1536" height="1152" loading="lazy" decoding="async" />
+        <img src="/images/lizzie-earred-127.webp" alt="LizzieYzy Next 真实界面" width="2400" height="1408" loading="lazy" decoding="async" />
         <div class="product-copy">
-          <p class="product-label">首推</p>
+          <p class="product-label">正式版</p>
           <h2>LizzieYzy Next</h2>
-          <p>适合绝大多数棋友：导入棋谱，先看清胜率、目差、候选点和整盘节奏。</p>
+          <p>适合绝大多数棋友：打开棋谱，看清胜率走势、推荐点和问题手，还能用 AI 解说和 AI 陪练。</p>
         </div>
       </article>
       <article class="product-panel">
-        <img src="/images/goagent-workbench.jpg" alt="GoAgent 围棋智能体工作台" width="1536" height="1152" loading="lazy" decoding="async" />
+        <div class="product-mark" aria-hidden="true"><i></i><i></i></div>
         <div class="product-copy">
-          <p class="product-label">实验</p>
+          <p class="product-label">实验项目</p>
           <h2>GoAgent</h2>
-          <p>适合想体验 AI 讲棋的用户：把棋盘、KataGo 证据和自然语言解释放到一个实验工作流里。</p>
+          <p>适合想体验 AI 讲棋的用户：把棋盘、KataGo 分析和自然语言解释放进一个实验性的讲解流程。</p>
         </div>
       </article>
     </div>

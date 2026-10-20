@@ -63,13 +63,22 @@ test('file sizes are readable and never display NaN', () => {
 })
 test('all seven languages have the same homepage fields and three review steps', () => {
   assert.equal(Object.keys(homeCopy).length,7)
-  const keys = Object.keys(homeCopy['zh-CN']).sort()
+  // Every locale has the same nested shape as zh-CN, and no string or list is empty.
+  const shape = value => typeof value === 'string' ? 'string' : Array.isArray(value) ? value.map(shape) : Object.fromEntries(Object.entries(value).sort().map(([key, item]) => [key, shape(item)]))
+  const assertFilled = (value, path) => {
+    if (typeof value === 'string') return assert.ok(value.trim().length>0,path)
+    const items = Array.isArray(value) ? value.entries() : Object.entries(value)
+    let count = 0
+    for (const [key, item] of items) { count++; assertFilled(item, `${path}.${key}`) }
+    assert.ok(count>0,path)
+  }
+  const expected = shape(homeCopy['zh-CN'])
   for (const [lang, copy] of Object.entries(homeCopy)) {
-    assert.deepEqual(Object.keys(copy).sort(),keys,lang)
+    assert.deepEqual(shape(copy),expected,lang)
     assert.ok(lang in localeSlugs)
     assert.equal(copy.steps.length,3)
     assert.equal(copy.headline.length,2)
     assert.ok(copy.aiNote.length>10)
-    for (const value of Object.values(copy)) assert.ok(value.length>0,lang)
+    assertFilled(copy,lang)
   }
 })

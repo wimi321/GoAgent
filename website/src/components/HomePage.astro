@@ -1,46 +1,173 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 import DownloadChooser from './DownloadChooser.astro'
+import GoBoard from './GoBoard.astro'
 import SiteIcon from './SiteIcon.astro'
 import { homeCopy, localeSlugs } from '../data/home-copy.mjs'
+import { earred } from '../data/earred.mjs'
+import { phrases } from '../lib/phrases.mjs'
+import '../styles/home.css'
 interface Props { lang?: keyof typeof homeCopy }
 const { lang = 'zh-CN' } = Astro.props
 const copy = homeCopy[lang]
 const prefix = localeSlugs[lang] ? `/${localeSlugs[lang]}` : ''
 const download = `${prefix}/download/`
-const icons = ['folder', 'search', 'chart'] as const
+const best = earred.candidates[0]
+const { features, mock } = copy
+
+// Black's win rate over the whole game as a 300 x 80 sparkline, with move 127 marked.
+const curve = earred.winrates.map((value, index) => [index * 300 / (earred.winrates.length - 1), (1 - value / 100) * 80])
+const curveLine = curve.map(([x, y], index) => `${index ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('')
+const curveArea = `${curveLine}L300 80L0 80Z`
+const [markerX, markerY] = curve[earred.move]
+// Callout positions on the screenshot, in percent: win-rate graph, KataGo suggestions, problem moves.
+const pins = [[19, 27.5], [35.5, 12.7], [15.5, 61.5]]
 ---
 <BaseLayout title={copy.title} description={copy.description} lang={lang} pageKey="home"
-  jsonLd={{ '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'LizzieYzy Next', applicationCategory: 'GameApplication', operatingSystem: 'Windows, macOS, Linux', url: 'https://goagent.top/', downloadUrl: 'https://goagent.top/download/', isAccessibleForFree: true }}>
-  <section class="review-hero full-bleed" aria-labelledby="review-title">
-    <div class="review-hero-inner">
-      <div class="review-intro">
-        <p class="review-eyebrow">LizzieYzy Next</p>
-        <h1 id="review-title">{copy.headline.map(line => <span>{line}</span>)}</h1>
-        <p class="review-lead">{copy.lead}</p>
-        <div class="review-actions">
-          <a class="review-download" href={download}><SiteIcon name="download" />{copy.download}</a>
-          <a class="review-tour" href="#workflow">{copy.tour}<SiteIcon name="arrow" size={18} /></a>
+  jsonLd={{ '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'LizzieYzy Next', applicationCategory: 'GameApplication', operatingSystem: 'Windows, macOS, Linux', url: 'https://goagent.top/', downloadUrl: 'https://goagent.top/download/', isAccessibleForFree: true, offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' } }}>
+  <section class="hero full-bleed" aria-labelledby="hero-title">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <p class="hero-eyebrow">{copy.eyebrow}</p>
+        <h1 id="hero-title">{copy.headline.map((line) => <span>{line}</span>)}</h1>
+        <p class="hero-lead">{copy.lead.map((sentence) => <span>{phrases(sentence).map((part) => <span class="phrase">{part}</span>)}</span>)}</p>
+        <div class="hero-actions">
+          <a class="button primary large" href={download}><SiteIcon name="download" />{copy.download}</a>
+          <a class="button ghost large" href="#showcase">{copy.tour}<SiteIcon name="arrow" size={18} /></a>
         </div>
-        <p class="review-platforms"><span aria-hidden="true"><SiteIcon name="windows" /><SiteIcon name="apple" /><SiteIcon name="linux" /></span>{copy.free} · Windows / macOS / Linux</p>
+        <ul class="hero-meta">
+          <li><span class="os-icons" aria-hidden="true"><SiteIcon name="windows" size={16} /><SiteIcon name="apple" size={16} /><SiteIcon name="linux" size={16} /></span>{copy.heroMeta[0]}</li>
+          <li><SiteIcon name="box" size={16} />{copy.heroMeta[1]}</li>
+        </ul>
       </div>
-      <figure class="review-preview">
-        <a href={`${prefix}/docs`} aria-label={copy.tour}>
-          <img src="/images/lizzie-review.webp" alt={copy.screenshot} width="1065" height="700" fetchpriority="high" />
-        </a>
-        <figcaption>{copy.caption}</figcaption>
+      <figure class="hero-visual">
+        <GoBoard label={copy.board.label} />
+        <div class="hero-card curve-card">
+          <span class="card-kicker">{copy.board.curve}</span>
+          <div class="curve-plot">
+            <svg viewBox="0 0 300 80" preserveAspectRatio="none" aria-hidden="true">
+              <path class="curve-area" d={curveArea} />
+              <path class="curve-mid" d="M0 40H300" />
+              <path class="curve-line" d={curveLine} />
+            </svg>
+            <span class="curve-marker" style={`left: ${(markerX / 3).toFixed(2)}%; top: ${(markerY / 0.8).toFixed(2)}%`}><i></i><b>{copy.board.move}</b></span>
+          </div>
+        </div>
+        <figcaption class="hero-card best-card">
+          <span class="card-kicker"><i class="best-dot"></i>{copy.board.best} · {best.label}</span>
+          <strong>{best.winrate.toFixed(1)}<small>%</small></strong>
+          <span class="card-label">{copy.board.winrate} · {copy.board.visits} {best.visits}</span>
+          <span class="card-note"><SiteIcon name="check" size={15} />{copy.board.bestNote}</span>
+        </figcaption>
       </figure>
-      <p class="review-quote">{copy.quote.map(line => <span>{line}</span>)}</p>
     </div>
   </section>
-  <section class="review-workflow" id="workflow" aria-labelledby="workflow-title">
-    <header id="products"><h2 id="workflow-title">{copy.stepsTitle}</h2><p>{copy.stepsLead}</p></header>
-    <ol class="review-steps">
-      {copy.steps.map(([title, description], index) => <li>
+
+  <section class="showcase full-bleed" id="showcase" aria-labelledby="showcase-title">
+    <div class="showcase-inner">
+      <header class="section-head">
+        <p class="section-eyebrow">{copy.showcase.eyebrow}</p>
+        <h2 id="showcase-title">{phrases(copy.showcase.title).map((part) => <span class="phrase">{part}</span>)}</h2>
+        <p>{copy.showcase.lead}</p>
+      </header>
+      <figure class="showcase-shot">
+        <div class="app-window">
+          <div class="app-window-bar" aria-hidden="true"><i></i><i></i><i></i><span>LizzieYzy Next</span></div>
+          <div class="app-window-body">
+            <img src="/images/lizzie-earred-127.webp" alt={copy.showcase.alt} width="2400" height="1408" loading="lazy" decoding="async" />
+            {pins.map(([x, y], index) => <span class="shot-pin" style={`left: ${x}%; top: ${y}%`} aria-hidden="true">{index + 1}</span>)}
+          </div>
+        </div>
+        <figcaption>{copy.showcase.caption}</figcaption>
+      </figure>
+      <ol class="showcase-notes">
+        {copy.showcase.notes.map(([title, text], index) => <li><span class="note-number" aria-hidden="true">{index + 1}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}
+      </ol>
+    </div>
+  </section>
+
+  <section class="features" id="features" aria-labelledby="features-title">
+    <header class="section-head">
+      <h2 id="features-title">{phrases(copy.featuresTitle).map((part) => <span class="phrase">{part}</span>)}</h2>
+      <p>{copy.featuresLead}</p>
+    </header>
+    <ul class="bento">
+      <li class="tile tile-curve">
+        <div class="tile-text"><SiteIcon name="graph" size={20} /><h3>{features.curve[0]}</h3><p>{features.curve[1]}</p></div>
+        <div class="tile-shot"><img src="/images/lizzie-curve-problems.webp" alt="" width="730" height="1280" loading="lazy" decoding="async" /></div>
+      </li>
+      <li class="tile tile-candidates">
+        <div class="tile-text"><SiteIcon name="search" size={20} /><h3>{features.candidates[0]}</h3><p>{features.candidates[1]}</p></div>
+        <div class="tile-shot"><img src="/images/lizzie-candidates.webp" alt="" width="980" height="820" loading="lazy" decoding="async" /></div>
+      </li>
+      <li class="tile tile-fox">
+        <div class="tile-visual" aria-hidden="true">
+          <div class="mock-search"><SiteIcon name="search" size={16} /><span>{mock.nickname}</span><i class="mock-caret"></i></div>
+          <div class="mock-games">{[0, 1, 2].map((index) => <span><i class:list={['mock-stone', index === 1 ? 'white' : 'black']}></i><b style={`width: ${[72, 56, 64][index]}%`}></b></span>)}</div>
+        </div>
+        <div class="tile-text"><h3>{features.fox[0]}</h3><p>{features.fox[1]}</p></div>
+      </li>
+      <li class="tile tile-flash">
+        <div class="tile-visual" aria-hidden="true">
+          <div class="mock-run"><SiteIcon name="lightning" size={16} /><span>{mock.flash}</span><em>326 / 326</em></div>
+          <div class="mock-bar"><i></i></div>
+          <svg class="mock-curve" viewBox="0 0 300 80" preserveAspectRatio="none"><path d={curveLine} /></svg>
+          <div class="mock-run secondary"><SiteIcon name="speedometer" size={16} /><span>{mock.deep}</span></div>
+        </div>
+        <div class="tile-text"><h3>{features.flash[0]}</h3><p>{features.flash[1]}</p></div>
+      </li>
+      <li class="tile tile-sync">
+        <div class="tile-visual" aria-hidden="true">
+          <div class="mock-sync">
+            <div class="mini-board"><span>{mock.sync[0]}</span></div>
+            <i class="sync-arrow"><SiteIcon name="sync" size={18} /></i>
+            <div class="mini-board analysed"><span>{mock.sync[1]}</span></div>
+          </div>
+        </div>
+        <div class="tile-text"><h3>{features.sync[0]}</h3><p>{features.sync[1]}</p></div>
+      </li>
+      <li class="tile tile-ai">
+        <div class="tile-visual" aria-hidden="true">
+          <div class="mock-chat">
+            <p class="bubble user">{mock.ask}</p>
+            <p class="bubble ai"><b>AI</b>{mock.answer}</p>
+          </div>
+        </div>
+        <div class="tile-text"><h3>{features.ai[0]}</h3><p>{features.ai[1]}</p></div>
+      </li>
+      <li class="tile tile-box">
+        <div class="tile-visual" aria-hidden="true">
+          <ul class="mock-checks">{mock.checks.map((item) => <li><SiteIcon name="check" size={16} />{item}</li>)}</ul>
+        </div>
+        <div class="tile-text"><h3>{features.box[0]}</h3><p>{features.box[1]}</p></div>
+      </li>
+    </ul>
+    <p class="features-note">{copy.aiNote}</p>
+  </section>
+
+  <section class="steps" id="workflow" aria-labelledby="steps-title">
+    <header class="section-head">
+      <h2 id="steps-title">{phrases(copy.stepsTitle).map((part) => <span class="phrase">{part}</span>)}</h2>
+      <p>{copy.stepsLead}</p>
+    </header>
+    <ol class="step-list">
+      {copy.steps.map(([title, text], index) => <li>
         <span class="step-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-        <div><SiteIcon name={icons[index]} size={36} /><h3>{title}</h3><p>{description}</p></div>
+        <h3>{title}</h3>
+        <p>{text}</p>
       </li>)}
     </ol>
   </section>
+
   <DownloadChooser lang={lang} compact title={copy.downloadTitle} lead={copy.downloadLead} />
+
+  <section class="closing full-bleed" aria-labelledby="closing-title">
+    <div class="closing-inner">
+      <div class="closing-stones" aria-hidden="true"><i></i><i></i></div>
+      <h2 id="closing-title">{phrases(copy.closingTitle).map((part) => <span class="phrase">{part}</span>)}</h2>
+      <p>{copy.closingLead}</p>
+      <a class="button light large" href={download}><SiteIcon name="download" />{copy.download}</a>
+      <p class="closing-quote">{copy.quote.map((line) => <span>{line}</span>)}</p>
+    </div>
+  </section>
 </BaseLayout>

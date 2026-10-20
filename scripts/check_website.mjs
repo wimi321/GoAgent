@@ -45,9 +45,6 @@ requireFile('website/src/pages/compare.astro')
 requireFile('website/src/pages/[locale].astro')
 requireFile('website/src/pages/[locale]/[page].astro')
 requireFile('website/src/components/DownloadChooser.astro')
-requireFile('website/public/images/download-page-bg.webp')
-requireFile('website/public/images/download-icons/windows.svg')
-requireFile('website/public/images/download-icons/apple.svg')
 requireFile('website/DEPLOYMENT.md')
 requireFile('.github/workflows/deploy-website.yml')
 requireFile('website/public/sitemap.xml')
@@ -64,6 +61,7 @@ const downloadPage = read('website/src/pages/download.astro')
 const docsPage = read('website/src/pages/docs.astro')
 const faqPage = read('website/src/pages/faq.astro')
 const changelogPage = read('website/src/pages/changelog.astro')
+const pagesCopy = read('website/src/data/pages-copy.mjs')
 const localizedHome = read('website/src/pages/[locale].astro')
 const localizedPages = read('website/src/pages/[locale]/[page].astro')
 const downloadChooser = read('website/src/components/DownloadChooser.astro')
@@ -84,10 +82,27 @@ if (!index.includes('<HomePage lang="zh-CN"')) fail('homepage must use the share
 for (const keyword of ['LizzieYzy Next', '下过的每一盘', '免费开源', 'AI 解说需自行连接服务']) {
   if (!homeCopy.includes(keyword)) fail(`homepage must include user-facing guidance: ${keyword}`)
 }
-for (const keyword of ['review-hero', 'review-steps', 'DownloadChooser', 'compact', 'lizzie-review.webp']) {
+for (const keyword of ['class="hero', 'GoBoard', 'showcase', 'lizzie-earred-127.webp', 'bento', 'step-list', 'DownloadChooser', 'compact', 'closing']) {
   if (!home.includes(keyword)) fail(`homepage must retain the selected design and real product image: ${keyword}`)
 }
-for (const asset of ['lizzie-review.webp', 'review-room.webp', 'review-download.webp']) requireFile(`website/public/images/${asset}`)
+for (const image of ['lizzie-earred-127.webp', 'lizzie-curve-problems.webp', 'lizzie-candidates.webp', 'og-lizzieyzy-next.jpg', 'lizzieyzy-next-icon.png']) {
+  requireFile(`website/public/images/${image}`)
+}
+// Product pictures must be real screenshots of the application, never generated mock-ups.
+for (const path of walk(join(websiteRoot, 'src'))) {
+  const body = readFileSync(path, 'utf8')
+  for (const mockup of ['workbench.jpg', 'go-tools-hero', 'home-hero-board']) {
+    if (body.includes(mockup)) fail(`${relative(root, path)} must not use the generated mock-up image ${mockup}`)
+  }
+}
+for (const keyword of ['featuresTitle', 'features:']) {
+  if (!homeCopy.includes(keyword)) fail(`homepage copy must include the feature grid: ${keyword}`)
+}
+for (const name of ['site.css', 'home.css', 'download.css']) {
+  const css = read(`website/src/styles/${name}`)
+  if (/width:\s*100vw|50vw\)/.test(css)) fail(`${name}: full-bleed bands must not use 100vw; it overflows next to classic Windows scrollbars`)
+}
+if (!read('website/src/components/SiteIcon.astro').includes('?raw')) fail('SiteIcon must inline SVG so icons follow currentColor')
 if (index.includes(chooserCopy)) fail('homepage hero must not use unnecessary chooser copy')
 if (index.includes('打不开再用')) fail('homepage should use priority/backup wording instead of troubleshooting-first wording')
 if (!layout.includes('https://github.com/wimi321/GoAgent/releases')) fail('footer must retain the experimental project link')
@@ -164,15 +179,18 @@ for (const keyword of ['Cloudflare R2', 'mirrorUrls', 'SHA256', 'manifest']) {
 for (const keyword of ['nvidia50.cuda', 'rtx50:', 'CPU build if unsure', '不确定时优先使用 CPU 通用版']) {
   if (downloadChooser.includes(keyword)) fail(`download chooser must not restore the obsolete Windows recommendation: ${keyword}`)
 }
-for (const keyword of ['不用研究术语', '第一步：先下载 LizzieYzy Next', '官网下载中心']) {
-  if (!docsPage.includes(keyword)) fail(`docs page must contain simple user guidance: ${keyword}`)
+for (const [page, file] of [['docs', docsPage], ['faq', faqPage], ['privacy', privacy], ['changelog', changelogPage]]) {
+  if (!file.includes(`<ContentPage lang="zh-CN" page="${page}" />`)) fail(`${page} page must use the shared seven-language ContentPage`)
 }
-if (docsPage.includes('百度网盘打不开：')) fail('docs page should not lead with Baidu troubleshooting wording')
-for (const keyword of ['我应该先下载哪个？', '我该点哪个下载？', '不用先懂']) {
-  if (!faqPage.includes(keyword)) fail(`FAQ page must answer normal-user questions: ${keyword}`)
+for (const keyword of ['不用研究术语', '下载并解压', '官网下载中心', '整盘速览', '问题手']) {
+  if (!pagesCopy.includes(keyword)) fail(`guide must contain simple user guidance: ${keyword}`)
 }
-for (const keyword of ['官网首页更简单', '多语言页面同步更新', '普通用户不用先理解项目区别']) {
-  if (!changelogPage.includes(keyword)) fail(`changelog page must use user-facing copy: ${keyword}`)
+if (pagesCopy.includes('百度网盘打不开：')) fail('guide should not lead with Baidu troubleshooting wording')
+for (const keyword of ['我该下载哪个版本？', '需要另外安装 KataGo 或下载权重吗？', '不用先懂']) {
+  if (!pagesCopy.includes(keyword)) fail(`FAQ must answer normal-user questions: ${keyword}`)
+}
+for (const keyword of ['next-2026-10-17.1', '当前正式版', 'GitHub Releases']) {
+  if (!pagesCopy.includes(keyword)) fail(`changelog must summarize the stable release for users: ${keyword}`)
 }
 for (const keyword of ['HomePage', 'localeSlugs', 'getStaticPaths']) {
   if (!localizedHome.includes(keyword)) fail(`localized homepage must share the same components: ${keyword}`)
@@ -193,8 +211,8 @@ if (localizedHome.includes('README')) fail('localized homepage should say offici
 for (const keyword of ['DownloadChooser', 'downloadMeta', '<DownloadChooser lang={meta.lang} />']) {
   if (!localizedPages.includes(keyword)) fail(`localized download pages must use the unified chooser: ${keyword}`)
 }
-for (const keyword of ['本地', 'LLM', 'TTS']) {
-  if (!privacy.includes(keyword)) fail(`privacy page must contain ${keyword}`)
+for (const keyword of ['本地', 'LLM', 'TTS', '遥测', 'user-data', '诊断包']) {
+  if (!pagesCopy.includes(keyword)) fail(`privacy page must contain ${keyword}`)
 }
 for (const keyword of ['Cloudflare Pages', 'Cloudflare R2', 'download.goagent.top', 'lizzieyzy-next-downloads']) {
   if (!deployment.includes(keyword)) fail(`DEPLOYMENT.md must contain ${keyword}`)
