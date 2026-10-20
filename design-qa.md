@@ -1,5 +1,40 @@
 # Official Website Design QA
 
+## 2026-10-19 visual refresh
+
+result: automated checks passed; visual review by a maintainer pending.
+
+Scope: shared design system (system font stacks per locale, tokens, header, footer, buttons,
+content-page components), homepage hero with a CSS board grid and stones instead of the
+generated photo, review steps as cards, a new six-item feature grid in seven languages, and a
+restyled download chooser. Removed 39 unused legacy selectors and the two generated background
+images. No release assets, catalog, update protocol, R2 objects or DNS were changed.
+
+Verification:
+
+- `pnpm website:build`: 46 routes. `astro check`: 0 errors, 0 warnings. `node --test
+  website/tests/*.test.mjs` and `pnpm check:website` passed.
+- Layout, measured from the DOM in headless Chrome with real (non-overlay) scrollbars and the live
+  catalog (next-2026-10-17.1) served to the page:
+  - 8 key pages at 320, 390, 768, 1024, 1280, 1440 and 1920 px, and all 46 pages at 360 and
+    1280 px;
+  - no element outside the viewport, so no horizontal scrollbar;
+  - no overlap between hero text and screenshot;
+  - text contrast at least 4.5:1 (3:1 for large text);
+  - interactive targets at least 36 px;
+  - no console errors.
+- Download chooser with the live catalog: the homepage shows 3 builds, each with a download
+  button, in 3 columns on desktop and 1 on phones. The full page shows 6 Windows builds with 7
+  buttons (TensorRT has two parts), and the recommended build is highlighted.
+- Fonts resolved on macOS: PingFang SC (zh), Sukhumvit Set (th), system UI (en).
+
+Limits: the checks above are text measurements only; no screenshot was reviewed in this pass.
+Windows font rendering (Microsoft YaHei) was not observed on a Windows machine. Look at the
+Cloudflare Pages preview on Windows and macOS before merging to `main`, because merging deploys
+to goagent.top.
+
+## 2026-10-02 redesign
+
 final result: passed
 
 Date: 2026-10-02. Scope: local implementation and browser verification, not production deployment.

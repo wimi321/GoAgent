@@ -1,14 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 import DownloadChooser from './DownloadChooser.astro'
-import SiteIcon from './SiteIcon.astro'
+import SiteIcon, { type IconName } from './SiteIcon.astro'
 import { homeCopy, localeSlugs } from '../data/home-copy.mjs'
+import '../styles/home.css'
 interface Props { lang?: keyof typeof homeCopy }
 const { lang = 'zh-CN' } = Astro.props
 const copy = homeCopy[lang]
 const prefix = localeSlugs[lang] ? `/${localeSlugs[lang]}` : ''
 const download = `${prefix}/download/`
 const icons = ['folder', 'search', 'chart'] as const
+const featureIcons: IconName[] = ['cloud-download', 'lightning', 'graph', 'display', 'chat', 'box']
 ---
 <BaseLayout title={copy.title} description={copy.description} lang={lang} pageKey="home"
   jsonLd={{ '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'LizzieYzy Next', applicationCategory: 'GameApplication', operatingSystem: 'Windows, macOS, Linux', url: 'https://goagent.top/', downloadUrl: 'https://goagent.top/download/', isAccessibleForFree: true }}>
@@ -41,6 +43,16 @@ const icons = ['folder', 'search', 'chart'] as const
         <div><SiteIcon name={icons[index]} size={36} /><h3>{title}</h3><p>{description}</p></div>
       </li>)}
     </ol>
+  </section>
+  <section class="review-features" aria-labelledby="features-title">
+    <header><h2 id="features-title">{copy.featuresTitle}</h2><p>{copy.featuresLead}</p></header>
+    <ul class="feature-grid">
+      {copy.features.map(([title, description], index) => <li>
+        <SiteIcon name={featureIcons[index]} size={24} />
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </li>)}
+    </ul>
   </section>
   <DownloadChooser lang={lang} compact title={copy.downloadTitle} lead={copy.downloadLead} />
 </BaseLayout>

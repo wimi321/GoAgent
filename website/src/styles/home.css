@@ -1,0 +1,465 @@
+/* Homepage: hero, review steps and feature grid. Shared tokens live in site.css. */
+
+.review-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(1000px 520px at 88% -8%, rgba(11, 81, 63, 0.11), transparent 62%),
+    radial-gradient(760px 460px at -8% 108%, rgba(162, 111, 47, 0.12), transparent 62%),
+    var(--paper);
+}
+
+/* A faint Go board: 44px grid with star points every six lines, fading out at the edges. */
+.review-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    radial-gradient(circle, rgba(20, 33, 27, 0.2) 2.6px, transparent 3.2px),
+    linear-gradient(rgba(20, 33, 27, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 33, 27, 0.07) 1px, transparent 1px);
+  /* 264 = 6 x 44, so each star point (tile center, 132px) lands on a line crossing. */
+  background-size: 264px 264px, 44px 44px, 44px 44px;
+  background-position: 0.5px 0.5px, 0 0, 0 0;
+  -webkit-mask-image: radial-gradient(75% 85% at 72% 42%, #000 10%, transparent 78%);
+  mask-image: radial-gradient(75% 85% at 72% 42%, #000 10%, transparent 78%);
+}
+
+.review-hero-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+  align-items: center;
+  gap: clamp(28px, 4vw, 56px) clamp(32px, 5vw, 72px);
+  width: min(var(--max), calc(100% - 2 * var(--gutter)));
+  margin-inline: auto;
+  padding-block: clamp(48px, 7.5vw, 104px) clamp(36px, 5vw, 64px);
+}
+
+.review-intro {
+  min-width: 0;
+  animation: review-enter 600ms ease both;
+}
+
+.review-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 6px 14px 6px 8px;
+  border: 1px solid rgba(11, 81, 63, 0.18);
+  border-radius: 999px;
+  color: var(--green);
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+/* A small black stone as the brand mark. */
+.review-eyebrow::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #6a6a6a 0%, #1c1c1c 45%, #050505 78%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.review-intro h1 {
+  font-size: clamp(38px, 5.3vw, 70px);
+  line-height: 1.12;
+  letter-spacing: -0.025em;
+}
+
+.review-intro h1 span {
+  display: block;
+}
+
+.review-intro h1 span + span {
+  color: var(--green);
+}
+
+.review-lead {
+  max-width: 30em;
+  margin-top: 24px;
+  color: var(--ink-soft);
+  font-size: clamp(17px, 1.5vw, 19px);
+  line-height: 1.8;
+}
+
+.review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.review-download,
+.review-tour {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 13px 26px;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.review-download {
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 14px 28px -14px rgba(11, 81, 63, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.review-download:hover {
+  background: var(--green-bright);
+  transform: translateY(-1px);
+}
+
+.review-tour {
+  color: var(--green);
+  border: 1px solid rgba(11, 81, 63, 0.26);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.review-tour:hover {
+  border-color: rgba(11, 81, 63, 0.45);
+  background: var(--green-tint);
+}
+
+.review-tour .site-icon {
+  transition: transform 160ms ease;
+}
+
+.review-tour:hover .site-icon {
+  transform: translateX(3px);
+}
+
+.review-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 26px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.review-platforms > span {
+  display: inline-flex;
+  gap: 10px;
+  color: var(--ink-soft);
+}
+
+.review-platforms .site-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.review-preview {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+  animation: review-enter 650ms 100ms ease both;
+}
+
+.review-preview > a {
+  position: relative;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(20, 33, 27, 0.1);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.review-preview > a:hover {
+  transform: translateY(-3px);
+}
+
+.review-preview img {
+  width: 100%;
+}
+
+/* Two stones resting on the screenshot's corners. */
+.review-preview::before,
+.review-preview::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.review-preview::before {
+  top: -20px;
+  left: -20px;
+  width: clamp(40px, 4.6vw, 62px);
+  background: radial-gradient(circle at 34% 30%, #707070 0%, #222 42%, #050505 76%);
+  box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.5);
+}
+
+.review-preview::after {
+  right: -16px;
+  bottom: 30px;
+  width: clamp(36px, 4.2vw, 56px);
+  background: radial-gradient(circle at 34% 30%, #ffffff 0%, #f4f1ea 46%, #d6cfc0 82%);
+  box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.4), inset 0 -2px 3px rgba(0, 0, 0, 0.06);
+}
+
+.review-preview figcaption {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: right;
+}
+
+.review-quote {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 0.45em;
+  margin: 0;
+  color: #2c5a49;
+  font-family: var(--font-brush);
+  font-size: clamp(18px, 1.9vw, 23px);
+  letter-spacing: 0.04em;
+  line-height: 1.6;
+}
+
+.review-quote::before,
+.review-quote::after {
+  content: "";
+  flex: 0 0 clamp(28px, 5vw, 64px);
+  height: 1px;
+  margin-inline: 12px;
+  background: linear-gradient(90deg, transparent, rgba(162, 111, 47, 0.75));
+}
+
+.review-quote::after {
+  transform: scaleX(-1);
+}
+
+/* ---------- Review steps and features ---------- */
+
+.review-workflow {
+  padding-block: clamp(64px, 9vw, 112px) clamp(20px, 3vw, 40px);
+}
+
+.review-features {
+  padding-block: clamp(40px, 6vw, 72px) clamp(64px, 9vw, 112px);
+}
+
+.review-workflow > header,
+.review-features > header {
+  max-width: 40em;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.review-workflow h2,
+.review-features h2 {
+  font-size: clamp(28px, 3.3vw, 42px);
+  letter-spacing: -0.02em;
+}
+
+.review-workflow > header p,
+.review-features > header p {
+  margin-top: 12px;
+  font-size: 17px;
+}
+
+.review-steps,
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: clamp(28px, 4vw, 48px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-steps {
+  gap: 18px;
+}
+
+.review-steps li {
+  position: relative;
+  padding: 28px 26px 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.review-steps li:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.step-number {
+  position: absolute;
+  top: 24px;
+  right: 26px;
+  color: var(--gold-ink);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-steps .site-icon,
+.feature-grid .site-icon {
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.review-steps .site-icon {
+  color: var(--green);
+  background: var(--green-tint);
+}
+
+.review-steps h3,
+.feature-grid h3 {
+  margin-top: 18px;
+  font-size: 19px;
+}
+
+.review-steps p,
+.feature-grid p {
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.feature-grid {
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.feature-grid li {
+  padding: 28px 28px 30px;
+  background: var(--surface);
+}
+
+.feature-grid .site-icon {
+  color: var(--gold);
+  background: var(--gold-tint);
+}
+
+@keyframes review-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 960px) {
+  .review-hero-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .review-intro {
+    max-width: 640px;
+  }
+
+  .review-preview {
+    max-width: 720px;
+    margin-inline: 12px;
+  }
+
+  .review-quote {
+    justify-content: flex-start;
+  }
+
+  .review-quote::before {
+    display: none;
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .review-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .review-eyebrow {
+    margin-bottom: 18px;
+    font-size: 13px;
+  }
+
+  .review-intro h1 {
+    font-size: clamp(34px, 9vw, 44px);
+    line-height: 1.18;
+  }
+
+  .review-actions {
+    gap: 10px;
+  }
+
+  .review-download,
+  .review-tour {
+    flex: 1 1 100%;
+    min-height: 52px;
+    font-size: 16px;
+  }
+
+  .review-preview::before {
+    top: -14px;
+    left: -10px;
+  }
+
+  .review-preview::after {
+    right: -10px;
+  }
+
+  .review-quote::after {
+    display: none;
+  }
+
+  .review-workflow > header,
+  .review-features > header {
+    text-align: left;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-steps li,
+  .feature-grid li {
+    padding: 24px 22px 26px;
+  }
+}

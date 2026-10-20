@@ -1,17 +1,42 @@
 ---
-import download from 'bootstrap-icons/icons/download.svg?url'
-import folder from 'bootstrap-icons/icons/folder2-open.svg?url'
-import search from 'bootstrap-icons/icons/search.svg?url'
-import chart from 'bootstrap-icons/icons/bar-chart-line-fill.svg?url'
-import windows from 'bootstrap-icons/icons/windows.svg?url'
-import apple from 'bootstrap-icons/icons/apple.svg?url'
-import linux from 'bootstrap-icons/icons/ubuntu.svg?url'
-import globe from 'bootstrap-icons/icons/globe2.svg?url'
-import menu from 'bootstrap-icons/icons/list.svg?url'
-import chevron from 'bootstrap-icons/icons/chevron-down.svg?url'
-import arrow from 'bootstrap-icons/icons/arrow-right.svg?url'
-const icons = { download, folder, search, chart, windows, apple, linux, globe, menu, chevron, arrow }
-interface Props { name: keyof typeof icons; size?: number; class?: string }
+// Bootstrap Icons 1.13.1 (MIT), inlined so icons inherit `color` (currentColor) instead of
+// needing CSS filters to recolor an <img>.
+import download from 'bootstrap-icons/icons/download.svg?raw'
+import folder from 'bootstrap-icons/icons/folder2-open.svg?raw'
+import search from 'bootstrap-icons/icons/search.svg?raw'
+import chart from 'bootstrap-icons/icons/bar-chart-line-fill.svg?raw'
+import windows from 'bootstrap-icons/icons/windows.svg?raw'
+import apple from 'bootstrap-icons/icons/apple.svg?raw'
+import linux from 'bootstrap-icons/icons/ubuntu.svg?raw'
+import globe from 'bootstrap-icons/icons/globe2.svg?raw'
+import menu from 'bootstrap-icons/icons/list.svg?raw'
+import chevron from 'bootstrap-icons/icons/chevron-down.svg?raw'
+import arrow from 'bootstrap-icons/icons/arrow-right.svg?raw'
+import cloudDownload from 'bootstrap-icons/icons/cloud-download.svg?raw'
+import lightning from 'bootstrap-icons/icons/lightning-charge.svg?raw'
+import graph from 'bootstrap-icons/icons/graph-up.svg?raw'
+import display from 'bootstrap-icons/icons/display.svg?raw'
+import chat from 'bootstrap-icons/icons/chat-square-text.svg?raw'
+import box from 'bootstrap-icons/icons/box-seam.svg?raw'
+import gpu from 'bootstrap-icons/icons/gpu-card.svg?raw'
+import cpu from 'bootstrap-icons/icons/cpu.svg?raw'
+import gear from 'bootstrap-icons/icons/gear.svg?raw'
+import speedometer from 'bootstrap-icons/icons/speedometer.svg?raw'
+import book from 'bootstrap-icons/icons/book.svg?raw'
+import history from 'bootstrap-icons/icons/clock-history.svg?raw'
+import update from 'bootstrap-icons/icons/arrow-repeat.svg?raw'
+
+const icons = {
+  download, folder, search, chart, windows, apple, linux, globe, menu, chevron, arrow,
+  'cloud-download': cloudDownload, lightning, graph, display, chat, box,
+  'gpu-card': gpu, cpu, gear, speedometer, book, 'clock-history': history, 'arrow-repeat': update
+}
+export type IconName = keyof typeof icons
+interface Props { name: IconName; size?: number; class?: string }
 const { name, size = 22, class: className = '' } = Astro.props
+const classes = ['site-icon', className].filter(Boolean).join(' ')
+const svg = icons[name]
+  .replace(/\s(?:width|height|class)="[^"]*"/g, '')
+  .replace('<svg', `<svg width="${size}" height="${size}" class="${classes}" aria-hidden="true" focusable="false"`)
 ---
-<img class:list={['site-icon', className]} src={icons[name]} alt="" width={size} height={size} aria-hidden="true" />
+<Fragment set:html={svg} />

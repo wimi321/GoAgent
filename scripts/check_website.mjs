@@ -46,8 +46,6 @@ requireFile('website/src/pages/[locale].astro')
 requireFile('website/src/pages/[locale]/[page].astro')
 requireFile('website/src/components/DownloadChooser.astro')
 requireFile('website/public/images/download-page-bg.webp')
-requireFile('website/public/images/download-icons/windows.svg')
-requireFile('website/public/images/download-icons/apple.svg')
 requireFile('website/DEPLOYMENT.md')
 requireFile('.github/workflows/deploy-website.yml')
 requireFile('website/public/sitemap.xml')
@@ -84,10 +82,18 @@ if (!index.includes('<HomePage lang="zh-CN"')) fail('homepage must use the share
 for (const keyword of ['LizzieYzy Next', '下过的每一盘', '免费开源', 'AI 解说需自行连接服务']) {
   if (!homeCopy.includes(keyword)) fail(`homepage must include user-facing guidance: ${keyword}`)
 }
-for (const keyword of ['review-hero', 'review-steps', 'DownloadChooser', 'compact', 'lizzie-review.webp']) {
+for (const keyword of ['review-hero', 'review-steps', 'review-features', 'feature-grid', 'DownloadChooser', 'compact', 'lizzie-review.webp']) {
   if (!home.includes(keyword)) fail(`homepage must retain the selected design and real product image: ${keyword}`)
 }
-for (const asset of ['lizzie-review.webp', 'review-room.webp', 'review-download.webp']) requireFile(`website/public/images/${asset}`)
+requireFile('website/public/images/lizzie-review.webp')
+for (const keyword of ['featuresTitle', 'features:']) {
+  if (!homeCopy.includes(keyword)) fail(`homepage copy must include the feature grid: ${keyword}`)
+}
+for (const name of ['site.css', 'home.css', 'download.css']) {
+  const css = read(`website/src/styles/${name}`)
+  if (/width:\s*100vw|50vw\)/.test(css)) fail(`${name}: full-bleed bands must not use 100vw; it overflows next to classic Windows scrollbars`)
+}
+if (!read('website/src/components/SiteIcon.astro').includes('?raw')) fail('SiteIcon must inline SVG so icons follow currentColor')
 if (index.includes(chooserCopy)) fail('homepage hero must not use unnecessary chooser copy')
 if (index.includes('打不开再用')) fail('homepage should use priority/backup wording instead of troubleshooting-first wording')
 if (!layout.includes('https://github.com/wimi321/GoAgent/releases')) fail('footer must retain the experimental project link')
