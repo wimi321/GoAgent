@@ -1,19 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const lizzieDownload = 'https://goagent.top/download'
-const lizzieGithub = 'https://github.com/wimi321/lizzieyzy-next'
-
 const features = [
-  ['先看整盘', '用胜率、目差、候选点和底部概览快速找到真正改变局面的手，不把时间花在每一手都重算。'],
-  ['再看关键变化', '关键手附近再展开 KataGo 候选点和变化图，确认哪里亏了、哪里其实可以接受。'],
-  ['适合日常复盘', 'Windows、macOS、Linux 都有发布包，棋友下载后就能开始导入棋谱分析。']
+  ['先看整盘', '胜率曲线和问题手清单一起看，先找出真正改变局面的几手，不用每一手都重算。'],
+  ['再看推荐点', '在关键手附近展开 KataGo 推荐点和变化图，看清哪里亏了、哪里其实可以接受。'],
+  ['三个平台都能用', 'Windows、macOS、Linux 都有完整包，下载后就能开始。']
 ]
 
 const faq = [
-  ['KataGo 复盘软件先装哪个？', '大多数用户先装 LizzieYzy Next。它是更成熟的 KataGo 复盘工作台，适合日常看棋谱、找转折点、比较候选点。'],
-  ['LizzieYzy Next 和 GoAgent 是什么关系？', 'LizzieYzy Next 是首推的专业复盘工具；GoAgent 是实验围棋智能体，适合在需要自然语言讲解时尝试。'],
-  ['我该下载哪个版本？', '进入官网下载中心，NVIDIA RTX 20 / 30 / 40 / 50 选 CUDA 版，AMD、Intel 或旧 NVIDIA 显卡选 OpenCL 版，没有合适独立显卡再选 CPU 版；Mac 按芯片选择。']
+  ['KataGo 复盘用什么软件？', '可以用 LizzieYzy Next。它免费开源，自带 KataGo 引擎和默认权重，打开棋谱就能分析整盘。'],
+  ['需要自己配置 KataGo 吗？', '不需要。完整包第一次打开会自动配置；已经有自己的 KataGo，也可以下载无引擎版。'],
+  ['我该下载哪个版本？', 'Windows 按显卡选：NVIDIA RTX 20 / 30 / 40 / 50 选 CUDA 版，AMD、Intel 或较旧的 NVIDIA 显卡选 OpenCL 版，没有独立显卡选 CPU 版；Mac 按芯片选择。']
 ]
 
 const jsonLd = {
@@ -25,8 +22,8 @@ const jsonLd = {
       applicationCategory: 'GameApplication',
       operatingSystem: 'Windows, macOS, Linux',
       url: 'https://goagent.top/katago-review',
-      downloadUrl: lizzieDownload,
-      description: 'LizzieYzy Next 是面向围棋棋友的专业 KataGo 复盘工作台。',
+      downloadUrl: 'https://goagent.top/download/',
+      description: 'LizzieYzy Next 是免费开源的围棋复盘软件，自带 KataGo。',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
     },
     {
@@ -48,28 +45,28 @@ const jsonLd = {
 }
 ---
 <BaseLayout
-  title="KataGo 围棋复盘软件推荐 - LizzieYzy Next"
-  description="想用 KataGo 复盘围棋，首推 LizzieYzy Next：导入棋谱后查看胜率、目差、候选点和全盘节奏；GoAgent 适合尝试 AI 讲棋。"
+  title="KataGo 复盘软件 - LizzieYzy Next 免费围棋 AI 复盘"
+  description="想用 KataGo 复盘围棋？LizzieYzy Next 自带 KataGo，打开棋谱一键分析整盘，看胜率曲线、推荐点和问题手。免费开源，支持 Windows、macOS、Linux。"
   pageKey="katago-review"
   jsonLd={jsonLd}
 >
   <section class="page-hero">
-    <p class="eyebrow">KataGo Review</p>
+    <p class="eyebrow">KataGo 复盘</p>
     <h1>KataGo 复盘，先把整盘看清楚</h1>
-    <p class="lead">如果你搜索“围棋 AI 复盘”“KataGo 复盘软件”，真正需要的不是一堆术语，而是能快速告诉你：这盘棋在哪里变坏、下一次该怎么避免。</p>
+    <p class="lead">复盘真正要回答的是两件事：这盘棋从哪里开始变坏，下次该怎么下。LizzieYzy Next 自带 KataGo，打开棋谱就能找到答案。</p>
     <div class="button-row">
-      <a class="button primary" href={lizzieDownload}>下载 LizzieYzy Next</a>
-      <a class="button subtle" href={lizzieGithub}>查看开源仓库</a>
+      <a class="button primary" href="/download/">免费下载</a>
+      <a class="button subtle" href="/docs">查看使用指南</a>
     </div>
   </section>
 
   <section class="content-stack">
     <article class="premium-panel doc-card">
       <div>
-        <h2>首推 LizzieYzy Next</h2>
-        <p>它把 KataGo 分析结果放进一个适合棋友日常复盘的桌面工作台：导入棋谱、看胜率曲线、看目差变化、比较候选点，然后把注意力放在最值得复盘的几手棋上。</p>
+        <h2>自带 KataGo，打开就能分析</h2>
+        <p>完整包内置 KataGo 引擎和默认权重，第一次打开自动配置。打开棋谱，在“分析”菜单选择“整盘速览”，胜率曲线、推荐点和问题手清单就都有了。</p>
       </div>
-      <img src="/images/lizzieyzy-next-workbench.jpg" alt="LizzieYzy Next KataGo 复盘工作台界面" width="1536" height="1152" loading="lazy" decoding="async" />
+      <img src="/images/lizzie-earred-127.webp" alt="LizzieYzy Next 真实界面：整盘胜率曲线、问题手清单和棋盘上的 KataGo 推荐点" width="2400" height="1408" loading="lazy" decoding="async" />
     </article>
 
     <div class="grid three">

@@ -23,8 +23,8 @@ interface Props {
 }
 
 const {
-  title = 'LizzieYzy Next - 专业围棋复盘工作台',
-  description = 'LizzieYzy Next 是首推的专业 KataGo 复盘工作台；GoAgent 是实验中的围棋智能体。',
+  title = homeCopy['zh-CN'].title,
+  description = homeCopy['zh-CN'].description,
   canonical = new URL(Astro.url.pathname, 'https://goagent.top').toString(),
   lang = 'zh-CN',
   pageKey = 'home',
@@ -64,158 +64,46 @@ function localizedPath(locale: keyof typeof localeSlugs, key: NonNullable<Props[
 
 const copyByLang = {
   'zh-CN': {
-    skip: '跳到主要内容',
-    brand: 'LizzieYzy Next',
-    brandSub: '专业围棋复盘',
-    goAgentSub: '实验围棋智能体',
-    nav: { products: '功能', workflow: '工作流', download: '下载', docs: '使用指南', faq: '常见问题' },
-    cta: '免费下载',
-    footer: '首推 LizzieYzy Next 做稳定全盘复盘；GoAgent 作为实验围棋智能体，探索 AI 讲棋的新工作流。',
-    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
-    resources: {
-      katago: 'KataGo 复盘',
-      fox: '野狐棋谱复盘',
-      ai: '围棋 AI 复盘',
-      compare: '产品对比'
-    },
-    privacy: '隐私',
-    footerDownloads: {
-      lizzie: '下载 LizzieYzy Next',
-      goAgent: 'GoAgent 从 GitHub 下载'
-    },
-    copyright: 'GoAgent and LizzieYzy Next contributors'
+    skip: '跳到主要内容', home: '首页', download: '下载', cta: '免费下载',
+    nav: { features: '功能', docs: '使用指南', faq: '常见问题', changelog: '更新日志' },
+    product: '产品', topics: '专题', community: '社区', privacy: '隐私说明', issues: '问题反馈',
+    topicLinks: [['/katago-review', 'KataGo 复盘'], ['/fox-go-review', '野狐棋谱复盘'], ['/ai-go-review', '围棋 AI 复盘'], ['/compare', '产品对比']]
   },
   'zh-Hant': {
-    skip: '跳到主要內容',
-    brand: 'LizzieYzy Next',
-    brandSub: '專業圍棋復盤',
-    goAgentSub: '實驗圍棋智能體',
-    nav: { products: '功能', workflow: '工作流', download: '下載', docs: '使用指南', faq: '常見問題' },
-    cta: '免費下載',
-    footer: '首推 LizzieYzy Next 做穩定全盤復盤；GoAgent 是實驗中的圍棋智能體，探索 AI 講棋工作流。',
-    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
-    resources: {
-      katago: 'KataGo 復盤',
-      fox: '野狐棋譜復盤',
-      ai: '圍棋 AI 復盤',
-      compare: '產品對比'
-    },
-    privacy: '隱私',
-    footerDownloads: {
-      lizzie: '下載 LizzieYzy Next',
-      goAgent: 'GoAgent 從 GitHub 下載'
-    },
-    copyright: 'GoAgent and LizzieYzy Next contributors'
+    skip: '跳到主要內容', home: '首頁', download: '下載', cta: '免費下載',
+    nav: { features: '功能', docs: '使用指南', faq: '常見問題', changelog: '更新日誌' },
+    product: '產品', topics: '專題', community: '社群', privacy: '隱私說明', issues: '問題回報',
+    topicLinks: []
   },
   en: {
-    skip: 'Skip to content',
-    brand: 'LizzieYzy Next',
-    brandSub: 'Go review workbench',
-    goAgentSub: 'Experimental Go agent',
-    nav: { products: 'Products', workflow: 'Workflow', download: 'Download', docs: 'Guide', faq: 'FAQ' },
-    cta: 'Download',
-    footer: 'Start with LizzieYzy Next for stable whole-game review. GoAgent is an experimental Go agent for AI move explanations.',
-    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
-    resources: {
-      katago: 'KataGo review',
-      fox: 'Fox game review',
-      ai: 'AI Go review',
-      compare: 'Compare products'
-    },
-    privacy: 'Privacy',
-    footerDownloads: {
-      lizzie: 'Download LizzieYzy Next',
-      goAgent: 'Download GoAgent from GitHub'
-    },
-    copyright: 'GoAgent and LizzieYzy Next contributors'
+    skip: 'Skip to content', home: 'Home', download: 'Download', cta: 'Download',
+    nav: { features: 'Features', docs: 'Guide', faq: 'FAQ', changelog: 'Changelog' },
+    product: 'Product', topics: 'Topics', community: 'Community', privacy: 'Privacy', issues: 'Report an issue',
+    topicLinks: []
   },
   ja: {
-    skip: '本文へ移動',
-    brand: 'LizzieYzy Next',
-    brandSub: '囲碁復盤ワークベンチ',
-    goAgentSub: '実験的な囲碁エージェント',
-    nav: { products: 'プロダクト', workflow: '流れ', download: 'ダウンロード', docs: 'ガイド', faq: 'FAQ' },
-    cta: '推奨版を入手',
-    footer: 'まず LizzieYzy Next で一局全体を安定して復盤。GoAgent は AI 解説を試す実験的な囲碁エージェントです。',
-    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
-    resources: {
-      katago: 'KataGo 復盤',
-      fox: 'Fox 棋譜復盤',
-      ai: 'AI 囲碁復盤',
-      compare: '製品比較'
-    },
-    privacy: 'プライバシー',
-    footerDownloads: {
-      lizzie: 'LizzieYzy Next をダウンロード',
-      goAgent: 'GoAgent を GitHub から入手'
-    },
-    copyright: 'GoAgent and LizzieYzy Next contributors'
+    skip: '本文へ移動', home: 'ホーム', download: 'ダウンロード', cta: 'ダウンロード',
+    nav: { features: '機能', docs: 'ガイド', faq: 'よくある質問', changelog: '更新履歴' },
+    product: '製品', topics: 'トピック', community: 'コミュニティ', privacy: 'プライバシー', issues: '不具合の報告',
+    topicLinks: []
   },
   ko: {
-    skip: '본문으로 이동',
-    brand: 'LizzieYzy Next',
-    brandSub: '바둑 복기 워크벤치',
-    goAgentSub: '실험 바둑 에이전트',
-    nav: { products: '제품', workflow: '흐름', download: '다운로드', docs: '가이드', faq: 'FAQ' },
-    cta: '추천판 다운로드',
-    footer: '먼저 LizzieYzy Next로 안정적인 전판 복기를 시작하세요. GoAgent는 AI 수 설명을 실험하는 바둑 에이전트입니다.',
-    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
-    resources: {
-      katago: 'KataGo 복기',
-      fox: 'Fox 기보 복기',
-      ai: 'AI 바둑 복기',
-      compare: '제품 비교'
-    },
-    privacy: '개인정보',
-    footerDownloads: {
-      lizzie: 'LizzieYzy Next 다운로드',
-      goAgent: 'GitHub에서 GoAgent 다운로드'
-    },
-    copyright: 'GoAgent and LizzieYzy Next contributors'
+    skip: '본문으로 이동', home: '홈', download: '다운로드', cta: '다운로드',
+    nav: { features: '기능', docs: '가이드', faq: '자주 묻는 질문', changelog: '변경 기록' },
+    product: '제품', topics: '주제', community: '커뮤니티', privacy: '개인정보', issues: '문제 신고',
+    topicLinks: []
   },
   th: {
-    skip: 'ไปยังเนื้อหา',
-    brand: 'LizzieYzy Next',
-    brandSub: 'พื้นที่ทบทวนหมากล้อม',
-    goAgentSub: 'Go agent ทดลอง',
-    nav: { products: 'ผลิตภัณฑ์', workflow: 'เวิร์กโฟลว์', download: 'ดาวน์โหลด', docs: 'คู่มือ', faq: 'FAQ' },
-    cta: 'ดาวน์โหลดตัวแนะนำ',
-    footer: 'เริ่มด้วย LizzieYzy Next สำหรับการทบทวนทั้งเกมที่เสถียร ส่วน GoAgent เป็น agent ทดลองสำหรับคำอธิบายด้วย AI',
-    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
-    resources: {
-      katago: 'รีวิว KataGo',
-      fox: 'รีวิวเกม Fox',
-      ai: 'รีวิว Go ด้วย AI',
-      compare: 'เปรียบเทียบ'
-    },
-    privacy: 'ความเป็นส่วนตัว',
-    footerDownloads: {
-      lizzie: 'ดาวน์โหลด LizzieYzy Next',
-      goAgent: 'ดาวน์โหลด GoAgent จาก GitHub'
-    },
-    copyright: 'GoAgent and LizzieYzy Next contributors'
+    skip: 'ไปยังเนื้อหา', home: 'หน้าแรก', download: 'ดาวน์โหลด', cta: 'ดาวน์โหลด',
+    nav: { features: 'ฟีเจอร์', docs: 'คู่มือ', faq: 'คำถามที่พบบ่อย', changelog: 'บันทึกอัปเดต' },
+    product: 'ผลิตภัณฑ์', topics: 'หัวข้อ', community: 'ชุมชน', privacy: 'ความเป็นส่วนตัว', issues: 'แจ้งปัญหา',
+    topicLinks: []
   },
   vi: {
-    skip: 'Chuyển tới nội dung',
-    brand: 'LizzieYzy Next',
-    brandSub: 'Bàn làm việc ôn tập cờ vây',
-    goAgentSub: 'Agent cờ vây thử nghiệm',
-    nav: { products: 'Sản phẩm', workflow: 'Quy trình', download: 'Tải xuống', docs: 'Hướng dẫn', faq: 'FAQ' },
-    cta: 'Tải bản khuyên dùng',
-    footer: 'Hãy bắt đầu với LizzieYzy Next để ôn tập toàn ván ổn định. GoAgent là agent cờ vây thử nghiệm cho giải thích bằng AI.',
-    community: 'GoAgent QQ 1030632742 · LizzieYzy Next QQ 299419120',
-    resources: {
-      katago: 'Ôn tập KataGo',
-      fox: 'Ôn tập ván Fox',
-      ai: 'Ôn tập Go bằng AI',
-      compare: 'So sánh'
-    },
-    privacy: 'Riêng tư',
-    footerDownloads: {
-      lizzie: 'Tải LizzieYzy Next',
-      goAgent: 'Tải GoAgent từ GitHub'
-    },
-    copyright: 'GoAgent and LizzieYzy Next contributors'
+    skip: 'Chuyển tới nội dung', home: 'Trang chủ', download: 'Tải xuống', cta: 'Tải xuống',
+    nav: { features: 'Tính năng', docs: 'Hướng dẫn', faq: 'Hỏi đáp', changelog: 'Nhật ký' },
+    product: 'Sản phẩm', topics: 'Chủ đề', community: 'Cộng đồng', privacy: 'Quyền riêng tư', issues: 'Báo lỗi',
+    topicLinks: []
   }
 } as const
 
@@ -223,29 +111,8 @@ type SiteLang = keyof typeof copyByLang
 const siteLang = (lang in copyByLang ? lang : 'zh-CN') as SiteLang
 const copy = copyByLang[siteLang]
 const homeHref = homeByLang[siteLang]
-const sectionHref = (section: string) => `${homeHref === '/' ? '/' : homeHref}#${section}`
 const localizedPageKeys = new Set(['home', 'download', 'docs', 'privacy', 'faq', 'changelog'])
 const languagePageKey = localizedPageKeys.has(pageKey) ? pageKey : 'home'
-
-const homeLabels = {
-  'zh-CN': '首页',
-  'zh-Hant': '首頁',
-  en: 'Home',
-  ja: 'ホーム',
-  ko: '홈',
-  th: 'หน้าแรก',
-  vi: 'Trang chủ'
-} as const
-
-const changelogLabels = {
-  'zh-CN': '更新日志',
-  'zh-Hant': '更新日誌',
-  en: 'Changelog',
-  ja: '更新履歴',
-  ko: '변경 기록',
-  th: 'บันทึกอัปเดต',
-  vi: 'Nhật ký'
-} as const
 
 const currentLanguageLabels = {
   'zh-CN': '简体中文',
@@ -257,15 +124,17 @@ const currentLanguageLabels = {
   vi: 'Tiếng Việt'
 } as const
 
+const pageHref = (key: NonNullable<Props['pageKey']>) => localizedPath(siteLang, key)
+const featuresHref = `${homeHref === '/' ? '/' : `${homeHref}/`}#features`
 const navItems = [
-  { href: homeHref, label: homeLabels[siteLang] },
-  { href: localizedPath(siteLang, 'download'), label: copy.nav.download },
-  { href: sectionHref('products'), label: copy.nav.products },
-  { href: localizedPath(siteLang, 'docs'), label: copy.nav.docs },
-  { href: localizedPath(siteLang, 'changelog'), label: changelogLabels[siteLang] },
-  { href: localizedPath(siteLang, 'faq'), label: copy.nav.faq }
+  { href: featuresHref, label: copy.nav.features, key: 'features' },
+  { href: pageHref('docs'), label: copy.nav.docs, key: 'docs' },
+  { href: pageHref('faq'), label: copy.nav.faq, key: 'faq' },
+  { href: pageHref('changelog'), label: copy.nav.changelog, key: 'changelog' }
 ]
+const downloadHref = `${pageHref('download')}/`
 const siteText = homeCopy[siteLang]
+const topicLinks: ReadonlyArray<readonly [string, string]> = copy.topicLinks
 
 const alternateItems = localizedPageKeys.has(pageKey)
   ? [
@@ -292,14 +161,17 @@ const alternateItems = localizedPageKeys.has(pageKey)
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content="https://goagent.top/images/go-tools-hero.jpg" />
+    <meta property="og:image" content="https://goagent.top/images/og-lizzieyzy-next.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#faf9f5" />
+    <meta name="theme-color" content="#f7f4ec" />
     <meta name="color-scheme" content="light" />
     {alternateItems.map((item) => <link rel="alternate" hreflang={item.lang} href={item.href} />)}
-    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-48.png" type="image/png" sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     {jsonLd && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
   </head>
@@ -307,50 +179,69 @@ const alternateItems = localizedPageKeys.has(pageKey)
     <a class="skip-link" href="#content">{copy.skip}</a>
     <div class="site-shell">
       <header class="site-header">
-        <a class="site-logo" href={homeHref} aria-label={`GoAgent · ${homeLabels[siteLang]}`}>
-          <img src="/logo.svg" alt="" width="46" height="46" />
-          <span>GoAgent</span>
+        <a class="site-logo" href={homeHref} aria-label={`LizzieYzy Next · ${copy.home}`}>
+          <img src="/images/lizzieyzy-next-icon.png" alt="" width="34" height="34" />
+          <span>LizzieYzy Next</span>
         </a>
         <nav class="desktop-nav" aria-label={siteText.nav}>
-          {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+          {navItems.map((item) => <a href={item.href} aria-current={item.key === pageKey ? 'page' : undefined}>{item.label}</a>)}
         </nav>
         <div class="header-actions">
           <details class="language-menu">
             <summary aria-label={siteText.language}>
-              <SiteIcon name="globe" size={20} />
+              <SiteIcon name="globe" size={18} />
               <span>{currentLanguageLabels[siteLang]}</span>
-              <SiteIcon name="chevron" size={13} class="chevron" />
+              <SiteIcon name="chevron" size={12} class="chevron" />
             </summary>
             <div class="language-menu-list">
-              {Object.entries(currentLanguageLabels).map(([locale, label]) => <a href={localizedPath(locale as keyof typeof localeSlugs, languagePageKey)} lang={locale}>{label}</a>)}
+              {Object.entries(currentLanguageLabels).map(([locale, label]) => <a href={localizedPath(locale as keyof typeof localeSlugs, languagePageKey)} lang={locale} aria-current={locale === siteLang ? 'true' : undefined}>{label}</a>)}
             </div>
           </details>
           <details class="mobile-nav">
-            <summary aria-label={siteText.menu}><SiteIcon name="menu" size={27} /></summary>
-            <nav aria-label={siteText.nav}>{navItems.map((item) => <a href={item.href}>{item.label}</a>)}</nav>
+            <summary aria-label={siteText.menu}><SiteIcon name="menu" size={24} /></summary>
+            <nav aria-label={siteText.nav}>
+              <a href={homeHref}>{copy.home}</a>
+              <a href={downloadHref}>{copy.download}</a>
+              {navItems.map((item) => <a href={item.href}>{item.label}</a>)}
+            </nav>
           </details>
+          <a class="button primary header-cta" href={downloadHref}>{copy.cta}</a>
         </div>
       </header>
       <main id="content">
         <slot />
       </main>
       <footer class="site-footer">
-        <div class="footer-main">
-          <div class="footer-brand"><img src="/logo.svg" alt="" width="43" height="43" /><div><strong>GoAgent</strong><p>{siteText.tagline}</p></div></div>
-          <div class="footer-links">
-            <a href={lizzieUrl}>GitHub</a>
-            <a href={localizedPath(siteLang, 'docs')}>{copy.nav.docs}</a>
-            <a href={localizedPath(siteLang, 'changelog')}>{changelogLabels[siteLang]}</a>
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="footer-logo" href={homeHref}><img src="/images/lizzieyzy-next-icon.png" alt="" width="34" height="34" /><span>LizzieYzy Next</span></a>
+            <p>{siteText.tagline}</p>
+            <a class="footer-github" href={lizzieUrl}><SiteIcon name="github" size={17} />GitHub</a>
+          </div>
+          <nav class="footer-col" aria-label={copy.product}>
+            <p class="footer-title">{copy.product}</p>
+            <a href={downloadHref}>{copy.download}</a>
+            <a href={pageHref('docs')}>{copy.nav.docs}</a>
+            <a href={pageHref('faq')}>{copy.nav.faq}</a>
+            <a href={pageHref('changelog')}>{copy.nav.changelog}</a>
+          </nav>
+          {topicLinks.length > 0 && <nav class="footer-col" aria-label={copy.topics}>
+            <p class="footer-title">{copy.topics}</p>
+            {topicLinks.map(([href, label]) => <a href={href}>{label}</a>)}
+          </nav>}
+          <div class="footer-col">
+            <p class="footer-title">{copy.community}</p>
+            <span>LizzieYzy Next QQ 299419120</span>
+            <span>GoAgent QQ 1030632742</span>
+            <a href={`${lizzieUrl}/issues`}>{copy.issues}</a>
             <a href={goAgentReleases}>{siteText.experimental}</a>
-            <a href={localizedPath(siteLang, 'privacy')}>{copy.privacy}</a>
+            <a href={pageHref('privacy')}>{copy.privacy}</a>
           </div>
         </div>
-        <div class="footer-meta">
-          <p class="copyright">Copyright © {new Date().getFullYear()} {copy.copyright}.</p>
-          <details><summary>{siteText.community}</summary><p>{copy.community}</p><a href={`${lizzieUrl}/issues`}>GitHub Issues</a></details>
-          <p>{siteText.footerNote}</p>
+        <div class="footer-bottom">
+          <p>Copyright © {new Date().getFullYear()} GoAgent and LizzieYzy Next contributors · GPL-3.0</p>
+          <p>{siteText.aiNote}</p>
         </div>
-        <p class="footer-ai-note">{siteText.aiNote}</p>
       </footer>
     </div>
   </body>

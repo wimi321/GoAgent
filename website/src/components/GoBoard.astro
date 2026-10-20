@@ -1,0 +1,86 @@
+---
+// A wooden 19x19 board drawn in SVG: the position after move 127 of the ear-reddening game,
+// with the move marked and KataGo's suggestions for White's reply.
+import { earred } from '../data/earred.mjs'
+
+interface Props {
+  label: string
+}
+
+const { label } = Astro.props
+const margin = 76
+const step = (1000 - margin * 2) / 18
+const at = (index: number) => Number((margin + index * step).toFixed(2))
+const end = at(18)
+const radius = Number((step * 0.48).toFixed(2))
+const letters = 'ABCDEFGHJKLMNOPQRST'
+const grid = Array.from({ length: 19 }, (_, index) => `M${at(0)} ${at(index)}H${end}M${at(index)} ${at(0)}V${end}`).join('')
+const stars = [3, 9, 15].flatMap((x) => [3, 9, 15].map((y) => [x, y]))
+const candidateColors = ['#139e93', '#58a83f', '#e0843a', '#d1a524']
+---
+<svg class="go-board" viewBox="0 0 1000 1034" role="img" aria-label={label}>
+  <defs>
+    <linearGradient id="board-wood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0cf93" />
+      <stop offset="0.5" stop-color="#e5bb73" />
+      <stop offset="1" stop-color="#d8a75e" />
+    </linearGradient>
+    <linearGradient id="board-edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b9813f" />
+      <stop offset="1" stop-color="#8d5c2a" />
+    </linearGradient>
+    <filter id="board-grain" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.0016 0.034" numOctaves="4" seed="21" result="noise" />
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  2.6 0 0 0 -1.12" result="mask" />
+      <feComposite in="SourceGraphic" in2="mask" operator="in" />
+    </filter>
+    <radialGradient id="stone-black" cx="0.36" cy="0.3" r="0.76">
+      <stop offset="0" stop-color="#7a7a78" />
+      <stop offset="0.2" stop-color="#3b3b3a" />
+      <stop offset="0.58" stop-color="#141414" />
+      <stop offset="1" stop-color="#020202" />
+    </radialGradient>
+    <radialGradient id="stone-white" cx="0.36" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.55" stop-color="#f4f1ea" />
+      <stop offset="0.86" stop-color="#ddd5c6" />
+      <stop offset="1" stop-color="#c6bca9" />
+    </radialGradient>
+    <filter id="stone-shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="2.5" dy="5" stdDeviation="3.4" flood-color="#3d2208" flood-opacity="0.42" />
+    </filter>
+  </defs>
+
+  <rect x="4" y="30" width="992" height="1000" rx="24" fill="url(#board-edge)" />
+  <rect x="4" y="4" width="992" height="992" rx="22" fill="url(#board-wood)" />
+  <rect x="4" y="4" width="992" height="992" rx="22" fill="#7b4a19" opacity="0.2" filter="url(#board-grain)" />
+  <rect x="4.5" y="4.5" width="991" height="991" rx="21.5" fill="none" stroke="#fff4dc" stroke-opacity="0.45" />
+
+  <g class="board-coords" aria-hidden="true">
+    {letters.split('').map((letter, index) => <text x={at(index)} y={margin - 40}>{letter}</text>)}
+    {Array.from({ length: 19 }, (_, index) => <text x={margin - 42} y={at(index)}>{19 - index}</text>)}
+  </g>
+  <path d={grid} fill="none" stroke="#3b2711" stroke-opacity="0.74" stroke-width="1.7" />
+  <rect x={at(0)} y={at(0)} width={end - at(0)} height={end - at(0)} fill="none" stroke="#3b2711" stroke-opacity="0.82" stroke-width="3.4" />
+  {stars.map(([x, y]) => <circle cx={at(x)} cy={at(y)} r="6" fill="#3b2711" />)}
+
+  <g filter="url(#stone-shadow)">
+    {earred.white.map(([x, y]) => <circle cx={at(x)} cy={at(y)} r={radius} fill="url(#stone-white)" />)}
+    {earred.black.map(([x, y]) => <circle cx={at(x)} cy={at(y)} r={radius} fill="url(#stone-black)" />)}
+  </g>
+
+  <g class="last-move">
+    <circle class="last-ring" cx={at(earred.last[0])} cy={at(earred.last[1])} r={radius + 7} fill="none" stroke="#f3c062" stroke-width="3.5" />
+    <text x={at(earred.last[0])} y={at(earred.last[1])} fill="#fff">{earred.move}</text>
+  </g>
+
+  <g class="candidates">
+    {earred.candidates.map((candidate, index) => (
+      <g class:list={['candidate', { best: candidate.rank === 1 }]} style={`--delay: ${0.5 + index * 0.12}s`}>
+        {candidate.rank === 1 && <circle class="best-ring" cx={at(candidate.point[0])} cy={at(candidate.point[1])} r={radius + 8} fill="none" stroke="#139e93" stroke-width="3" stroke-dasharray="7 6" />}
+        <circle cx={at(candidate.point[0])} cy={at(candidate.point[1])} r={radius} fill={candidateColors[index]} fill-opacity="0.94" stroke="#fffdf6" stroke-width="3" />
+        <text x={at(candidate.point[0])} y={at(candidate.point[1])} fill="#fff">{candidate.rank}</text>
+      </g>
+    ))}
+  </g>
+</svg>

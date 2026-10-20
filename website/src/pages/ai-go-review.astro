@@ -1,20 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
-import { guideCopy } from '../data/guide-copy.mjs'
-
-const lizzieReleases = '/download/'
-const goAgentReleases = 'https://github.com/wimi321/GoAgent/releases'
 
 const principles = [
-  ['事实先行', '围棋 AI 复盘先看 KataGo 给出的胜率、目差、候选点和 PV，不让自然语言凭空判断。'],
-  ['少讲废话', '常规定式少讲，真正的战斗、转换、死活和明显损失才值得展开。'],
-  ['分层学习', '强棋友看变化和目差，普通棋友先看“这手为什么亏、下次怎么想”。']
+  ['事实先行', '先看 KataGo 给出的胜率、目差和推荐点，再听解释，不让文字凭空判断。'],
+  ['抓大放小', '常规定式少讲，真正的战斗、转换、死活和明显损失才值得展开。'],
+  ['因人而异', '强一些的棋友看变化和目差，刚入门的棋友先弄懂“这手为什么亏、下次怎么想”。']
 ]
 
 const faq = [
-  ['围棋 AI 复盘是不是直接问聊天机器人？', '不建议。先用 KataGo 分析，再使用 LizzieYzy Next 内的 AI 解说，让解释有棋盘和分析结果作为依据。'],
-  ['还需要另外安装 GoAgent 吗？', guideCopy['zh-CN'].separate],
-  ['AI 讲棋应该相信什么？', '优先相信可验证的 KataGo 候选点、胜率、目差和变化图。自然语言解释应该服务这些证据。']
+  ['围棋 AI 复盘是直接问聊天机器人吗？', '不建议。聊天机器人看不懂棋盘时容易编造。先用 KataGo 分析，再用 LizzieYzy Next 的 AI 解说，解释才有棋盘和分析结果作为依据。'],
+  ['需要另外安装 GoAgent 吗？', '不需要。LizzieYzy Next 已经自带 AI 解说和 AI 陪练。GoAgent 是另一个探索 AI 讲棋的实验项目，想尝鲜时再试。'],
+  ['AI 讲的和 KataGo 不一样，信哪个？', '以 KataGo 的推荐点、胜率和目差为准。文字解释是帮你理解这些结果的，不是用来推翻它们的。']
 ]
 
 const jsonLd = {
@@ -22,9 +18,9 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'TechArticle',
-      headline: '围棋 AI 复盘怎么看',
+      headline: '围棋 AI 复盘怎么做',
       inLanguage: 'zh-CN',
-      description: '围棋 AI 复盘建议先用 KataGo 工具看清全盘，再尝试自然语言讲解。',
+      description: '先用 KataGo 分析整盘、找出问题手，再用 AI 解说理解关键手。',
       mainEntityOfPage: 'https://goagent.top/ai-go-review'
     },
     {
@@ -39,28 +35,28 @@ const jsonLd = {
 }
 ---
 <BaseLayout
-  title="围棋 AI 复盘怎么看 - LizzieYzy Next 与 GoAgent"
-  description="在 LizzieYzy Next 中先分析棋谱，再使用 AI 解说理解关键手。让解释有 KataGo 结果作为依据。"
+  title="围棋 AI 复盘怎么做 - KataGo 分析加 AI 解说 | LizzieYzy Next"
+  description="好的围棋 AI 复盘先有证据再讲道理：先用 KataGo 分析整盘、找出问题手，再用 AI 解说理解关键手。LizzieYzy Next 免费开源。"
   pageKey="ai-go-review"
   jsonLd={jsonLd}
 >
   <section class="page-hero">
-    <p class="eyebrow">AI Go Review</p>
-    <h1>好的围棋 AI 复盘，先有证据再讲道理</h1>
-    <p class="lead">真正有用的 AI 复盘不是“说得像老师”，而是能把 KataGo 证据、棋盘变化和人能听懂的解释连起来。</p>
+    <p class="eyebrow">围棋 AI 复盘</p>
+    <h1>好的 AI 复盘，先有证据再讲道理</h1>
+    <p class="lead">有用的 AI 复盘不是“说得像老师”，而是把 KataGo 的分析、棋盘上的变化和听得懂的解释连在一起。</p>
     <div class="button-row">
-      <a class="button primary" href={lizzieReleases}>下载 LizzieYzy Next</a>
-      <a class="button subtle" href={goAgentReleases}>试用 GoAgent</a>
+      <a class="button primary" href="/download/">免费下载</a>
+      <a class="button subtle" href="/docs">查看使用指南</a>
     </div>
   </section>
 
   <section class="content-stack">
     <article class="premium-panel doc-card">
       <div>
-        <h2>推荐顺序</h2>
-        <p>先用 KataGo 分析整盘棋，找到胜率或目差明显变化的局面，再点击软件顶部的 AI 解说。{guideCopy['zh-CN'].ai[1]}</p>
+        <h2>推荐的复盘顺序</h2>
+        <p>先用 KataGo 分析整盘，找到胜率或目差明显变化的局面；再点顶部的“AI 解说”，请 AI 讲讲这一手好在哪、亏在哪。AI 解说可以用 ChatGPT 账号登录，也可以填写自己的 API Key，用量和费用以服务方为准。</p>
       </div>
-      <img src="/images/lizzie-review.webp" alt="LizzieYzy Next 实际分析界面" width="1065" height="700" loading="lazy" decoding="async" />
+      <img src="/images/lizzie-candidates.webp" alt="LizzieYzy Next 真实界面：棋盘上的 KataGo 推荐点，标着胜率、计算量和目差" width="980" height="820" loading="lazy" decoding="async" />
     </article>
 
     <div class="grid three">

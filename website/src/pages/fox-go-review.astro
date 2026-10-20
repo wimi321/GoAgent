@@ -1,18 +1,16 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 
-const lizzieReleases = 'https://github.com/wimi321/lizzieyzy-next/releases'
-
 const steps = [
-  ['找到棋局', '用野狐昵称或本地棋谱入口把要复盘的棋局放进工作台。'],
-  ['全盘分析', '先跑完整盘，得到胜率曲线、目差、候选点和关键阶段概览。'],
-  ['复盘转折点', '只盯住真正影响胜负的几手棋，把复盘时间花在最有价值的位置。']
+  ['按昵称抓谱', '不用记账号数字，输入野狐昵称就能找到最近的公开对局。'],
+  ['一键分析整盘', '用“整盘速览”很快看完整盘；想算得更细，用“整盘精析”。'],
+  ['盯住问题手', '问题手按胜率损失排好序，点一下跳过去，对照 KataGo 推荐点看懂。']
 ]
 
 const faq = [
-  ['野狐棋谱抓下来以后怎么复盘？', '首推用 LizzieYzy Next 打开棋谱，先跑 KataGo 全盘分析，再围绕胜率和目差变化看关键手。'],
-  ['需要自己懂 KataGo 参数吗？', '普通棋友不需要先研究参数。先用默认工作流看清整盘，再按需要深入候选变化。'],
-  ['GoAgent 适合野狐棋谱吗？', 'GoAgent 更适合实验 AI 讲棋：当你已经定位关键手、希望听自然语言解释时再尝试。']
+  ['野狐棋谱怎么导入 LizzieYzy Next？', '点工具栏的“野狐棋谱”，输入野狐昵称，就能找到最近的公开对局，选中一盘即可打开。'],
+  ['需要知道野狐账号的数字 ID 吗？', '不需要，输入昵称就行。'],
+  ['抓下来的棋谱可以保存吗？', '可以，保存为 SGF 棋谱后随时都能再打开复盘。']
 ]
 
 const jsonLd = {
@@ -22,7 +20,7 @@ const jsonLd = {
       '@type': 'TechArticle',
       headline: '野狐棋谱复盘怎么做',
       inLanguage: 'zh-CN',
-      description: '用 LizzieYzy Next 对野狐棋谱进行 KataGo 全盘分析和关键手复盘。',
+      description: '在 LizzieYzy Next 里输入野狐昵称抓取棋谱，用 KataGo 分析整盘并找出问题手。',
       mainEntityOfPage: 'https://goagent.top/fox-go-review'
     },
     {
@@ -37,41 +35,41 @@ const jsonLd = {
 }
 ---
 <BaseLayout
-  title="野狐棋谱复盘 - LizzieYzy Next 围棋 AI 分析"
-  description="野狐棋谱复盘首推 LizzieYzy Next：抓取或导入棋谱后用 KataGo 全盘分析，看胜率、目差和关键手。"
+  title="野狐棋谱复盘 - 输入昵称抓谱，KataGo 找出问题手 | LizzieYzy Next"
+  description="野狐棋谱怎么复盘？在 LizzieYzy Next 里输入野狐昵称就能抓取最近的公开对局，一键分析整盘，找出胜率掉得最多的问题手。"
   pageKey="fox-go-review"
   jsonLd={jsonLd}
 >
   <section class="page-hero">
-    <p class="eyebrow">Fox Go Review</p>
-    <h1>野狐棋谱复盘，要快点找到问题手</h1>
-    <p class="lead">下完一盘棋，最重要的是知道哪里开始亏、哪几手值得重看。LizzieYzy Next 面向这个流程做了更直接的复盘工作台。</p>
+    <p class="eyebrow">野狐棋谱复盘</p>
+    <h1>野狐棋谱复盘，输入昵称就够了</h1>
+    <p class="lead">下完一盘野狐，最想知道的是从哪里开始亏、哪几手值得重看。LizzieYzy Next 能直接按昵称抓谱，分析完整盘，再把问题手列给你。</p>
     <div class="button-row">
-      <a class="button primary" href={lizzieReleases}>下载 LizzieYzy Next</a>
-      <a class="button" href="/katago-review">了解 KataGo 复盘</a>
+      <a class="button primary" href="/download/">免费下载</a>
+      <a class="button subtle" href="/katago-review">了解 KataGo 复盘</a>
     </div>
   </section>
 
   <section class="content-stack">
     <article class="premium-panel doc-card">
       <div>
-        <h2>从棋谱到复盘结论</h2>
-        <p>先把棋谱放进 LizzieYzy Next，跑完整盘分析。你看到的不是抽象分数，而是整盘走势、候选点、目差和关键阶段，适合复盘自己的野狐对局。</p>
+        <h2>从抓谱到看懂问题手</h2>
+        <p>点工具栏的“野狐棋谱”，输入野狐昵称，选一盘最近的公开对局打开；再用“整盘速览”分析整盘，左侧的问题手清单会按胜率损失排好序。</p>
       </div>
-      <img src="/images/go-tools-hero.jpg" alt="围棋棋盘和复盘工具工作台" width="1600" height="914" loading="lazy" decoding="async" />
+      <img class="panel-shot-tall" src="/images/lizzie-curve-problems.webp" alt="LizzieYzy Next 真实界面：整盘胜率曲线和按胜率损失排序的问题手清单" width="730" height="1280" loading="lazy" decoding="async" />
     </article>
 
-    <div class="grid three">
+    <ol class="step-cards">
       {steps.map(([title, text], index) => (
-        <article class="doc-card step-card">
-          <span class="step-index">{index + 1}</span>
+        <li class="doc-card step-card">
+          <span class="step-index" aria-hidden="true">{index + 1}</span>
           <div>
             <h2>{title}</h2>
             <p>{text}</p>
           </div>
-        </article>
+        </li>
       ))}
-    </div>
+    </ol>
 
     <section class="faq-list" aria-label="野狐棋谱复盘常见问题">
       {faq.map(([question, answer]) => (
