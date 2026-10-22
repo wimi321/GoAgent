@@ -40,12 +40,12 @@ function headers(settings: ProviderSettings): Record<string, string> {
   }
 }
 
-async function fetchWithTimeout(
+export async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
   externalSignal?: AbortSignal
-): Promise<Response> {
+): Promise<{ response: Response; dispose: () => void }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(new Error('LLM 请求超时')), timeoutMs)
   const abortFromExternal = (): void => controller.abort(externalSignal?.reason ?? new Error('LLM 请求已取消'))
@@ -54,19 +54,21 @@ async function fetchWithTimeout(
   } else {
     externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
   }
-  // fetch resolves once headers arrive, so on success the abort listener stays attached
-  // (it is `once`, and the signal belongs to a single teacher run): cancelling must still
-  // stop a streamed body instead of letting the model keep generating and billing.
+  const dispose = (): void => {
+    clearTimeout(timer)
+    externalSignal?.removeEventListener('abort', abortFromExternal)
+  }
+  // The caller owns this lifetime until the complete body has been consumed.
+  // Headers arriving must not disable the deadline or external cancellation.
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       ...init,
       signal: controller.signal
     })
+    return { response, dispose }
   } catch (error) {
-    externalSignal?.removeEventListener('abort', abortFromExternal)
+    dispose()
     throw error
-  } finally {
-    clearTimeout(timer)
   }
 }
 
@@ -125,9 +127,39 @@ function retryableParameterError(status: number, text: string): boolean {
 }
 
 const TOOL_STREAM_MAX_ATTEMPTS = 3
-const TOOL_STREAM_RETRY_DELAYS_MS = [350, 900]
+const TOOL_STREAM_RETRY_DELAYS_MS = [1_000, 3_000]
+const MAX_AUTOMATIC_RETRY_DELAY_MS = 60_000
+
+export function parseRetryAfter(value: string | null, now = Date.now()): number | null {
+  if (!value?.trim()) return null
+  const seconds = Number(value)
+  if (!Number.isNaN(seconds)) return Number.isFinite(seconds) && seconds >= 0 ? Math.ceil(seconds * 1_000) : null
+  const date = Date.parse(value)
+  return Number.isFinite(date) ? Math.max(0, date - now) : null
+}
+
+class OpenAICompatibleHttpError extends Error {
+  readonly retryAfterMs: number | null
+  constructor(prefix: string, readonly status: number, text: string, retryAfter: string | null) {
+    super(`${prefix}: ${status} ${text.slice(0, 240)}`)
+    this.retryAfterMs = parseRetryAfter(retryAfter)
+  }
+}
+
+function responseError(prefix: string, response: Response, text: string): Error {
+  return new OpenAICompatibleHttpError(prefix, response.status, text, response.headers.get('retry-after'))
+}
+
+function toolRetryDelay(error: unknown, attempt: number): number | null {
+  const minimum = error instanceof OpenAICompatibleHttpError ? error.retryAfterMs ?? 0 : 0
+  // A long provider cooldown is reported to the user, never shortened into an
+  // early retry or left running in the background for an unbounded time.
+  if (minimum > MAX_AUTOMATIC_RETRY_DELAY_MS) return null
+  return Math.max(minimum, TOOL_STREAM_RETRY_DELAYS_MS[attempt] ?? 3_000)
+}
 
 export function isTransientOpenAICompatibleError(error: unknown): boolean {
+  if (error instanceof OpenAICompatibleHttpError) return [408, 425, 429, 500, 502, 503, 504].includes(error.status)
   const message = String(error)
   return /(?:\b408\b|\b425\b|\b429\b|\b500\b|\b502\b|\b503\b|\b504\b|\bEOF\b|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|fetch failed|network error|请求超时)/i.test(message)
 }
@@ -283,7 +315,7 @@ async function attemptOpenAICompatibleChat(
           lastError = `${response.status} ${text.slice(0, 240)}`
           continue
         }
-        return { kind: 'error', error: new Error(`LLM 请求失败: ${response.status} ${text.slice(0, 240)}`) }
+        return { kind: 'error', error: responseError('LLM 请求失败', response, text) }
       }
       const json = (await response.json()) as ChatResponse
       const text = extractText(json)
@@ -317,36 +349,40 @@ async function attemptOpenAICompatibleToolTurn(
   for (const budget of budgets) {
     const bodies = requestBodies(settings.llmModel, messages, budget, tools, tools.length ? 'auto' : 'none')
     for (const body of bodies) {
-      const response = await fetchWithTimeout(endpoint(settings), {
+      const { response, dispose } = await fetchWithTimeout(endpoint(settings), {
         method: 'POST',
         headers: headers(settings),
         body: JSON.stringify(body)
       }, 180_000, signal)
-      if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        if (retryableParameterError(response.status, text)) {
-          lastError = `${response.status} ${text.slice(0, 240)}`
-          continue
+      try {
+        if (!response.ok) {
+          const text = await response.text().catch(() => '')
+          if (retryableParameterError(response.status, text)) {
+            lastError = `${response.status} ${text.slice(0, 240)}`
+            continue
+          }
+          throw responseError('LLM 工具请求失败', response, text)
         }
-        throw new Error(`LLM 工具请求失败: ${response.status} ${text.slice(0, 240)}`)
-      }
-      const json = (await response.json()) as ChatResponse
-      const text = extractText(json)
-      const toolCalls = extractToolCalls(json)
-      if (text || toolCalls.length > 0) {
-        return {
-          text,
-          toolCalls,
-          raw: json,
-          finishReason: finishReason(json)
+        const json = (await response.json()) as ChatResponse
+        const text = extractText(json)
+        const toolCalls = extractToolCalls(json)
+        if (text || toolCalls.length > 0) {
+          return {
+            text,
+            toolCalls,
+            raw: json,
+            finishReason: finishReason(json)
+          }
         }
+        lastEmptyResponse = json
+        lastError = `empty response: finish_reason=${finishReason(json)} ${formatUsage(json.usage)}`
+        if (budget < budgets[budgets.length - 1] && shouldRetryBudgetAfterEmpty(json, budget)) {
+          break
+        }
+        throw emptyResponseError(json, settings.llmModel)
+      } finally {
+        dispose()
       }
-      lastEmptyResponse = json
-      lastError = `empty response: finish_reason=${finishReason(json)} ${formatUsage(json.usage)}`
-      if (budget < budgets[budgets.length - 1] && shouldRetryBudgetAfterEmpty(json, budget)) {
-        break
-      }
-      throw emptyResponseError(json, settings.llmModel)
     }
   }
   if (lastEmptyResponse) {
@@ -434,33 +470,39 @@ async function readStreamText(response: Response, onDelta?: (delta: string) => v
   const decoder = new TextDecoder()
   let buffer = ''
   let text = ''
-  for (;;) {
-    const { value, done } = await reader.read()
-    if (done) {
-      break
-    }
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split(/\r?\n/)
-    buffer = lines.pop() ?? ''
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed.startsWith('data:')) {
-        continue
+  try {
+    stream: for (;;) {
+      const { value, done } = await reader.read()
+      if (done) {
+        break
       }
-      const payload = trimmed.replace(/^data:\s*/, '')
-      if (!payload || payload === '[DONE]') {
-        continue
-      }
-      try {
-        const delta = streamDeltaText(JSON.parse(payload) as ChatResponse)
-        if (delta) {
-          text += delta
-          onDelta?.(delta)
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split(/\r?\n/)
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) {
+          continue
         }
-      } catch {
-        // Ignore malformed SSE keepalive chunks from compatible proxies.
+        const payload = trimmed.replace(/^data:\s*/, '')
+        if (payload === '[DONE]') break stream
+        if (!payload) {
+          continue
+        }
+        try {
+          const delta = streamDeltaText(JSON.parse(payload) as ChatResponse)
+          if (delta) {
+            text += delta
+            onDelta?.(delta)
+          }
+        } catch {
+          // Ignore malformed SSE keepalive chunks from compatible proxies.
+        }
       }
     }
+  } finally {
+    await reader.cancel().catch(() => {})
+    reader.releaseLock()
   }
   return text.trim()
 }
@@ -475,36 +517,42 @@ async function readStreamTurn(response: Response, onDelta?: (delta: string) => v
   let buffer = ''
   let text = ''
   let finalReason = ''
-  for (;;) {
-    const { value, done } = await reader.read()
-    if (done) {
-      break
-    }
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split(/\r?\n/)
-    buffer = lines.pop() ?? ''
-    for (const line of lines) {
-      const trimmed = line.trim()
-      if (!trimmed.startsWith('data:')) {
-        continue
+  try {
+    stream: for (;;) {
+      const { value, done } = await reader.read()
+      if (done) {
+        break
       }
-      const payload = trimmed.replace(/^data:\s*/, '')
-      if (!payload || payload === '[DONE]') {
-        continue
-      }
-      try {
-        const json = JSON.parse(payload) as ChatResponse
-        finalReason = finishReason(json) !== 'unknown' ? finishReason(json) : finalReason
-        mergeDeltaToolCalls(toolDrafts, json)
-        const delta = streamDeltaText(json)
-        if (delta) {
-          text += delta
-          onDelta?.(delta)
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split(/\r?\n/)
+      buffer = lines.pop() ?? ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) {
+          continue
         }
-      } catch {
-        // Ignore malformed SSE keepalive chunks from compatible proxies.
+        const payload = trimmed.replace(/^data:\s*/, '')
+        if (payload === '[DONE]') break stream
+        if (!payload) {
+          continue
+        }
+        try {
+          const json = JSON.parse(payload) as ChatResponse
+          finalReason = finishReason(json) !== 'unknown' ? finishReason(json) : finalReason
+          mergeDeltaToolCalls(toolDrafts, json)
+          const delta = streamDeltaText(json)
+          if (delta) {
+            text += delta
+            onDelta?.(delta)
+          }
+        } catch {
+          // Ignore malformed SSE keepalive chunks from compatible proxies.
+        }
       }
     }
+  } finally {
+    await reader.cancel().catch(() => {})
+    reader.releaseLock()
   }
   return {
     text: text.trim(),
@@ -534,7 +582,7 @@ async function attemptOpenAICompatibleStream(
         lastError = `${response.status} ${text.slice(0, 240)}`
         continue
       }
-      return { kind: 'error', error: new Error(`LLM 流式请求失败: ${response.status} ${text.slice(0, 240)}`) }
+      return { kind: 'error', error: responseError('LLM 流式请求失败', response, text) }
     }
     const text = await readStreamText(response, onDelta)
     if (text) {
@@ -556,24 +604,28 @@ async function attemptOpenAICompatibleToolStream(
   let lastError = ''
   const bodies = requestBodies(settings.llmModel, messages, maxTokens, tools, tools.length ? 'auto' : 'none')
   for (const body of bodies) {
-    const response = await fetchWithTimeout(endpoint(settings), {
+    const { response, dispose } = await fetchWithTimeout(endpoint(settings), {
       method: 'POST',
       headers: headers(settings),
       body: JSON.stringify({ ...body, stream: true })
     }, 180_000, signal)
-    if (!response.ok) {
-      const text = await response.text().catch(() => '')
-      if (retryableParameterError(response.status, text)) {
-        lastError = `${response.status} ${text.slice(0, 240)}`
-        continue
+    try {
+      if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        if (retryableParameterError(response.status, text)) {
+          lastError = `${response.status} ${text.slice(0, 240)}`
+          continue
+        }
+        throw responseError('LLM 工具流式请求失败', response, text)
       }
-      throw new Error(`LLM 工具流式请求失败: ${response.status} ${text.slice(0, 240)}`)
+      const turn = await readStreamTurn(response, onDelta)
+      if (turn.text || turn.toolCalls.length > 0) {
+        return turn
+      }
+      lastError = 'stream completed without visible content'
+    } finally {
+      dispose()
     }
-    const turn = await readStreamTurn(response, onDelta)
-    if (turn.text || turn.toolCalls.length > 0) {
-      return turn
-    }
-    lastError = 'stream completed without visible content'
   }
   if (lastError) {
     return null
@@ -591,6 +643,9 @@ export async function streamOpenAICompatibleChat(
   if (streamAttempt.kind === 'text') {
     return streamAttempt.text
   }
+  if (streamAttempt.kind === 'error' && isTransientOpenAICompatibleError(streamAttempt.error)) {
+    throw streamAttempt.error
+  }
 
   const firstAttempt = await attemptOpenAICompatibleChat(settings, messages, maxTokens)
   if (firstAttempt.kind === 'text') {
@@ -607,6 +662,9 @@ export async function streamOpenAICompatibleChat(
     const finalStreamAttempt = await attemptOpenAICompatibleStream(settings, finalTextMessages, maxTokens, onDelta)
     if (finalStreamAttempt.kind === 'text') {
       return finalStreamAttempt.text
+    }
+    if (finalStreamAttempt.kind === 'error' && isTransientOpenAICompatibleError(finalStreamAttempt.error)) {
+      throw finalStreamAttempt.error
     }
     const finalTextAttempt = await attemptOpenAICompatibleChat(settings, finalTextMessages, maxTokens)
     if (finalTextAttempt.kind === 'text') {
@@ -648,6 +706,7 @@ async function postOpenAICompatibleChatOnce(
       return finalTextAttempt.text
     }
     if (finalTextAttempt.kind === 'error') {
+      if (isTransientOpenAICompatibleError(finalTextAttempt.error)) throw finalTextAttempt.error
       const streamAttempt = await attemptOpenAICompatibleStream(settings, finalTextMessages, maxTokens)
       if (streamAttempt.kind === 'text') {
         return streamAttempt.text
@@ -673,11 +732,12 @@ export async function postOpenAICompatibleChat(
     try {
       return await postOpenAICompatibleChatOnce(settings, messages, maxTokens)
     } catch (error) {
-      const canRetry = isTransientOpenAICompatibleError(error) && attempt < TOOL_STREAM_MAX_ATTEMPTS - 1
+      const retryDelay = toolRetryDelay(error, attempt)
+      const canRetry = retryDelay !== null && isTransientOpenAICompatibleError(error) && attempt < TOOL_STREAM_MAX_ATTEMPTS - 1
       if (!canRetry) {
         throw error
       }
-      await waitForToolStreamRetry(TOOL_STREAM_RETRY_DELAYS_MS[attempt] ?? 900)
+      await waitForToolStreamRetry(retryDelay!)
     }
   }
   throw new Error('LLM 请求重试后仍未完成。')
@@ -704,13 +764,14 @@ export async function postOpenAICompatibleToolTurn(
     try {
       return await postOpenAICompatibleToolTurnOnce(settings, messages, tools, maxTokens, signal)
     } catch (error) {
-      const canRetry = !signal?.aborted &&
+      const retryDelay = toolRetryDelay(error, attempt)
+      const canRetry = retryDelay !== null && !signal?.aborted &&
         isTransientOpenAICompatibleError(error) &&
         attempt < TOOL_STREAM_MAX_ATTEMPTS - 1
       if (!canRetry) {
         throw error
       }
-      await waitForToolStreamRetry(TOOL_STREAM_RETRY_DELAYS_MS[attempt] ?? 900, signal)
+      await waitForToolStreamRetry(retryDelay!, signal)
     }
   }
   throw new Error('LLM 工具请求重试后仍未完成。')
@@ -737,14 +798,15 @@ export async function streamOpenAICompatibleToolTurn(
       }
       return await postOpenAICompatibleToolTurnOnce(settings, messages, tools, maxTokens, signal)
     } catch (error) {
-      const canRetry = !emittedVisibleText &&
+      const retryDelay = toolRetryDelay(error, attempt)
+      const canRetry = retryDelay !== null && !emittedVisibleText &&
         !signal?.aborted &&
         isTransientOpenAICompatibleError(error) &&
         attempt < TOOL_STREAM_MAX_ATTEMPTS - 1
       if (!canRetry) {
         throw error
       }
-      await waitForToolStreamRetry(TOOL_STREAM_RETRY_DELAYS_MS[attempt] ?? 900, signal)
+      await waitForToolStreamRetry(retryDelay!, signal)
     }
   }
   throw new Error('LLM 工具请求重试后仍未完成。')

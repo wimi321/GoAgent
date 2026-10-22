@@ -366,12 +366,14 @@ function buildApplicationMenu(): void {
 async function persistDetectedDefaults(): Promise<AppSettings> {
   const before = getSettings()
   const detected = await applyDetectedDefaults(before)
+  const latest = getSettings()
   const changedKeys = (Object.keys(detected) as Array<keyof AppSettings>).filter(
-    (key) => JSON.stringify(detected[key]) !== JSON.stringify(before[key])
+    (key) => JSON.stringify(detected[key]) !== JSON.stringify(before[key]) &&
+      JSON.stringify(latest[key]) === JSON.stringify(before[key])
   )
-  if (!changedKeys.length) return before
+  if (!changedKeys.length) return latest
   const changes = Object.fromEntries(changedKeys.map((key) => [key, detected[key]])) as Partial<AppSettings>
-  return replaceSettings({ ...getSettings(), ...changes })
+  return replaceSettings({ ...latest, ...changes })
 }
 
 async function dashboard(llmConnectionOverride?: LlmConnectionState): Promise<DashboardData> {
