@@ -39,16 +39,16 @@ GoAgent เป็นแอปเดสก์ท็อปแบบ local-first �
 
 รุ่นเผยแพร่สาธารณะ:
 
-[GoAgent v0.4.21](https://github.com/wimi321/GoAgent/releases/tag/v0.4.21)
+[GoAgent v0.4.22](https://github.com/wimi321/GoAgent/releases/tag/v0.4.22)
 
 | แพลตฟอร์ม | ดาวน์โหลด |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-x64.dmg) |
-| Windows x64 Standard portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-portable.zip) |
-| Windows x64 Standard installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64.exe) |
-| Windows x64 NVIDIA portable 7z | [7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia-portable.7z) |
-| Windows x64 NVIDIA installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-x64.dmg) |
+| Windows x64 Standard portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-portable.zip) |
+| Windows x64 Standard installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64.exe) |
+| Windows x64 NVIDIA portable 7z | [7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia.exe) |
 
 แอป macOS ลงนามด้วย Developer ID ผ่าน Apple notarization และมี stapled ticket แล้ว โดย CI ตรวจลายเซ็น Gatekeeper ticket และความสมบูรณ์ของ DMG ก่อนอัปโหลด ส่วนแพ็กเกจ Windows ยังไม่ได้ลงนามและอาจแสดง SmartScreen
 

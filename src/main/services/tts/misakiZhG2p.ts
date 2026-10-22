@@ -26,7 +26,9 @@ function runG2pScript(pythonPath: string, scriptPath: string, text: string): Pro
   return new Promise((resolve, reject) => {
     const child = spawn(pythonPath, [scriptPath], {
       windowsHide: true,
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      // Match the UTF-8 JSON input/output even on Windows with a legacy code page.
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }
     })
     const stdout: Buffer[] = []
     const stderr: Buffer[] = []

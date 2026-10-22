@@ -49,16 +49,16 @@ KataGo is the source of truth. The LLM is the teacher that turns those facts int
 
 Current release:
 
-[GoAgent v0.4.21](https://github.com/wimi321/GoAgent/releases/tag/v0.4.21)
+[GoAgent v0.4.22](https://github.com/wimi321/GoAgent/releases/tag/v0.4.22)
 
 | Platform | Download |
 | --- | --- |
-| macOS Apple Silicon | [GoAgent-0.4.21-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-arm64.dmg) |
-| macOS Intel | [GoAgent-0.4.21-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-x64.dmg) |
-| Windows x64 Standard portable ZIP | [GoAgent-0.4.21-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-portable.zip) |
-| Windows x64 Standard installer | [GoAgent-0.4.21-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64.exe) |
-| Windows x64 NVIDIA portable 7z | [GoAgent-0.4.21-win-x64-nvidia-portable.7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia-portable.7z) |
-| Windows x64 NVIDIA installer | [GoAgent-0.4.21-win-x64-nvidia.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia.exe) |
+| macOS Apple Silicon | [GoAgent-0.4.22-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-arm64.dmg) |
+| macOS Intel | [GoAgent-0.4.22-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-x64.dmg) |
+| Windows x64 Standard portable ZIP | [GoAgent-0.4.22-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-portable.zip) |
+| Windows x64 Standard installer | [GoAgent-0.4.22-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64.exe) |
+| Windows x64 NVIDIA portable 7z | [GoAgent-0.4.22-win-x64-nvidia-portable.7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA installer | [GoAgent-0.4.22-win-x64-nvidia.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia.exe) |
 
 Release caveats:
 

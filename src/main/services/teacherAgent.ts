@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { teacherShellCommand } from './teacher/shellCommand'
 import { getGames, getSettings, replaceSettings, reportsDir, setSettings } from '@main/lib/store'
 import type {
   AgentToolImageResult,
@@ -1236,11 +1237,13 @@ function runShell(input: JsonObject): Promise<unknown> {
   const cwd = cwdInput ? resolve(cwdInput) : process.cwd()
   const timeoutMs = numberInput(input, 'timeoutMs', 60_000, 1_000, 180_000)
   const runInBackground = booleanInput(input, 'runInBackground', false)
+  const shell = teacherShellCommand(command)
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(process.env.SHELL || 'zsh', ['-lc', command], {
+    const child = spawn(shell.command, shell.args, {
       cwd,
       env: process.env,
-      stdio: 'pipe'
+      stdio: 'pipe',
+      windowsHide: true
     })
     const startedAt = new Date().toISOString()
     const taskId = randomUUID()
@@ -1257,6 +1260,7 @@ function runShell(input: JsonObject): Promise<unknown> {
     child.on('error', (error) => {
       if (settled) return
       settled = true
+      clearTimeout(timer)
       reject(error)
     })
     const timer = setTimeout(() => {
@@ -1265,7 +1269,8 @@ function runShell(input: JsonObject): Promise<unknown> {
       settled = true
       reject(new Error(`shell.exec 超时: ${timeoutMs}ms`))
     }, timeoutMs)
-    if (runInBackground) {
+    child.once('spawn', () => {
+      if (!runInBackground || settled) return
       SHELL_TASKS.set(taskId, { id: taskId, command, cwd, process: child, startedAt })
       clearTimeout(timer)
       settled = true
@@ -1275,8 +1280,7 @@ function runShell(input: JsonObject): Promise<unknown> {
         cwd: redactSensitiveText(cwd),
         startedAt
       })
-      return
-    }
+    })
     child.on('close', (code, signal) => {
       if (settled) return
       settled = true
@@ -1861,7 +1865,7 @@ function createTeacherAgentTools(state: TeacherAgentSessionState): TeacherAgentT
       apiName: 'shell_exec',
       canonicalName: 'shell.exec',
       label: 'Shell',
-      description: '在本机 shell 执行命令，支持 cwd、超时和后台任务；输出会截断并脱敏。',
+      description: `在本机 ${process.platform === 'win32' ? 'Windows PowerShell' : 'shell'} 执行命令，支持 cwd、超时和后台任务；输出会截断并脱敏。`,
       parameters: schema({
         command: { type: 'string' },
         cwd: { type: 'string' },

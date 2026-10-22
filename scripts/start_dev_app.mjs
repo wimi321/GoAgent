@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = resolve(new URL('..', import.meta.url).pathname)
+const root = fileURLToPath(new URL('..', import.meta.url))
+const require = createRequire(import.meta.url)
 const args = new Set(process.argv.slice(2))
 const skipBuild = args.has('--skip-build')
 const devOutputDir = join(root, '.dev-release')
@@ -22,6 +25,13 @@ function run(command, commandArgs, options = {}) {
   if (typeof result.status === 'number' && result.status !== 0) {
     process.exit(result.status)
   }
+}
+
+function runPackageBin(packageName, binName, commandArgs, options = {}) {
+  const packagePath = require.resolve(`${packageName}/package.json`)
+  const { bin } = require(packagePath)
+  const binPath = typeof bin === 'string' ? bin : bin[binName]
+  run(process.execPath, [resolve(packagePath, '..', binPath), ...commandArgs], options)
 }
 
 function findFirstApp(directory) {
@@ -48,13 +58,12 @@ if (process.platform === 'darwin') {
   if (!skipBuild) {
     // The afterPack hook embeds the checksummed Codex App Server runtime and fails on a
     // fresh clone without it. The script is a no-op once the binary is verified.
-    run('node', ['scripts/prepare_codex_runtime.mjs', `--platform=${process.platform}-${process.arch}`])
-    run('pnpm', ['exec', 'electron-vite', 'build'])
-    run(
-      'pnpm',
+    run(process.execPath, ['scripts/prepare_codex_runtime.mjs', `--platform=${process.platform}-${process.arch}`])
+    runPackageBin('electron-vite', 'electron-vite', ['build'])
+    runPackageBin(
+      'electron-builder',
+      'electron-builder',
       [
-        'exec',
-        'electron-builder',
         '--mac',
         'dir',
         '--publish',
@@ -80,5 +89,5 @@ if (process.platform === 'darwin') {
   run('open', ['-n', appPath])
   console.log(`GoAgent dev app launched from ${appPath}`)
 } else {
-  run('pnpm', ['exec', 'electron-vite', skipBuild ? 'preview' : 'dev'])
+  runPackageBin('electron-vite', 'electron-vite', [skipBuild ? 'preview' : 'dev'])
 }

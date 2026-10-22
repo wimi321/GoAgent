@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 import { createServer } from 'node:http'
 import { existsSync } from 'node:fs'
-import { access, mkdir, readFile } from 'node:fs/promises'
-import { dirname, extname, join, resolve, sep } from 'node:path'
-import { spawn, spawnSync } from 'node:child_process'
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { extname, join, resolve, sep } from 'node:path'
+import { spawn } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
+
+const require = createRequire(import.meta.url)
 
 const configuredUrl = process.env.GOAGENT_UI_GALLERY_URL?.trim()
 const rendererRoot = resolve('out/renderer')
@@ -47,7 +52,9 @@ function run(command, args, options = {}) {
 
 async function ensureRendererBuild() {
   if (!skipBuild) {
-    await run('pnpm', ['build'], { cwd: process.cwd(), env: process.env })
+    const packagePath = require.resolve('electron-vite/package.json')
+    const bin = require(packagePath).bin['electron-vite']
+    await run(process.execPath, [resolve(packagePath, '..', bin), 'build'], { cwd: process.cwd(), env: process.env })
   }
   await access(join(rendererRoot, 'index.html')).catch(() => {
     throw new Error('UI Gallery build is missing. Run `pnpm build` or omit `--skip-build`.')
@@ -116,77 +123,50 @@ function systemBrowserPath() {
 
 async function loadPlaywright() {
   try {
-    return await import('playwright')
+    const loaded = process.env.GOAGENT_PLAYWRIGHT_MODULE
+      ? await import(pathToFileURL(process.env.GOAGENT_PLAYWRIGHT_MODULE).href)
+      : await import('playwright')
+    return loaded.chromium ? loaded : loaded.default
   } catch {
     return null
   }
 }
 
 async function captureWithCliFallback(url) {
-  await mkdir(outDir, { recursive: true })
-  const whichResult = spawnSync('npx', ['--yes', '-p', 'playwright', 'which', 'playwright'], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'inherit']
-  })
-  const playwrightBin = whichResult.stdout.trim()
-  if (whichResult.status !== 0 || !playwrightBin) {
-    throw new Error('Playwright package is unavailable and npx could not prepare it. Open this self-hosted route manually: ' + url)
+  // npm/pnpm expose their JS entry when invoked as a package script. Running it
+  // with Node avoids .cmd spawning and shell quoting on Windows.
+  const manager = process.env.npm_execpath
+  if (!manager || !/\.(?:c?js|mjs)$/i.test(manager)) {
+    throw new Error('Playwright is unavailable. Run `pnpm capture:ui-gallery` to prepare it, or install Playwright locally. Preview: ' + url)
   }
-  const playwrightNodeModules = dirname(dirname(playwrightBin))
-  const fallbackScript = `
-    const { mkdir } = require('node:fs/promises')
-    const { createRequire } = require('node:module')
-    const { join } = require('node:path')
-    const requireFromPlaywright = createRequire(join(process.env.PLAYWRIGHT_NODE_MODULES, 'playwright', 'package.json'))
-    const { chromium } = requireFromPlaywright('playwright')
-
-    ;(async () => {
-      const url = process.env.GOAGENT_CAPTURE_URL
-      const outDir = process.env.GOAGENT_CAPTURE_OUT
-      const targets = ${JSON.stringify(captureTargets)}
-
-      await mkdir(outDir, { recursive: true })
-      const browserPath = process.env.GOAGENT_BROWSER_PATH || undefined
-      const browser = await chromium.launch({ headless: true, executablePath: browserPath })
-      const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 })
-      await page.goto(url, { waitUntil: 'domcontentloaded' })
-      await page.locator('.ui-gallery').waitFor({ state: 'visible' })
-      await page.screenshot({ path: join(outDir, 'ui-gallery-overview.png'), fullPage: true })
-      for (const [name, selector] of targets) {
-        const locator = page.locator(selector).first()
-        if (await locator.count()) {
-          await locator.screenshot({ path: join(outDir, name + '.png') })
-        }
+  const temporary = await mkdtemp(join(tmpdir(), 'goagent-gallery-'))
+  try {
+    const wrapper = join(temporary, 'capture.cjs')
+    await writeFile(wrapper, `
+      const { existsSync } = require('node:fs')
+      const { delimiter, join } = require('node:path')
+      const { createRequire } = require('node:module')
+      const packageJson = (process.env.PATH || '').split(delimiter)
+        .map(directory => join(directory.replace(/^"|"$/g, ''), '..', 'playwright', 'package.json'))
+        .find(file => existsSync(file))
+      if (!packageJson) throw new Error('The package runner did not provide Playwright')
+      process.env.GOAGENT_PLAYWRIGHT_MODULE = createRequire(packageJson).resolve('playwright')
+      import(${JSON.stringify(import.meta.url)}).catch(error => { console.error(error); process.exitCode = 1 })
+    `, 'utf8')
+    const managerArgs = /pnpm/i.test(manager)
+      ? ['--package=playwright', 'dlx', 'node', wrapper]
+      : ['exec', '--yes', '--package=playwright', '--', 'node', wrapper]
+    await run(process.execPath, [manager, ...managerArgs], {
+      env: {
+        ...process.env,
+        GOAGENT_UI_GALLERY_URL: url,
+        GOAGENT_UI_GALLERY_OUT: outDir,
+        GOAGENT_BROWSER_PATH: systemBrowserPath()
       }
-      const bindButton = page.getByRole('button', { name: '打开 SGF 绑定弹窗' })
-      if (await bindButton.count()) {
-        await bindButton.click()
-        await page.locator('.student-dialog').screenshot({ path: join(outDir, 'student-bind-dialog.png') })
-      }
-      await browser.close()
-    })().catch((error) => {
-      console.error(error.message)
-      process.exit(1)
     })
-  `
-  await run('npx', [
-    '--yes',
-    '-p',
-    'playwright',
-    'node',
-    '-e',
-    fallbackScript
-  ], {
-    env: {
-      ...process.env,
-      GOAGENT_CAPTURE_URL: url,
-      GOAGENT_CAPTURE_OUT: outDir,
-      GOAGENT_BROWSER_PATH: systemBrowserPath(),
-      PLAYWRIGHT_NODE_MODULES: playwrightNodeModules
-    },
-    stdio: 'inherit'
-  })
-  console.log(`Captured UI Gallery screenshots in ${outDir}`)
+  } finally {
+    await rm(temporary, { recursive: true, force: true })
+  }
 }
 
 async function capturePage(playwright, url) {

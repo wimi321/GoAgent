@@ -58,6 +58,42 @@ jobs:
       can-package-nvidia: ${{ steps.katago-assets.outputs.can-package-nvidia }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Check release tag matches package version
+        run: node scripts/check_release_version.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Teacher quality
+        run: pnpm check:teacher-quality
+
+      - name: Release source policy and multilingual notes
+        run: |
+          pnpm check:codex-runtime
+          pnpm check:no-lite-release-assets
+          pnpm check:nvidia-release-assets
+          pnpm check:release-notes-i18n
+
       - name: Check KataGo asset sources
         id: katago-assets
         shell: bash
@@ -476,6 +512,22 @@ jobs:
         if: runner.os == 'Windows'
         run: node scripts/smoke_windows_packaged_app.mjs --mode=full --require-katago
 
+      - name: Verify Windows installer integrity and uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version"
+          ./scripts/smoke_windows_installer.ps1 -Installer "release/$version/GoAgent-$version-win-x64.exe" -ExpectedDir "release/$version/win-unpacked" -EvidencePath "release-evidence/windows-standard-installer.json"
+          if ($LASTEXITCODE -ne 0) { throw "Windows installer integrity or uninstall check failed" }
+
+      - name: Upload Windows installer evidence
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoAgent-Windows-installer-evidence
+          path: release-evidence/windows-standard-installer.json
+          if-no-files-found: warn
+
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -680,6 +732,21 @@ jobs:
       - name: Smoke NVIDIA packaged Windows app
         run: node scripts/smoke_windows_packaged_app.mjs --mode=nvidia --require-katago
 
+      - name: Verify NVIDIA Windows installer integrity and uninstall
+        shell: pwsh
+        run: |
+          $version = node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version"
+          ./scripts/smoke_windows_installer.ps1 -Installer "release/$version/GoAgent-$version-win-x64-nvidia.exe" -ExpectedDir "release/$version/win-unpacked" -EvidencePath "release-evidence/windows-nvidia-installer.json"
+          if ($LASTEXITCODE -ne 0) { throw "NVIDIA Windows installer integrity or uninstall check failed" }
+
+      - name: Upload NVIDIA Windows installer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoAgent-Windows-NVIDIA-installer-evidence
+          path: release-evidence/windows-nvidia-installer.json
+          if-no-files-found: warn
+
       - name: Upload NVIDIA packaged artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -696,7 +763,7 @@ jobs:
       - package
       - package-nvidia-windows
     runs-on: ubuntu-latest
-    if: always() && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
+    if: always() && needs.release-preflight.result == 'success' && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout release notes

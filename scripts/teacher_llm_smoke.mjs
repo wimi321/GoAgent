@@ -5,9 +5,10 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import electronBin from 'electron'
 
-const root = resolve(new URL('..', import.meta.url).pathname)
-const electronBin = join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron')
+const root = fileURLToPath(new URL('..', import.meta.url))
 const tinyPng =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/luzK4wAAAABJRU5ErkJggg=='
 
@@ -56,8 +57,23 @@ async function startMockLlmServer(port) {
     request.on('end', () => {
       const body = raw ? JSON.parse(raw) : {}
       requests.push(body)
+      console.log(`[teacher-smoke] mock request ${requests.length}: ${body.messages?.length ?? 0} messages, ${body.tools?.length ?? 0} tools`)
       const allText = (body.messages ?? []).map(textFromMessage).join('\n')
       const isProbe = allText.includes('请只回答 OK') || allText.includes('只输出 OK')
+      if (allText.includes('观察图片中央色块的颜色。')) {
+        assert.ok((body.messages ?? []).some(hasImage), 'Vision probe must carry its image')
+        response.writeHead(200, { 'Content-Type': 'application/json' })
+        response.end(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: 'BLUE' } }] }))
+        return
+      }
+      if (body.tools?.some((tool) => tool.function?.name === 'readiness_check')) {
+        response.writeHead(200, { 'Content-Type': 'application/json' })
+        response.end(JSON.stringify({ choices: [{ finish_reason: 'tool_calls', message: {
+          content: '',
+          tool_calls: [{ id: 'readiness_probe', type: 'function', function: { name: 'readiness_check', arguments: '{"value":"goagent"}' } }]
+        } }] }))
+        return
+      }
       const toolMessages = (body.messages ?? []).filter((message) => message.role === 'tool')
       const needsTools = !isProbe && Array.isArray(body.tools) && toolMessages.length === 0
       if (needsTools) {
@@ -125,6 +141,11 @@ async function seedSmokeHome(homeRoot) {
   const appHome = join(homeRoot, '.goagent')
   const libraryDir = join(appHome, 'library', 'upload')
   await mkdir(libraryDir, { recursive: true })
+  await writeFile(join(appHome, 'settings.json'), JSON.stringify({
+    onboardingVersion: 1,
+    katagoAutoBenchmarkEnabled: false,
+    reviewLanguage: 'zh-CN'
+  }), 'utf8')
   const sgfPath = join(libraryDir, 'teacher-smoke.sgf')
   const sgf = [
     '(;GM[1]FF[4]CA[UTF-8]SZ[19]KM[7.5]',
@@ -227,18 +248,39 @@ async function evaluateInRenderer(wsUrl, expression, timeoutMs = 180_000) {
     })
   }
 
-  await send('Runtime.enable')
-  const result = await send('Runtime.evaluate', {
-    expression,
-    awaitPromise: true,
-    returnByValue: true,
-    timeout: timeoutMs
-  })
-  socket.close()
-  if (result.exceptionDetails) {
-    throw new Error(result.exceptionDetails.text || JSON.stringify(result.exceptionDetails))
+  try {
+    await send('Runtime.enable')
+    const result = await send('Runtime.evaluate', {
+      expression,
+      awaitPromise: true,
+      returnByValue: true,
+      timeout: timeoutMs
+    })
+    if (result.exceptionDetails) {
+      throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text || JSON.stringify(result.exceptionDetails))
+    }
+    return result.result.value
+  } finally {
+    socket.close()
   }
-  return result.result.value
+}
+
+async function reloadRenderer(wsUrl) {
+  const socket = new WebSocket(wsUrl)
+  try {
+    await new Promise((resolvePromise, reject) => {
+      const timer = setTimeout(() => reject(new Error('Renderer reload timed out')), 30_000)
+      socket.onerror = (error) => { clearTimeout(timer); reject(error) }
+      socket.onopen = () => socket.send(JSON.stringify({ id: 1, method: 'Page.enable' }))
+      socket.onmessage = (event) => {
+        const message = JSON.parse(event.data)
+        if (message.id === 1) socket.send(JSON.stringify({ id: 2, method: 'Page.reload' }))
+        if (message.method === 'Page.loadEventFired') { clearTimeout(timer); resolvePromise() }
+      }
+    })
+  } finally {
+    socket.close()
+  }
 }
 
 async function main() {
@@ -251,9 +293,9 @@ async function main() {
   const child = startElectron({ homeRoot, cdpPort })
   try {
     const wsUrl = await waitForRenderer(cdpPort)
-    const result = await evaluateInRenderer(wsUrl, `
+    const probe = await evaluateInRenderer(wsUrl, `
       (async () => {
-        const tinyPng = ${JSON.stringify(tinyPng)};
+        console.log('[teacher-smoke] LLM readiness probe');
         const baseUrl = 'http://127.0.0.1:${mockPort}/v1';
         const probe = await window.goagent.testLlmSettings({
           llmBaseUrl: baseUrl,
@@ -261,21 +303,40 @@ async function main() {
           llmModel: 'gpt-5.4'
         });
         if (!probe.ok) throw new Error('LLM probe failed: ' + probe.message);
-        const dashboard = await window.goagent.updateSettings({
-          llmBaseUrl: baseUrl,
-          llmApiKey: 'smoke-key',
-          llmModel: 'gpt-5.4',
-          defaultPlayerName: 'SmokeBlack'
-        });
+        await window.goagent.updateSettings({ defaultPlayerName: 'SmokeBlack' });
+        return probe;
+      })()
+    `, 45_000)
+    // Load the persisted, actually verified profile into the React dashboard.
+    // Re-writing the key after probing would reset its verification status.
+    await reloadRenderer(wsUrl)
+    const result = await evaluateInRenderer(wsUrl, `
+      (async () => {
+        const stage = (name) => { window.__teacherSmokeStage = name; console.log('[teacher-smoke] ' + name); };
+        async function waitForUi(label, predicate, timeoutMs = 30000) {
+          const started = Date.now();
+          while (Date.now() - started < timeoutMs) {
+            const value = predicate();
+            if (value) return value;
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+          throw new Error(label + ' timed out: ' + document.body.innerText.slice(-1800));
+        }
+        stage('wait for visible board');
+        await waitForUi('board render', () => document.querySelector('.board-table--v2 svg'));
+        const tinyPng = ${JSON.stringify(tinyPng)};
+        const dashboard = await window.goagent.getDashboard();
         const game = dashboard.games[0];
         if (!game) throw new Error('No smoke game loaded');
         const record = await window.goagent.getGameRecord(game.id);
         const moveNumber = Math.min(8, record.moves.length);
+        stage('real KataGo position analysis');
         const analysis = await window.goagent.analyzePosition({
           gameId: game.id,
           moveNumber,
           maxVisits: 24
         });
+        stage('teacher task with real tools');
         const result = await window.goagent.runTeacherTask({
           mode: 'current-move',
           prompt: '请分析当前手，输出结构化 JSON 讲解。',
@@ -284,16 +345,7 @@ async function main() {
           boardImageDataUrl: tinyPng,
           prefetchedAnalysis: analysis
         });
-        async function waitForUi(label, predicate, timeoutMs = 180000) {
-          const started = Date.now();
-          while (Date.now() - started < timeoutMs) {
-            const value = predicate();
-            if (value) return value;
-            await new Promise((resolve) => setTimeout(resolve, 250));
-          }
-          throw new Error(label + ' timed out');
-        }
-        await waitForUi('board render', () => document.querySelector('.board-table--v2 svg'));
+        stage('wait for teacher composer');
         const composer = await waitForUi('teacher composer', () => {
           const textarea = document.querySelector('.ks-composer-pro textarea');
           return textarea && textarea.getClientRects().length > 0 ? textarea : null;
@@ -309,6 +361,7 @@ async function main() {
           return button && !button.disabled && button.getClientRects().length > 0 ? button : null;
         });
         sendButton.click();
+        stage('wait for UI teacher answer');
         const uiAnalyze = await waitForUi('UI current-move analysis', () => {
           const body = document.body.innerText || '';
           const errorLine = document.querySelector('.error-line')?.textContent || '';
@@ -325,9 +378,8 @@ async function main() {
             };
           }
           return null;
-        });
+        }, 120000);
         return {
-          probe,
           gameTitle: game.title,
           moveNumber,
           bestMove: analysis.before.topMoves[0]?.move || '',
@@ -355,7 +407,7 @@ async function main() {
       })()
     `)
 
-    assert.equal(result.probe.ok, true)
+    assert.equal(probe.ok, true)
     assert.equal(result.structured?.headline, '本手要先抢全局最大点')
     assert.equal(result.structured?.taskType, 'current-move')
     assert.ok(result.candidateCount > 0, 'KataGo should return candidate moves')
@@ -381,6 +433,9 @@ async function main() {
     assert.ok(probeRequest, 'Mock LLM should receive probe request')
     assert.ok(teacherRequest, 'Mock LLM should receive teacher request with tool results')
     assert.ok((teacherRequest.messages ?? []).some(hasImage), 'Teacher request should include board image')
+    assert.ok((teacherRequest.messages ?? []).some((message) => Array.isArray(message.content) && message.content.some((part) =>
+      part.type === 'image_url' && String(part.image_url?.url ?? '').length > 50_000
+    )), 'Teacher request should include the real tool-rendered board, not just the initial tiny placeholder')
     const teacherPayload = (teacherRequest.messages ?? []).map(textFromMessage).join('\n')
     assert.match(teacherPayload, /katago\.analyzePosition/)
     assert.match(teacherPayload, /knowledge/)

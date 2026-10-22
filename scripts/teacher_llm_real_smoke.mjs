@@ -4,9 +4,9 @@ import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import electronBin from 'electron'
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
-const electronBin = join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron')
 
 function freePort() {
   return new Promise((resolve, reject) => {
