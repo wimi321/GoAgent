@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { findGame, getSettings } from '@main/lib/store'
+import { withPrimaryOwnershipOnly } from '@shared/analysisOwnership'
 import type { AnalysisQuality, GameMove, KataGoAnalysisGroup, KataGoCandidate, KataGoMoveAnalysis, TrialBranchSummary, TrialMove } from '@main/lib/types'
 import { readGameRecord } from './sgf'
 import { resolveKataGoRuntime } from './katagoRuntime'
@@ -1115,7 +1116,10 @@ export async function analyzePositionWithProgress(
       currentMove,
       record.boardSize,
       komi,
-      forcedActualVisits(maxVisits, FORCED_ACTUAL_EVIDENCE_MIN_VISITS),
+      // On the foreground board the played move only needs evidence-grade visits: the main
+      // search already ran maxVisits, and its candidate wins whenever it explored the played
+      // move more. Matching maxVisits here doubled the time to a final result.
+      foregroundLiveSearch ? FORCED_ACTUAL_EVIDENCE_MIN_VISITS : forcedActualVisits(maxVisits, FORCED_ACTUAL_EVIDENCE_MIN_VISITS),
       reportDuringSearchEvery,
       undefined,
       rootInitialStones,
@@ -1139,7 +1143,8 @@ export async function analyzePositionWithProgress(
       if (latestBefore?.rootInfo && latestAfter?.rootInfo) {
         const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, latestBefore, latestAfter, latestActual)
         const actualComplete = !actualQuery || Boolean(latestActual?.rootInfo && !latestActual.isDuringSearch)
-        onProgress?.(partial, !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && actualComplete)
+        const isFinal = !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && actualComplete
+        onProgress?.(isFinal ? partial : withPrimaryOwnershipOnly(partial), isFinal)
       }
     }, {
       runId: options.runId ?? `${gameId}-live-${moveNumber}`,
@@ -1309,7 +1314,8 @@ export async function analyzeTrialPositionWithProgress(
       if (response.id === actualId) latestActual = response
       if (latestBefore?.rootInfo && latestAfter?.rootInfo) {
         const partial = buildTrialAnalysis(latestBefore, latestAfter, latestActual)
-        onProgress?.(partial, !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && !latestActual?.isDuringSearch)
+        const isFinal = !latestBefore.isDuringSearch && !latestAfter.isDuringSearch && !latestActual?.isDuringSearch
+        onProgress?.(isFinal ? partial : withPrimaryOwnershipOnly(partial), isFinal)
       }
     }, {
       runId: input.runId,

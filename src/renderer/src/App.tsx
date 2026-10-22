@@ -1,7 +1,9 @@
 import type { FormEvent, KeyboardEvent, PointerEvent, ReactElement, ReactNode, WheelEvent } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   AnalyzeGameQuickProgress,
+  AnalyzePositionProgress,
+  AnalyzePositionSearchProgress,
   AppSettings,
   CoachUserLevel,
   DashboardData,
@@ -64,6 +66,9 @@ import { StudentBindingDialog } from './features/student/StudentBindingDialog'
 import { StudentRailCard } from './features/student/StudentRailCard'
 import { KataGoAssetsPanel } from './features/settings/KataGoAssetsPanel'
 import { KataGoCustomEnginePanel } from './features/settings/KataGoCustomEnginePanel'
+import { createLatestThrottle } from './features/timeline/progressThrottle'
+import { useStableCallback } from './useStableCallback'
+import { withPrimaryOwnershipOnly } from '@shared/analysisOwnership'
 import { ZhiziCloudSettingsPanel, zhiziSettingsNavCopy } from './features/settings/ZhiziCloudSettingsPanel'
 import { TeacherSpeechControls } from './features/tts/TeacherSpeechControls'
 import { TtsSettingsPanel } from './features/tts/TtsSettingsPanel'
@@ -485,6 +490,7 @@ const LIVE_ANALYSIS_TOTAL_VISIT_LIMIT = 5200
 const LIVE_ANALYSIS_BEST_VISIT_LIMIT = 1800
 const LIVE_ANALYSIS_TIME_LIMIT_MS = 150_000
 const LIVE_ANALYSIS_REPORT_INTERVAL_SECONDS = 0.2
+const LIVE_PROGRESS_APPLY_INTERVAL_MS = 150
 const QUICK_GRAPH_FAST_VISITS = 24
 const QUICK_GRAPH_FAST_VISITS_STRONG = 48
 const QUICK_GRAPH_REFINE_VISITS = 180
@@ -704,7 +710,9 @@ function loadStoredEvaluations(cacheKey: string): EvaluationByMove {
 }
 
 function persistStoredEvaluations(cacheKey: string, evaluations: EvaluationByMove): void {
-  const entries = Object.values(evaluations)
+  // Secondary candidates' ownership maps are never read but dominated the stored size, which
+  // pushed games out of the localStorage quota.
+  const entries = Object.values(evaluations).map(withPrimaryOwnershipOnly)
   if (entries.length === 0) {
     return
   }
@@ -1210,7 +1218,7 @@ export function App(): ReactElement {
     () => buildTerritoryJudgement(boardAnalysis, boardRecord?.boardSize ?? record?.boardSize ?? 19, boardTerritoryStones),
     [boardAnalysis, boardRecord?.boardSize, boardTerritoryStones, record?.boardSize]
   )
-  const displayBoardKeyMoveMarks = trialBranch.active ? [] : currentBoardKeyMoveMarks
+  const displayBoardKeyMoveMarks = trialBranch.active ? undefined : currentBoardKeyMoveMarks
 
   useEffect(() => {
     if (selectedGame && !selectedId) {
@@ -1263,15 +1271,20 @@ export function App(): ReactElement {
     }
   }, [modelSwitchReanalysis])
 
-  useEffect(() => {
-    const dispose = window.goagent.onDesktopCommand?.((command) => runDesktopCommand(command))
-    return () => dispose?.()
-  }, [selectedGame?.id, moveNumber, busy, record, dashboard.games.length])
+  // Subscribed once: the handlers always see the latest state (a menu shortcut used to read the
+  // main line while a trial branch was on screen, and image requests re-subscribed on every update).
+  const handleDesktopCommand = useStableCallback(runDesktopCommand)
+  const handleTeacherBoardImageRequest = useStableCallback(renderTeacherBoardImages)
 
   useEffect(() => {
-    const dispose = window.goagent.onTeacherBoardImageRequest((payload) => renderTeacherBoardImages(payload))
+    const dispose = window.goagent.onDesktopCommand?.((command) => handleDesktopCommand(command))
+    return () => dispose?.()
+  }, [handleDesktopCommand])
+
+  useEffect(() => {
+    const dispose = window.goagent.onTeacherBoardImageRequest((payload) => handleTeacherBoardImageRequest(payload))
     return () => dispose()
-  }, [record, selectedGame?.id, evaluations, analysis, trialAnalysis, trialBranch])
+  }, [handleTeacherBoardImageRequest])
 
   const arrowDebounceRef = useRef(0)
   useEffect(() => {
@@ -1880,10 +1893,28 @@ export function App(): ReactElement {
           }
         : current)
     }
+    // Providers stream token-sized deltas; merging each one re-rendered the whole teacher panel.
+    // Deltas are joined and applied once per animation frame, in order with other progress.
+    let pendingDelta: TeacherRunProgress | null = null
+    let deltaFrame = 0
+    const flushDelta = (): void => {
+      if (deltaFrame) cancelAnimationFrame(deltaFrame)
+      deltaFrame = 0
+      const delta = pendingDelta
+      pendingDelta = null
+      if (delta) mergeTeacherProgress(assistantMessageId, delta)
+    }
     const dispose = window.goagent.onTeacherRunProgress((progress) => {
-      if (progress.runId === runId && isActiveTeacherRun(runId)) {
-        mergeTeacherProgress(assistantMessageId, progress)
+      if (progress.runId !== runId || !isActiveTeacherRun(runId)) return
+      if (progress.stage === 'assistant-delta') {
+        pendingDelta = pendingDelta
+          ? { ...pendingDelta, markdownDelta: `${pendingDelta.markdownDelta ?? ''}${progress.markdownDelta ?? ''}` }
+          : progress
+        if (!deltaFrame) deltaFrame = requestAnimationFrame(flushDelta)
+        return
       }
+      flushDelta()
+      mergeTeacherProgress(assistantMessageId, progress)
     })
     try {
       const result = await window.goagent.runTeacherTask({
@@ -1891,6 +1922,7 @@ export function App(): ReactElement {
         teacherSessionId: teacherSessionId || undefined,
         runId
       })
+      flushDelta()
       if (!isActiveTeacherRun(runId)) {
         throw new Error('老师任务已停止')
       }
@@ -1903,6 +1935,7 @@ export function App(): ReactElement {
       }))
       return result
     } catch (cause) {
+      flushDelta()
       if (!isActiveTeacherRun(runId) || /老师任务已停止|KataGo 分析已取消|AbortError|已取消/i.test(String(cause))) {
         throw new Error('老师任务已停止')
       }
@@ -2414,16 +2447,10 @@ export function App(): ReactElement {
     }))
 
     if (typeof window.goagent.analyzePositionStream === 'function') {
-      const disposeSearchProgress = window.goagent.onAnalyzePositionSearchProgress((progress) => {
-        if (
-          liveAnalysisRunId.current !== runId ||
-          progress.runId !== runId ||
-          progress.gameId !== gameId ||
-          progress.moveNumber !== targetMove ||
-          selectedGameIdRef.current !== gameId
-        ) {
-          return
-        }
+      // Progress arrives many times a second (three queries reporting every 0.2 s). Applying
+      // the latest report at most every LIVE_PROGRESS_APPLY_INTERVAL_MS keeps the board and
+      // graph from re-rendering for each one; the final result is applied immediately.
+      const searchProgressThrottle = createLatestThrottle((progress: AnalyzePositionSearchProgress) => {
         const rawSpeed = Number(progress.visitsPerSecond)
         if (Number.isFinite(rawSpeed) && rawSpeed > 0) {
           lastSpeedSample = lastSpeedSample > 0
@@ -2440,15 +2467,9 @@ export function App(): ReactElement {
           visitsPerSecond: lastSpeedSample || current.visitsPerSecond,
           targetMoveNumber: targetMove
         }))
-      })
-      const disposeProgress = window.goagent.onAnalyzePositionProgress((progress) => {
-        if (
-          liveAnalysisRunId.current !== runId ||
-          progress.runId !== runId ||
-          progress.gameId !== gameId ||
-          progress.moveNumber !== targetMove ||
-          selectedGameIdRef.current !== gameId
-        ) {
+      }, LIVE_PROGRESS_APPLY_INTERVAL_MS)
+      const progressThrottle = createLatestThrottle((progress: AnalyzePositionProgress) => {
+        if (liveAnalysisRunId.current !== runId || selectedGameIdRef.current !== gameId) {
           return
         }
         const nextAnalysis = progress.analysis
@@ -2483,6 +2504,21 @@ export function App(): ReactElement {
           targetMoveNumber: targetMove,
           round: 1
         })
+      }, LIVE_PROGRESS_APPLY_INTERVAL_MS)
+      const isCurrentLiveProgress = (progress: { runId?: string; gameId: string; moveNumber: number }): boolean =>
+        liveAnalysisRunId.current === runId &&
+        progress.runId === runId &&
+        progress.gameId === gameId &&
+        progress.moveNumber === targetMove &&
+        selectedGameIdRef.current === gameId
+      const disposeSearchProgress = window.goagent.onAnalyzePositionSearchProgress((progress) => {
+        if (isCurrentLiveProgress(progress)) searchProgressThrottle.push(progress)
+      })
+      const disposeProgress = window.goagent.onAnalyzePositionProgress((progress) => {
+        if (!isCurrentLiveProgress(progress)) return
+        // A search report still waiting for its slot must not land after the final result.
+        if (progress.isFinal) searchProgressThrottle.dispose()
+        progressThrottle.push(progress, progress.isFinal)
       })
       try {
         const finalAnalysis = await window.goagent.analyzePositionStream({
@@ -2594,6 +2630,8 @@ export function App(): ReactElement {
       } finally {
         disposeProgress()
         disposeSearchProgress()
+        progressThrottle.dispose()
+        searchProgressThrottle.dispose()
       }
       return
     }
@@ -3144,6 +3182,49 @@ export function App(): ReactElement {
       )
     : undefined
 
+
+  // The board, graph, library and teacher panel are memoized: App re-renders on every
+  // analysis progress update and keystroke, so their props must keep their identity.
+  const evaluationList = useMemo(() => Object.values(evaluations), [evaluations])
+  const stableJumpToMove = useStableCallback(jumpToMove)
+  const stableTimelineRangeSelect = useStableCallback(handleTimelineRangeSelect)
+  const stableTimelineRangeClear = useStableCallback(handleTimelineRangeClear)
+  const stablePlayTrialPoint = useStableCallback(playTrialPoint)
+  const stableUndoTrialBranch = useStableCallback(undoTrialBranch)
+  const stableFlashBoardCoordinate = useStableCallback(flashBoardCoordinate)
+  const handleLibrarySync = useStableCallback(() => void syncFox())
+  const handleLibraryImport = useStableCallback(() => void importSgf())
+  const handleLibraryDelete = useStableCallback((game: LibraryGame) => void deleteLibraryGameFromLibrary(game))
+  const handleChangePlayerBinding = useStableCallback(() => {
+    if (selectedGame) void openStudentBinding(selectedGame)
+  })
+  const handleTeacherQuickPrompt = useStableCallback((value: string) => void submitTeacherPromptText(value))
+  const handleTeacherSubmit = useStableCallback((event: FormEvent) => void sendTeacherPrompt(event))
+  const handleTeacherStop = useStableCallback(() => void stopTeacherTask())
+  const handleTeacherAnalyze = useStableCallback(() => void runCurrentMoveAnalysis())
+  const handleTeacherAnalyzeGame = useStableCallback(() => void runTeacherQuickTask(t('quickAnalyzeGamePrompt')))
+  const handleTeacherAnalyzeRecent = useStableCallback(() => void runTeacherQuickTask(t('quickAnalyzeRecentPrompt')))
+  const handleTeacherAnalyzeMove = useStableCallback((targetMove: number) => void runMoveAnalysisAt(targetMove))
+  const handleNewTeacherSession = useStableCallback(() => void startNewTeacherSession())
+  const handleRestoreTeacherSession = useStableCallback((sessionId: string) => void restoreTeacherSessionById(sessionId))
+  const handleDeleteTeacherSession = useStableCallback((sessionId: string) => void deleteTeacherSessionById(sessionId))
+  const handleConnectLlm = useStableCallback(() => {
+    setLlmTestMessage(t('llmSetupRequired'))
+    setSettingsOpen(true)
+  })
+  const finalRecordLead = timelineFinalRecordScore?.displayLead
+  const currentScoreLead = currentAnalysis?.after.scoreLead
+  const timelineSummary = useMemo(() => territoryEnabled ? (
+    <TerritorySummaryStrip judgement={territoryJudgement} compact t={t} />
+  ) : finalRecordLead ? (
+    <div className="ks-timeline-record-score">
+      <span>{t('recordScoreLead')}</span>
+      <strong>{finalRecordLead}</strong>
+      {currentScoreLead !== undefined ? (
+        <small>{t('katagoScoreLead')}: {formatScoreLead(currentScoreLead, t)}</small>
+      ) : null}
+    </div>
+  ) : null, [territoryEnabled, territoryJudgement, finalRecordLead, currentScoreLead, t])
   return (
     <DiagnosticsGate ready={dashboardLoaded} onboarding={onboarding}>
       <div className="desktop-shell">
@@ -3162,7 +3243,7 @@ export function App(): ReactElement {
             </button>
           </div>
           {!libraryCollapsed ? (
-            <LibraryPanel
+            <LibraryPanelMemo
               dashboard={dashboard}
               t={t}
               selectedGame={selectedGame}
@@ -3170,11 +3251,11 @@ export function App(): ReactElement {
               busy={busy}
               currentStudent={currentStudent}
               onSelect={setSelectedId}
-              onSync={() => void syncFox()}
-              onImport={() => void importSgf()}
-              onDeleteGame={(game) => void deleteLibraryGameFromLibrary(game)}
+              onSync={handleLibrarySync}
+              onImport={handleLibraryImport}
+              onDeleteGame={handleLibraryDelete}
               onFoxKeyword={setFoxKeyword}
-              onChangePlayerBinding={() => selectedGame && void openStudentBinding(selectedGame)}
+              onChangePlayerBinding={handleChangePlayerBinding}
             />
           ) : null}
         </aside>
@@ -3221,7 +3302,7 @@ export function App(): ReactElement {
             {record ? (
               <div className="board-table board-table--v2">
                 {boardRecord && boardRecord.boardSize >= 2 ? (
-                  <GoBoardV2
+                  <GoBoardV2Memo
                     record={boardRecord}
                     moveNumber={boardMoveNumber}
                     analysis={boardAnalysis}
@@ -3229,8 +3310,8 @@ export function App(): ReactElement {
                     flashPoint={boardFlash}
                     trialBranch={trialBranch.active ? trialBranch : null}
                     territoryJudgement={territoryEnabled ? territoryJudgement : null}
-                    onPointClick={trialBranch.active ? playTrialPoint : undefined}
-                    onPointContextMenu={trialBranch.active ? undoTrialBranch : undefined}
+                    onPointClick={trialBranch.active ? stablePlayTrialPoint : undefined}
+                    onPointContextMenu={trialBranch.active ? stableUndoTrialBranch : undefined}
                     t={t}
                   />
                 ) : (
@@ -3245,44 +3326,34 @@ export function App(): ReactElement {
           <section className={`timeline-panel ${record ? 'timeline-panel--with-issues' : 'timeline-panel--empty'}`}>
             {record ? (
               <>
-                <TimelineIssueList
+                <TimelineIssueListMemo
                   color={timelineIssueColor}
                   issues={timelineIssues}
                   currentMoveNumber={moveNumber}
                   loading={graphBusy}
                   onColorChange={setTimelineIssueColor}
-                  onJump={jumpToMove}
+                  onJump={stableJumpToMove}
                   t={t}
                 />
-                <WinrateTimelineV2
-                  evaluations={Object.values(evaluations)}
+                <WinrateTimelineV2Memo
+                  evaluations={evaluationList}
                   currentMoveNumber={moveNumber}
                   totalMoves={record.moves.length}
                   loading={graphBusy}
                   loadingLabel={graphProgress}
-                  onMove={jumpToMove}
-                  onRangeSelect={handleTimelineRangeSelect}
-                  onRangeClear={handleTimelineRangeClear}
+                  onMove={stableJumpToMove}
+                  onRangeSelect={stableTimelineRangeSelect}
+                  onRangeClear={stableTimelineRangeClear}
                   rangeStart={moveRange?.start ?? null}
                   rangeEnd={moveRange?.end ?? null}
-                  summary={territoryEnabled ? (
-                    <TerritorySummaryStrip judgement={territoryJudgement} compact t={t} />
-                  ) : timelineFinalRecordScore ? (
-                    <div className="ks-timeline-record-score">
-                      <span>{t('recordScoreLead')}</span>
-                      <strong>{timelineFinalRecordScore.displayLead}</strong>
-                      {currentAnalysis?.after.scoreLead !== undefined ? (
-                        <small>{t('katagoScoreLead')}: {formatScoreLead(currentAnalysis.after.scoreLead, t)}</small>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  summary={timelineSummary}
                   t={t}
                 />
               </>
             ) : (
               <EvaluationGraph
                 analysis={currentAnalysis}
-                evaluations={Object.values(evaluations)}
+                evaluations={evaluationList}
                 moveNumber={moveNumber}
                 totalMoves={0}
                 loading={graphBusy}
@@ -3294,7 +3365,7 @@ export function App(): ReactElement {
         </main>
 
         <aside className="teacher-column">
-          <TeacherPanel
+          <TeacherPanelMemo
             messages={messages}
             prompt={prompt}
             busy={busy}
@@ -3305,25 +3376,22 @@ export function App(): ReactElement {
             teacherSessions={teacherSessions}
             teacherSessionId={teacherSessionId}
             onPrompt={setPrompt}
-            onQuickPrompt={(value) => void submitTeacherPromptText(value)}
-            onSubmit={(event) => void sendTeacherPrompt(event)}
-            onStop={() => void stopTeacherTask()}
+            onQuickPrompt={handleTeacherQuickPrompt}
+            onSubmit={handleTeacherSubmit}
+            onStop={handleTeacherStop}
             onPersonaSettingsSaved={setDashboard}
-            onAnalyze={() => void runCurrentMoveAnalysis()}
-            onAnalyzeGame={() => void runTeacherQuickTask(t('quickAnalyzeGamePrompt'))}
-            onAnalyzeRecent={() => void runTeacherQuickTask(t('quickAnalyzeRecentPrompt'))}
-            onJumpToMove={jumpToMove}
-            onFlashPoint={flashBoardCoordinate}
+            onAnalyze={handleTeacherAnalyze}
+            onAnalyzeGame={handleTeacherAnalyzeGame}
+            onAnalyzeRecent={handleTeacherAnalyzeRecent}
+            onJumpToMove={stableJumpToMove}
+            onFlashPoint={stableFlashBoardCoordinate}
             boardSize={record?.boardSize ?? 19}
             totalMoves={record?.moves.length ?? 0}
-            onAnalyzeMove={(targetMove) => void runMoveAnalysisAt(targetMove)}
-            onNewTeacherSession={() => void startNewTeacherSession()}
-            onRestoreTeacherSession={(sessionId) => void restoreTeacherSessionById(sessionId)}
-            onDeleteTeacherSession={(sessionId) => void deleteTeacherSessionById(sessionId)}
-            onConnectLlm={() => {
-              setLlmTestMessage(t('llmSetupRequired'))
-              setSettingsOpen(true)
-            }}
+            onAnalyzeMove={handleTeacherAnalyzeMove}
+            onNewTeacherSession={handleNewTeacherSession}
+            onRestoreTeacherSession={handleRestoreTeacherSession}
+            onDeleteTeacherSession={handleDeleteTeacherSession}
+            onConnectLlm={handleConnectLlm}
           />
         </aside>
       </div>
@@ -4257,6 +4325,10 @@ function TeacherPanel({
   const yesterdaySessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && isYesterdayDate(session.updatedAt))
   const earlierSessions = visibleSessions.filter((session) => !isTodayDate(session.updatedAt) && !isYesterdayDate(session.updatedAt))
   const threadBottomRef = useRef<HTMLDivElement | null>(null)
+  // Follow new output only while the reader is at the bottom; scrolling up to re-read an
+  // answer used to be undone by every streamed chunk.
+  const followThreadRef = useRef(true)
+  const followedMessageCountRef = useRef(messages.length)
 
   useEffect(() => {
     const next = readPersonaUiSettings(dashboard.settings)
@@ -4275,7 +4347,12 @@ function TeacherPanel({
   ])
 
   useEffect(() => {
-    threadBottomRef.current?.scrollIntoView({ block: 'end' })
+    // A new turn (or a restored session) always brings the thread back to the bottom.
+    if (messages.length !== followedMessageCountRef.current) {
+      followedMessageCountRef.current = messages.length
+      followThreadRef.current = true
+    }
+    if (followThreadRef.current) threadBottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages, busy, error])
 
   useEffect(() => {
@@ -4629,6 +4706,10 @@ function TeacherPanel({
       <div
         className={`message-list agent-thread ${messages.length === 0 && !hasRunningTask ? 'agent-thread--empty' : ''}`}
         aria-label={t('teacherThread')}
+        onScroll={(event) => {
+          const thread = event.currentTarget
+          followThreadRef.current = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 120
+        }}
       >
         {messages.length === 0 && !hasRunningTask && llmReady ? (
           <section className="teacher-empty-state" aria-label={t('teacherEmptyTitle')}>
@@ -4655,7 +4736,7 @@ function TeacherPanel({
                   <strong>{message.role === 'teacher' ? BRAND_NAME : t('user')}</strong>
                   <small>{message.status ?? (message.result ? t('completed') : message.role === 'teacher' ? t('assistant') : t('prompt'))}</small>
                 </header>
-                <TeacherInlineResponse
+                <TeacherInlineResponseMemo
                   message={message}
                   t={t}
                   onJumpToMove={onJumpToMove}
@@ -6499,3 +6580,12 @@ function roundedCanvasRect(ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.quadraticCurveTo(x, y, x + radius, y)
   ctx.closePath()
 }
+
+// App re-renders on every analysis progress update and keystroke; these only re-render
+// when their own props change.
+const LibraryPanelMemo = memo(LibraryPanel)
+const TimelineIssueListMemo = memo(TimelineIssueList)
+const TeacherPanelMemo = memo(TeacherPanel)
+const TeacherInlineResponseMemo = memo(TeacherInlineResponse)
+const GoBoardV2Memo = memo(GoBoardV2)
+const WinrateTimelineV2Memo = memo(WinrateTimelineV2)
