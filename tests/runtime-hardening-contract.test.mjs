@@ -22,8 +22,9 @@ test('dashboard refreshes persist only detected changes onto the latest settings
   assert.match(dashboard, /await persistDetectedDefaults\(\)/)
   assert.doesNotMatch(dashboard, /replaceSettings\(/)
   const persist = main.match(/async function persistDetectedDefaults\(\)[\s\S]*?\n}\n/)?.[0] ?? ''
-  assert.match(persist, /if \(!changedKeys\.length\) return before/)
-  assert.match(persist, /replaceSettings\(\{ \.\.\.getSettings\(\), \.\.\.changes \}\)/)
+  assert.match(persist, /JSON\.stringify\(latest\[key\]\) === JSON\.stringify\(before\[key\]\)/)
+  assert.match(persist, /if \(!changedKeys\.length\) return latest/)
+  assert.match(persist, /replaceSettings\(\{ \.\.\.latest, \.\.\.changes \}\)/)
 })
 
 test('quitting stops every KataGo process', async () => {

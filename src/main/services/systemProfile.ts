@@ -10,6 +10,10 @@ import { shouldPreferZhiziGtpEngine, zhiziGtpConfigured } from './zhiziGtpEngine
 import { getZhiziPersistentSessionTelemetry } from './zhiziSocketSession'
 
 const execFileAsync = promisify(execFile)
+const PROXY_DISCOVERY_TTL_MS = 30_000
+type ProxyProfile = Pick<SystemProfile, 'proxyBaseUrl' | 'proxyApiKey' | 'proxyModels' | 'notes'>
+let cachedProxy: { value: ProxyProfile; expiresAt: number } | undefined
+let pendingProxy: Promise<ProxyProfile> | undefined
 
 async function firstExisting(paths: string[]): Promise<string> {
   for (const path of paths) {
@@ -33,7 +37,7 @@ function parseSimpleYamlListValue(text: string, key: string): string {
   return match?.[1]?.trim().replace(/^"|"$/g, '') ?? ''
 }
 
-async function detectCliproxy(): Promise<Pick<SystemProfile, 'proxyBaseUrl' | 'proxyApiKey' | 'proxyModels' | 'notes'>> {
+async function probeCliproxy(): Promise<ProxyProfile> {
   const notes: string[] = []
   let proxyBaseUrl = ''
   let proxyApiKey = ''
@@ -45,7 +49,7 @@ async function detectCliproxy(): Promise<Pick<SystemProfile, 'proxyBaseUrl' | 'p
     const { stdout } = await execFileAsync('/bin/sh', [
       '-lc',
       "ps ax -o pid=,comm=,args= | grep cliproxyapi | grep -v grep | head -n 1",
-    ])
+    ], { timeout: 2_000, maxBuffer: 256 * 1024, windowsHide: true })
     const line = stdout.trim()
     const configMatch =
       line.match(/(?:^|\s)--?config(?:=|\s+)(?:"([^"]+)"|'([^']+)'|(\S+))/) ??
@@ -82,6 +86,7 @@ async function detectCliproxy(): Promise<Pick<SystemProfile, 'proxyBaseUrl' | 'p
   if (proxyBaseUrl && proxyApiKey) {
     try {
       const response = await fetch(`${proxyBaseUrl}/models`, {
+        signal: AbortSignal.timeout(5_000),
         headers: {
           Authorization: `Bearer ${proxyApiKey}`,
         },
@@ -92,6 +97,9 @@ async function detectCliproxy(): Promise<Pick<SystemProfile, 'proxyBaseUrl' | 'p
         if (proxyModels.length > 0) {
           notes.push(`检测到 ${proxyModels.length} 个可用模型。`)
         }
+      } else {
+        await response.body?.cancel()
+        notes.push(`本机代理模型列表请求失败: HTTP ${response.status}。`)
       }
     } catch {
       notes.push('本机代理存在，但模型列表拉取失败。')
@@ -99,6 +107,19 @@ async function detectCliproxy(): Promise<Pick<SystemProfile, 'proxyBaseUrl' | 'p
   }
 
   return { proxyBaseUrl, proxyApiKey, proxyModels, notes }
+}
+
+// A dashboard refresh detects defaults and then builds a profile. Share the proxy
+// work across both calls and concurrent refreshes, without caching engine settings.
+async function detectCliproxy(): Promise<ProxyProfile> {
+  if (cachedProxy && Date.now() < cachedProxy.expiresAt) return cachedProxy.value
+  if (!pendingProxy) {
+    pendingProxy = probeCliproxy().then((value) => {
+      cachedProxy = { value, expiresAt: Date.now() + PROXY_DISCOVERY_TTL_MS }
+      return value
+    }).finally(() => { pendingProxy = undefined })
+  }
+  return pendingProxy
 }
 
 export async function detectSystemProfile(settings?: AppSettings): Promise<SystemProfile> {

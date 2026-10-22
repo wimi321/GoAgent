@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
+import { getEventListeners } from 'node:events'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -42,6 +43,8 @@ async function importProviderForTest() {
     streamOpenAICompatibleToolTurn: provider.streamOpenAICompatibleToolTurn,
     isLlmSetupConfigurationError: provider.isLlmSetupConfigurationError,
     probeOpenAICompatibleProvider: provider.probeOpenAICompatibleProvider,
+    fetchWithTimeout: provider.fetchWithTimeout,
+    parseRetryAfter: provider.parseRetryAfter,
     cleanup: () => rm(root, { recursive: true, force: true })
   }
 }
@@ -56,7 +59,7 @@ async function withMockChatServer(handler, run) {
     request.on('end', () => {
       const body = raw ? JSON.parse(raw) : {}
       const result = handler(body)
-      response.writeHead(result.status ?? 200, { 'Content-Type': 'application/json' })
+      response.writeHead(result.status ?? 200, { 'Content-Type': 'application/json', ...result.headers })
       response.end(typeof result.payload === 'string' ? result.payload : JSON.stringify(result.payload))
     })
   })
@@ -547,4 +550,178 @@ test('cancelling a teacher run stops a stream whose headers already arrived', as
     await new Promise((resolve) => server.close(resolve))
     await cleanup()
   }
+})
+
+async function withRawServer(handler, run) {
+  const server = createServer(handler)
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  try {
+    await run(`http://127.0.0.1:${server.address().port}`)
+  } finally {
+    server.closeAllConnections()
+    await new Promise((resolve) => server.close(resolve))
+  }
+}
+
+test('request deadlines and external cancellation remain active after headers', async () => {
+  const { fetchWithTimeout, cleanup } = await importProviderForTest()
+  try {
+    await withRawServer((_request, response) => {
+      response.writeHead(200)
+      response.flushHeaders()
+    }, async (url) => {
+      const controller = new AbortController()
+      const timed = await fetchWithTimeout(url, {}, 200, controller.signal)
+      try {
+        await assert.rejects(timed.response.text(), /abort|超时/i)
+      } finally {
+        timed.dispose()
+      }
+      assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+
+      const cancelled = await fetchWithTimeout(url, {}, 10_000, controller.signal)
+      const body = cancelled.response.text()
+      controller.abort(new Error('user cancelled'))
+      try {
+        await assert.rejects(body, /abort|cancel/i)
+      } finally {
+        cancelled.dispose()
+      }
+      assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+    })
+  } finally {
+    await cleanup()
+  }
+})
+
+test('completed and failed requests release cancellation listeners', async () => {
+  const { fetchWithTimeout, cleanup } = await importProviderForTest()
+  const controller = new AbortController()
+  try {
+    await withRawServer((_request, response) => response.end('OK'), async (url) => {
+      for (let i = 0; i < 12; i += 1) {
+        const { response, dispose } = await fetchWithTimeout(url, {}, 10_000, controller.signal)
+        try { assert.equal(await response.text(), 'OK') } finally { dispose() }
+        assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+      }
+      controller.abort(new Error('cancelled'))
+      await assert.rejects(fetchWithTimeout(url, {}, 10_000, controller.signal), /cancelled/)
+      assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+    })
+  } finally {
+    await cleanup()
+  }
+})
+
+test('Retry-After accepts seconds and HTTP dates and rejects invalid values', async () => {
+  const { parseRetryAfter, cleanup } = await importProviderForTest()
+  try {
+    const now = Date.parse('2026-01-01T00:00:00Z')
+    assert.equal(parseRetryAfter('2', now), 2000)
+    assert.equal(parseRetryAfter('0.5', now), 500)
+    assert.equal(parseRetryAfter('Thu, 01 Jan 2026 00:00:05 GMT', now), 5000)
+    assert.equal(parseRetryAfter('Wed, 31 Dec 2025 23:59:59 GMT', now), 0)
+    for (const value of [null, '', 'later', '-1', 'Infinity']) assert.equal(parseRetryAfter(value, now), null)
+  } finally {
+    await cleanup()
+  }
+})
+
+test('chat, tool and streamed tool retries respect the provider cooldown', async () => {
+  const provider = await importProviderForTest()
+  try {
+    for (const method of ['postOpenAICompatibleChat', 'postOpenAICompatibleToolTurn', 'streamOpenAICompatibleToolTurn']) {
+      const times = []
+      await withMockChatServer(() => {
+        times.push(performance.now())
+        if (times.length === 1) return { status: 429, headers: { 'Retry-After': '1.2' }, payload: 'busy' }
+        const json = { choices: [{ message: { content: 'OK' }, finish_reason: 'stop' }] }
+        return { payload: method.startsWith('stream') ? `data: ${JSON.stringify(json)}\n\ndata: [DONE]\n\n` : json }
+      }, async (url) => {
+        const args = method === 'postOpenAICompatibleChat' ? [128] : [[], 128]
+        const result = await provider[method](settings(url), [{ role: 'user', content: 'hello' }], ...args)
+        assert.equal(typeof result === 'string' ? result : result.text, 'OK')
+      })
+      assert.equal(times.length, 2, method)
+      assert.ok(times[1] - times[0] >= 1180, `${method}: ${times[1] - times[0]} ms`)
+    }
+  } finally {
+    await provider.cleanup()
+  }
+})
+
+test('long provider cooldowns are not shortened and plain streaming does not immediately fall back', async () => {
+  const provider = await importProviderForTest()
+  try {
+    for (const method of ['postOpenAICompatibleChat', 'postOpenAICompatibleToolTurn', 'streamOpenAICompatibleToolTurn', 'streamOpenAICompatibleChat']) {
+      let calls = 0
+      await withMockChatServer(() => {
+        calls += 1
+        return { status: 503, headers: { 'Retry-After': '120' }, payload: 'busy' }
+      }, async (url) => {
+        const args = method.includes('Tool') ? [[], 128] : [128]
+        await assert.rejects(provider[method](settings(url), [], ...args), /503/)
+      })
+      assert.equal(calls, 1, method)
+    }
+  } finally {
+    await provider.cleanup()
+  }
+})
+
+test('cancelling during Retry-After stops the wait without another request', async () => {
+  const provider = await importProviderForTest()
+  const controller = new AbortController()
+  let calls = 0
+  let cancelTimer
+  try {
+    await withMockChatServer(() => {
+      calls += 1
+      cancelTimer = setTimeout(() => controller.abort(new Error('user cancelled')), 100)
+      return { status: 429, headers: { 'Retry-After': '30' }, payload: 'busy' }
+    }, async (url) => {
+      await assert.rejects(provider.streamOpenAICompatibleToolTurn(settings(url), [], [], 128, undefined, controller.signal), /cancelled/)
+    })
+    assert.equal(calls, 1)
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+  } finally {
+    clearTimeout(cancelTimer)
+    await provider.cleanup()
+  }
+})
+
+test('SSE DONE completes both streaming APIs even if the proxy leaves the connection open', { timeout: 5000 }, async () => {
+  const provider = await importProviderForTest()
+  try {
+    await withRawServer((request, response) => {
+      request.resume()
+      request.on('end', () => {
+        response.writeHead(200, { 'Content-Type': 'text/event-stream' })
+        response.write('data: {"choices":[{"delta":{"content":"OK"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+      })
+    }, async (url) => {
+      assert.equal(await provider.streamOpenAICompatibleChat(settings(url), [], 128), 'OK')
+      const controller = new AbortController()
+      const turn = await provider.streamOpenAICompatibleToolTurn(settings(url), [], [], 128, undefined, controller.signal)
+      assert.equal(turn.text, 'OK')
+      assert.equal(getEventListeners(controller.signal, 'abort').length, 0)
+    })
+  } finally {
+    await provider.cleanup()
+  }
+})
+
+test('empty reasoning responses do not bypass a subsequent provider cooldown via streaming fallback', async () => {
+  const provider = await importProviderForTest()
+  let calls = 0
+  try {
+    await withMockChatServer(() => {
+      calls++
+      if (calls === 1) return { payload: { choices: [{ finish_reason: 'stop', message: { content: '' } }], usage: { completion_tokens: 10 } } }
+      return { status: 429, headers: { 'Retry-After': '120' }, payload: 'busy' }
+    }, async (url) => {
+      await assert.rejects(provider.postOpenAICompatibleChat(settings(url), [], 128), /429/)
+    })
+    assert.equal(calls, 2)
+  } finally { await provider.cleanup() }
 })
