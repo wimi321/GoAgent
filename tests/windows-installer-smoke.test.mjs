@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,7 +11,7 @@ const quote = value => `'${value.replaceAll("'", "''")}'`
 const windowsOnly = { skip: process.platform !== 'win32' }
 
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'goagent 安装 unit '))
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'goagent 安装 unit ')))
   t.after(() => rm(root, { recursive: true, force: true }))
   return root
 }
