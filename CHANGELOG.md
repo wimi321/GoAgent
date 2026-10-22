@@ -15,6 +15,7 @@ This project follows semantic versioning once public releases begin.
 - Recognized driver-provided `OpenCL.dll` as a Windows system dependency while retaining checks for bundled compute libraries.
 - Prevented analysis controls from overlapping the teacher panel in narrow windows and scaled the board to the space available below the wrapping header.
 - Included the NVIDIA NVRTC dependency fix and the startup timeout, analysis rendering, navigation, and retry improvements merged since v0.4.21.
+- Backported electron-builder's keychain password fix to the pinned packaging dependency so macOS signing can complete without changing certificate credentials.
 
 ### Changed
 

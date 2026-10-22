@@ -6,6 +6,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 
 ## 中文
 
+- 回移打包工具的临时钥匙串密码修复，恢复 macOS 正式签名流程，保留签名和公证校验。
 - 修复 Windows 开发启动和老师冒烟测试中的盘符、文件 URL 与 `.cmd` 启动问题，支持带空格、中文的路径。
 - 修复 iKataGo 参数中的 Windows 反斜杠被吞掉的问题；老师的本机命令工具使用 Windows PowerShell，并正确报告进程启动失败。
 - 将 Python 复盘脚本和依赖清单从 `app.asar` 提取到应用运行目录，修复打包应用无法执行复盘脚本及依赖启动目录的问题。
@@ -29,6 +30,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 
 ## 繁體中文
 
+- 回移打包工具的暫存鑰匙圈密碼修正，恢復 macOS 正式簽署流程，保留簽署與公證驗證。
 - 修正 Windows 開發啟動、老師測試與包含空格或中文的路徑處理。
 - 保留 iKataGo 參數中的 Windows 反斜線；本機命令工具使用 PowerShell 並正確回報啟動錯誤。
 - 將 Python 複盤腳本與相依套件清單從 `app.asar` 提取至應用程式執行目錄，修正打包應用程式無法執行複盤腳本及依賴啟動目錄的問題。
@@ -40,6 +42,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 
 ## English
 
+- Backports the packaging tool's temporary keychain password fix so macOS signing works while preserving signing and notarization checks.
 - Fixes Windows development and teacher smoke startup, including file URLs and paths containing spaces or Chinese characters.
 - Preserves backslashes in iKataGo arguments and uses PowerShell for Windows teacher commands, with explicit process startup failure reporting.
 - Extracts the Python review script and requirements from `app.asar` into the app's runtime directory so packaged reviews can run independently of the launch directory.
@@ -51,6 +54,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 
 ## 日本語
 
+- パッケージツールの一時キーチェーンのパスワード修正を適用し、署名と公証の検証を維持したまま macOS の正式な署名処理を修復しました。
 - Windows の開発起動と先生機能のテストを修正し、空白や中国語を含むパスに対応しました。
 - iKataGo の引数内のバックスラッシュを保持し、Windows のローカルコマンドには PowerShell を使用して起動エラーを報告します。
 - Python の棋譜検討スクリプトと依存関係リストを `app.asar` からアプリの実行用ディレクトリへ展開し、パッケージ版でも起動ディレクトリに依存せず検討を実行できるようにしました。
@@ -62,6 +66,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 
 ## 한국어
 
+- 패키징 도구의 임시 키체인 암호 수정을 적용하여 서명 및 공증 검증을 유지하면서 macOS 서명 절차를 복구합니다.
 - Windows 개발 실행과 교사 기능 테스트를 수정하고 공백이나 중국어가 포함된 경로를 처리합니다.
 - iKataGo 인수의 역슬래시를 보존하고 Windows 명령에 PowerShell을 사용하며 실행 오류를 보고합니다.
 - Python 복기 스크립트와 의존성 목록을 `app.asar`에서 앱의 런타임 디렉터리로 추출하여 패키지 앱에서도 시작 디렉터리와 관계없이 복기를 실행할 수 있도록 수정했습니다.
@@ -73,6 +78,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 
 ## ภาษาไทย
 
+- นำการแก้ไขรหัสผ่านพวงกุญแจชั่วคราวของเครื่องมือแพ็กเกจมาใช้ เพื่อแก้ไขการลงนาม macOS โดยคงการตรวจสอบลายเซ็นและการรับรองไว้
 - แก้ไขการเริ่มแอปและการทดสอบครูบน Windows รวมถึงพาธที่มีช่องว่างหรืออักษรจีน
 - รักษาเครื่องหมายแบ็กสแลชในอาร์กิวเมนต์ iKataGo ใช้ PowerShell สำหรับคำสั่งบน Windows และรายงานข้อผิดพลาดในการเริ่มโปรเซส
 - แยกสคริปต์ทบทวนเกม Python และรายการไลบรารีที่จำเป็นออกจาก `app.asar` ไปยังไดเรกทอรีรันไทม์ของแอป เพื่อให้แอปที่แพ็กแล้วทบทวนเกมได้โดยไม่ขึ้นกับไดเรกทอรีที่ใช้เริ่มแอป
@@ -84,6 +90,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 
 ## Tiếng Việt
 
+- Áp dụng bản sửa mật khẩu chuỗi khóa tạm thời của công cụ đóng gói để khôi phục ký macOS, đồng thời giữ nguyên kiểm tra chữ ký và công chứng.
 - Sửa khởi chạy môi trường phát triển và kiểm thử giáo viên trên Windows, gồm đường dẫn có dấu cách hoặc chữ Trung Quốc.
 - Giữ dấu gạch chéo ngược trong tham số iKataGo, dùng PowerShell cho lệnh Windows và báo lỗi khởi chạy tiến trình.
 - Trích xuất tập lệnh phân tích ván đấu bằng Python và danh sách thư viện phụ thuộc từ `app.asar` vào thư mục chạy của ứng dụng, giúp bản đóng gói thực hiện phân tích mà không phụ thuộc vào thư mục khởi chạy.
