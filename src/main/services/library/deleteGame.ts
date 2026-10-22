@@ -2,6 +2,7 @@ import { existsSync, unlinkSync } from 'node:fs'
 import { isAbsolute, relative, resolve } from 'node:path'
 import { appHome, findGame, removeGame } from '@main/lib/store'
 import type { LibraryGame } from '@main/lib/types'
+import { removeGameAnalysisCache } from '../analysis/runtimeIntegration'
 import { detachGameFromStudents } from '../studentProfile'
 
 function isManagedAppFile(filePath: string): boolean {
@@ -29,6 +30,7 @@ export function deleteLibraryGame(gameId: string): { deleted: LibraryGame; remov
     throw new Error(`找不到棋谱: ${gameId}`)
   }
 
+  removeGameAnalysisCache(gameId)
   const removedFile = removeManagedGameFile(game)
   const deleted = removeGame(gameId)
   if (!deleted) {

@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell, type ContextMenuParams, type IpcMainEvent, type IpcMainInvokeEvent, type MenuItemConstructorOptions } from 'electron'
 import { isAbsolute, relative, resolve, join } from 'node:path'
-import { appHome, findGame, getGames, getIkatagoPassword, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, getZhiziToken, hasIkatagoPassword, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, hasZhiziToken, replaceSettings, setSettings, upsertGames } from './lib/store'
+import { appHome, cacheDir, findGame, getGames, getIkatagoPassword, getSettings, getTtsCustomApiKey, getTtsVolcengineAccessToken, getTtsVolcengineApiKey, getZhiziToken, hasIkatagoPassword, hasLlmApiKey, hasTtsCustomApiKey, hasTtsVolcengineAccessToken, hasTtsVolcengineApiKey, hasZhiziToken, replaceSettings, setSettings, upsertGames } from './lib/store'
 import { BRAND_NAME } from '@shared/brand'
 import type {
   AnalyzeGameQuickRequest,
@@ -58,6 +58,8 @@ import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
 import { cancelScheduledAnalysis, getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
 import { analyzeGameQuickRuntime, analyzePositionRuntime, analyzePositionWithProgressRuntime } from './services/analysis/runtimeIntegration'
 import { collectDiagnostics } from './services/diagnostics'
+import { analysisCacheRoot } from './services/analysis/cache'
+import { runStorageMaintenance } from './services/maintenance/storagePruning'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
 import { cancelKataGoAssetInstall, inspectKataGoAssets, installOfficialKataGoModel } from './services/katago/katagoAssets'
 import { checkCustomKataGoEngine } from './services/katago/customEngine'
@@ -869,6 +871,18 @@ app.whenReady().then(() => {
     console.error(error)
     app.exit(1)
   })
+
+  // Caches and KataGo logs were never trimmed (hundreds of MB after a few months). Run once,
+  // off the startup path, with async file I/O.
+  setTimeout(() => {
+    runStorageMaintenance({
+      analysisCache: analysisCacheRoot(),
+      ttsCache: join(cacheDir, 'tts'),
+      katagoLogs: join(appHome, 'katago', 'logs')
+    })
+      .then((result) => console.info('[storage-maintenance]', JSON.stringify(result)))
+      .catch((error) => console.warn('[storage-maintenance] failed', error))
+  }, 60_000).unref()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
