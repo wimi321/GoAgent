@@ -47,7 +47,7 @@ export function peImports(bytes) {
 // OS/driver dependencies only. Never allow a CUDA Toolkit DLL to be supplied
 // by System32 or the developer's PATH; every other import must be app-local.
 export function isWindowsSystemDependency(name) {
-  return /^(?:api-ms-|ext-ms-)/i.test(name) || /^(?:kernel32|user32|gdi32|advapi32|shell32|shlwapi|ole32|oleaut32|ws2_32|crypt32|bcrypt|ncrypt|secur32|normaliz|version|winmm|winhttp|wininet|iphlpapi|psapi|setupapi|cfgmgr32|ntdll|rpcrt4|comdlg32|comctl32|dbghelp|msvcrt|ucrtbase|d3d12|dxgi|nvcuda)\.dll$/i.test(name)
+  return /^(?:api-ms-|ext-ms-)/i.test(name) || /^(?:kernel32|user32|gdi32|advapi32|shell32|shlwapi|ole32|oleaut32|ws2_32|crypt32|bcrypt|ncrypt|secur32|normaliz|version|winmm|winhttp|wininet|iphlpapi|psapi|setupapi|cfgmgr32|ntdll|rpcrt4|comdlg32|comctl32|dbghelp|msvcrt|ucrtbase|d3d12|dxgi|nvcuda|opencl)\.dll$/i.test(name)
 }
 
 export async function checkWindowsRuntimeDependencies(runtime, { nvidia = false } = {}) {

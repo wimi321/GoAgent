@@ -4,6 +4,23 @@ All notable changes to GoAgent will be documented here.
 
 This project follows semantic versioning once public releases begin.
 
+## 0.4.22 - Windows Compatibility and Release Validation
+
+### Fixed
+
+- Corrected Windows file URL conversion and process launching in development and teacher smoke scripts, including paths with spaces and non-ASCII characters.
+- Preserved Windows backslashes in iKataGo arguments and selected PowerShell for local teacher commands, with accurate startup error handling.
+- Copied the Python review script and requirements out of `app.asar` into the app's runtime directory so packaged reviews can run independently of the launch directory.
+- Forced Python speech subprocesses to use UTF-8, fixing offline speech encoding errors on Chinese Windows systems.
+- Recognized driver-provided `OpenCL.dll` as a Windows system dependency while retaining checks for bundled compute libraries.
+- Prevented analysis controls from overlapping the teacher panel in narrow windows and scaled the board to the space available below the wrapping header.
+- Included the NVIDIA NVRTC dependency fix and the startup timeout, analysis rendering, navigation, and retry improvements merged since v0.4.21.
+
+### Changed
+
+- Required automated tests, typechecking, teaching quality, release source policy, multilingual notes, and tag/package version consistency before release packaging can publish.
+- Added Windows process and release failure regression coverage.
+
 ## 0.4.21 - Optional ChatGPT Sign-In
 
 ### Added

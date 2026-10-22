@@ -39,16 +39,16 @@ GoAgent は、KataGo、棋盤スクリーンショット、ローカル知識カ
 
 公開リリース：
 
-[GoAgent v0.4.21](https://github.com/wimi321/GoAgent/releases/tag/v0.4.21)
+[GoAgent v0.4.22](https://github.com/wimi321/GoAgent/releases/tag/v0.4.22)
 
 | プラットフォーム | ダウンロード |
 | --- | --- |
-| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-arm64.dmg) |
-| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-x64.dmg) |
-| Windows x64 Standard portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-portable.zip) |
-| Windows x64 Standard installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64.exe) |
-| Windows x64 NVIDIA portable 7z | [7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia-portable.7z) |
-| Windows x64 NVIDIA installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia.exe) |
+| macOS Apple Silicon | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-arm64.dmg) |
+| macOS Intel | [DMG](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-x64.dmg) |
+| Windows x64 Standard portable ZIP | [ZIP](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-portable.zip) |
+| Windows x64 Standard installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64.exe) |
+| Windows x64 NVIDIA portable 7z | [7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA installer | [EXE](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia.exe) |
 
 macOS 版は Developer ID で署名され、Apple の notarization と stapled ticket を取得済みです。アップロード前に署名、Gatekeeper、ticket、DMG の整合性を CI で検証します。Windows 版は未署名のため SmartScreen が表示される場合があります。
 

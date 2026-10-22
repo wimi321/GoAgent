@@ -58,6 +58,42 @@ jobs:
       can-package-nvidia: ${{ steps.katago-assets.outputs.can-package-nvidia }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Check release tag matches package version
+        run: node scripts/check_release_version.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Teacher quality
+        run: pnpm check:teacher-quality
+
+      - name: Release source policy and multilingual notes
+        run: |
+          pnpm check:codex-runtime
+          pnpm check:no-lite-release-assets
+          pnpm check:nvidia-release-assets
+          pnpm check:release-notes-i18n
+
       - name: Check KataGo asset sources
         id: katago-assets
         shell: bash
@@ -696,7 +732,7 @@ jobs:
       - package
       - package-nvidia-windows
     runs-on: ubuntu-latest
-    if: always() && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
+    if: always() && needs.release-preflight.result == 'success' && needs.release-preflight.outputs.can-package == 'true' && needs.release-preflight.outputs.can-package-nvidia == 'true' && needs.package.result == 'success' && needs.package-nvidia-windows.result == 'success' && startsWith(github.ref, 'refs/tags/')
 
     steps:
       - name: Checkout release notes

@@ -936,7 +936,7 @@ textarea {
 
 .studio {
   display: grid;
-  grid-template-columns: clamp(220px, 17vw, 280px) minmax(520px, 1fr) clamp(500px, 30vw, 620px);
+  grid-template-columns: clamp(220px, 17vw, 280px) minmax(0, 1fr) clamp(500px, 30vw, 620px);
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -947,7 +947,7 @@ textarea {
 }
 
 .studio--collapsed {
-  grid-template-columns: 48px minmax(560px, 1fr) clamp(500px, 30vw, 620px);
+  grid-template-columns: 48px minmax(0, 1fr) clamp(500px, 30vw, 620px);
 }
 
 .desktop-statusbar {
@@ -1699,7 +1699,7 @@ label,
 
 .board-workspace {
   display: grid;
-  grid-template-rows: 44px minmax(0, 1fr) 118px;
+  grid-template-rows: auto minmax(0, 1fr) 118px;
   min-width: 0;
   min-height: 0;
   background: var(--surface-0);
@@ -1722,8 +1722,8 @@ label,
 }
 
 .board-contextbar {
-  display: grid;
-  grid-template-columns: minmax(245px, 1fr) auto auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   width: 100%;
@@ -1731,18 +1731,19 @@ label,
 }
 
 .board-contextbar--empty {
-  grid-template-columns: minmax(0, 1fr);
+  flex-wrap: nowrap;
 }
 
 .board-contextbar__identity {
   display: flex;
+  flex: 1 0 100%;
   align-items: baseline;
   min-width: 0;
   gap: 6px;
 }
 
 .board-contextbar__identity h1 {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -1762,8 +1763,9 @@ label,
 
 .board-contextbar__metrics {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 4px;
   min-width: 0;
 }
@@ -1823,6 +1825,7 @@ label,
 
 .board-stage {
   display: flex;
+  container-type: size;
   align-items: center;
   justify-content: center;
   min-height: 0;
@@ -1849,6 +1852,11 @@ label,
 .board-table--v2 {
   grid-template-rows: minmax(0, 1fr);
   gap: 0;
+}
+
+.board-table--v2 .ks-board-shell {
+  width: min(100%, 100cqh, 980px);
+  min-width: 0;
 }
 
 .board-table--v2 .ks-board-insight {
@@ -4353,6 +4361,15 @@ label small {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.72);
 }
 
+.board-contextbar .analysis-control-strip {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.board-contextbar .analysis-control-strip > * {
+  flex-shrink: 0;
+}
+
 .analysis-mini-button {
   display: inline-flex;
   align-items: center;
@@ -5708,11 +5725,11 @@ label small {
 
 @media (min-width: 1181px) {
   .studio {
-    grid-template-columns: clamp(220px, 17vw, 280px) minmax(520px, 1fr) clamp(500px, 30vw, 620px);
+    grid-template-columns: clamp(220px, 17vw, 280px) minmax(0, 1fr) clamp(500px, 30vw, 620px);
   }
 
   .studio--collapsed {
-    grid-template-columns: 48px minmax(560px, 1fr) clamp(500px, 30vw, 620px);
+    grid-template-columns: 48px minmax(0, 1fr) clamp(500px, 30vw, 620px);
   }
 
   .board-workspace,
@@ -5721,10 +5738,6 @@ label small {
     box-sizing: border-box;
     min-width: 0;
     overflow: visible;
-  }
-
-  .board-table--v2 .ks-board-shell {
-    width: min(100%, calc(100dvh - 212px), 980px);
   }
 
   .teacher-column {

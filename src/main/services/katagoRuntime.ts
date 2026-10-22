@@ -478,19 +478,32 @@ function modelResourceRoots(): string[] {
 
 // Runtime resolution happens on every analysis batch; PATH rarely changes, so avoid a
 // synchronous `which` spawn each time.
-let pathKatagoLookup: { value: string; checkedAt: number } | null = null
+let pathKatagoLookup: { value: string; checkedAt: number; searchPath: string } | null = null
 
 function pathKatago(): string {
-  if (pathKatagoLookup && Date.now() - pathKatagoLookup.checkedAt < 60_000) {
+  const searchPath = process.env.PATH ?? ''
+  if (pathKatagoLookup && pathKatagoLookup.searchPath === searchPath && Date.now() - pathKatagoLookup.checkedAt < 60_000) {
     return pathKatagoLookup.value
   }
   let value = ''
   try {
-    value = execFileSync('/usr/bin/which', ['katago'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    if (process.platform === 'win32') {
+      // Avoid Unix-only `which` and Windows console code pages: scan the PATH
+      // directly so a KataGo installation under a Chinese username still works.
+      value = searchPath.split(';')
+        .map((directory) => directory.trim().replace(/^"|"$/g, ''))
+        .filter(Boolean)
+        .map((directory) => join(directory, 'katago.exe'))
+        .find((candidate) => {
+          try { return statSync(candidate).isFile() } catch { return false }
+        }) ?? ''
+    } else {
+      value = execFileSync('/usr/bin/which', ['katago'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    }
   } catch {
     value = ''
   }
-  pathKatagoLookup = { value, checkedAt: Date.now() }
+  pathKatagoLookup = { value, checkedAt: Date.now(), searchPath }
   return value
 }
 

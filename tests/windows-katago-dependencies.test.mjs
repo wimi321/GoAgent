@@ -62,6 +62,16 @@ test('requires dynamic NVRTC builtins even when the PE import graph is satisfied
   await writeFile(join(root, 'nvrtc64_120_0.dll'), Buffer.from('wrong component'))
   await assert.rejects(checkWindowsRuntimeDependencies(root, { nvidia: true }), /Bundled NVRTC hash mismatch/)
 })
+
+test('accepts the GPU driver OpenCL ICD while still requiring app-local compute libraries', async (t) => {
+  const root = await temp(t)
+  await writeFile(join(root, 'katago.exe'), fixture({ imports: ['OpenCL.dll', 'KERNEL32.dll'] }))
+  assert.equal(isWindowsSystemDependency('OpenCL.dll'), true)
+  const report = await checkWindowsRuntimeDependencies(root)
+  assert.deepEqual(report.checkedBinaries, ['katago.exe'])
+  await writeFile(join(root, 'katago.exe'), fixture({ imports: ['OpenCL.dll', 'cudnn64_9.dll'] }))
+  await assert.rejects(checkWindowsRuntimeDependencies(root), /Missing bundled dependency: katago.exe -> cudnn64_9.dll/)
+})
 test('preparation rejects a tampered offline archive before copying any DLL', { skip: process.platform !== 'win32' }, async (t) => {
   const root = await temp(t), runtime = join(root, 'runtime'), archive = join(root, 'bad.zip')
   await mkdir(runtime)

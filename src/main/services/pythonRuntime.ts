@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { devNull } from 'node:os'
+import { app } from 'electron'
 import { appHome } from '@main/lib/store'
 
 const execFileAsync = promisify(execFile)
@@ -13,6 +14,33 @@ const venvRoot = join(runtimeRoot, 'venv')
 const venvBinDir = process.platform === 'win32' ? 'Scripts' : 'bin'
 const pythonPath = join(venvRoot, venvBinDir, process.platform === 'win32' ? 'python.exe' : 'python3')
 const stampPath = join(runtimeRoot, 'requirements.sha256')
+export const reviewScriptPath = join(runtimeRoot, 'review_game.py')
+
+export async function materializeReviewScripts(projectRoot: string): Promise<string> {
+  const roots = [projectRoot]
+  try {
+    // Python cannot read files inside app.asar, even though Electron's fs can.
+    roots.unshift(app.getAppPath())
+  } catch {
+    // Keep the explicit project root available in standalone test harnesses.
+  }
+  if (process.resourcesPath) roots.push(process.resourcesPath, join(process.resourcesPath, 'app.asar'))
+  await mkdir(runtimeRoot, { recursive: true })
+  for (const filename of ['review_game.py', 'requirements.txt']) {
+    let content: string | undefined
+    for (const root of [...new Set(roots)]) {
+      try {
+        content = await readFile(join(root, 'scripts', filename), 'utf8')
+        break
+      } catch {
+        // Try the next development or packaged resource location.
+      }
+    }
+    if (content === undefined) throw new Error(`找不到复盘运行文件 ${filename}`)
+    await writeFile(join(runtimeRoot, filename), content, 'utf8')
+  }
+  return join(runtimeRoot, 'requirements.txt')
+}
 
 interface PythonLauncher {
   command: string
@@ -125,7 +153,7 @@ export async function resolvePythonLauncher(preferredPythonBin?: string): Promis
 }
 
 export async function ensurePythonRuntime(projectRoot: string, preferredPythonBin?: string): Promise<string> {
-  await mkdir(runtimeRoot, { recursive: true })
+  const requirementsPath = await materializeReviewScripts(projectRoot)
 
   let createdVenv = false
   if (!(await pathExists(pythonPath))) {
@@ -138,7 +166,6 @@ export async function ensurePythonRuntime(projectRoot: string, preferredPythonBi
     throw new Error(`Python 虚拟环境创建失败：没有找到 ${pythonPath}`)
   }
 
-  const requirementsPath = join(projectRoot, 'scripts', 'requirements.txt')
   const requirements = await readFile(requirementsPath, 'utf8')
   const digest = createHash('sha256').update(requirements).digest('hex')
   const installedDigest = (await pathExists(stampPath)) ? (await readFile(stampPath, 'utf8')).trim() : ''

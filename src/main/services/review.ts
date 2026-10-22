@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { findGame, getSettings, reviewsDir } from '@main/lib/store'
 import type { ReviewArtifact, ReviewRequest, ReviewResult } from '@main/lib/types'
 import { resolveKataGoRuntime } from './katagoRuntime'
-import { ensurePythonRuntime } from './pythonRuntime'
+import { ensurePythonRuntime, reviewScriptPath } from './pythonRuntime'
 import { ensureFoxGameDownloaded } from './fox'
 
 interface PythonReviewOutput {
@@ -30,7 +30,7 @@ export async function runReview(request: ReviewRequest): Promise<ReviewResult> {
   mkdirSync(reviewRoot, { recursive: true })
 
   const args = [
-    join(process.cwd(), 'scripts', 'review_game.py'),
+    reviewScriptPath,
     '--sgf',
     game.filePath,
     '--out-dir',
@@ -59,8 +59,9 @@ export async function runReview(request: ReviewRequest): Promise<ReviewResult> {
 
   const output = await new Promise<PythonReviewOutput>((resolve, reject) => {
     const child = spawn(pythonBin, args, {
-      cwd: process.cwd(),
-      env: { ...process.env }
+      cwd: reviewRoot,
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
+      windowsHide: true
     })
 
     let stdout = ''

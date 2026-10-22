@@ -49,16 +49,16 @@ KataGo 是事实裁判，LLM 是讲棋老师。GoAgent 的目标是让学生不�
 
 当前发布版本：
 
-[GoAgent v0.4.21](https://github.com/wimi321/GoAgent/releases/tag/v0.4.21)
+[GoAgent v0.4.22](https://github.com/wimi321/GoAgent/releases/tag/v0.4.22)
 
 | 平台 | 下载 |
 | --- | --- |
-| macOS Apple Silicon | [GoAgent-0.4.21-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-arm64.dmg) |
-| macOS Intel | [GoAgent-0.4.21-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-mac-x64.dmg) |
-| Windows x64 标准版免安装 ZIP | [GoAgent-0.4.21-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-portable.zip) |
-| Windows x64 标准版安装包 | [GoAgent-0.4.21-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64.exe) |
-| Windows x64 NVIDIA 免安装 7z | [GoAgent-0.4.21-win-x64-nvidia-portable.7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia-portable.7z) |
-| Windows x64 NVIDIA 安装包 | [GoAgent-0.4.21-win-x64-nvidia.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.21/GoAgent-0.4.21-win-x64-nvidia.exe) |
+| macOS Apple Silicon | [GoAgent-0.4.22-mac-arm64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-arm64.dmg) |
+| macOS Intel | [GoAgent-0.4.22-mac-x64.dmg](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-mac-x64.dmg) |
+| Windows x64 标准版免安装 ZIP | [GoAgent-0.4.22-win-x64-portable.zip](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-portable.zip) |
+| Windows x64 标准版安装包 | [GoAgent-0.4.22-win-x64.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64.exe) |
+| Windows x64 NVIDIA 免安装 7z | [GoAgent-0.4.22-win-x64-nvidia-portable.7z](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia-portable.7z) |
+| Windows x64 NVIDIA 安装包 | [GoAgent-0.4.22-win-x64-nvidia.exe](https://github.com/wimi321/GoAgent/releases/download/v0.4.22/GoAgent-0.4.22-win-x64-nvidia.exe) |
 
 发布说明：
 

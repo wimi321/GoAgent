@@ -25,19 +25,41 @@ interface ActiveIKataGoProcess {
 
 const activeIKataGoProcesses = new Map<string, ActiveIKataGoProcess>()
 
-function splitCommandLine(input: string): string[] {
+export function splitCommandLine(input: string, platform: NodeJS.Platform = process.platform): string[] {
   const args: string[] = []
   let current = ''
   let quote: '"' | "'" | '' = ''
   let escaping = false
-  for (const char of input) {
+  let started = false
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index]
     if (escaping) {
       current += char
+      started = true
       escaping = false
       continue
     }
-    if (char === '\\') {
+    if (char === '\\' && platform === 'win32') {
+      // Windows paths use literal backslashes. Only a run immediately before a
+      // double quote has escaping semantics (the Windows argv convention).
+      let end = index + 1
+      while (input[end] === '\\') end += 1
+      const count = end - index
+      if (input[end] === '"' && quote !== "'") {
+        current += '\\'.repeat(Math.floor(count / 2))
+        if (count % 2) current += '"'
+        else quote = quote === '"' ? '' : '"'
+        index = end
+      } else {
+        current += '\\'.repeat(count)
+        index = end - 1
+      }
+      started = true
+      continue
+    }
+    if (char === '\\' && quote !== "'") {
       escaping = true
+      started = true
       continue
     }
     if (quote) {
@@ -47,19 +69,22 @@ function splitCommandLine(input: string): string[] {
     }
     if (char === '"' || char === "'") {
       quote = char
+      started = true
       continue
     }
     if (/\s/.test(char)) {
-      if (current) {
+      if (started) {
         args.push(current)
         current = ''
+        started = false
       }
       continue
     }
     current += char
+    started = true
   }
   if (escaping) current += '\\'
-  if (current) args.push(current)
+  if (started) args.push(current)
   return args
 }
 
