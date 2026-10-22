@@ -141,6 +141,10 @@ export async function queryKataGoPersistentBatch(request: PersistentKataGoBatchR
   })
   const engine = engineForCommand(request.command)
   await ensureEngineStarted(engine)
+  if (!engine.child) {
+    // The process exited after the startup grace period but before this batch was queued.
+    throw new Error(engine.stderr.trim() || 'Persistent KataGo engine exited before the query was sent')
+  }
   engine.lastUsedAt = Date.now()
 
   return new Promise((resolve, reject) => {
@@ -201,7 +205,7 @@ async function ensureEngineStarted(engine: PersistentEngine): Promise<void> {
   if (engine.starting) return engine.starting
   engine.starting = new Promise<void>((resolve, reject) => {
     const [binary, ...args] = engine.command
-    const child = spawn(binary, args, { stdio: ['pipe', 'pipe', 'pipe'] })
+    const child = spawn(binary, args, { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
     engine.child = child
     engine.stdout = ''
     engine.stderr = ''
@@ -212,10 +216,16 @@ async function ensureEngineStarted(engine: PersistentEngine): Promise<void> {
       if (engine.child === child && !child.killed) resolve()
     }, 250)
 
-    child.stdout.on('data', (chunk) => readStdout(engine, String(chunk)))
-    child.stderr.on('data', (chunk) => {
-      engine.stderr = (engine.stderr + String(chunk)).slice(-20_000)
+    // A process that was replaced by restartEngine() must not feed or fail the new one.
+    child.stdout.on('data', (chunk) => {
+      if (engine.child === child) readStdout(engine, String(chunk))
     })
+    child.stderr.on('data', (chunk) => {
+      if (engine.child === child) engine.stderr = (engine.stderr + String(chunk)).slice(-20_000)
+    })
+    // Writes to a process that already exited fail asynchronously with EPIPE; without a
+    // listener that becomes an uncaught exception in the main process. 'close' reports it.
+    child.stdin.on('error', () => undefined)
     child.once('error', (error) => {
       clearTimeout(startupTimer)
       if (engine.child === child) engine.child = null
@@ -224,9 +234,13 @@ async function ensureEngineStarted(engine: PersistentEngine): Promise<void> {
     })
     child.once('close', (code) => {
       clearTimeout(startupTimer)
-      if (engine.child === child) engine.child = null
+      const wasCurrent = engine.child === child
+      if (wasCurrent) engine.child = null
       const error = new Error(engine.stderr.trim() || `Persistent KataGo engine exited with ${code}`)
-      rejectAll(engine, error)
+      // Exiting during the startup grace period (bad model, missing library, GPU init
+      // failure) must fail the start, otherwise every later query waits on it forever.
+      reject(error)
+      if (wasCurrent || !engine.child) rejectAll(engine, error)
     })
   }).finally(() => {
     engine.starting = null

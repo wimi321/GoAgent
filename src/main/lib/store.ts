@@ -186,13 +186,19 @@ export const profileStore = new Store<Record<string, unknown>>({
 })
 
 const localSecretKeyPath = join(appHome, 'secrets.key')
+// scrypt is deliberately slow (~50 ms per call) and getSettings() decrypts every stored secret,
+// so deriving the key on each call blocked the main process for seconds during analysis.
+let derivedLocalSecretKey: { seed: string; key: Buffer } | null = null
 
 function localSecretKey(): Buffer {
   if (!existsSync(localSecretKeyPath)) {
     writeFileSync(localSecretKeyPath, randomBytes(32).toString('base64'), { mode: 0o600 })
   }
   const seed = readFileSync(localSecretKeyPath, 'utf8').trim()
-  return scryptSync(seed, 'goagent-local-secret-store-v1', 32)
+  if (derivedLocalSecretKey?.seed !== seed) {
+    derivedLocalSecretKey = { seed, key: scryptSync(seed, 'goagent-local-secret-store-v1', 32) }
+  }
+  return derivedLocalSecretKey.key
 }
 
 function encryptSecret(value: string): SecretValue {

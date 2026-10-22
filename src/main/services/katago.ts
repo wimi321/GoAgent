@@ -147,6 +147,11 @@ function isKataGoTimeoutError(error: unknown): boolean {
   return /KataGo 分析超时|timed out|timeout/i.test(String(error))
 }
 
+// The spawn path reports Chinese messages while the persistent engine reports English ones.
+function isKataGoCancelledError(error: unknown): boolean {
+  return /已取消|cancelled|canceled/i.test(String(error))
+}
+
 export function cancelKataGoAnalysis(filter: { runId?: string; group?: KataGoAnalysisGroup }): { cancelled: number } {
   let cancelled = 0
   cancelled += cancelPersistentKataGoAnalysis(filter).cancelled
@@ -655,7 +660,8 @@ async function queryKataGoBatch(
   let child: ChildProcessWithoutNullStreams
   try {
     child = spawn(command[0], command.slice(1), {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true
     })
   } catch (error) {
     const normalizedError = normalizeLocalKataGoProcessError(error, command[0])
@@ -681,6 +687,9 @@ async function queryKataGoBatch(
   child.stderr.on('data', (chunk) => {
     stderr += String(chunk)
   })
+  // Writing the batch to a KataGo that already exited fails asynchronously with EPIPE;
+  // the 'close' handler below reports the failure, so the write error itself is ignored.
+  child.stdin.on('error', () => undefined)
 
   const localSpawnPromise = new Promise<Map<string, KataGoResponse>>((resolve, reject) => {
     let settled = false
@@ -1139,7 +1148,7 @@ export async function analyzePositionWithProgress(
       onSearchProgress: onlyKataGoSearchProgressFor(beforeId, onSearchProgress)
     })
   } catch (error) {
-    if (String(error).includes('已取消')) {
+    if (isKataGoCancelledError(error)) {
       if (latestBefore?.rootInfo && latestAfter?.rootInfo) {
         const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, latestBefore, latestAfter, latestActual)
         onProgress?.(partial, true)
@@ -1147,7 +1156,7 @@ export async function analyzePositionWithProgress(
       }
       throw error
     }
-    if (String(error).includes('KataGo 分析超时') && latestBefore?.rootInfo && latestAfter?.rootInfo) {
+    if (isKataGoTimeoutError(error) && latestBefore?.rootInfo && latestAfter?.rootInfo) {
       const partial = buildMoveAnalysis(gameId, moveNumber, record.boardSize, currentMove, beforeSideToMove, afterSideToMove, latestBefore, latestAfter, latestActual)
       onProgress?.(partial, true)
       return partial
@@ -1310,7 +1319,7 @@ export async function analyzeTrialPositionWithProgress(
       onSearchProgress: onlyKataGoSearchProgressFor(beforeId, input.onSearchProgress)
     })
   } catch (error) {
-    if ((String(error).includes('已取消') || String(error).includes('KataGo 分析超时')) && latestBefore?.rootInfo && latestAfter?.rootInfo) {
+    if ((isKataGoCancelledError(error) || isKataGoTimeoutError(error)) && latestBefore?.rootInfo && latestAfter?.rootInfo) {
       const partial = buildTrialAnalysis(latestBefore, latestAfter, latestActual)
       onProgress?.(partial, true)
       return partial

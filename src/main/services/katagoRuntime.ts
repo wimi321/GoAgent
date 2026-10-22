@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFile, execFileSync } from 'node:child_process'
 import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import { basename, join } from 'node:path'
@@ -229,7 +229,21 @@ function firstExisting(paths: string[]): string {
   return unique(paths).find((path) => existsSync(path)) ?? ''
 }
 
-const binaryProbeCache = new Map<string, { ok: boolean; note: string; version: string }>()
+type BinaryProbe = { ok: boolean; note: string; version: string }
+
+const binaryProbeCache = new Map<string, BinaryProbe>()
+// Probes that timed out keep running in the background: the first launch of a freshly
+// downloaded engine can wait on the OS malware scan (Gatekeeper/XProtect, Defender) for
+// far longer than the synchronous probe may block the main process.
+const pendingBinaryProbes = new Set<string>()
+const BINARY_PROBE_TIMEOUT_MS = 5000
+const BACKGROUND_BINARY_PROBE_TIMEOUT_MS = 180_000
+const WINDOWS_LOADER_FAILURES: Record<number, string> = {
+  0xc0000135: '缺少 DLL 依赖',
+  0xc000007b: 'DLL 与程序架构不匹配',
+  0xc0000139: 'DLL 入口点缺失，可能是版本不匹配',
+  0xc0000142: 'DLL 初始化失败'
+}
 let lastBinaryRejectionNotes: string[] = []
 let lastBinaryVersion = ''
 
@@ -280,19 +294,58 @@ function binaryProbeCacheKey(path: string): string {
   }
 }
 
+function exitStatusHint(status: unknown): string {
+  if (typeof status !== 'number' || status === 0) return ''
+  const unsigned = status >>> 0
+  if (unsigned <= 0xffff) return `退出码 ${status}`
+  const known = WINDOWS_LOADER_FAILURES[unsigned]
+  return `退出码 0x${unsigned.toString(16).toUpperCase().padStart(8, '0')}${known ? `（${known}）` : ''}`
+}
+
 function shortProbeError(error: unknown): string {
-  const detail = error as { stderr?: Buffer | string; stdout?: Buffer | string; message?: string; code?: string }
+  const detail = error as { stderr?: Buffer | string; stdout?: Buffer | string; message?: string; code?: string; status?: number | null }
   const text = String(detail.stderr || detail.stdout || detail.message || detail.code || error)
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
+  // The exit status goes first: a Windows loader failure prints nothing and would
+  // otherwise surface only as a generic "Command failed".
+  return [exitStatusHint(detail.status), ...text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).slice(0, 2)]
     .filter(Boolean)
-    .slice(0, 2)
     .join('；')
     .slice(0, 220)
 }
 
-function probeKataGoBinary(path: string, minimumVersion = ''): { ok: boolean; note: string; version: string } {
+function versionBinaryProbe(path: string, output: string): BinaryProbe {
+  const version = parseKataGoVersion(output)
+  return version
+    ? { ok: true, note: '', version }
+    : { ok: false, note: `跳过无法识别版本的 KataGo: ${path}`, version: '' }
+}
+
+function failedBinaryProbe(path: string, error: unknown): BinaryProbe {
+  return {
+    ok: false,
+    note: `跳过无法启动的 KataGo: ${path}（${shortProbeError(error)}）`,
+    version: ''
+  }
+}
+
+function pendingBinaryProbe(path: string): BinaryProbe {
+  return {
+    ok: false,
+    note: `KataGo 首次启动校验中，系统安全扫描可能需要一两分钟: ${path}`,
+    version: ''
+  }
+}
+
+function verifyKataGoBinaryInBackground(path: string, cacheKey: string): void {
+  if (pendingBinaryProbes.has(cacheKey)) return
+  pendingBinaryProbes.add(cacheKey)
+  execFile(path, ['version'], { encoding: 'utf8', timeout: BACKGROUND_BINARY_PROBE_TIMEOUT_MS, windowsHide: true }, (error, stdout) => {
+    pendingBinaryProbes.delete(cacheKey)
+    binaryProbeCache.set(cacheKey, error ? failedBinaryProbe(path, error) : versionBinaryProbe(path, String(stdout)))
+  })
+}
+
+function probeKataGoBinary(path: string, minimumVersion = ''): BinaryProbe {
   if (!path || !existsSync(path)) return { ok: false, note: '', version: '' }
   if (isAsarPath(path)) return { ok: false, note: `跳过 app.asar 内的 KataGo: ${path}`, version: '' }
   if (!platformCompatibleBinaryPath(path)) return { ok: false, note: `跳过不匹配当前系统的 KataGo: ${path}`, version: '' }
@@ -312,28 +365,31 @@ function probeKataGoBinary(path: string, minimumVersion = ''): { ok: boolean; no
     }
     return cached
   }
+  if (pendingBinaryProbes.has(cacheKey)) {
+    return pendingBinaryProbe(path)
+  }
 
   try {
     const output = execFileSync(path, ['version'], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 5000
+      timeout: BINARY_PROBE_TIMEOUT_MS,
+      windowsHide: true
     })
-    const version = parseKataGoVersion(String(output))
-    const result = version
-      ? { ok: true, note: '', version }
-      : { ok: false, note: `跳过无法识别版本的 KataGo: ${path}`, version: '' }
+    const result = versionBinaryProbe(path, String(output))
     binaryProbeCache.set(cacheKey, result)
-    if (result.ok && minimumVersion && !kataGoVersionSatisfies(version, minimumVersion)) {
-      return { ok: false, note: `跳过版本过旧的 KataGo ${version}（需要 ${minimumVersion}+）: ${path}`, version }
+    if (result.ok && minimumVersion && !kataGoVersionSatisfies(result.version, minimumVersion)) {
+      return { ok: false, note: `跳过版本过旧的 KataGo ${result.version}（需要 ${minimumVersion}+）: ${path}`, version: result.version }
     }
     return result
   } catch (error) {
-    const result = {
-      ok: false,
-      note: `跳过无法启动的 KataGo: ${path}（${shortProbeError(error)}）`,
-      version: ''
+    if ((error as { code?: string }).code === 'ETIMEDOUT') {
+      // A timeout is not a verdict. Caching it would report "KataGo missing" for the
+      // whole session even though the engine works once the OS scan finishes.
+      verifyKataGoBinaryInBackground(path, cacheKey)
+      return pendingBinaryProbe(path)
     }
+    const result = failedBinaryProbe(path, error)
     binaryProbeCache.set(cacheKey, result)
     return result
   }
@@ -420,12 +476,22 @@ function modelResourceRoots(): string[] {
   return unique([join(appHome, 'katago'), ...packagedResourceRoots()])
 }
 
+// Runtime resolution happens on every analysis batch; PATH rarely changes, so avoid a
+// synchronous `which` spawn each time.
+let pathKatagoLookup: { value: string; checkedAt: number } | null = null
+
 function pathKatago(): string {
-  try {
-    return execFileSync('/usr/bin/which', ['katago'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
-  } catch {
-    return ''
+  if (pathKatagoLookup && Date.now() - pathKatagoLookup.checkedAt < 60_000) {
+    return pathKatagoLookup.value
   }
+  let value = ''
+  try {
+    value = execFileSync('/usr/bin/which', ['katago'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  } catch {
+    value = ''
+  }
+  pathKatagoLookup = { value, checkedAt: Date.now() }
+  return value
 }
 
 function binaryCandidates(): string[] {

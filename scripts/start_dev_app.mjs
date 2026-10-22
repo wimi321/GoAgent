@@ -46,6 +46,9 @@ function findFirstApp(directory) {
 
 if (process.platform === 'darwin') {
   if (!skipBuild) {
+    // The afterPack hook embeds the checksummed Codex App Server runtime and fails on a
+    // fresh clone without it. The script is a no-op once the binary is verified.
+    run('node', ['scripts/prepare_codex_runtime.mjs', `--platform=${process.platform}-${process.arch}`])
     run('pnpm', ['exec', 'electron-vite', 'build'])
     run(
       'pnpm',

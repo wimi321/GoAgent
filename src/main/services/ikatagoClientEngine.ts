@@ -127,7 +127,9 @@ function responseErrorHint(stderr: string, stdoutLine?: string): string {
 export async function queryIKataGoAnalysisBatch(request: IKataGoAnalysisBatchRequest): Promise<Map<string, IKataGoAnalysisResponse>> {
   if (!request.queries.length) return new Map()
   const command = buildIKataGoAnalysisCommand(request.settings)
-  const child = spawn(command[0], command.slice(1), { stdio: ['pipe', 'pipe', 'pipe'] })
+  const child = spawn(command[0], command.slice(1), { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true })
+  // EPIPE from writing to a client that already exited is reported through 'close'.
+  child.stdin.on('error', () => undefined)
   const runId = request.runId || `ikatago-${Date.now()}-${Math.random().toString(36).slice(2)}`
   const activeEntry: ActiveIKataGoProcess = { child, group: request.group, cancelled: false }
   activeIKataGoProcesses.set(runId, activeEntry)

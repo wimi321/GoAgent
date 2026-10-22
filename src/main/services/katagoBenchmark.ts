@@ -102,7 +102,7 @@ function runBenchmarkCommand(
   onChild?: (child: ChildProcess) => void
 ): Promise<string> {
   if (signal?.aborted) return Promise.reject(new BenchmarkCancelledError())
-  const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+  const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
   onChild?.(child)
   let output = ''
   child.stdout?.on('data', (chunk) => { output += String(chunk) })
