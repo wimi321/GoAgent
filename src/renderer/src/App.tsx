@@ -63,6 +63,7 @@ import { UiGallery } from './features/gallery/UiGallery'
 import { StudentBindingDialog } from './features/student/StudentBindingDialog'
 import { StudentRailCard } from './features/student/StudentRailCard'
 import { KataGoAssetsPanel } from './features/settings/KataGoAssetsPanel'
+import { KataGoCustomEnginePanel } from './features/settings/KataGoCustomEnginePanel'
 import { ZhiziCloudSettingsPanel, zhiziSettingsNavCopy } from './features/settings/ZhiziCloudSettingsPanel'
 import { TeacherSpeechControls } from './features/tts/TeacherSpeechControls'
 import { TtsSettingsPanel } from './features/tts/TtsSettingsPanel'
@@ -88,6 +89,9 @@ const emptyDashboard: DashboardData = {
     katagoBin: '',
     katagoConfig: '',
     katagoModel: '',
+    katagoCustomBin: '',
+    katagoCustomModel: '',
+    katagoCustomConfig: '',
     katagoModelPreset: 'official-transformer-balanced',
     katagoAnalysisThreads: 0,
     katagoSearchThreadsPerAnalysisThread: 1,
@@ -918,7 +922,9 @@ export function App(): ReactElement {
   }
 
   function analysisCacheKeyForGame(gameId: string): string {
+    const customModel = dashboard.settings.katagoCustomModel?.trim()
     const modelKey =
+      (customModel ? `custom:${customModel}` : '') ||
       dashboard.settings.katagoModelPreset ||
       dashboard.systemProfile.katagoModelPreset ||
       dashboard.settings.katagoModel ||
@@ -1226,7 +1232,7 @@ export function App(): ReactElement {
   useEffect(() => {
     selectedGameIdRef.current = selectedGame?.id ?? ''
     selectedEvaluationCacheKeyRef.current = selectedGame ? analysisCacheKeyForGame(selectedGame.id) : ''
-  }, [selectedGame?.id, dashboard.settings.katagoModelPreset, dashboard.settings.katagoModel])
+  }, [selectedGame?.id, dashboard.settings.katagoModelPreset, dashboard.settings.katagoModel, dashboard.settings.katagoCustomModel])
 
   useEffect(() => {
     if (!selectedGame) {
@@ -1719,6 +1725,14 @@ export function App(): ReactElement {
     const next = await window.goagent.updateSettings({ katagoAutoBenchmarkEnabled: enabled })
     setDashboard(next)
     if (enabled) autoBenchmarkAttemptRef.current = ''
+  }
+
+  function handleKataGoEngineChanged(): void {
+    if (!selectedGame || !record) return
+    pauseLiveAnalysis('KataGo 引擎已更新，准备重新分析')
+    setAnalysis(null)
+    setEvaluations({})
+    setModelSwitchReanalysis({ gameId: selectedGame.id, moveNumber, startLive: true })
   }
 
   async function installOfficialKataGoModel(presetId: KataGoModelPresetId): Promise<void> {
@@ -3352,6 +3366,7 @@ export function App(): ReactElement {
           onPauseKataGoInstall={() => void pauseKataGoAssetInstall()}
           onRefreshKataGoAssets={() => void refreshKataGoAssets()}
           onDashboardUpdated={setDashboard}
+          onKataGoEngineChanged={handleKataGoEngineChanged}
         />
       </div>
       <StudentBindingDialog
@@ -3663,6 +3678,7 @@ function DesktopPreferencesModal({
   onPauseKataGoInstall,
   onRefreshKataGoAssets,
   onDashboardUpdated,
+  onKataGoEngineChanged,
   t
 }: {
   open: boolean
@@ -3685,6 +3701,7 @@ function DesktopPreferencesModal({
   onPauseKataGoInstall: () => void
   onRefreshKataGoAssets: () => void
   onDashboardUpdated: (dashboard: DashboardData) => void
+  onKataGoEngineChanged: () => void
   t: UiTranslator
 }): ReactElement | null {
   if (!open) {
@@ -3729,6 +3746,7 @@ function DesktopPreferencesModal({
           onPauseKataGoInstall={onPauseKataGoInstall}
           onRefreshKataGoAssets={onRefreshKataGoAssets}
           onDashboardUpdated={onDashboardUpdated}
+          onKataGoEngineChanged={onKataGoEngineChanged}
           t={t}
         />
       </section>
@@ -4721,7 +4739,8 @@ function SettingsDrawer({
   onInstallOfficialModel,
   onPauseKataGoInstall,
   onRefreshKataGoAssets,
-  onDashboardUpdated
+  onDashboardUpdated,
+  onKataGoEngineChanged
 }: {
   dashboard: DashboardData
   katagoAssets: KataGoAssetStatus | null
@@ -4742,6 +4761,7 @@ function SettingsDrawer({
   onPauseKataGoInstall: () => void
   onRefreshKataGoAssets: () => void
   onDashboardUpdated: (dashboard: DashboardData) => void
+  onKataGoEngineChanged: () => void
 }): ReactElement {
   const [refreshedLlmModels, setRefreshedLlmModels] = useState<string[]>([])
   const [llmModelsFetched, setLlmModelsFetched] = useState(false)
@@ -5273,6 +5293,13 @@ function SettingsDrawer({
           onPause={onPauseKataGoInstall}
           onRefresh={onRefreshKataGoAssets}
           t={t}
+        />
+        <KataGoCustomEnginePanel
+          dashboard={dashboard}
+          busy={busy !== ''}
+          t={t}
+          onDashboardUpdated={onDashboardUpdated}
+          onEngineChanged={onKataGoEngineChanged}
         />
         <KataGoBenchmarkPanel
           settings={dashboard.settings}

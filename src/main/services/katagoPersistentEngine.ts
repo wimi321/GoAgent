@@ -43,6 +43,9 @@ interface PersistentEngine {
 
 const engines = new Map<string, PersistentEngine>()
 let batchCounter = 0
+// Every query uses the command built from the current settings. Engines left over from
+// a previous binary, model or config would otherwise keep a network loaded until quit.
+let currentCommandKey = ''
 
 export function persistentKataGoEngineEnabled(): boolean {
   if (process.env.GOAGENT_KATAGO_ENGINE_POOL === '0' || process.env.GOAGENT_KATAGO_PERSISTENT_ENGINE === '0') {
@@ -70,13 +73,22 @@ export function persistentKataGoFallbackEnabled(): boolean {
   }
 }
 
-export function stopPersistentKataGoEngines(): void {
-  for (const engine of engines.values()) {
-    rejectAll(engine, new Error('Persistent KataGo engine stopped'))
-    engine.child?.kill()
-    engine.child = null
+function stopEngine(engine: PersistentEngine): void {
+  rejectAll(engine, new Error('Persistent KataGo engine stopped'))
+  const child = engine.child
+  engine.child = null
+  child?.kill()
+  engines.delete(engine.commandKey)
+}
+
+function stopIdleStaleEngines(): void {
+  for (const engine of [...engines.values()]) {
+    if (engine.commandKey !== currentCommandKey && engine.pending.size === 0) stopEngine(engine)
   }
-  engines.clear()
+}
+
+export function stopPersistentKataGoEngines(): void {
+  for (const engine of [...engines.values()]) stopEngine(engine)
 }
 
 export function cancelPersistentKataGoAnalysis(filter: { runId?: string; group?: KataGoAnalysisGroup }): { cancelled: number } {
@@ -183,6 +195,10 @@ export async function queryKataGoPersistentBatch(request: PersistentKataGoBatchR
 
 function engineForCommand(command: string[]): PersistentEngine {
   const commandKey = JSON.stringify(command)
+  if (commandKey !== currentCommandKey) {
+    currentCommandKey = commandKey
+    stopIdleStaleEngines()
+  }
   const current = engines.get(commandKey)
   if (current) return current
   const next: PersistentEngine = {
@@ -281,6 +297,7 @@ function routeResponse(engine: PersistentEngine, response: PersistentKataGoRespo
       clearTimeout(batch.timer)
       engine.pending.delete(batch.id)
       batch.resolve(new Map(batch.results))
+      if (engine.commandKey !== currentCommandKey && engine.pending.size === 0) stopEngine(engine)
     }
     return
   }

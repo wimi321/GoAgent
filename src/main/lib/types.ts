@@ -113,6 +113,10 @@ export interface AppSettings {
   katagoBin: string
   katagoConfig: string
   katagoModel: string
+  /** User-chosen KataGo files. Detection never overwrites them; empty means automatic. */
+  katagoCustomBin: string
+  katagoCustomModel: string
+  katagoCustomConfig: string
   katagoModelPreset: KataGoModelPresetId
   katagoAnalysisThreads: number
   katagoSearchThreadsPerAnalysisThread: number
@@ -1490,6 +1494,35 @@ export interface LlmCapabilityCheck {
   ok: boolean
   message: string
   technicalDetail?: string
+}
+
+export type KataGoCustomPathKind = 'binary' | 'model' | 'config'
+
+export interface KataGoCustomPathPickRequest {
+  kind: KataGoCustomPathKind
+  title: string
+}
+
+export interface KataGoCustomPathPickResult {
+  canceled: boolean
+  path: string
+}
+
+export interface KataGoCustomEngineCheckRequest {
+  katagoCustomBin: string
+  katagoCustomModel: string
+  katagoCustomConfig: string
+}
+
+export interface KataGoCustomEngineCheckResult {
+  ok: boolean
+  binaryPath: string
+  modelPath: string
+  configPath: string
+  engineVersion: string
+  elapsedMs: number
+  message: string
+  detail: string
 }
 
 export interface LlmModelsListRequest {

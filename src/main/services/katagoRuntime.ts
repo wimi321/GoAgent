@@ -591,29 +591,71 @@ function ensureAnalysisConfig(settings?: AppSettings): string {
   return configPath
 }
 
+export const CUSTOM_KATAGO_MODEL_STATUS = '自定义模型'
+
 export function resolveKataGoRuntime(settings?: AppSettings): KataGoRuntime {
   const modelPreset = getKataGoModelPreset(settings?.katagoModelPreset)
-  const katagoBin = firstExistingBinary([...binaryCandidates(), settings?.katagoBin ?? ''], modelPreset.minimumEngineVersion)
-  const katagoConfig = ensureAnalysisConfig(settings)
-  const katagoModel = firstExisting(modelCandidates(modelPreset, settings))
   const notes: string[] = []
 
+  // User-chosen files come first. When one is unusable, analysis falls back to the
+  // automatic choice and the note explains why instead of failing outright.
+  const customModelPath = settings?.katagoCustomModel?.trim() ?? ''
+  const customModel = customModelPath && existsSync(customModelPath) ? customModelPath : ''
+  if (customModelPath && !customModel) {
+    notes.push(`自定义模型不存在，已改用自动选择的模型: ${customModelPath}`)
+  }
+  // A user-chosen network may be older than the preset's minimum engine version.
+  const minimumVersion = customModel ? '' : modelPreset.minimumEngineVersion
+
+  const customBinPath = settings?.katagoCustomBin?.trim() ?? ''
+  let katagoBin = ''
+  let engineVersion = ''
+  let binaryRejections: string[] = []
+  if (customBinPath) {
+    const probe = probeKataGoBinary(customBinPath, minimumVersion)
+    if (probe.ok) {
+      katagoBin = customBinPath
+      engineVersion = probe.version
+    } else {
+      notes.push(`自定义 KataGo 不可用，已改用自动检测的引擎: ${probe.note || `文件不存在: ${customBinPath}`}`)
+    }
+  }
+  if (!katagoBin) {
+    katagoBin = firstExistingBinary([...binaryCandidates(), settings?.katagoBin ?? ''], minimumVersion)
+    engineVersion = lastBinaryVersion
+    binaryRejections = lastBinaryRejectionNotes.slice(0, 3)
+  }
+
+  const customConfigPath = settings?.katagoCustomConfig?.trim() ?? ''
+  const generatedConfig = ensureAnalysisConfig(settings)
+  const katagoConfig = customConfigPath && existsSync(customConfigPath) ? customConfigPath : generatedConfig
+  if (customConfigPath && katagoConfig !== customConfigPath) {
+    notes.push(`自定义配置不存在，已改用内置分析配置: ${customConfigPath}`)
+  }
+
+  const katagoModel = customModel || firstExisting(modelCandidates(modelPreset, settings))
+
   if (katagoBin) {
-    notes.push(`KataGo 引擎: ${basename(katagoBin)}${lastBinaryVersion ? ` v${lastBinaryVersion}` : ''}`)
+    notes.push(`KataGo 引擎: ${basename(katagoBin)}${engineVersion ? ` v${engineVersion}` : ''}${katagoBin === customBinPath ? '（自定义）' : ''}`)
   } else {
     notes.push('未找到内置 KataGo 引擎。')
   }
-  notes.push(...lastBinaryRejectionNotes.slice(0, 3))
+  notes.push(...binaryRejections)
 
-  const exactPreset = katagoModel ? basename(katagoModel) === modelPreset.fileName : false
-  if (katagoModel) {
+  const exactPreset = !customModel && katagoModel ? basename(katagoModel) === modelPreset.fileName : false
+  if (customModel) {
+    notes.push(`模型: ${basename(customModel)}（自定义）`)
+  } else if (katagoModel) {
     notes.push(exactPreset ? `模型: ${modelPreset.label}` : `模型: ${basename(katagoModel)}`)
   } else {
     notes.push(`缺少模型文件: ${modelPreset.fileName}`)
   }
+  if (katagoConfig === customConfigPath) {
+    notes.push(`分析配置: ${basename(katagoConfig)}（自定义）`)
+  }
 
   const ready = Boolean(katagoBin && katagoConfig && katagoModel)
-  const modelStatus = exactPreset ? modelPreset.label : '本机兼容模型'
+  const modelStatus = customModel ? CUSTOM_KATAGO_MODEL_STATUS : exactPreset ? modelPreset.label : '本机兼容模型'
   return {
     katagoBin,
     katagoConfig,

@@ -3951,6 +3951,53 @@ label,
   min-height: 30px;
 }
 
+.katago-custom-engine-card label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.katago-custom-engine-card input {
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+.katago-custom-engine-card__active {
+  display: grid;
+  gap: 3px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.katago-custom-engine-card__active span {
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.katago-custom-engine-card__active code {
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+}
+
+.katago-custom-engine-card__active small {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.katago-custom-engine-card pre {
+  max-height: 160px;
+  margin: 6px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+
 .katago-install-progress {
   display: grid;
   gap: 6px;

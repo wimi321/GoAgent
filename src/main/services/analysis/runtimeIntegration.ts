@@ -127,7 +127,9 @@ function runtimeFingerprints(): { modelFingerprint: string; configFingerprint: s
       settings.zhiziGpuType,
       settings.zhiziKataName,
       settings.zhiziKataWeight,
-      settings.zhiziToken ? 'zhizi-token-configured' : 'zhizi-token-empty'
+      settings.zhiziToken ? 'zhizi-token-configured' : 'zhizi-token-empty',
+      // Only a user-chosen engine is fingerprinted, so existing cache keys stay valid.
+      ...(settings.katagoCustomBin?.trim() ? [`custom-engine:${fileFingerprint(settings.katagoBin)}`] : [])
     ].join('\n')),
     configFingerprint: sha256([
       settings.katagoAnalysisThreads,
