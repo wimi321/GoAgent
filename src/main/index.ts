@@ -48,6 +48,7 @@ import { cancelTeacherRun, runTeacherTask } from './services/teacherAgent'
 import { listLlmModels, testLlmSettings } from './services/llm'
 import { disposeLlmProviders, inspectLlmConnection, logoutChatGpt, startChatGptLogin } from './services/llm/providerRegistry'
 import { analyzeTrialPositionWithProgress, cancelKataGoAnalysis } from './services/katago'
+import { stopPersistentKataGoEngines } from './services/katagoPersistentEngine'
 import { benchmarkKataGo, cancelKataGoBenchmark, startKataGoBenchmark } from './services/katagoBenchmark'
 import { getKataGoEnginePoolStats } from './services/katagoEnginePool'
 import { cancelScheduledAnalysis, getAnalysisSchedulerStats, runScheduledAnalysis } from './services/analysis/scheduler'
@@ -337,9 +338,22 @@ function buildApplicationMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
+// Detection awaits child processes, so anything saved meanwhile (a verified LLM test,
+// benchmark results, a new key) must survive: only the detected fields are written, onto
+// the latest settings, and nothing is rewritten when detection changed nothing.
+async function persistDetectedDefaults(): Promise<AppSettings> {
+  const before = getSettings()
+  const detected = await applyDetectedDefaults(before)
+  const changedKeys = (Object.keys(detected) as Array<keyof AppSettings>).filter(
+    (key) => JSON.stringify(detected[key]) !== JSON.stringify(before[key])
+  )
+  if (!changedKeys.length) return before
+  const changes = Object.fromEntries(changedKeys.map((key) => [key, detected[key]])) as Partial<AppSettings>
+  return replaceSettings({ ...getSettings(), ...changes })
+}
+
 async function dashboard(llmConnectionOverride?: LlmConnectionState): Promise<DashboardData> {
-  const hydratedSettings = await applyDetectedDefaults(getSettings())
-  replaceSettings(hydratedSettings)
+  const hydratedSettings = await persistDetectedDefaults()
   const detectedProfile = await detectSystemProfile(hydratedSettings)
   const llmConnection = llmConnectionOverride ?? await inspectLlmConnection(hydratedSettings)
   const currentSettings = getSettings()
@@ -375,8 +389,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('settings:auto-detect', async () => {
-    const next = await applyDetectedDefaults(getSettings())
-    replaceSettings(next)
+    await persistDetectedDefaults()
     return dashboard()
   })
 
@@ -843,4 +856,8 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   disposeLlmProviders()
   resetZhiziPersistentSession()
+  // KataGo keeps searching its queue after stdin closes; on Windows a lingering
+  // katago.exe also keeps the GPU busy and blocks updates from replacing it.
+  cancelKataGoAnalysis({})
+  stopPersistentKataGoEngines()
 })

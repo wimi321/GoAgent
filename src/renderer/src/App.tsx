@@ -854,6 +854,7 @@ export function App(): ReactElement {
   const [busy, setBusy] = useState('')
   const [graphBusy, setGraphBusy] = useState(false)
   const [graphProgress, setGraphProgress] = useState('')
+  const [modelSwitchReanalysis, setModelSwitchReanalysis] = useState<{ gameId: string; moveNumber: number; startLive: boolean } | null>(null)
   const [liveAnalysis, setLiveAnalysis] = useState<LiveAnalysisState>({
     running: false,
     status: '已暂停',
@@ -1243,6 +1244,19 @@ export function App(): ReactElement {
     void loadRecord(selectedGame.id)
   }, [selectedGame?.id])
 
+  // Re-analysis after a model change must run with the new settings: started from the
+  // saving closure it would file results under the old model's cache key and the graph
+  // would stay empty. This effect runs after the cache-key effect above.
+  useEffect(() => {
+    if (!modelSwitchReanalysis) return
+    setModelSwitchReanalysis(null)
+    if (!record || selectedGame?.id !== modelSwitchReanalysis.gameId) return
+    void warmupEvaluationGraph(modelSwitchReanalysis.gameId, modelSwitchReanalysis.moveNumber)
+    if (modelSwitchReanalysis.startLive && !userPausedLiveAnalysisRef.current) {
+      void startLiveAnalysis()
+    }
+  }, [modelSwitchReanalysis])
+
   useEffect(() => {
     const dispose = window.goagent.onDesktopCommand?.((command) => runDesktopCommand(command))
     return () => dispose?.()
@@ -1306,6 +1320,8 @@ export function App(): ReactElement {
         nextMove = rec.moves.length
       }
       if (nextMove < 0) return
+      // A live analysis queued by the previous step would reset the board to that move.
+      autoAnalysisRequestId.current = crypto.randomUUID()
       setMoveNumber(nextMove)
       moveNumberRef.current = nextMove
       clearTimeout(arrowDebounceRef.current)
@@ -1350,6 +1366,8 @@ export function App(): ReactElement {
         ...current,
         games: current.games.map((game) => (game.id === next.game.id ? next.game : game))
       }))
+      // Fox games download on first open; another game may have been selected meanwhile.
+      if (selectedGameIdRef.current !== gameId) return
       const cacheKey = analysisCacheKeyForGame(gameId)
       selectedEvaluationCacheKeyRef.current = cacheKey
       const cachedEvaluations = cachedEvaluationsForGame(gameId)
@@ -1637,7 +1655,7 @@ export function App(): ReactElement {
       if (selectedGame && record) {
         setAnalysis(null)
         setEvaluations({})
-        void warmupEvaluationGraph(selectedGame.id, moveNumber)
+        setModelSwitchReanalysis({ gameId: selectedGame.id, moveNumber, startLive: false })
       }
     } catch (cause) {
       setError(uiError(cause, 'settings'))
@@ -1718,10 +1736,7 @@ export function App(): ReactElement {
         pauseLiveAnalysis('KataGo 权重已更新，准备重新分析')
         setAnalysis(null)
         setEvaluations({})
-        void warmupEvaluationGraph(selectedGame.id, moveNumber)
-        if (!userPausedLiveAnalysisRef.current) {
-          void startLiveAnalysis()
-        }
+        setModelSwitchReanalysis({ gameId: selectedGame.id, moveNumber, startLive: true })
       }
     } catch (cause) {
       if (/KataGoAssetInstallPausedError|资源下载已暂停|資源下載已暫停/i.test(String(cause))) {

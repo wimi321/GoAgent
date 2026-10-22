@@ -11,6 +11,7 @@ import {
   rmSync,
   statSync
 } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { Readable } from 'node:stream'
@@ -30,6 +31,18 @@ async function sha256(path) {
   return hash.digest('hex')
 }
 
+// The pinned @openai/codex devDependency already installs the current platform's binary.
+// Reusing it (after the same checksum check) avoids downloading ~100 MB a second time.
+function installedRuntimePath(target, asset) {
+  try {
+    const codexPackage = createRequire(join(root, 'package.json')).resolve('@openai/codex/package.json')
+    const platformPackage = createRequire(codexPackage).resolve(`@openai/codex-${target}/package.json`)
+    return join(dirname(platformPackage), ...asset.archivePath.split('/').slice(1))
+  } catch {
+    return ''
+  }
+}
+
 async function download(url, destination) {
   const response = await fetch(url, { redirect: 'follow' })
   if (!response.ok || !response.body) throw new Error(`Codex runtime download failed: ${response.status} ${url}`)
@@ -42,6 +55,15 @@ for (const target of targets) {
   const destination = join(root, 'data', 'codex', 'bin', target, asset.executable)
   if (existsSync(destination) && statSync(destination).size === asset.bytes && await sha256(destination) === asset.sha256) {
     console.log(`[codex-runtime] ${target} already verified`)
+    continue
+  }
+
+  const installed = installedRuntimePath(target, asset)
+  if (installed && existsSync(installed) && statSync(installed).size === asset.bytes && await sha256(installed) === asset.sha256) {
+    mkdirSync(dirname(destination), { recursive: true })
+    copyFileSync(installed, destination)
+    if (!target.startsWith('win32-')) chmodSync(destination, 0o755)
+    console.log(`[codex-runtime] prepared ${target} from the installed @openai/codex package`)
     continue
   }
 

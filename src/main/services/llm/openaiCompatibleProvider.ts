@@ -54,14 +54,19 @@ async function fetchWithTimeout(
   } else {
     externalSignal?.addEventListener('abort', abortFromExternal, { once: true })
   }
+  // fetch resolves once headers arrive, so on success the abort listener stays attached
+  // (it is `once`, and the signal belongs to a single teacher run): cancelling must still
+  // stop a streamed body instead of letting the model keep generating and billing.
   try {
     return await fetch(url, {
       ...init,
       signal: controller.signal
     })
+  } catch (error) {
+    externalSignal?.removeEventListener('abort', abortFromExternal)
+    throw error
   } finally {
     clearTimeout(timer)
-    externalSignal?.removeEventListener('abort', abortFromExternal)
   }
 }
 

@@ -507,3 +507,44 @@ test('does not retry empty responses caused by content filtering', async () => {
     await cleanup()
   }
 })
+
+test('cancelling a teacher run stops a stream whose headers already arrived', async () => {
+  const { streamOpenAICompatibleToolTurn, cleanup } = await importProviderForTest()
+  let upstreamClosed
+  const upstreamClosedPromise = new Promise((resolve) => {
+    upstreamClosed = resolve
+  })
+  // The model keeps generating: one delta, then the stream stays open.
+  const server = createServer((request, response) => {
+    request.resume()
+    request.on('end', () => {
+      response.writeHead(200, { 'Content-Type': 'text/event-stream' })
+      response.write('data: {"choices":[{"delta":{"content":"第一句"},"finish_reason":null}]}\n\n')
+    })
+    response.on('close', () => upstreamClosed())
+  })
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const { port } = server.address()
+  const controller = new AbortController()
+  try {
+    const turn = streamOpenAICompatibleToolTurn(
+      settings(`http://127.0.0.1:${port}`),
+      [{ role: 'user', content: '讲一下这手棋' }],
+      [],
+      512,
+      () => controller.abort(new Error('老师任务已停止')),
+      controller.signal
+    )
+    let deadlineTimer
+    const deadline = new Promise((_, reject) => {
+      deadlineTimer = setTimeout(() => reject(new Error('stream kept running after cancel')), 3000)
+    })
+    await assert.rejects(Promise.race([turn, deadline]), /老师任务已停止/)
+    clearTimeout(deadlineTimer)
+    await upstreamClosedPromise
+  } finally {
+    server.closeAllConnections()
+    await new Promise((resolve) => server.close(resolve))
+    await cleanup()
+  }
+})

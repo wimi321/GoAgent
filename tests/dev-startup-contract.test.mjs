@@ -19,6 +19,11 @@ test('macOS dev startup uses a real unpacked app instead of raw Electron', () =>
   assert.equal(packageJson.scripts['dev:vite'], 'electron-vite dev')
 
   assert.match(script, /electron-builder/)
+  assert.ok(
+    script.indexOf('scripts/prepare_codex_runtime.mjs') > 0 &&
+      script.indexOf('scripts/prepare_codex_runtime.mjs') < script.lastIndexOf("'electron-builder'"),
+    'the packaged dev app needs the Codex runtime prepared before electron-builder runs'
+  )
   assert.match(script, /--mac/)
   assert.match(script, /dir/)
   assert.match(script, /-c\.directories\.output=\.dev-release/)

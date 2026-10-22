@@ -1593,8 +1593,11 @@ function rawError(error: unknown): string {
 
 function classifyUiError(raw: string): UiErrorKind {
   const lower = raw.toLowerCase()
-  if (/katago|model|engine|gtp|weights|network\.gz|opencl|cuda/.test(lower)) return 'katago'
-  if (/llm|openai|api key|base url|chat completions|unauthorized|401|403|model not found/.test(lower)) return 'llm'
+  if (/katago|gtp|weights|network\.gz|opencl|cuda/.test(lower)) return 'katago'
+  // LLM errors usually mention "model" ("unknown provider for model …"), so explicit LLM
+  // signals must be checked before the generic words below.
+  if (/llm|openai|api key|base url|chat completions|unauthorized|\b401\b|\b403\b|model not found|unknown provider/.test(lower)) return 'llm'
+  if (/model|engine/.test(lower)) return 'katago'
   if (/timeout|timed out/.test(lower)) return 'timeout'
   if (/fetch|network|dns|proxy|econn|socket/.test(lower)) return 'network'
   if (/sgf|棋谱|棋譜|record|parse/.test(lower)) return 'sgf'

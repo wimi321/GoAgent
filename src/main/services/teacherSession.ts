@@ -11,7 +11,10 @@ interface TeacherSessionStoreShape {
 const teacherSessionStore = new Store<TeacherSessionStoreShape>({
   name: 'teacher-sessions',
   cwd: appHome,
-  defaults: { sessions: [], activeSessionId: '' }
+  defaults: { sessions: [], activeSessionId: '' },
+  // Sessions carry full analysis results and grow to megabytes; the default tab-indented
+  // output roughly doubles the size that every save has to stringify and write.
+  serialize: (value) => JSON.stringify(value)
 })
 
 function nowIso(): string {
@@ -53,8 +56,9 @@ function sessionTitle(input?: Partial<TeacherSession>): string {
 
 function saveSessions(sessions: TeacherSession[], activeSessionId = teacherSessionStore.get('activeSessionId', '')): void {
   const compacted = sessions.filter((session) => session.id === activeSessionId || hasVisibleTeacherMessages(session))
-  teacherSessionStore.set('sessions', compacted.slice(0, 80))
-  teacherSessionStore.set('activeSessionId', activeSessionId)
+  // Replace the whole store in one write: each set() call re-reads, re-parses and rewrites
+  // the entire file, and these two fields are all the store holds.
+  teacherSessionStore.store = { sessions: compacted.slice(0, 80), activeSessionId }
 }
 
 export function listTeacherSessions(includeArchived = true): TeacherSession[] {
