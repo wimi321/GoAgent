@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, normalize } from 'node:path'
 import test from 'node:test'
@@ -15,7 +15,8 @@ async function loadTs(path, transform = (source) => source) {
 }
 
 async function workspace(t) {
-  const root = await mkdtemp(join(tmpdir(), 'goagent Windows 围棋 # '))
+  // Node and PowerShell may expand macOS /var aliases or Windows 8.3 paths.
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'goagent Windows 围棋 # ')))
   t.after(() => rm(root, { recursive: true, force: true }))
   await mkdir(join(root, 'scripts'), { recursive: true })
   return root
