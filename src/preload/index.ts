@@ -24,6 +24,10 @@ import type {
   KataGoBenchmarkProgress,
   KataGoCancelAnalysisRequest,
   KataGoCancelAnalysisResult,
+  KataGoCustomEngineCheckRequest,
+  KataGoCustomEngineCheckResult,
+  KataGoCustomPathPickRequest,
+  KataGoCustomPathPickResult,
   LibraryDeleteRequest,
   LibraryDeleteResult,
   LibraryImportResult,
@@ -121,6 +125,8 @@ const api = {
   inspectKataGoAssets: (): Promise<KataGoAssetStatus> => ipcRenderer.invoke('katago-assets:inspect'),
   installKataGoOfficialModel: (payload: KataGoAssetInstallRequest): Promise<KataGoAssetInstallResult> => ipcRenderer.invoke('katago-assets:install-official-model', payload),
   cancelKataGoAssetInstall: (): Promise<{ cancelled: boolean }> => ipcRenderer.invoke('katago-assets:cancel-install'),
+  pickKataGoCustomPath: (payload: KataGoCustomPathPickRequest): Promise<KataGoCustomPathPickResult> => ipcRenderer.invoke('katago:pick-custom-path', payload),
+  checkKataGoCustomEngine: (payload: KataGoCustomEngineCheckRequest): Promise<KataGoCustomEngineCheckResult> => ipcRenderer.invoke('katago:check-custom-engine', payload),
   onKataGoAssetInstallProgress: (handler: (payload: KataGoAssetInstallProgress) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, payload: KataGoAssetInstallProgress): void => handler(payload)
     ipcRenderer.on('katago-assets:install-progress', listener)

@@ -23,6 +23,10 @@ import type {
   KataGoBenchmarkProgress,
   KataGoCancelAnalysisRequest,
   KataGoCancelAnalysisResult,
+  KataGoCustomEngineCheckRequest,
+  KataGoCustomEngineCheckResult,
+  KataGoCustomPathPickRequest,
+  KataGoCustomPathPickResult,
   LibraryDeleteRequest,
   LibraryDeleteResult,
   LibraryImportResult,
@@ -106,6 +110,8 @@ declare global {
       inspectKataGoAssets: () => Promise<KataGoAssetStatus>
       installKataGoOfficialModel: (payload: KataGoAssetInstallRequest) => Promise<KataGoAssetInstallResult>
       cancelKataGoAssetInstall: () => Promise<{ cancelled: boolean }>
+      pickKataGoCustomPath: (payload: KataGoCustomPathPickRequest) => Promise<KataGoCustomPathPickResult>
+      checkKataGoCustomEngine: (payload: KataGoCustomEngineCheckRequest) => Promise<KataGoCustomEngineCheckResult>
       onKataGoAssetInstallProgress: (handler: (payload: KataGoAssetInstallProgress) => void) => () => void
       listStudentProfiles: () => Promise<StudentProfile[]>
       suggestStudentBindings: (payload: { blackName?: string; whiteName?: string; source?: string; foxNickname?: string }) => Promise<StudentBindingSuggestion[]>

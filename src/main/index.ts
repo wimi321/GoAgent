@@ -14,6 +14,10 @@ import type {
   KataGoBenchmarkRequest,
   KataGoBenchmarkStartRequest,
   KataGoCancelAnalysisRequest,
+  KataGoCustomEngineCheckRequest,
+  KataGoCustomPathKind,
+  KataGoCustomPathPickRequest,
+  KataGoCustomPathPickResult,
   LibraryDeleteRequest,
   LlmModelsListRequest,
   LlmSettingsTestRequest,
@@ -56,6 +60,7 @@ import { analyzeGameQuickRuntime, analyzePositionRuntime, analyzePositionWithPro
 import { collectDiagnostics } from './services/diagnostics'
 import { searchKnowledgeCards } from './services/knowledge/searchLocal'
 import { cancelKataGoAssetInstall, inspectKataGoAssets, installOfficialKataGoModel } from './services/katago/katagoAssets'
+import { checkCustomKataGoEngine } from './services/katago/customEngine'
 import { bindFoxGamesToStudent, bindSgfGameToStudent, suggestStudentBindings } from './services/library/studentBinding'
 import { deleteLibraryGame } from './services/library/deleteGame'
 import { inspectReleaseReadiness } from './services/release/readiness'
@@ -117,6 +122,21 @@ if (process.platform === 'win32' && process.env.GOAGENT_ENABLE_ELECTRON_GPU !== 
 
 function assetPath(fileName: string): string {
   return join(__dirname, '../../assets', fileName)
+}
+
+function customKataGoPathDialogOptions(payload: KataGoCustomPathPickRequest): Electron.OpenDialogOptions {
+  const allFiles = { name: 'All files', extensions: ['*'] }
+  const filters: Record<KataGoCustomPathKind, Electron.FileFilter[]> = {
+    // Unix KataGo binaries have no extension, so only Windows narrows the list.
+    binary: process.platform === 'win32' ? [{ name: 'KataGo', extensions: ['exe'] }, allFiles] : [],
+    model: [{ name: 'KataGo model', extensions: ['gz', 'bin'] }, allFiles],
+    config: [{ name: 'KataGo config', extensions: ['cfg'] }, allFiles]
+  }
+  return {
+    title: payload.title,
+    properties: ['openFile'],
+    filters: filters[payload.kind] ?? []
+  }
 }
 
 function assertManagedPath(filePath: string): string {
@@ -452,6 +472,16 @@ app.whenReady().then(() => {
     })
   )
   ipcMain.handle('katago-assets:cancel-install', () => ({ cancelled: cancelKataGoAssetInstall() }))
+  ipcMain.handle('katago:pick-custom-path', async (event, payload: KataGoCustomPathPickRequest): Promise<KataGoCustomPathPickResult> => {
+    const owner = BrowserWindow.fromWebContents(event.sender) ?? mainWindow ?? undefined
+    const dialogOptions = customKataGoPathDialogOptions(payload)
+    const picked = owner
+      ? await dialog.showOpenDialog(owner, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions)
+    const path = picked.canceled ? '' : picked.filePaths[0] ?? ''
+    return { canceled: !path, path }
+  })
+  ipcMain.handle('katago:check-custom-engine', async (_event, payload: KataGoCustomEngineCheckRequest) => checkCustomKataGoEngine(payload, getSettings()))
   ipcMain.handle('student:list', async () => listStudents())
   ipcMain.handle('student:suggest-bindings', async (_event, payload) => suggestStudentBindings(payload))
   ipcMain.handle('student:bind-sgf-game', async (_event, payload) => bindSgfGameToStudent(payload))
