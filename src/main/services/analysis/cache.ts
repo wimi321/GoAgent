@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { cacheDir } from '@main/lib/store'
 import type { AnalysisConfidence, KataGoMoveAnalysis, MoveClassificationSeverity, PvConfidenceLevel } from '@main/lib/types'
@@ -183,6 +183,13 @@ export function readAnalysisCache(input: AnalysisCacheKeyInput, requirement: Ana
     const entry = JSON.parse(readFileSync(path, 'utf8')) as AnalysisCacheEntry
     const rejected = cacheEntryMeetsRequirement(entry, requirement)
     if (rejected) return { ...rejected, path }
+    // Storage maintenance evicts games by file time, so a hit marks the entry as recently used.
+    try {
+      const now = new Date()
+      utimesSync(path, now, now)
+    } catch {
+      // Best effort only.
+    }
     return { status: 'hit', entry, path, reason: 'cache hit' }
   } catch (error) {
     return { status: 'corrupt', path, reason: String(error).slice(0, 300) }
@@ -209,8 +216,16 @@ export function writeAnalysisCache(input: AnalysisCacheKeyInput, analysis: KataG
     quality: qualityFromAnalysis(analysis)
   }
   mkdirSync(dirname(path), { recursive: true })
-  writeFileSync(path, JSON.stringify(entry, null, 2), 'utf8')
+  writeFileSync(path, JSON.stringify(entry), 'utf8')
   return entry
+}
+
+/** Removes every cached analysis of one game, across tiers, models and configs. */
+export function removeAnalysisCacheForGame(gameFingerprint: string, root = analysisCacheRoot()): void {
+  const gameKey = sha256(gameFingerprint).slice(0, 12)
+  for (const tier of Object.keys(tierRank)) {
+    rmSync(join(root, tier, gameKey), { recursive: true, force: true })
+  }
 }
 
 export function removeAnalysisCacheEntry(input: AnalysisCacheKeyInput): boolean {

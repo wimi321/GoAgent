@@ -20,6 +20,7 @@ import {
   analysisCacheKey,
   qualityFromAnalysis,
   readAnalysisCache,
+  removeAnalysisCacheForGame,
   writeAnalysisCache,
   type AnalysisCacheKeyInput,
   type AnalysisCacheLookupResult,
@@ -93,6 +94,11 @@ function fileFingerprint(filePath: string, options: { readSmallFiles?: boolean }
   } catch {
     return sha256(filePath)
   }
+}
+
+/** Call before the game leaves the library: the fingerprint reads its index entry and file. */
+export function removeGameAnalysisCache(gameId: string): void {
+  removeAnalysisCacheForGame(gameFingerprint(gameId))
 }
 
 function gameFingerprint(gameId: string): string {

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { cacheDir } from '@main/lib/store'
 import type { TtsAudioFormat, TtsProviderId } from '@main/lib/types'
@@ -45,7 +45,15 @@ export function writeAudio(provider: TtsProviderId, key: string, format: TtsAudi
 }
 
 export function audioDataUrl(path: string, mimeType: string): string {
-  return `data:${mimeType};base64,${readFileSync(path).toString('base64')}`
+  const data = readFileSync(path)
+  // Storage maintenance trims the cache by file time, so every play marks the file as used.
+  try {
+    const now = new Date()
+    utimesSync(path, now, now)
+  } catch {
+    // Best effort only.
+  }
+  return `data:${mimeType};base64,${data.toString('base64')}`
 }
 
 export function makeTtsResultId(): string { return randomUUID() }

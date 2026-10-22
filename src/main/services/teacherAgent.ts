@@ -405,7 +405,7 @@ function saveReport(id: string, title: string, markdown: string, extra: Record<s
   const markdownPath = join(dir, 'report.md')
   const jsonPath = join(dir, 'report.json')
   writeFileSync(markdownPath, redactSensitiveText(markdown), 'utf8')
-  writeFileSync(jsonPath, JSON.stringify(redactSensitiveValue({ title, ...extra }), null, 2), 'utf8')
+  writeFileSync(jsonPath, JSON.stringify(redactSensitiveValue({ title, ...extra })), 'utf8')
   return markdownPath
 }
 
