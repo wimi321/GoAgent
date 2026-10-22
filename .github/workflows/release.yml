@@ -599,6 +599,12 @@ jobs:
             --flavor=nvidia \
             --source-label="${GOAGENT_NVIDIA_KATAGO_ASSET_REPO}@${GOAGENT_NVIDIA_KATAGO_ASSET_RELEASE_TAG}:${GOAGENT_NVIDIA_KATAGO_ASSET_PATTERN}"
 
+      - name: Bundle verified official CUDA NVRTC
+        run: node scripts/prepare_nvidia_nvrtc.mjs
+
+      - name: Check NVIDIA runtime with clean DLL search paths
+        run: node scripts/check_windows_katago_runtime.mjs --runtime-dir=data/katago/bin/win32-x64 --nvidia
+
       - name: Bundle official KataGo Transformer model (NVIDIA)
         shell: bash
         run: |
@@ -663,6 +669,13 @@ jobs:
 
       - name: Verify packaged Codex App Server
         run: node scripts/smoke_codex_packaged_runtime.mjs --root=release --expect=win32-x64
+
+      - name: Check final NVIDIA portable and NSIS payload with clean DLL search paths
+        shell: pwsh
+        run: |
+          $version = node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version"
+          node scripts/check_windows_katago_runtime.mjs --nvidia "--artifact=release/$version/GoAgent-$version-win-x64-nvidia-portable.7z" "--artifact=release/$version/GoAgent-$version-win-x64-nvidia.exe" "--evidence=release/$version/nvidia-clean-katago.json"
+          if ($LASTEXITCODE -ne 0) { throw "Final NVIDIA KataGo runtime check failed" }
 
       - name: Smoke NVIDIA packaged Windows app
         run: node scripts/smoke_windows_packaged_app.mjs --mode=nvidia --require-katago
