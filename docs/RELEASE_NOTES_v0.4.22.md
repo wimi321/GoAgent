@@ -13,6 +13,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 - 将显卡驱动提供的 `OpenCL.dll` 正确识别为 Windows 系统依赖，同时保留其他计算运行库的随包完整性检查。
 - 修复窄窗口下分析按钮被老师面板遮挡的问题；标题栏可换行，棋盘按剩余可用空间缩放。
 - 发布前强制运行测试、类型检查、教学质量与发布文档检查，验证标签和应用版本一致；任一步失败都会阻止发布。
+- 增加 Windows 实际安装验证：逐文件比对安装目录与打包产物的 SHA-256，并检查卸载完成情况；校验失败会阻止发布。
 - 包含此前合入的 NVIDIA NVRTC 运行库修复、启动超时限制、分析界面性能和重试改进。
 
 ### 下载 / Downloads
@@ -35,6 +36,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 - 將顯示卡驅動程式提供的 `OpenCL.dll` 正確識別為 Windows 系統相依項目，同時保留其他計算執行庫的隨包完整性檢查。
 - 修正窄視窗下分析按鈕被老師面板遮擋的問題；標題列可換行，棋盤會依剩餘可用空間縮放。
 - 發布前強制檢查測試、型別、教學品質、發布文件及版本標籤；包含 NVIDIA NVRTC 與分析效能修正。
+- 新增 Windows 實際安裝驗證：逐檔比對安裝目錄與打包產物的 SHA-256，並檢查解除安裝是否完成；驗證失敗會阻止發布。
 
 ## English
 
@@ -45,6 +47,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 - Recognizes driver-provided `OpenCL.dll` as a Windows system dependency while retaining checks for bundled compute libraries.
 - Prevents analysis buttons from being covered by the teacher panel in narrow windows. The header wraps and the board scales to the remaining available space.
 - Gates releases on tests, typechecking, teaching quality, release documentation, and matching tag/package versions. Includes the previously merged NVIDIA NVRTC, startup, analysis performance, and retry fixes.
+- Adds real Windows installer validation: compares every installed file with the packaged payload using SHA-256 and checks uninstall completion. A failed check blocks publication.
 
 ## 日本語
 
@@ -55,6 +58,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 - GPU ドライバーが提供する `OpenCL.dll` を Windows のシステム依存ライブラリとして認識し、その他の計算用ライブラリの同梱チェックは維持します。
 - 狭いウィンドウで分析ボタンが先生パネルに隠れる問題を修正しました。ヘッダーは折り返され、盤面は残りの表示領域に合わせて拡縮されます。
 - テスト、型検査、教材品質、リリース文書とバージョン一致を公開前に検証します。NVIDIA NVRTC と分析性能の修正も含みます。
+- Windows で実際にインストールし、各ファイルの SHA-256 をパッケージ内容と照合して、アンインストールの完了も検査します。検査に失敗した場合は公開を停止します。
 
 ## 한국어
 
@@ -65,6 +69,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 - 그래픽 드라이버가 제공하는 `OpenCL.dll`을 Windows 시스템 의존성으로 인식하며, 다른 연산 라이브러리의 패키지 포함 여부 검사는 유지합니다.
 - 좁은 창에서 분석 버튼이 교사 패널에 가려지는 문제를 수정했습니다. 헤더는 줄바꿈되고 바둑판은 남은 공간에 맞게 크기가 조정됩니다.
 - 배포 전에 테스트, 타입 검사, 교육 품질, 배포 문서와 버전 일치를 확인합니다. NVIDIA NVRTC 및 분석 성능 수정도 포함합니다.
+- Windows에서 실제 설치를 수행하고 설치된 각 파일의 SHA-256을 패키지 내용과 비교하며 제거 완료 여부도 확인합니다. 검사에 실패하면 배포를 차단합니다.
 
 ## ภาษาไทย
 
@@ -75,6 +80,7 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 - ระบุ `OpenCL.dll` ที่ไดรเวอร์การ์ดจอจัดเตรียมไว้เป็นส่วนประกอบของระบบ Windows อย่างถูกต้อง และยังคงตรวจสอบว่าไลบรารีประมวลผลอื่น ๆ รวมอยู่ในแพ็กเกจ
 - แก้ไขปุ่มวิเคราะห์ที่ถูกแผงครูบังเมื่อหน้าต่างแคบ โดยให้ส่วนหัวขึ้นบรรทัดใหม่ได้และปรับขนาดกระดานตามพื้นที่ที่เหลือ
 - ตรวจสอบการทดสอบ ชนิดข้อมูล คุณภาพการสอน เอกสาร และหมายเลขรุ่นก่อนเผยแพร่ พร้อมการแก้ไข NVIDIA NVRTC และประสิทธิภาพการวิเคราะห์
+- เพิ่มการทดสอบติดตั้งจริงบน Windows โดยเปรียบเทียบ SHA-256 ของไฟล์ที่ติดตั้งทุกไฟล์กับแพ็กเกจและตรวจสอบว่าถอนการติดตั้งเสร็จสมบูรณ์ หากตรวจสอบไม่ผ่านจะไม่เผยแพร่
 
 ## Tiếng Việt
 
@@ -85,3 +91,4 @@ The bundled engines remain KataGo 1.17.1 with the official Transformer 10B Balan
 - Nhận diện đúng `OpenCL.dll` do trình điều khiển đồ họa cung cấp là thư viện hệ thống Windows, đồng thời tiếp tục kiểm tra các thư viện tính toán khác được đóng gói kèm ứng dụng.
 - Sửa lỗi bảng giáo viên che nút phân tích khi cửa sổ hẹp. Phần tiêu đề có thể xuống dòng và bàn cờ được điều chỉnh theo không gian còn lại.
 - Kiểm tra bài thử, kiểu dữ liệu, chất lượng giảng dạy, tài liệu phát hành và phiên bản trước khi công bố. Bao gồm các bản sửa NVIDIA NVRTC và hiệu năng phân tích.
+- Bổ sung kiểm tra cài đặt thực tế trên Windows: đối chiếu SHA-256 của từng tệp đã cài với nội dung gói và xác nhận quá trình gỡ cài đặt hoàn tất. Kiểm tra thất bại sẽ chặn phát hành.

@@ -99,3 +99,32 @@ test('the actual publish condition blocks failed, cancelled or skipped gates', (
   assert.equal(canPublish({}, undefined, { 'can-package': 'false' }), false)
   assert.equal(canPublish({}, undefined, { 'can-package-nvidia': 'false' }), false)
 })
+
+test('both Windows installer checks gate artifact upload and preserve failure evidence', () => {
+  for (const [name, suffix, edition] of [
+    ['package', '', 'standard'],
+    ['package-nvidia-windows', '-nvidia', 'nvidia']
+  ]) {
+    const content = job(name)
+    const steps = content.split(/^      - name: /m).slice(1)
+    const checkIndex = steps.findIndex(step => step.includes('./scripts/smoke_windows_installer.ps1'))
+    const uploadIndex = steps.findIndex(step => /^Upload (?:NVIDIA )?packaged artifacts\n/.test(step))
+    assert.ok(checkIndex >= 0 && checkIndex < uploadIndex, `${name} must validate its actual installer before upload`)
+    const check = steps[checkIndex]
+    assert.match(check, /^        shell: pwsh$/m)
+    assert.ok(check.includes(`-Installer "release/$version/GoAgent-$version-win-x64${suffix}.exe"`))
+    assert.ok(check.includes('-ExpectedDir "release/$version/win-unpacked"'))
+    assert.ok(check.includes(`-EvidencePath "release-evidence/windows-${edition}-installer.json"`))
+    assert.match(check, /if \(\$LASTEXITCODE -ne 0\) \{ throw /)
+    assert.doesNotMatch(check, /continue-on-error:|if:.*(?:always\(|failure\()/)
+    if (edition === 'standard') assert.match(check, /^        if: runner.os == 'Windows'$/m)
+
+    const evidence = steps[checkIndex + 1]
+    assert.match(evidence, /^        if: always\(\)/m)
+    assert.match(evidence, /uses: actions\/upload-artifact@v4/)
+    assert.ok(evidence.includes(`path: release-evidence/windows-${edition}-installer.json`))
+    // Uploading evidence after a failure must not make package upload succeed.
+    assert.doesNotMatch(steps[uploadIndex], /^        (?:if:|continue-on-error:)/m)
+    assert.doesNotMatch(content, /^    continue-on-error:/m)
+  }
+})

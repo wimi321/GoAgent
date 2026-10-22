@@ -512,6 +512,22 @@ jobs:
         if: runner.os == 'Windows'
         run: node scripts/smoke_windows_packaged_app.mjs --mode=full --require-katago
 
+      - name: Verify Windows installer integrity and uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version"
+          ./scripts/smoke_windows_installer.ps1 -Installer "release/$version/GoAgent-$version-win-x64.exe" -ExpectedDir "release/$version/win-unpacked" -EvidencePath "release-evidence/windows-standard-installer.json"
+          if ($LASTEXITCODE -ne 0) { throw "Windows installer integrity or uninstall check failed" }
+
+      - name: Upload Windows installer evidence
+        if: always() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoAgent-Windows-installer-evidence
+          path: release-evidence/windows-standard-installer.json
+          if-no-files-found: warn
+
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -715,6 +731,21 @@ jobs:
 
       - name: Smoke NVIDIA packaged Windows app
         run: node scripts/smoke_windows_packaged_app.mjs --mode=nvidia --require-katago
+
+      - name: Verify NVIDIA Windows installer integrity and uninstall
+        shell: pwsh
+        run: |
+          $version = node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version"
+          ./scripts/smoke_windows_installer.ps1 -Installer "release/$version/GoAgent-$version-win-x64-nvidia.exe" -ExpectedDir "release/$version/win-unpacked" -EvidencePath "release-evidence/windows-nvidia-installer.json"
+          if ($LASTEXITCODE -ne 0) { throw "NVIDIA Windows installer integrity or uninstall check failed" }
+
+      - name: Upload NVIDIA Windows installer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoAgent-Windows-NVIDIA-installer-evidence
+          path: release-evidence/windows-nvidia-installer.json
+          if-no-files-found: warn
 
       - name: Upload NVIDIA packaged artifacts
         uses: actions/upload-artifact@v4

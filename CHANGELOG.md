@@ -19,6 +19,7 @@ This project follows semantic versioning once public releases begin.
 ### Changed
 
 - Required automated tests, typechecking, teaching quality, release source policy, multilingual notes, and tag/package version consistency before release packaging can publish.
+- Added real Windows installer validation that compares every installed file with the packaged payload using SHA-256 and checks uninstall completion before publication.
 - Added Windows process and release failure regression coverage.
 
 ## 0.4.21 - Optional ChatGPT Sign-In
