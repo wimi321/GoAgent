@@ -28,11 +28,14 @@ import { buildKataGoTracePacket } from './teacher/katagoTraceTranslator'
 import { classifyMoveAnalysis } from './analysis/classifier'
 import { buildPvConfidenceReport } from './analysis/pvConfidence'
 import { createKataGoSearchProgressTracker, onlyKataGoSearchProgressFor } from './analysis/searchTelemetry'
+import { readRootOwnership } from './analysis/ownership'
 
 interface KataGoResponse {
   id?: string
   error?: string
   isDuringSearch?: boolean
+  ownership?: number[]
+  ownershipStdev?: number[]
   rootInfo?: {
     currentPlayer?: GameMove['color']
     visits?: number
@@ -274,7 +277,7 @@ function responseSideToMove(response: KataGoResponse, fallback: GameMove['color'
     : fallback
 }
 
-function root(response: KataGoResponse, sideToMove: GameMove['color']): { winrate: number; scoreLead: number; ownership?: number[]; ownershipStdev?: number[] } {
+function root(response: KataGoResponse, sideToMove: GameMove['color'], boardSize: number): { winrate: number; scoreLead: number; ownership?: number[]; ownershipStdev?: number[] } {
   if (!response.rootInfo) {
     throw new Error(`KataGo 没有返回 rootInfo${response.error ? `: ${response.error}` : ''}`)
   }
@@ -284,8 +287,7 @@ function root(response: KataGoResponse, sideToMove: GameMove['color']): { winrat
   return {
     winrate: blackWinrateFromSideToMove(rawWinrate, actualSideToMove),
     scoreLead: blackScoreLeadFromSideToMove(rawScoreLead, actualSideToMove),
-    ownership: Array.isArray(response.rootInfo.ownership) ? response.rootInfo.ownership.map(Number) : undefined,
-    ownershipStdev: Array.isArray(response.rootInfo.ownershipStdev) ? response.rootInfo.ownershipStdev.map(Number) : undefined
+    ...readRootOwnership(response, boardSize)
   }
 }
 
@@ -981,8 +983,8 @@ function buildMoveAnalysis(
   actualResponse?: KataGoResponse,
   trialContext?: TrialBranchSummary
 ): KataGoMoveAnalysis {
-  const beforeRoot = root(beforeResponse, beforeSideToMove)
-  const afterRoot = root(afterResponse, afterSideToMove)
+  const beforeRoot = root(beforeResponse, beforeSideToMove, boardSize)
+  const afterRoot = root(afterResponse, afterSideToMove, boardSize)
   const searchMoves = candidates(beforeResponse, beforeSideToMove)
   const forcedActual = forcedPlayedCandidate(actualResponse, currentMove)
   const topMoves = displayCandidates(beforeResponse, beforeSideToMove, currentMove, forcedActual)
@@ -1511,7 +1513,7 @@ export async function analyzeGameQuick(
       }
       try {
         const sideToMove = sideToMoveAt(moves, position)
-        roots.set(position, root(response, sideToMove))
+        roots.set(position, root(response, sideToMove, record.boardSize))
         topMovesByPosition.set(position, candidates(response, sideToMove).slice(0, 8))
         emitIfReady(position)
         emitIfReady(position + 1)
@@ -1540,7 +1542,7 @@ export async function analyzeGameQuick(
     }
     if (response && !roots.has(moveNumber)) {
       try {
-        roots.set(moveNumber, root(response, sideToMoveAt(moves, moveNumber)))
+        roots.set(moveNumber, root(response, sideToMoveAt(moves, moveNumber), record.boardSize))
       } catch {
         // Keep the quick graph resilient: one invalid branch point should not block the rest.
       }

@@ -70,7 +70,7 @@ export function extractKataGoShapeFeatures(input: KataGoShapeFeatureInput): Kata
       score: 18 + Math.min(8, scoreLoss * 2),
       evidence: [`actual/best distance=${localDistance}`, `scoreLoss=${scoreLoss.toFixed(1)}`, `phase=${gamePhase}`],
       counterEvidence: [],
-      recognition: '实战手和首选手在同一局部，KataGo 认为差别主要来自棋形、气数、先后手或次序。',
+      recognition: '实战手和首选手在同一局部且评价不同。需要比较变化，才能判断差别来自气数、连接、先后手还是次序；距离和目差本身不能确定原因。',
       wrongThinking: '只看这里都能下，没有比较哪一手更补形、更先手或更限制对方。',
       correctThinking: '同一区域的两个候选先比较气数、连接、断点、眼形和对方最强应手。',
       drillPrompt: '遮住 AI 首选，只在这个局部列两个候选，判断哪手更先手、形更完整。',
@@ -78,7 +78,7 @@ export function extractKataGoShapeFeatures(input: KataGoShapeFeatureInput): Kata
     })
   }
 
-  if (scoreLoss >= 1.5 && localDistance >= 6) {
+  if (actualPoint && bestPoint && scoreLoss >= 1.5 && localDistance >= 6) {
     features.push({
       id: 'katago-global-vs-local-shape-choice',
       shapeType: 'local_vs_global_shape',
@@ -102,7 +102,7 @@ export function extractKataGoShapeFeatures(input: KataGoShapeFeatureInput): Kata
       score: 12 + Math.min(6, input.principalVariation?.length ?? 0),
       evidence: [`pvLength=${input.principalVariation?.length ?? 0}`, `scoreLoss=${scoreLoss.toFixed(1)}`],
       counterEvidence: [],
-      recognition: 'KataGo 给出了较长 PV，说明这个棋形判断要结合后续应手，不宜只讲第一感。',
+      recognition: '已提供后续候选变化，可摆出对应分支比较。PV 的长度本身不能证明棋形、强制性或搜索可靠程度。',
       wrongThinking: '只看推荐点，不摆对方最强应手，容易把手筋或补形讲错。',
       correctThinking: '讲棋形时至少沿 PV 摆到双方各 2-3 手，确认收益来自哪里。',
       drillPrompt: '复盘时先摆首选 PV 前 6 手，再用一句话说出这条线的收益。',

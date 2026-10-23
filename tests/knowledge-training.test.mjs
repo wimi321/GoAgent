@@ -103,7 +103,7 @@ test('matching engine feeds knowledge matches to the agent without forcing UI te
   assert.doesNotMatch(card, /关联训练题/)
 })
 
-test('matching engine ranks exact joseki, life-death, and tesuji matches ahead of broad patterns', () => {
+test('matching engine ranks relevant training analogies without claiming keyword-only exact matches', () => {
   const fixture = join(repoRoot, 'tests', 'fixtures', 'knowledge-match-engine-smoke.ts')
   const output = execFileSync(process.execPath, [findJitiCli(), fixture], {
     cwd: repoRoot,
@@ -112,12 +112,12 @@ test('matching engine ranks exact joseki, life-death, and tesuji matches ahead o
   const result = JSON.parse(output)
 
   assert.equal(result.star33.matches[0].matchType, 'joseki')
-  assert.equal(result.star33.matches[0].confidence, 'exact')
+  assert.equal(result.star33.matches[0].confidence, 'partial')
   assert.match(result.star33.matches[0].title, /星位点三三/)
   assert.deepEqual(result.star33.recommendedProblems, [])
 
   assert.equal(result.trueFalseEye.matches[0].matchType, 'life_death')
-  assert.equal(result.trueFalseEye.matches[0].confidence, 'exact')
+  assert.equal(result.trueFalseEye.matches[0].confidence, 'partial')
   assert.match(result.trueFalseEye.matches[0].title, /真眼假眼/)
   assert.equal(result.trueFalseEye.recommendedProblems[0].problemType, 'life_death')
   assert.match(result.trueFalseEye.recommendedProblems[0].title, /真眼假眼/)
@@ -125,7 +125,7 @@ test('matching engine ranks exact joseki, life-death, and tesuji matches ahead o
   const firstTesujiIndex = result.snapback.matches.findIndex((match) => match.matchType === 'tesuji')
   const firstJosekiIndex = result.snapback.matches.findIndex((match) => match.matchType === 'joseki')
   assert.equal(firstTesujiIndex, 0)
-  assert.equal(result.snapback.matches[0].confidence, 'exact')
+  assert.equal(result.snapback.matches[0].confidence, 'partial')
   assert.match(result.snapback.matches[0].title, /倒扑/)
   assert.ok(firstJosekiIndex === -1 || firstJosekiIndex > firstTesujiIndex)
   assert.equal(result.snapback.recommendedProblems[0].problemType, 'tesuji')

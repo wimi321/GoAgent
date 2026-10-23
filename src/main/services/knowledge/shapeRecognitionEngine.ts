@@ -87,20 +87,33 @@ function safeWording(confidence: ShapeRecognitionConfidence, counterEvidence: st
 }
 
 function fromLocalMatch(match: ReturnType<typeof findLocalPatternMatches>[number]): RecognizedShape {
+  const observations: Record<string, string> = {
+    cut_point: '局部存在需要检查连接与切断的几何关系；是否真的可断，需验证双方应手。',
+    empty_triangle: '局部命中空三角的几何模式；形状本身不能证明本手低效或错误。',
+    bamboo_joint: '局部命中竹节的几何模式；连接是否稳固仍需检查断点、气数及对方应手。',
+    false_eye_risk: '局部具备检查眼位的几何条件；需要核对对角、断点及周边棋块，尚不能确定是假眼。',
+    net: '局部具备检查枷的包围模式；尚未验证敌棋逃路，不能确定已经封住。',
+    throw_in_snapback: '局部具备检查扑入或倒扑的几何条件；必须验证扑、提、吃回的合法变化。',
+    semeai_liberty_race: '敌我棋块邻近且有局部空点，需要分别数气；邻近本身不能确定双方正在对杀。',
+    ko_shape: '局部具备检查劫形的模式；必须验证提子、提回条件和劫禁，尚不能确定形成劫。'
+  }
+  // Pattern scores are retrieval similarity, not tactical proof or calibrated confidence.
+  const confidence = match.confidence === 'strong' ? 'medium' : match.confidence
+  const counterEvidence = [...match.counterEvidence, '局部模式未验证合法后续，不能单独证明死活、手筋或本手目的。']
   return {
     id: `local-pattern:${match.card.id}:${match.anchor}`,
     title: match.card.title,
     shapeType: match.card.shapeType,
     category: match.card.category,
-    confidence: match.confidence,
+    confidence,
     score: match.score,
     evidence: match.evidence,
-    counterEvidence: match.counterEvidence,
-    safeWording: safeWording(match.confidence, match.counterEvidence),
+    counterEvidence,
+    safeWording: '只作为训练类比',
     relatedMoves: [match.anchor],
-    recognition: match.card.teaching.recognition,
-    wrongThinking: match.card.teaching.wrongThinking,
-    correctThinking: match.card.teaching.correctThinking,
+    recognition: observations[match.card.shapeType] ?? `局部命中${match.card.title}的相似模式；这不是已验证的战术结论。`,
+    wrongThinking: '把局部模式相似度当成已证明的手筋、死活或这手棋的目的。',
+    correctThinking: `检查提示：${match.card.teaching.correctThinking} 本局面仍需独立验证，不能把题库答案直接套用。`,
     drillPrompt: match.card.teaching.drillPrompt,
     sourceRefs: match.card.sourceRefs,
     sourceQuality: match.card.sourceQuality
@@ -126,13 +139,14 @@ function uniqueShapes(shapes: RecognizedShape[]): RecognizedShape[] {
 export function recognizeShapes(input: ShapeRecognitionInput): RecognizedShape[] {
   const anchors = [
     input.playedMove,
-    ...(input.candidateMoves ?? []).slice(0, 6),
-    ...(input.principalVariation ?? []).slice(0, 6)
+    ...(input.candidateMoves ?? []).slice(0, 6)
   ]
   const localMatches = findLocalPatternMatches(loadShapePatternCards(), {
     boardSize: input.boardSize,
     boardSnapshot: input.boardSnapshot,
     localWindows: input.localWindows,
+    playedMove: input.playedMove,
+    candidateMoves: input.candidateMoves,
     anchors,
     playerColor: input.playerColor,
     phase: phase(input)
@@ -174,6 +188,7 @@ export function recognizedShapesToKnowledgePackets(shapes: RecognizedShape[]): K
       selectedBody: [
         `棋形识别: ${shape.recognition}`,
         `安全措辞: ${shape.safeWording}`,
+        '模式分数是检索排序，不是围棋语义准确率；未验证的战术模式只能作检查提示。',
         `识别依据: ${shape.evidence.join('；') || '无'}`,
         shape.counterEvidence.length ? `反证/降置信: ${shape.counterEvidence.join('；')}` : '',
         `常见误区: ${shape.wrongThinking}`,

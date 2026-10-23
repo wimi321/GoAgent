@@ -1,0 +1,7 @@
+# Python 3.11+; tested locally with CPU PyTorch, no CUDA requirement.
+# Install torch with the platform-appropriate CPU wheel when no GPU training is desired.
+# Standard-library-only KataGo collector requires no additional Python packages.
+numpy==2.4.1
+torch==2.7.1
+scikit-learn==1.7.0
+sgfmill==1.1.0
