@@ -93,6 +93,7 @@ export interface LlmConnectionProfile {
   model: string
   endpoint?: string
   executablePath?: string
+  preferSystemCodex?: boolean
   enabled: boolean
   setupStatus?: LlmSetupStatus
   lastVerifiedAt?: string

@@ -60,8 +60,8 @@ export class CodexAppServerAgentRuntime implements AgentRuntimeAdapter {
 
   private readonly client: CodexAppServerClient
 
-  constructor(executablePath = '') {
-    this.client = new CodexAppServerClient(executablePath)
+  constructor(executablePath = '', preferSystemCodex = false) {
+    this.client = new CodexAppServerClient(executablePath, preferSystemCodex)
   }
 
   connectionState(connectionId: string): Promise<LlmConnectionState> {
