@@ -450,6 +450,7 @@ function normalizeLlmConnections(settings: AppSettings): AppSettings {
     authMode: 'managed-login',
     model: chatgpt?.model || '',
     executablePath: chatgpt?.executablePath,
+    preferSystemCodex: chatgpt?.preferSystemCodex === true,
     enabled: chatgpt?.enabled !== false,
     setupStatus: chatgpt?.setupStatus ?? (chatGptWasActive ? settings.llmSetupStatus : 'unconfigured'),
     lastVerifiedAt: chatgpt?.lastVerifiedAt ?? (chatGptWasActive ? settings.llmLastVerifiedAt : '')
@@ -560,6 +561,7 @@ export function setSettings(next: Partial<AppSettings>): AppSettings {
       previous?.endpoint !== connection.endpoint ||
       previous?.model !== connection.model ||
       previous?.executablePath !== connection.executablePath ||
+      (previous?.preferSystemCodex === true) !== (connection.preferSystemCodex === true) ||
       (connection.id === targetConnectionId && apiKeyChanged)
     if (connection.id !== targetConnectionId) return connection
     if (Object.prototype.hasOwnProperty.call(next, 'llmSetupStatus')) {

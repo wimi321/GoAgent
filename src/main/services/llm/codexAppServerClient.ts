@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, sep } from 'node:path'
 import { createInterface } from 'node:readline'
 import { appHome } from '@main/lib/store'
+import { findCodexOnPath } from './codexPath'
 import type {
   LlmConnectionState,
   LlmLoginStartResult,
@@ -124,11 +125,15 @@ function packagedCodexExecutable(): string | null {
   return existsSync(executable) ? executable : null
 }
 
-export function resolveCodexExecutable(configuredPath = ''): string {
+export function resolveCodexExecutable(configuredPath = '', preferSystemCodex = false): string {
   const explicit = configuredPath.trim() || process.env.GOAGENT_CODEX_BIN?.trim()
   if (explicit) {
     if (!existsSync(explicit)) throw new Error(`找不到指定的 ChatGPT 运行组件：${explicit}`)
     return explicit
+  }
+  if (preferSystemCodex) {
+    const fromPath = findCodexOnPath()
+    if (fromPath) return fromPath
   }
   const packaged = packagedCodexExecutable()
   if (packaged) return packaged
@@ -243,7 +248,7 @@ export class CodexAppServerClient {
   private activeTurns = new Map<string, string>()
   private stderrTail = ''
 
-  constructor(private executablePath = '') {}
+  constructor(private executablePath = '', private preferSystemCodex = false) {}
 
   private async ensureStarted(): Promise<void> {
     if (this.started) return this.started
@@ -255,7 +260,7 @@ export class CodexAppServerClient {
   }
 
   private async startProcess(): Promise<void> {
-    const command = resolveCodexExecutable(this.executablePath)
+    const command = resolveCodexExecutable(this.executablePath, this.preferSystemCodex)
     this.stderrTail = ''
     mkdirSync(CODEX_HOME, { recursive: true })
     const configOverrides = [

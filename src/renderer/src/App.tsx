@@ -5263,6 +5263,23 @@ function SettingsDrawer({
               )}
             </div>
             <label>
+              <span className="settings-inline-toggle">
+                <input
+                  type="checkbox"
+                  checked={activeLlmConnection?.preferSystemCodex === true}
+                  onChange={(event) => autoSave({
+                    llmConnections: dashboard.settings.llmConnections.map((connection) =>
+                      connection.id === dashboard.settings.activeLlmConnectionId
+                        ? { ...connection, preferSystemCodex: event.target.checked }
+                        : connection
+                    )
+                  })}
+                />
+                {t('chatGptPreferSystemCodex')}
+              </span>
+              <small>{t('chatGptPreferSystemCodexHelp')}</small>
+            </label>
+            <label>
               {t('chatGptRuntimePath')}
               <input
                 className="llm-config-input"

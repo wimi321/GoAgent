@@ -16,6 +16,7 @@ import { OpenAICompatibleAgentRuntime } from './openAICompatibleAgentRuntime'
 const openAICompatibleRuntime = new OpenAICompatibleAgentRuntime()
 let codexRuntime: CodexAppServerAgentRuntime | null = null
 let codexExecutablePath = ''
+let codexPreferSystem = false
 
 const CODEX_DOMAIN_TOOL_NAMES = new Set([
   'library_findGames',
@@ -47,10 +48,12 @@ export function toolsForLlmConnection(profile: LlmConnectionProfile, tools: Chat
 
 function codexRuntimeFor(profile: LlmConnectionProfile): CodexAppServerAgentRuntime {
   const executablePath = profile.executablePath?.trim() || ''
-  if (!codexRuntime || executablePath !== codexExecutablePath) {
+  const preferSystemCodex = profile.preferSystemCodex === true
+  if (!codexRuntime || executablePath !== codexExecutablePath || preferSystemCodex !== codexPreferSystem) {
     codexRuntime?.dispose()
     codexExecutablePath = executablePath
-    codexRuntime = new CodexAppServerAgentRuntime(executablePath)
+    codexPreferSystem = preferSystemCodex
+    codexRuntime = new CodexAppServerAgentRuntime(executablePath, preferSystemCodex)
   }
   return codexRuntime
 }
